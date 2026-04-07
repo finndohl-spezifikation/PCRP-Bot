@@ -1,5 +1,6 @@
-eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+eco = load_economy()
+user_data = get_user(eco, interaction.user.id)
+
 
     if user_data["cash"] < item["price"]:
         await interaction.response.send_message(
