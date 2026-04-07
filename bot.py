@@ -85,7 +85,8 @@ VULGAR_WORDS = [
 spam_tracker  = {}
 spam_warned   = set()
 ticket_data   = {}
-counting_state = {"count": 0, "last_user_id": None}
+counting_state    = {"count": 0, "last_user_id": None}
+counting_handled  = set()  # verhindert doppelte Verarbeitung
 
 FEATURES = {
     "Discord Link Schutz":         True,
@@ -713,9 +714,15 @@ async def on_ready():
     await send_bot_status()
     try:
         guild_obj = discord.Object(id=GUILD_ID)
+        # 1. Zuerst globale Commands in Guild-Tree kopieren
         bot.tree.copy_global_to(guild=guild_obj)
+        # 2. Guild-spezifisch registrieren (sofort aktiv)
         synced = await bot.tree.sync(guild=guild_obj)
         print(f"Slash Commands synced (Guild): {len(synced)}")
+        # 3. Danach globale Commands leeren und von Discord entfernen
+        bot.tree.clear_commands(guild=None)
+        await bot.tree.sync()
+        print("Globale Commands geleert (keine Duplikate)")
     except Exception as e:
         print(f"Slash Command sync fehlgeschlagen: {e}")
 
@@ -728,7 +735,7 @@ async def auto_ticket_setup():
         already_posted = False
         try:
             async for msg in channel.history(limit=50):
-                if msg.author == guild.me and msg.embeds:
+                if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Ticket erstellen" in emb.title:
                             already_posted = True
@@ -772,7 +779,7 @@ async def auto_lohnliste_setup():
         already_posted = False
         try:
             async for msg in channel.history(limit=20):
-                if msg.author == guild.me and msg.embeds:
+                if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Lohnliste" in emb.title:
                             already_posted = True
@@ -848,6 +855,14 @@ async def on_message(message):
 
 
 async def handle_counting(message):
+    if message.id in counting_handled:
+        return
+    counting_handled.add(message.id)
+    if len(counting_handled) > 200:
+        oldest = list(counting_handled)[:100]
+        for mid in oldest:
+            counting_handled.discard(mid)
+
     content = message.content.strip()
     try:
         number = int(content)
@@ -886,7 +901,6 @@ async def handle_counting(message):
         counting_state["last_user_id"] = message.author.id
         await message.add_reaction("✅")
     else:
-        old_count = counting_state["count"]
         counting_state["count"] = 0
         counting_state["last_user_id"] = None
         try:
@@ -1430,15 +1444,15 @@ async def lohn_abholen(interaction: discord.Interaction):
             )
             return
 
-    user_data["cash"]      += total_wage
+    user_data["bank"]      += total_wage
     user_data["last_wage"]  = now.isoformat()
     save_economy(eco)
 
     embed = discord.Embed(
         title="💵 Lohn abgeholt!",
         description=(
-            f"Du hast **{total_wage:,} 💵** als Bargeld erhalten.\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵"
+            f"Du hast **{total_wage:,} 💵** auf dein Konto erhalten.\n"
+            f"**Kontostand:** {user_data['bank']:,} 💵"
         ),
         color=LOG_COLOR,
         timestamp=now
