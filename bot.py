@@ -113,6 +113,59 @@ async def send_bot_status():
         except Exception:
             pass
 
+async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=None, reason="Regelverstoß"):
+    """Timeout erteilen + alle Rollen entfernen + nur Warteraum sichtbar machen."""
+
+    # 1. Discord Timeout
+    timeout_ok = False
+    if duration_h:
+        timeout_until = datetime.now(timezone.utc) + timedelta(hours=duration_h)
+    else:
+        timeout_until = datetime.now(timezone.utc) + timedelta(minutes=duration_m)
+    try:
+        await member.timeout(timeout_until, reason=reason)
+        timeout_ok = True
+    except Exception as e:
+        await log_bot_error(
+            f"Timeout fehlgeschlagen ({reason})",
+            f"Benutzer: {member} ({member.id})\nFehler: {e}\n\n"
+            f"Mögliche Ursachen:\n"
+            f"- Bot hat keine 'Mitglieder moderieren' Berechtigung\n"
+            f"- Bot-Rolle ist niedriger als die Ziel-Rolle",
+            guild
+        )
+
+    # 2. Alle Rollen entfernen (außer @everyone und Bot-verwaltete Rollen)
+    roles_removed = []
+    try:
+        roles_to_remove = [
+            r for r in member.roles
+            if r != guild.default_role and not r.managed
+        ]
+        if roles_to_remove:
+            await member.remove_roles(*roles_to_remove, reason=f"Timeout: {reason}")
+            roles_removed = roles_to_remove
+    except Exception as e:
+        await log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
+
+    # 3. Nur Warteraum-Channel sichtbar machen
+    warteraum = discord.utils.find(
+        lambda c: "warteraum" in c.name.lower() and isinstance(c, discord.TextChannel),
+        guild.channels
+    )
+    if warteraum:
+        try:
+            await warteraum.set_permissions(
+                member,
+                view_channel=True,
+                send_messages=False,
+                read_message_history=True
+            )
+        except Exception as e:
+            await log_bot_error("Warteraum-Berechtigung fehlgeschlagen", str(e), guild)
+
+    return timeout_ok, roles_removed, warteraum
+
 @bot.event
 async def on_ready():
     global bot_start_time, invite_cache
@@ -169,20 +222,9 @@ async def handle_discord_invite(message):
     except Exception as e:
         await log_bot_error("Nachricht löschen (Discord Link)", str(e), guild)
 
-    timeout_until = datetime.now(timezone.utc) + timedelta(hours=300)
-    timeout_ok = False
-    try:
-        await member.timeout(timeout_until, reason="Fremden Discord-Link gesendet")
-        timeout_ok = True
-    except Exception as e:
-        await log_bot_error(
-            "Timeout fehlgeschlagen (Discord Link)",
-            f"Benutzer: {member} ({member.id})\nFehler: {e}\n\n"
-            f"Mögliche Ursachen:\n"
-            f"- Bot hat keine 'Mitglieder moderieren' Berechtigung\n"
-            f"- Bot-Rolle ist niedriger als die Ziel-Rolle",
-            guild
-        )
+    timeout_ok, roles_removed, warteraum = await apply_timeout_restrictions(
+        member, guild, duration_h=300, reason="Fremden Discord-Link gesendet"
+    )
 
     try:
         embed = discord.Embed(
@@ -198,12 +240,16 @@ async def handle_discord_invite(message):
 
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        status = "✅ Timeout erteilt (300h)" if timeout_ok else "❌ Timeout fehlgeschlagen — Bot-Berechtigung prüfen!"
+        timeout_status   = "✅ Timeout erteilt (300h)" if timeout_ok else "❌ Timeout fehlgeschlagen — Bot-Berechtigung prüfen!"
+        rollen_status    = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
+        warteraum_status = f"✅ Nur {warteraum.mention} sichtbar" if warteraum else "❌ Warteraum-Channel nicht gefunden"
         embed = discord.Embed(
             title="🔨 Moderation — Timeout",
             description=(
                 f"**Benutzer:** {member.mention} (`{member}`)\n"
-                f"**Aktion:** {status}\n"
+                f"**Timeout:** {timeout_status}\n"
+                f"**Rollen:** {rollen_status}\n"
+                f"**Channel:** {warteraum_status}\n"
                 f"**Grund:** Fremden Discord-Link gesendet\n"
                 f"**Kanal:** {message.channel.mention}\n"
                 f"**Nachricht:** {message.content[:300]}"
@@ -264,6 +310,7 @@ async def check_spam(message):
     spam_tracker[user_id] = [t for t in spam_tracker[user_id] if (now - t).total_seconds() < 5]
     spam_tracker[user_id].append(now)
     count = len(spam_tracker[user_id])
+
     if count >= 5 and user_id in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.discard(user_id)
@@ -271,18 +318,9 @@ async def check_spam(message):
             await message.channel.purge(limit=50, check=lambda m: m.author.id == user_id)
         except Exception:
             pass
-        timeout_until = datetime.now(timezone.utc) + timedelta(minutes=10)
-        try:
-            await message.author.timeout(timeout_until, reason="Wiederholtes Spammen")
-        except Exception as e:
-            await log_bot_error(
-                "Timeout fehlgeschlagen (Spam)",
-                f"Benutzer: {message.author} ({message.author.id})\nFehler: {e}\n\n"
-                f"Mögliche Ursachen:\n"
-                f"- Bot hat keine 'Mitglieder moderieren' Berechtigung\n"
-                f"- Bot-Rolle ist niedriger als die Ziel-Rolle",
-                message.guild
-            )
+        timeout_ok, roles_removed, warteraum = await apply_timeout_restrictions(
+            message.author, message.guild, duration_m=10, reason="Wiederholtes Spammen"
+        )
         try:
             embed = discord.Embed(
                 description="> Du wurdest aufgrund von wiederholtem Spammen für **10 Minuten** stummgeschaltet.",
@@ -293,17 +331,23 @@ async def check_spam(message):
             pass
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
+            timeout_status   = "✅ Timeout erteilt (10min)" if timeout_ok else "❌ Timeout fehlgeschlagen — Bot-Berechtigung prüfen!"
+            rollen_status    = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
+            warteraum_status = f"✅ Nur {warteraum.mention} sichtbar" if warteraum else "❌ Warteraum-Channel nicht gefunden"
             embed = discord.Embed(
                 title="🔨 Moderation — Timeout (Spam)",
                 description=(
                     f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
-                    f"**Aktion:** 10 Minuten Timeout\n"
+                    f"**Timeout:** {timeout_status}\n"
+                    f"**Rollen:** {rollen_status}\n"
+                    f"**Channel:** {warteraum_status}\n"
                     f"**Grund:** Wiederholtes Spammen"
                 ),
                 color=MOD_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
             await log_ch.send(embed=embed)
+
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.add(user_id)
