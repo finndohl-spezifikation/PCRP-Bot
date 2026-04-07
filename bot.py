@@ -1,4 +1,4 @@
-  eco       = load_economy()
+eco       = load_economy()
     user_data = get_user(eco, interaction.user.id)
 
     if user_data["cash"] < item["price"]:
