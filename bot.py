@@ -1,20 +1,62 @@
 import os
 import discord
 from discord.ext import commands
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import re
+import asyncio
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.moderation = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 bot_start_time = None
+invite_cache = {}
+
+ADMIN_ROLE_ID = 1490855702225485936
+MOD_ROLE_ID = 1490855703370534965
+WHITELIST_ROLE_ID = 1490855725516460234
+
+MOD_LOG_CHANNEL_ID = 1490878132230819840
+MESSAGE_LOG_CHANNEL_ID = 1490878135837917234
+MEMES_CHANNEL_ID = 1490882578276810924
+ROLE_LOG_CHANNEL_ID = 1490878137385619598
+MEMBER_LOG_CHANNEL_ID = 1490878134847930368
+JOIN_LOG_CHANNEL_ID = 1490878153391083683
+GUILD_ID = 1490839259907887239
+TICKET_CHANNEL_ID = 1490855943230066818
+
+DISCORD_INVITE_RE = re.compile(
+    r'(https?://)?(www\.)?(discord\.(gg|io|me|li)|discordapp\.com/invite|discord\.com/invite)/\S+',
+    re.IGNORECASE
+)
+URL_RE = re.compile(r'https?://\S+', re.IGNORECASE)
+
+spam_tracker = {}
+spam_warned = set()
+
 
 @bot.event
 async def on_ready():
-    global bot_start_time
+    global bot_start_time, invite_cache
     bot_start_time = datetime.now(timezone.utc)
     print(f"Bot ist online als {bot.user} (ID: {bot.user.id})")
+    for guild in bot.guilds:
+        try:
+            invites = await guild.fetch_invites()
+            invite_cache[guild.id] = {inv.code: inv for inv in invites}
+        except Exception:
+            pass
+
+
+def is_admin(member):
+    return any(r.id == ADMIN_ROLE_ID for r in member.roles)
+
+
+def is_mod_or_admin(member):
+    return any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in member.roles)
+
 
 @bot.event
 async def on_message(message):
@@ -22,33 +64,421 @@ async def on_message(message):
         return
     if bot_start_time and message.created_at < bot_start_time:
         return
+
+    member = message.author
+
+    if not is_admin(member) and DISCORD_INVITE_RE.search(message.content):
+        await handle_discord_invite(message)
+        return
+
+    if not is_mod_or_admin(member) and message.channel.id != MEMES_CHANNEL_ID:
+        if URL_RE.search(message.content):
+            await handle_link_outside_memes(message)
+            return
+
+    await check_spam(message)
     await bot.process_commands(message)
+
+
+async def handle_discord_invite(message):
+    member = message.author
+    guild = message.guild
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    timeout_until = datetime.now(timezone.utc) + timedelta(hours=300)
+    try:
+        await member.timeout(timeout_until, reason="Fremden Discord-Link gesendet")
+    except Exception:
+        pass
+
+    try:
+        embed = discord.Embed(
+            description=(
+                "> Du hast gegen unsere Server Regeln verstoßen\n\n"
+                "> Bitte wende dich an den Support"
+            ),
+            color=0xFF0000
+        )
+        await member.send(content=member.mention, embed=embed)
+    except Exception:
+        pass
+
+    log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
+    if log_ch:
+        embed = discord.Embed(
+            title="🔨 Moderation — Timeout",
+            description=(
+                f"**Benutzer:** {member.mention} (`{member}`)\n"
+                f"**Aktion:** 300 Stunden Timeout\n"
+                f"**Grund:** Fremden Discord-Link gesendet\n"
+                f"**Kanal:** {message.channel.mention}\n"
+                f"**Nachricht:** {message.content[:300]}"
+            ),
+            color=0xFF0000,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await log_ch.send(embed=embed)
+
+
+async def handle_link_outside_memes(message):
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    try:
+        await message.channel.send(
+            f"{message.author.mention} Bitte sende Links ausschließlich im <#{MEMES_CHANNEL_ID}> Kanal",
+            delete_after=6
+        )
+    except Exception:
+        pass
+
+
+async def check_spam(message):
+    user_id = message.author.id
+    now = datetime.now(timezone.utc)
+
+    if user_id not in spam_tracker:
+        spam_tracker[user_id] = []
+
+    spam_tracker[user_id] = [t for t in spam_tracker[user_id] if (now - t).total_seconds() < 5]
+    spam_tracker[user_id].append(now)
+    count = len(spam_tracker[user_id])
+
+    if count >= 5 and user_id in spam_warned:
+        spam_tracker[user_id] = []
+        spam_warned.discard(user_id)
+
+        try:
+            await message.channel.purge(limit=50, check=lambda m: m.author.id == user_id)
+        except Exception:
+            pass
+
+        timeout_until = datetime.now(timezone.utc) + timedelta(minutes=10)
+        try:
+            await message.author.timeout(timeout_until, reason="Wiederholtes Spammen")
+        except Exception:
+            pass
+
+        try:
+            embed = discord.Embed(
+                description="> Du wurdest aufgrund von wiederholtem Spammen für **10 Minuten** stummgeschaltet.",
+                color=0xFF0000
+            )
+            await message.author.send(content=message.author.mention, embed=embed)
+        except Exception:
+            pass
+
+        log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
+        if log_ch:
+            embed = discord.Embed(
+                title="🔨 Moderation — Timeout (Spam)",
+                description=(
+                    f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
+                    f"**Aktion:** 10 Minuten Timeout\n"
+                    f"**Grund:** Wiederholtes Spammen"
+                ),
+                color=0xFF0000,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await log_ch.send(embed=embed)
+
+    elif count >= 5 and user_id not in spam_warned:
+        spam_tracker[user_id] = []
+        spam_warned.add(user_id)
+
+        try:
+            await message.channel.purge(limit=50, check=lambda m: m.author.id == user_id)
+        except Exception:
+            pass
+
+        try:
+            embed = discord.Embed(
+                description=(
+                    "> **Verwarnung:** Bitte vermeide es zu spammen.\n\n"
+                    "> Bei Wiederholung erhältst du einen 10 Minuten Timeout."
+                ),
+                color=0xFF0000
+            )
+            await message.author.send(content=message.author.mention, embed=embed)
+        except Exception:
+            pass
+
+
+@bot.event
+async def on_message_delete(message):
+    if not message.guild or message.author.bot:
+        return
+
+    log_ch = message.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
+    if not log_ch:
+        return
+
+    embed = discord.Embed(
+        title="🗑️ Nachricht gelöscht",
+        description=(
+            f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
+            f"**Kanal:** {message.channel.mention}\n"
+            f"**Inhalt:** {message.content[:500] if message.content else '*Kein Text*'}"
+        ),
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
+
+
+@bot.event
+async def on_message_edit(before, after):
+    if not before.guild or before.author.bot:
+        return
+    if before.content == after.content:
+        return
+
+    log_ch = before.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
+    if not log_ch:
+        return
+
+    embed = discord.Embed(
+        title="✏️ Nachricht bearbeitet",
+        description=(
+            f"**Benutzer:** {before.author.mention} (`{before.author}`)\n"
+            f"**Kanal:** {before.channel.mention}\n"
+            f"**Vorher:** {before.content[:250] if before.content else '*Kein Text*'}\n"
+            f"**Nachher:** {after.content[:250] if after.content else '*Kein Text*'}"
+        ),
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
+
+
+@bot.event
+async def on_member_update(before, after):
+    if before.roles == after.roles:
+        return
+
+    guild = after.guild
+    log_ch = guild.get_channel(ROLE_LOG_CHANNEL_ID)
+    if not log_ch:
+        return
+
+    added = [r for r in after.roles if r not in before.roles]
+    removed = [r for r in before.roles if r not in after.roles]
+
+    if not added and not removed:
+        return
+
+    description = f"**Benutzer:** {after.mention} (`{after}`)\n"
+    if added:
+        description += f"**Hinzugefügt:** {', '.join(r.mention for r in added)}\n"
+    if removed:
+        description += f"**Entfernt:** {', '.join(r.mention for r in removed)}\n"
+
+    try:
+        async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.member_role_update):
+            if entry.target.id == after.id:
+                description += f"**Geändert von:** {entry.user.mention} (`{entry.user}`)"
+                break
+    except Exception:
+        pass
+
+    embed = discord.Embed(
+        title="🎭 Rollen geändert",
+        description=description,
+        color=0xFFA500,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
+
+
+@bot.event
+async def on_member_ban(guild, user):
+    log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
+    if not log_ch:
+        return
+
+    reason = "Kein Grund angegeben"
+    banner = None
+    try:
+        async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.ban):
+            if entry.target.id == user.id:
+                reason = entry.reason or reason
+                banner = entry.user
+                break
+    except Exception:
+        pass
+
+    description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
+    if banner:
+        description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
+
+    embed = discord.Embed(
+        title="🔨 Mitglied gebannt",
+        description=description,
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
+
+
+@bot.event
+async def on_member_remove(member):
+    guild = member.guild
+    log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
+    if not log_ch:
+        return
+
+    await asyncio.sleep(1)
+
+    action = "verlassen"
+    mod = None
+    reason = None
+
+    try:
+        async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.kick):
+            if entry.target.id == member.id:
+                action = "gekickt"
+                mod = entry.user
+                reason = entry.reason or "Kein Grund angegeben"
+                break
+    except Exception:
+        pass
+
+    try:
+        async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.ban):
+            if entry.target.id == member.id:
+                return
+    except Exception:
+        pass
+
+    description = f"**Benutzer:** {member.mention} (`{member}`)\n**Aktion:** {action}"
+    if mod:
+        description += f"\n**Von:** {mod.mention} (`{mod}`)"
+    if reason:
+        description += f"\n**Grund:** {reason}"
+
+    title = "👢 Mitglied gekickt" if action == "gekickt" else "🚪 Mitglied hat den Server verlassen"
+    color = 0xFF6600 if action == "gekickt" else 0x808080
+
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=color,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
+
+
+@bot.event
+async def on_invite_create(invite):
+    guild = invite.guild
+    if guild.id not in invite_cache:
+        invite_cache[guild.id] = {}
+    invite_cache[guild.id][invite.code] = invite
+
 
 @bot.event
 async def on_member_join(member):
-    rolle = member.guild.get_role(1490855725516460234)
+    guild = member.guild
+
+    if member.bot:
+        try:
+            await member.kick(reason="Bots sind auf diesem Server nicht erlaubt")
+        except Exception:
+            pass
+
+        try:
+            async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
+                if entry.target.id == member.id:
+                    embed = discord.Embed(
+                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                        color=0xFF0000
+                    )
+                    try:
+                        await entry.user.send(content=entry.user.mention, embed=embed)
+                    except Exception:
+                        pass
+                    break
+        except Exception:
+            pass
+        return
+
+    member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
+    if member_log_ch:
+        embed = discord.Embed(
+            title="✅ Mitglied beigetreten",
+            description=f"**Benutzer:** {member.mention} (`{member}`)",
+            color=0x00FF00,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await member_log_ch.send(embed=embed)
+
+    inviter = None
+    inviter_uses = 0
+    try:
+        new_invites = await guild.fetch_invites()
+        new_invite_map = {inv.code: inv for inv in new_invites}
+        old_invite_map = invite_cache.get(guild.id, {})
+
+        for code, new_inv in new_invite_map.items():
+            old_inv = old_invite_map.get(code)
+            if old_inv and new_inv.uses > old_inv.uses:
+                inviter = new_inv.inviter
+                inviter_uses = new_inv.uses
+                break
+
+        invite_cache[guild.id] = new_invite_map
+    except Exception:
+        pass
+
+    join_log_ch = guild.get_channel(JOIN_LOG_CHANNEL_ID)
+    if join_log_ch:
+        description = f"**Spieler:** {member.mention} (`{member}`)\n"
+        if inviter:
+            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
+            description += f"**Invites von {inviter.display_name}:** {inviter_uses}"
+        else:
+            description += "**Eingeladen von:** Unbekannt"
+
+        embed = discord.Embed(
+            title="📥 Neues Mitglied",
+            description=description,
+            color=0x00BFFF,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await join_log_ch.send(embed=embed)
+
+    rolle = guild.get_role(WHITELIST_ROLE_ID)
     if rolle:
         try:
             await member.add_roles(rolle)
-        except discord.Forbidden:
+        except Exception:
             pass
+
     try:
         embed = discord.Embed(
             description=(
                 "> Willkommen auf Kryptik Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
                 "> Wir wünschen dir viel Spaß auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
                 "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
-                "[#ticket-erstellen](https://discord.com/channels/1490839259907887239/1490855943230066818)"
+                f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
             ),
             color=0x00BFFF
         )
         await member.send(content=member.mention, embed=embed)
-    except discord.Forbidden:
+    except Exception:
         pass
+
 
 @bot.command(name="hallo")
 async def hallo(ctx):
     await ctx.send(f"Hallo, {ctx.author.display_name}! 👋")
+
 
 token = os.environ.get("DISCORD_TOKEN")
 if not token:
