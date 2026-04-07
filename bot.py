@@ -1,22 +1,24 @@
 import os
 import io
 import json
-import discord
-from discord import app_commands
-from discord.ext import commands
+import uuid
+import asyncio
+Import-Traceback
+import re
+from collections import Counter
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-import re
-import asyncio
-import traceback
 
-# Sicherheitscheck: Bot lÃ¤uft NUR auf Railway, nie doppelt in Replit
-# Auf Railway ist RAILWAY_ENVIRONMENT automatisch gesetzt
+Discord importieren
+from discord import app_commands
+from discord.ext import commands
+
+# Sicherheitscheck: Bot läuft NUR auf Railway, nie doppelt in Replit
 if not os.environ.get("RAILWAY_ENVIRONMENT") and not os.environ.get("FORCE_LOCAL_RUN"):
     print("=" * 60)
     print("STOPP: Bot wurde NICHT gestartet.")
-    print("Dieser Bot lÃ¤uft ausschlieÃŸlich auf Railway.")
-    print("Bitte NICHT in Replit starten â€” nur auf Railway deployen!")
+    print("Dieser Bot läuft ausschließlich auf Railway.")
+    print("Bitte NICHT in Replit starten – nur auf Railway eingesetzt!")
     print("=" * 60)
     exit(0)
 
@@ -29,37 +31,35 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 bot_start_time = None
 invite_cache = {}
 
-ADMIN_ROLE_ID     = 1490855702225485936
-MOD_ROLE_ID       = 1490855703370534965
+# asyncio Lock für threadsichere JSON-Operationen (FIX: verhindert Datenverlust bei gleichzeitigen Zugriffen)
+economy_lock = asyncio.Lock()
+
+ADMIN_ROLE_ID = 1490855702225485936
+MOD_ROLE_ID = 1490855703370534965
 WHITELIST_ROLE_ID = 1490855725516460234
-
-MOD_LOG_CHANNEL_ID     = 1490878132230819840
+MOD_LOG_CHANNEL_ID = 1490878132230819840
 MESSAGE_LOG_CHANNEL_ID = 1490878135837917234
-ROLE_LOG_CHANNEL_ID    = 1490878137385619598
-MEMBER_LOG_CHANNEL_ID  = 1490878134847930368
-JOIN_LOG_CHANNEL_ID    = 1490878153391083683
-BOT_LOG_CHANNEL_ID     = 1490878133279264842
-MEMES_CHANNEL_ID       = 1490882578276810924
-GUILD_ID               = 1490839259907887239
-TICKET_CHANNEL_ID      = 1490855943230066818
-
-TICKET_SETUP_CHANNEL_ID  = 1490882553559650355
-TICKET_CATEGORY_DEFAULT  = 1490882554570608751
+ROLE_LOG_CHANNEL_ID = 1490878137385619598
+MEMBER_LOG_CHANNEL_ID = 1490878134847930368
+JOIN_LOG_CHANNEL_ID = 1490878153391083683
+BOT_LOG_CHANNEL_ID = 1490878133279264842
+MEMES_CHANNEL_ID = 1490882578276810924
+GUILD_ID = 1490839259907887239
+TICKET_CHANNEL_ID = 1490855943230066818
+TICKET_SETUP_CHANNEL_ID = 1490882553559650355
+TICKET_CATEGORY_DEFAULT = 1490882554570608751
 TICKET_CATEGORY_HIGHTEAM = 1491069210389119016
 TICKET_CATEGORY_FRAKTION = 1491069425384685750
-TICKET_LOG_CHANNEL_ID    = 1490878139306606743
-
+TICKET_LOG_CHANNEL_ID = 1490878139306606743
 COUNTING_CHANNEL_ID = 1490882580487340044
 
-# â”€â”€ Economy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# — Wirtschaft â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 LOHNLISTE_CHANNEL_ID = 1490890346668888194
-LOHN_CHANNEL_ID      = 1490890348254200049
-BANK_CHANNEL_ID      = 1490890349382734044
-SHOP_CHANNEL_ID      = 1490890311755628584
-
+LOHN_CHANNEL_ID = 1490890348254200049
+BANK_CHANNEL_ID = 1490890349382734044
+SHOP_CHANNEL_ID = 1490890311755628584
 CITIZEN_ROLE_ID = 1490855722534310003
-
-WAGE_ROLES = {
+Lohnrollen = {
     1490855796932739093: 1500,
     1490855789844234310: 2500,
     1490855790913785886: 3500,
@@ -67,51 +67,48 @@ WAGE_ROLES = {
     1490855792671461478: 5500,
     1490855793694871595: 6500,
 }
-ADDITIONAL_WAGE_ROLE_ID   = 1490855795360006246
-ADDITIONAL_WAGE_ROLE_WAGE = 1200
-
-DAILY_LIMIT = 1_000_000
+ADDITIONAL_WAGE_ROLE_ID = 1490855795360006246
+ZUSÄTZLICHER_LOHNROLL-LOHN = 1200
+TÄGLICHES_LIMIT = 1_000_000
 
 BETRAG_CHOICES = [
-    app_commands.Choice(name="1.000 ðŸ’µ",       value=1_000),
-    app_commands.Choice(name="5.000 ðŸ’µ",       value=5_000),
-    app_commands.Choice(name="10.000 ðŸ’µ",      value=10_000),
-    app_commands.Choice(name="25.000 ðŸ’µ",      value=25_000),
-    app_commands.Choice(name="50.000 ðŸ’µ",      value=50_000),
-    app_commands.Choice(name="100.000 ðŸ’µ",     value=100_000),
-    app_commands.Choice(name="250.000 ðŸ’µ",     value=250_000),
-    app_commands.Choice(name="500.000 ðŸ’µ",     value=500_000),
-    app_commands.Choice(name="1.000.000 ðŸ’µ",   value=1_000_000),
+    app_commands.Choice(name="1.000 ðŸ'µ", value=1_000),
+    app_commands.Choice(name="5.000 ðŸ'µ", value=5_000),
+    app_commands.Choice(name="10.000 ðŸ'µ", value=10_000),
+    app_commands.Choice(name="25.000 ðŸ'µ", value=25_000),
+    app_commands.Choice(name="50.000 ðŸ'µ", value=50_000),
+    app_commands.Choice(name="100.000 ðŸ'µ", value=100_000),
+    app_commands.Choice(name="250.000 ðŸ'µ", value=250_000),
+    app_commands.Choice(name="500.000 ðŸ'µ", value=500_000),
+    app_commands.Choice(name="1.000.000 ðŸ'µ", value=1_000_000),
 ]
 
 LIMIT_CHOICES = [
-    app_commands.Choice(name="1.000.000 ðŸ’µ",   value=1_000_000),
-    app_commands.Choice(name="2.000.000 ðŸ’µ",   value=2_000_000),
-    app_commands.Choice(name="3.000.000 ðŸ’µ",   value=3_000_000),
-    app_commands.Choice(name="4.000.000 ðŸ’µ",   value=4_000_000),
-    app_commands.Choice(name="5.000.000 ðŸ’µ",   value=5_000_000),
-    app_commands.Choice(name="6.000.000 ðŸ’µ",   value=6_000_000),
-    app_commands.Choice(name="7.000.000 ðŸ’µ",   value=7_000_000),
-    app_commands.Choice(name="8.000.000 ðŸ’µ",   value=8_000_000),
-    app_commands.Choice(name="9.000.000 ðŸ’µ",   value=9_000_000),
-    app_commands.Choice(name="10.000.000 ðŸ’µ",  value=10_000_000),
+    app_commands.Choice(name="1.000.000 ðŸ'µ", value=1_000_000),
+    app_commands.Choice(name="2.000.000 ðŸ'µ", value=2_000_000),
+    app_commands.Choice(name="3.000.000 ðŸ'µ", value=3_000_000),
+    app_commands.Choice(name="4.000.000 ðŸ'µ", value=4_000_000),
+    app_commands.Choice(name="5.000.000 ðŸ'µ", value=5_000_000),
+    app_commands.Choice(name="6.000.000 ðŸ'µ", value=6_000_000),
+    app_commands.Choice(name="7.000.000 ðŸ'µ", value=7_000_000),
+    app_commands.Choice(name="8.000.000 ðŸ'µ", value=8_000_000),
+    app_commands.Choice(name="9.000.000 ðŸ'µ", value=9_000_000),
+    app_commands.Choice(name="10.000.000 ðŸ'µ", value=10_000_000),
 ]
 
-ECONOMY_FILE      = Path(__file__).parent / "economy_data.json"
-SHOP_FILE         = Path(__file__).parent / "shop_data.json"
-WARNS_FILE        = Path(__file__).parent / "warns_data.json"
+ECONOMY_FILE = Path(__file__).parent / "economy_data.json"
+SHOP_FILE = Path(__file__).parent / "shop_data.json"
+WARNS_FILE = Path(__file__).parent / "warns_data.json"
 HIDDEN_ITEMS_FILE = Path(__file__).parent / "hidden_items.json"
 
-# Neue Kanal- und Rollen-IDs
-WARN_LOG_CHANNEL_ID     = 1491113577258684466
-MONEY_LOG_CHANNEL_ID    = 1490878138429997087
-RUCKSACK_CHANNEL_ID     = 1490882592445304972
-UEBERGEBEN_CHANNEL_ID   = 1490882589014364250
-VERSTECKEN_CHANNEL_ID   = 1490882591023173682
+WARN_LOG_CHANNEL_ID = 1491113577258684466
+MONEY_LOG_CHANNEL_ID = 1490878138429997087
+RUCKSACK_CHANNEL_ID = 1490882592445304972
+UEBERGEBEN_CHANNEL_ID = 1490882589014364250
+VERSTECKEN_CHANNEL_ID = 1490882591023173682
 TEAM_CITIZEN_CHANNEL_ID = 1490882591023173682
-
 WARN_AUTO_TIMEOUT_COUNT = 3
-START_CASH              = 5_000     # Startguthaben fÃ¼r neue Spieler
+START_CASH = 5_000
 
 LOG_COLOR = 0x00BFFF
 MOD_COLOR = 0xFF0000
@@ -122,38 +119,39 @@ DISCORD_INVITE_RE = re.compile(
 )
 URL_RE = re.compile(r'https?://\S+', re.IGNORECASE)
 
-VULGAR_WORDS = [
-    "fotze", "wichser", "hurensohn", "arschloch", "fick", "ficken",
-    "neger", "nigger", "wichsen", "schlampe", "nutte", "hure",
-    "wixer", "drecksau", "scheisskopf", "pisser", "dreckssack",
-    "mongo", "spast", "vollidiot", "schwachkopf", "dreckskerl",
-    "mistkerl", "penner", "hurenkind", "dummficker", "scheiÃŸ",
+VULGÄRE_WÖRTER = [
+    „fotze“, „wichser“, „hurensohn“, „arschloch“, „fick“, „ficken“,
+    „neger“, „nigger“, „wichsen“, „schlampe“, „nutte“, „hure“, „wixer“,
+    „drecksau“, „scheisskopf“, „pisser“, „dreckssack“, „mongo“, „spast“,
+    „vollidiot“, „schwachkopf“, „dreckskerl“, „mistkerl“, „penner“,
+    „hurenkind“, „dummficker“, „scheiß“,
 ]
 
-spam_tracker  = {}
-spam_warned   = set()
-ticket_data   = {}
-counting_state    = {"count": 0, "last_user_id": None}
-counting_handled  = set()  # verhindert doppelte Verarbeitung
+spam_tracker = {}
+spam_warned = set()
+ticket_data = {}
+counting_state = {"count": 0, "last_user_id": None}
+counting_handled = set()
 
-FEATURES = {
-    "Discord Link Schutz":         True,
-    "Link Filter (Memes)":         True,
-    "VulgÃ¤re WÃ¶rter Filter":       True,
-    "Spam Schutz":                 True,
-    "Nachrichten Log":             True,
-    "Bearbeitungs Log":            True,
-    "Rollen Log":                  True,
-    "Member Log":                  True,
-    "Join Log + Invites":          True,
-    "Bot Kick":                    True,
-    "Fehler Logging":              True,
-    "Rollen-Entfernung (Timeout)": True,
-    "Ticket System":               True,
-    "ZÃ¤hl-Kanal":                  True,
-    "Economy System":              True,
+FUNKTIONEN = {
+    "Discord Link Schutz": Wahr,
+    "Linkfilter (Memes)": Wahr,
+    "Vulgärer Wasserfilter": Wahr,
+    "Spamschutz": Stimmt,
+    "Nachrichtenlog": Wahr,
+    "Bearbeitungslog": True,
+    "Rollenlog": Wahr,
+    "Mitgliederprotokoll": Wahr,
+    "Mitgliedslogbuch + Einladungen": Wahr,
+    "Bot Kick": Wahr,
+    "Fehlerprotokollierung": Ja,
+    „Rollen-Entfernung (Timeout)“: Richtig,
+    "Ticketsystem": Wahr,
+    "Zähl-Kanal": Wahr,
+    "Wirtschaftssystem": Wahr,
 }
 
+# – Hilfsfunktionen â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â ”€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 def is_admin(member):
     return any(r.id == ADMIN_ROLE_ID for r in member.roles)
@@ -167,83 +165,82 @@ def contains_vulgar(text: str) -> bool:
 
 async def log_bot_error(title: str, error_text: str, guild=None):
     guilds_to_check = [guild] if guild else bot.guilds
-    for g in guilds_to_check:
-        if not g:
-            continue
+    für g in guilds_to_check:
+        falls nicht g:
+            weitermachen
         log_ch = g.get_channel(BOT_LOG_CHANNEL_ID)
         if log_ch:
             embed = discord.Embed(
-                title=f"âš ï¸ Bot Fehler â€” {title}",
+                title=f"âš ï¸ Bot Fehler – {title}",
                 description=f"```{error_text[:1900]}```",
-                color=MOD_COLOR,
-                timestamp=datetime.now(timezone.utc)
+                Farbe=MOD_COLOR,
+                Zeitstempel=datetime.now(timezone.utc)
             )
-            try:
+            versuchen:
                 await log_ch.send(embed=embed)
-            except Exception:
-                pass
-            break
+            Ausnahme:
+                passieren
+            brechen
 
 async def send_bot_status():
-    for guild in bot.guilds:
+    für Gilde in bot.guilds:
         log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
-        if not log_ch:
-            continue
+        falls nicht log_ch:
+            weitermachen
         desc = ""
-        for feature, status in FEATURES.items():
-            emoji = "ðŸŸ¢" if status else "ðŸ”´"
-            state = "Online" if status else "Offline"
-            desc += f"{emoji} **{feature}** â€” {state}\n"
+        für Feature, Status in FEATURES.items():
+            Emoji = "ðŸŸ¢" wenn Status, sonst "ðŸ”´"
+            Status = "Online", falls Status "Online", ansonsten "Offline"
+            desc += f"{emoji} **{feature}** â€ {state}\n"
         embed = discord.Embed(
-            title="ðŸ¤– Bot Status â€” Alle Funktionen",
-            description=desc,
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            title="ðŸ¤– Bot Status – Alle Funktionen",
+            Beschreibung=desc,
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
-        try:
+        versuchen:
             await log_ch.send(embed=embed)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
 
 async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=None, reason="RegelverstoÃŸ"):
     timeout_ok = False
-    if duration_h:
+    falls duration_h:
         timeout_until = datetime.now(timezone.utc) + timedelta(hours=duration_h)
-    else:
+    anders:
         timeout_until = datetime.now(timezone.utc) + timedelta(minutes=duration_m)
-    try:
+    versuchen:
         await member.timeout(timeout_until, reason=reason)
         timeout_ok = True
-    except Exception as e:
+    außer Ausnahme als e:
         await log_bot_error(
             f"Timeout fehlgeschlagen ({reason})",
             f"Benutzer: {member} ({member.id})\nFehler: {e}\n\n"
-            f"MÃ¶gliche Ursachen:\n"
+            f"Mögliche Ursachen:\n"
             f"- Bot hat keine 'Mitglieder moderieren' Berechtigung\n"
             f"- Bot-Rolle ist niedriger als die Ziel-Rolle",
-            guild
+            Gilde
         )
     roles_removed = []
-    try:
-        roles_to_remove = [
-            r for r in member.roles
+    versuchen:
+        zu entfernende Rollen = [
+            r für r in member.roles
             if r != guild.default_role and not r.managed
         ]
-        if roles_to_remove:
+        falls Rollen_zu_entfernen:
             await member.remove_roles(*roles_to_remove, reason=f"Timeout: {reason}")
             roles_removed = roles_to_remove
-    except Exception as e:
-        await log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
+    außer Ausnahme als e:
+        wait log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
     return timeout_ok, roles_removed
 
-
-# â”€â”€ Economy Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Wirtschaftshelfer â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â ”€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 def load_economy():
     if ECONOMY_FILE.exists():
         with open(ECONOMY_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {}
+    zurückkehren {}
 
 def save_economy(data):
     with open(ECONOMY_FILE, "w", encoding="utf-8") as f:
@@ -251,37 +248,37 @@ def save_economy(data):
 
 def get_user(data, user_id):
     uid = str(user_id)
-    if uid not in data:
+    Falls die Benutzer-ID nicht in den Daten enthalten ist:
         data[uid] = {
-            "cash": 0,
-            "bank": 0,
-            "last_wage": None,
-            "daily_deposit": 0,
+            "Bargeld": 0,
+            "Bank": 0,
+            "last_wage": Keine,
+            "tägliche Einzahlung": 0,
             "daily_withdraw": 0,
-            "daily_transfer": 0,
-            "daily_reset": None,
-            "inventory": [],
-            "custom_limit": None,
+            "tägliche_Überweisungen": 0,
+            "daily_reset": Keine,
+            "Inventar": [],
+            "custom_limit": Keine,
         }
     return data[uid]
 
 def reset_daily_if_needed(user_data):
-    now = datetime.now(timezone.utc)
+    jetzt = datetime.now(timezone.utc)
     if user_data.get("daily_reset") is None:
         user_data["daily_reset"] = now.isoformat()
-        return
+        zurückkehren
     last_reset = datetime.fromisoformat(user_data["daily_reset"])
     if (now - last_reset).total_seconds() >= 86400:
-        user_data["daily_deposit"]  = 0
+        user_data["daily_deposit"] = 0
         user_data["daily_withdraw"] = 0
         user_data["daily_transfer"] = 0
-        user_data["daily_reset"]    = now.isoformat()
+        user_data["daily_reset"] = now.isoformat()
 
 def load_shop():
     if SHOP_FILE.exists():
         with open(SHOP_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return []
+    zurückkehren []
 
 def save_shop(items):
     with open(SHOP_FILE, "w", encoding="utf-8") as f:
@@ -289,23 +286,22 @@ def save_shop(items):
 
 def has_citizen_or_wage(member):
     role_ids = [r.id for r in member.roles]
-    return (
+    zurückkehren (
         CITIZEN_ROLE_ID in role_ids
-        or ADMIN_ROLE_ID in role_ids
-        or any(r in role_ids for r in WAGE_ROLES)
+        oder ADMIN_ROLE_ID in role_ids
+        oder any(r in role_ids for r in WAGE_ROLES)
     )
 
 def is_team(member):
     return any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in member.roles)
 
-
-# â”€â”€ Warn Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â“€â“€ Helfer warnen â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€ â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 def load_warns():
     if WARNS_FILE.exists():
         with open(WARNS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {}
+    zurückkehren {}
 
 def save_warns(data):
     with open(WARNS_FILE, "w", encoding="utf-8") as f:
@@ -314,64 +310,60 @@ def save_warns(data):
 def get_user_warns(warns, user_id):
     return warns.setdefault(str(user_id), [])
 
-
-# â”€â”€ Hidden Items Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# – Helfer für versteckte Gegenstände â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€ â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 def load_hidden_items():
     if HIDDEN_ITEMS_FILE.exists():
         with open(HIDDEN_ITEMS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return []
+    zurückkehren []
 
 def save_hidden_items(data):
     with open(HIDDEN_ITEMS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-
-# â”€â”€ Money Log Helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# — Geldprotokoll-Helfer â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€ â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 async def log_money_action(guild: discord.Guild, title: str, description: str):
     ch = guild.get_channel(MONEY_LOG_CHANNEL_ID)
     if ch:
         embed = discord.Embed(
-            title=f"ðŸ’µ {title}",
-            description=description,
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            title=f"ðŸ'µ {title}",
+            Beschreibung=Beschreibung,
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
-        try:
+        versuchen:
             await ch.send(embed=embed)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
 
-
-# â”€â”€ Betrag Autocomplete (1Kâ€“10M, Freitext erlaubt) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â“€â“€ Betrag Autocomplete â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â ”€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 BETRAG_SUGGESTIONS = [
-    1_000, 5_000, 10_000, 25_000, 50_000,
-    100_000, 250_000, 500_000, 1_000_000,
+    1.000, 5.000, 10.000, 25.000, 50.000
+    100.000, 250.000, 500.000, 1.000.000
     2_000_000, 5_000_000, 10_000_000
 ]
 
 async def betrag_autocomplete(
-    interaction: discord.Interaction,
-    current: str
+    Interaktion: discord.Interaktion,
+    aktuell: str
 ) -> list[app_commands.Choice[int]]:
-    choices = []
+    Auswahlmöglichkeiten = []
     clean = current.replace(".", "").replace(",", "").strip()
-    for val in BETRAG_SUGGESTIONS:
-        label = f"{val:,} ðŸ’µ".replace(",", ".")
+    für val in BETRAG_SUGGESTIONS:
+        label = f"{val:,} ðŸ'µ".replace(",", ".")
         if clean == "" or clean in str(val) or clean.lower() in label.lower():
             choices.append(app_commands.Choice(name=label, value=val))
     return choices[:25]
 
-
-# â”€â”€ Versteck-Button (persistent) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â“€â“€ Versteck-Button (persistent) â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€ â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 class VersteckRetrieveView(discord.ui.View):
     def __init__(self, item_id: str, owner_id: int):
         super().__init__(timeout=None)
-        self.item_id  = item_id
+        self.item_id = item_id
         self.owner_id = owner_id
         btn = discord.ui.Button(
             label="ðŸ“¦ Aus Versteck holen",
@@ -384,204 +376,163 @@ class VersteckRetrieveView(discord.ui.View):
     async def retrieve_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.owner_id:
             await interaction.response.send_message(
-                "âŒ Nur derjenige der das Item versteckt hat kann es herausnehmen.",
+                „â Œ Nur derjenige, der das Item versteckt hat, kann es herausnehmen.“,
                 ephemeral=True
             )
-            return
-        hidden = load_hidden_items()
-        entry  = next((h for h in hidden if h["id"] == self.item_id), None)
-        if not entry:
-            await interaction.response.send_message("âŒ Item wurde bereits geborgen oder existiert nicht mehr.", ephemeral=True)
-            return
-
-        # Item zurÃ¼ck ins Inventar
-        eco       = load_economy()
-        user_data = get_user(eco, interaction.user.id)
-        user_data.setdefault("inventory", []).append(entry["item"])
-        save_economy(eco)
-
-        # Hidden item entfernen
+            zurückkehren
+        versteckt = load_hidden_items()
+        Eintrag = nächste((h für h in versteckt, falls h["id"] == self.item_id), None)
+        falls kein Eintrag:
+            await interaction.response.send_message(
+                „â Œ Item wurde bereits geborgen oder existiert nicht mehr.“,
+                ephemeral=True
+            )
+            zurückkehren
+        async with economy_lock:
+            eco = load_economy()
+            user_data = get_user(eco, interaction.user.id)
+            user_data.setdefault("inventory", []).append(entry["item"])
+            save_economy(eco)
         hidden = [h for h in hidden if h["id"] != self.item_id]
         save_hidden_items(hidden)
-
-        # Button deaktivieren
-        for child in self.children:
-            child.disabled = True
-        try:
+        für Kind in Selbst.Kinder:
+            Kind.deaktiviert = Wahr
+        versuchen:
             await interaction.message.edit(view=self)
-        except Exception:
-            pass
-
+        Ausnahme:
+            passieren
         await interaction.response.send_message(
             f"âœ… **{entry['item']}** wurde aus dem Versteck (**{entry['location']}**) geholt.",
             ephemeral=True
         )
 
-
-# â”€â”€ Ticket System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Ticketsystem â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â ”€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 TICKET_TYPE_NAMES = {
-    "support":    "Support",
-    "highteam":   "Highteam Ticket",
-    "fraktion":   "Fraktions Bewerbung",
-    "beschwerde": "Beschwerde Ticket",
-    "bug":        "Bug Report",
+    "Support": "Support",
+    "highteam": "Highteam Ticket",
+    "fraktion": "Fraktionsbewerbung",
+    „beschwerde“: „Beschwerde-Ticket“,
+    "bug": "Fehlerbericht",
 }
 
 TICKET_TYPE_CATEGORIES = {
-    "support":    TICKET_CATEGORY_DEFAULT,
-    "highteam":   TICKET_CATEGORY_HIGHTEAM,
-    "fraktion":   TICKET_CATEGORY_FRAKTION,
+    "support": TICKET_CATEGORY_DEFAULT,
+    "highteam": TICKET_CATEGORY_HIGHTEAM,
+    "fraktion": TICKET_CATEGORY_FRAKTION,
     "beschwerde": TICKET_CATEGORY_DEFAULT,
-    "bug":        TICKET_CATEGORY_DEFAULT,
+    "Bug": TICKET_CATEGORY_DEFAULT,
 }
 
-
 async def create_ticket(interaction: discord.Interaction, ticket_type: str):
-    guild  = interaction.guild
-    member = interaction.user
-
-    for ch in guild.text_channels:
+    Gilde = Interaktion.Gilde
+    Mitglied = Interaktion.Benutzer
+    für ch in guild.text_channels:
         data = ticket_data.get(ch.id)
         if data and data["creator_id"] == member.id:
             await interaction.response.send_message(
-                "âŒ Du hast bereits ein offenes Ticket!", ephemeral=True
+                „â Œ Du hast bereits ein offenes Ticket!“, ephemeral=True
             )
-            return
-
-    type_name   = TICKET_TYPE_NAMES.get(ticket_type, ticket_type)
+            zurückkehren
+    type_name = TICKET_TYPE_NAMES.get(ticket_type, ticket_type)
     category_id = TICKET_TYPE_CATEGORIES.get(ticket_type, TICKET_CATEGORY_DEFAULT)
-    category    = guild.get_channel(category_id)
-    admin_role  = guild.get_role(ADMIN_ROLE_ID)
-    mod_role    = guild.get_role(MOD_ROLE_ID)
-
-    overwrites = {
+    Kategorie = Gilde.get_channel(Kategorie_ID)
+    admin_role = guild.get_role(ADMIN_ROLE_ID)
+    mod_role = guild.get_role(MOD_ROLE_ID)
+    Überschreibt = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        member: discord.PermissionOverwrite(
+        Mitglied: discord.PermissionOverwrite(
             view_channel=True, send_messages=True, read_message_history=True
         ),
         guild.me: discord.PermissionOverwrite(
-            view_channel=True, send_messages=True, read_message_history=True,
-            manage_channels=True, manage_messages=True
+            view_channel=True, send_messages=True,
+            read_message_history=True, manage_channels=True, manage_messages=True
         ),
     }
-    if admin_role:
+    falls Administratorrolle:
         overwrites[admin_role] = discord.PermissionOverwrite(
-            view_channel=True, send_messages=True, read_message_history=True,
-            manage_channels=True, manage_messages=True
+            view_channel=True, send_messages=True,
+            read_message_history=True, manage_channels=True, manage_messages=True
         )
     if mod_role:
         overwrites[mod_role] = discord.PermissionOverwrite(
-            view_channel=True, send_messages=True, read_message_history=True,
-            manage_channels=True, manage_messages=True
+            view_channel=True, send_messages=True,
+            read_message_history=True, manage_channels=True, manage_messages=True
         )
-
-    safe_name    = member.name[:15].lower().replace(" ", "-")
+    safe_name = member.name[:15].lower().replace(" ", "-")
     channel_name = f"ticket-{ticket_type}-{safe_name}"
-
-    try:
-        channel = await guild.create_text_channel(
-            name=channel_name,
-            category=category,
-            overwrites=overwrites,
+    versuchen:
+        Kanal = await guild.create_text_channel(
+            Name=Kanalname,
+            Kategorie=Kategorie,
+            überschreibt=überschreibt,
             topic=f"Ticket von {member} ({member.id}) | Typ: {type_name}"
         )
-    except Exception as e:
+    außer Ausnahme als e:
         await interaction.response.send_message(
-            "âŒ Ticket konnte nicht erstellt werden.", ephemeral=True
+            „â Œ Ticket konnte nicht erstellt werden.“, ephemeral=True
         )
-        await log_bot_error("Ticket erstellen fehlgeschlagen", str(e), guild)
-        return
-
+        wait log_bot_error("Ticket erstellen fehlgeschlagen", str(e), guild)
+        zurückkehren
     ticket_data[channel.id] = {
-        "creator_id":   member.id,
+        "creator_id": member.id,
         "creator_name": str(member),
-        "type":         ticket_type,
-        "type_name":    type_name,
-        "handler":      None,
-        "handler_id":   None,
-        "opened_at":    datetime.now(timezone.utc).isoformat(),
+        "type": ticket_type,
+        "type_name": type_name,
+        "Handler": Keine,
+        "handler_id": None,
+        "opened_at": datetime.now(timezone.utc).isoformat(),
     }
-
     team_mentions = ""
-    if admin_role:
+    falls Administratorrolle:
         team_mentions += admin_role.mention + " "
     if mod_role:
         team_mentions += mod_role.mention
-
     welcome_embed = discord.Embed(
         title=f"ðŸŽŸ {type_name}",
-        description=(
+        Beschreibung=(
             f"Willkommen {member.mention}!\n\n"
-            f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstmÃ¶glich um dein Anliegen kÃ¼mmern.\n\n"
+            f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstmöglich um dein Anliegen kümmern.\n\n"
             f"**Ticket-Typ:** {type_name}\n"
             f"**Erstellt von:** {member.mention}\n"
             f"**Erstellt am:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
-    welcome_embed.set_footer(text="Nur Teammitglieder kÃ¶nnen das Ticket schlieÃŸen")
-
+    Welcome_embed.set_footer(text="Nur Teammitglieder können das Ticket gewinnen")
     action_view = TicketActionView()
     await channel.send(content=team_mentions, embed=welcome_embed, view=action_view)
-
     await interaction.response.send_message(
         f"âœ… Dein Ticket wurde erstellt: {channel.mention}", ephemeral=True
     )
-
     log_ch = guild.get_channel(TICKET_LOG_CHANNEL_ID)
     if log_ch:
         log_embed = discord.Embed(
             title="ðŸ“‚ Ticket GeÃ¶ffnet",
-            description=(
+            Beschreibung=(
                 f"**Benutzer:** {member.mention} (`{member}`)\n"
                 f"**Typ:** {type_name}\n"
-                f"**Channel:** {channel.mention}"
+                f"**Kanal:** {channel.mention}"
             ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await log_ch.send(embed=log_embed)
 
 
 class TicketSelect(discord.ui.Select):
     def __init__(self):
-        options = [
-            discord.SelectOption(
-                label="Support",
-                emoji="ðŸŽŸ",
-                value="support",
-                description="Allgemeiner Support"
-            ),
-            discord.SelectOption(
-                label="Highteam Ticket",
-                emoji="ðŸŽŸ",
-                value="highteam",
-                description="Direkter Kontakt zum Highteam"
-            ),
-            discord.SelectOption(
-                label="Fraktions Bewerbung",
-                emoji="ðŸŽŸ",
-                value="fraktion",
-                description="Bewerbung fÃ¼r eine Fraktion"
-            ),
-            discord.SelectOption(
-                label="Beschwerde Ticket",
-                emoji="ðŸŽŸ",
-                value="beschwerde",
-                description="Beschwerde einreichen"
-            ),
-            discord.SelectOption(
-                label="Bug Report",
-                emoji="ðŸŽŸ",
-                value="bug",
-                description="Fehler oder Bug melden"
-            ),
+        Optionen = [
+            discord.SelectOption(label="Support", emoji="ðŸŽŸ", value="support", description="Allgemeiner Support"),
+            discord.SelectOption(label="Highteam Ticket", emoji="ðŸŽŸ", value="highteam", description="Direkter Kontakt zum Highteam"),
+            discord.SelectOption(label="Fraktions Bewerbung", emoji="ðŸŽŸ", value="fraktion", description="Bewerbung für eine Fraktion"),
+            discord.SelectOption(label="Beschwerde Ticket", emoji="ðŸŽŸ", value="beschwerde", description="Beschwerde einreichen"),
+            discord.SelectOption(label="Bug Report", emoji="ðŸŽŸ", value="bug", description="Fehler oder Bug melden"),
         ]
         super().__init__(
-            placeholder="ðŸŽŸ WÃ¤hle eine Ticket-Art aus...",
-            options=options,
+            placeholder="ðŸŽŸ Wähle eine Ticket-Art aus...",
+            Optionen=Optionen,
             custom_id="ticket_select_main"
         )
 
@@ -598,40 +549,35 @@ class TicketSelectView(discord.ui.View):
 class AssignUserSelect(discord.ui.UserSelect):
     def __init__(self):
         super().__init__(
-            placeholder="Person auswÃ¤hlen...",
+            placeholder="Person auswählen...",
             custom_id="ticket_assign_user_select",
             min_values=1,
             max_values=1
         )
 
     async def callback(self, interaction: discord.Interaction):
-        user    = self.values[0]
-        channel = interaction.channel
-        try:
+        Benutzer = self.values[0]
+        Kanal = Interaktion.Kanal
+        versuchen:
             await channel.set_permissions(
-                user,
-                view_channel=True,
-                send_messages=True,
-                read_message_history=True
+                Benutzer, Ansichtskanal=Wahr, Nachrichten senden=Wahr, Nachrichtenverlauf lesen=Wahr
             )
-        except Exception as e:
+        außer Ausnahme als e:
             await interaction.response.send_message(
-                "âŒ Berechtigung konnte nicht gesetzt werden.", ephemeral=True
+                „â Œ Berechtigung konnte nicht gesetzt werden.“, ephemeral=True
             )
-            await log_bot_error("Ticket-Zuweisung fehlgeschlagen", str(e), interaction.guild)
-            return
-
+            wait log_bot_error("Ticket-Zuweisung fehlgeschlagen", str(e), interaction.guild)
+            zurückkehren
         if channel.id in ticket_data:
-            ticket_data[channel.id]["handler"]    = str(user)
+            ticket_data[channel.id]["handler"] = str(user)
             ticket_data[channel.id]["handler_id"] = user.id
-
         assign_embed = discord.Embed(
-            description=(
-                f"ðŸ‘¤ {user.mention} wurde dem Ticket zugewiesen.\n"
+            Beschreibung=(
+                f"ðŸ'¤ {user.mention} wurde dem Ticket zugewiesen.\n"
                 f"**Zugewiesen von:** {interaction.user.mention}"
             ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await channel.send(embed=assign_embed)
         await interaction.response.send_message(
@@ -649,101 +595,86 @@ class TicketActionView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(
-        label="Ticket schlieÃŸen",
-        style=discord.ButtonStyle.red,
-        emoji="ðŸ”’",
-        custom_id="ticket_close_btn"
-    )
+    @discord.ui.button(label="Ticket schließen", style=discord.ButtonStyle.red, emoji="ðŸ”'", custom_id="ticket_close_btn")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not is_mod_or_admin(interaction.user):
             await interaction.response.send_message(
-                "âŒ Nur Teammitglieder kÃ¶nnen Tickets schlieÃŸen.", ephemeral=True
+                „â Œ Nur Teammitglieder können Tickets gewinnen.“, ephemeral=True
             )
-            return
-
-        channel = interaction.channel
-        data    = ticket_data.get(channel.id)
-        if not data:
-            await interaction.response.send_message(
-                "âŒ Ticket-Daten nicht gefunden.", ephemeral=True
-            )
-            return
-
+            zurückkehren
+        Kanal = Interaktion.Kanal
+        data = ticket_data.get(channel.id)
+        Falls keine Daten vorliegen:
+            wait interaction.response.send_message("â Œ Ticket-Daten nicht gefunden.", ephemeral=True)
+            zurückkehren
         await interaction.response.defer(ephemeral=True)
-
-        ticket_data[channel.id]["handler"]    = str(interaction.user)
+        ticket_data[channel.id]["handler"] = str(interaction.user)
         ticket_data[channel.id]["handler_id"] = interaction.user.id
-
         closing_embed = discord.Embed(
-            title="ðŸ”’ Ticket wird geschlossen...",
+            title="ðŸ"' Ticket wird geschlossen...“,
             description="Das Ticket wird in wenigen Sekunden geschlossen.",
-            color=MOD_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=MOD_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await channel.send(embed=closing_embed)
-
-        transcript_lines = [
+        Transkriptzeilen = [
             f"=== Ticket Transkript: {data['type_name']} ===",
-            f"Erstellt von  : {data['creator_name']}",
+            f"Erstellt von: {data['creator_name']}",
             f"Bearbeitet von: {str(interaction.user)}",
-            f"Datum         : {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')} UTC",
+            f"Datum : {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')} UTC",
             "=" * 55,
             ""
         ]
-        try:
+        versuchen:
             async for msg in channel.history(limit=500, oldest_first=True):
                 if msg.author == interaction.guild.me:
-                    continue
+                    weitermachen
                 ts = msg.created_at.strftime("%d.%m.%Y %H:%M")
                 if msg.content:
                     transcript_lines.append(f"[{ts}] {msg.author}: {msg.content}")
-                for emb in msg.embeds:
+                für emb in msg.embeds:
                     if emb.title:
                         transcript_lines.append(f"[{ts}] {msg.author} [Embed-Titel]: {emb.title}")
                     if emb.description:
                         short = emb.description[:300].replace("\n", " ")
-                        transcript_lines.append(f"  â†³ {short}")
-        except Exception:
-            transcript_lines.append("(Transkript konnte nicht vollstÃ¤ndig geladen werden)")
-
+                        transcript_lines.append(f" → {short}")
+        Ausnahme:
+            transcript_lines.append("(Transkript konnte nicht vollständig geladen werden)")
         transcript_text = "\n".join(transcript_lines)
         transcript_file = discord.File(
             fp=io.BytesIO(transcript_text.encode("utf-8")),
             filename=f"transkript-{channel.name}.txt"
         )
-
         log_ch = interaction.guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_ch:
             closed_embed = discord.Embed(
-                title="ðŸ“ Ticket Geschlossen",
-                description=(
+                title="ðŸ“ Ticket geschlossen",
+                Beschreibung=(
                     f"**Benutzer:** <@{data['creator_id']}> (`{data['creator_name']}`)\n"
                     f"**Typ:** {data['type_name']}\n"
                     f"**Geschlossen von:** {interaction.user.mention} (`{interaction.user}`)\n"
-                    f"**Channel:** #{channel.name}"
+                    f"**Kanal:** #{channel.name}"
                 ),
-                color=LOG_COLOR,
-                timestamp=datetime.now(timezone.utc)
+                Farbe=LOG_COLOR,
+                Zeitstempel=datetime.now(timezone.utc)
             )
             await log_ch.send(embed=closed_embed, file=transcript_file)
-
         creator = interaction.guild.get_member(data["creator_id"])
-        if creator:
-            try:
+        wenn Ersteller:
+            versuchen:
                 dm_embed = discord.Embed(
                     title="ðŸŽŸ Dein Ticket wurde geschlossen",
-                    description=(
+                    Beschreibung=(
                         f"Dein **{data['type_name']}** auf **Cryptik Roleplay** wurde geschlossen.\n\n"
                         f"**Bearbeitet von:** {interaction.user.display_name}\n\n"
                         f"Wie zufrieden warst du mit der Bearbeitung?\n"
                         f"Bitte bewerte unseren Support:"
                     ),
-                    color=LOG_COLOR,
-                    timestamp=datetime.now(timezone.utc)
+                    Farbe=LOG_COLOR,
+                    Zeitstempel=datetime.now(timezone.utc)
                 )
-                rating_view = RatingView(
-                    channel_name=channel.name,
+                Bewertungsansicht = Bewertungsansicht(
+                    Kanalname=Kanal.name,
                     handler_name=interaction.user.display_name,
                     handler_id=interaction.user.id,
                     ticket_type=data["type_name"],
@@ -751,31 +682,25 @@ class TicketActionView(discord.ui.View):
                     guild=interaction.guild
                 )
                 await creator.send(embed=dm_embed, view=rating_view)
-            except Exception:
-                pass
-
+            Ausnahme:
+                passieren
         ticket_data.pop(channel.id, None)
         await asyncio.sleep(3)
-        try:
-            await channel.delete(reason="Ticket geschlossen")
-        except Exception as e:
-            await log_bot_error("Ticket lÃ¶schen fehlgeschlagen", str(e), interaction.guild)
+        versuchen:
+            Warten Sie aufchannel.delete(reason="Ticket geschlossen")
+        außer Ausnahme als e:
+            wait log_bot_error("Ticket löschen fehlgeschlagen", str(e), interaction.guild)
 
-    @discord.ui.button(
-        label="Person zuweisen",
-        style=discord.ButtonStyle.blurple,
-        emoji="ðŸ‘¤",
-        custom_id="ticket_assign_btn"
-    )
+    @discord.ui.button(label="Person zuweisen", style=discord.ButtonStyle.blurple, emoji="ðŸ'¤", custom_id="ticket_assign_btn")
     async def assign_person(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not is_mod_or_admin(interaction.user):
             await interaction.response.send_message(
-                "âŒ Nur Teammitglieder kÃ¶nnen Personen zuweisen.", ephemeral=True
+                „â Œ Nur Teammitglieder können Personen zuweisen.“, ephemeral=True
             )
-            return
+            zurückkehren
         assign_view = AssignView()
         await interaction.response.send_message(
-            "WÃ¤hle eine Person aus die dem Ticket zugewiesen werden soll:",
+            „Wähle eine Person aus dem Ticket zugewiesen werden soll:“,
             view=assign_view,
             ephemeral=True
         )
@@ -786,203 +711,184 @@ class RatingView(discord.ui.View):
         super().__init__(timeout=604800)
         self.channel_name = channel_name
         self.handler_name = handler_name
-        self.handler_id   = handler_id
-        self.ticket_type  = ticket_type
+        self.handler_id = handler_id
+        self.ticket_type = ticket_type
         self.creator_name = creator_name
-        self.guild_ref    = guild
-        self.rated        = False
+        self.guild_ref = guild
+        selbst.bewertet = Falsch
 
     async def submit_rating(self, interaction: discord.Interaction, stars: int):
-        if self.rated:
+        falls selbstbewertet:
             await interaction.response.send_message(
-                "Du hast dieses Ticket bereits bewertet.", ephemeral=True
+                „Du hast dieses Ticket bereits bewertet.“, ephemeral=True
             )
-            return
-        self.rated = True
-
-        star_display = "â­" * stars + "â˜†" * (5 - stars)
-
+            zurückkehren
+        Selbstbewertung = Wahr
+        star_display = "â " * Sterne + "★" * (5 - Sterne)
         thank_embed = discord.Embed(
-            title="ðŸ’™ Danke fÃ¼r deine Bewertung!",
-            description=(
+            title="ðŸ'™ Danke für deine Bewertung!",
+            Beschreibung=(
                 f"Du hast **{star_display}** ({stars}/5) gegeben.\n\n"
-                f"Vielen Dank fÃ¼r dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
-                f"Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gelÃ¶st."
+                „Vielen Dank für Ihr Feedback! Wir arbeiten stets daran, unseren Support zu verbessern.“
+                f „Wir hoffen, dass dein Anliegen zu deiner Zufriedenheit gelösst.“
             ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await interaction.response.send_message(embed=thank_embed)
-
         log_ch = self.guild_ref.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_ch:
             rating_embed = discord.Embed(
-                title="â­ Ticket Bewertung",
-                description=(
+                title="â Ticketbewertung",
+                Beschreibung=(
                     f"**Ticket:** {self.channel_name}\n"
                     f"**Typ:** {self.ticket_type}\n"
                     f"**Erstellt von:** {self.creator_name}\n"
                     f"**Bearbeitet von:** {self.handler_name}\n"
                     f"**Bewertung:** {star_display} ({stars}/5)"
                 ),
-                color=LOG_COLOR,
-                timestamp=datetime.now(timezone.utc)
+                Farbe=LOG_COLOR,
+                Zeitstempel=datetime.now(timezone.utc)
             )
             await log_ch.send(embed=rating_embed)
-
-        for item in self.children:
+        für Element in self.children:
             item.disabled = True
-        try:
+        versuchen:
             await interaction.message.edit(view=self)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
 
-    @discord.ui.button(label="â­ 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
+    @discord.ui.button(label="â 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
     async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 1)
 
-    @discord.ui.button(label="â­ 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
+    @discord.ui.button(label="â 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
     async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 2)
 
-    @discord.ui.button(label="â­ 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
+    @discord.ui.button(label="â 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
     async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 3)
 
-    @discord.ui.button(label="â­ 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
+    @discord.ui.button(label="â 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
     async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 4)
 
-    @discord.ui.button(label="â­ 5", style=discord.ButtonStyle.green, custom_id="rating_5")
+    @discord.ui.button(label="â 5", style=discord.ButtonStyle.green, custom_id="rating_5")
     async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 5)
 
 
-def guild_member_bot(guild: discord.Guild):
-    return guild.me
-
-
-# â”€â”€ Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# — Veranstaltungen â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 @bot.event
 async def on_ready():
     global bot_start_time, invite_cache
     bot_start_time = datetime.now(timezone.utc)
     print(f"Bot ist online als {bot.user} (ID: {bot.user.id})")
-
     bot.add_view(TicketSelectView())
     bot.add_view(TicketActionView())
-
-    # Versteck-Buttons nach Neustart wieder registrieren
-    for entry in load_hidden_items():
+    für jeden Eintrag in load_hidden_items():
         bot.add_view(VersteckRetrieveView(entry["id"], entry["owner_id"]))
-
-    for guild in bot.guilds:
-        try:
-            invites = await guild.fetch_invites()
+    für Gilde in bot.guilds:
+        versuchen:
+            Einladungen = await guild.fetch_invites()
             invite_cache[guild.id] = {inv.code: inv for inv in invites}
-        except Exception:
-            pass
-
+        Ausnahme:
+            passieren
     await auto_ticket_setup()
     await auto_lohnliste_setup()
     await send_bot_status()
-    try:
+    versuchen:
         guild_obj = discord.Object(id=GUILD_ID)
-        # Guild-Commands registrieren (sofort aktiv, keine globalen Duplikate)
         synced = await bot.tree.sync(guild=guild_obj)
-        print(f"Slash Commands synced (Guild): {len(synced)}")
-        # Alle globalen Commands von Discord entfernen
+        print(f"Slash-Befehle synchronisiert (Gilde): {len(synced)}")
         bot.tree.clear_commands(guild=None)
         await bot.tree.sync()
-        print("Globale Commands bereinigt")
-    except Exception as e:
+        print("Globale Befehle gelöscht")
+    außer Ausnahme als e:
         print(f"Slash Command sync fehlgeschlagen: {e}")
 
 
 async def auto_ticket_setup():
-    for guild in bot.guilds:
-        channel = guild.get_channel(TICKET_SETUP_CHANNEL_ID)
-        if not channel:
-            continue
-        already_posted = False
-        try:
+    für Gilde in bot.guilds:
+        Kanal = guild.get_channel(TICKET_SETUP_CHANNEL_ID)
+        falls nicht Kanal:
+            weitermachen
+        bereits_gepostet = False
+        versuchen:
             async for msg in channel.history(limit=50):
                 if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
+                    für emb in msg.embeds:
                         if emb.title and "Ticket erstellen" in emb.title:
-                            already_posted = True
-                            break
-                if already_posted:
-                    break
-        except Exception:
-            pass
-        if already_posted:
-            print(f"Ticket-Embed bereits vorhanden in #{channel.name} â€” kein erneutes Posten.")
-            continue
+                            bereits_gepostet = Wahr
+                            brechen
+                falls bereits gepostet:
+                    brechen
+        Ausnahme:
+            passieren
+        falls bereits gepostet:
+            print(f"Ticket-Embed bereits vorhanden in #{channel.name} – kein erneutes Posten.")
+            weitermachen
         embed = discord.Embed(
-            title="ðŸŽŸ Support â€” Ticket erstellen",
-            description=(
-                "BenÃ¶tigst du Hilfe oder mÃ¶chtest ein Anliegen melden?\n\n"
-                "WÃ¤hle unten im MenÃ¼ die passende Ticket-Art aus.\n"
-                "Unser Team wird sich schnellstmÃ¶glich um dich kÃ¼mmern.\n\n"
-                "**VerfÃ¼gbare Ticket-Arten:**\n"
-                "ðŸŽŸ **Support** â€” Allgemeiner Support\n"
-                "ðŸŽŸ **Highteam Ticket** â€” Direkter Kontakt zum Highteam\n"
-                "ðŸŽŸ **Fraktions Bewerbung** â€” Bewirb dich fÃ¼r eine Fraktion\n"
-                "ðŸŽŸ **Beschwerde Ticket** â€” Beschwerde einreichen\n"
-                "ðŸŽŸ **Bug Report** â€” Fehler oder Bug melden"
+            title="ðŸŽŸ Support – Ticket erstellen",
+            Beschreibung=(
+                „Benötigt du Hilfe oder möchtest du einen Betroffenen melden?\n\n“
+                „Wähle unten im Menü die passende Ticket-Art aus.\n“
+                „Unser Team wird sich schnellstmöglich um dich kümmern.\n\n“
+                „**Verfügbare Ticket-Arten:**\n“
+                „ðŸŽŸ **Support** – Allgemeiner Support\n“
+                „ðŸŽŸ **Highteam Ticket** – Direkter Kontakt zum Highteam\n“
+                „ðŸŽŸ **Fraktions Bewerbung** – Bewirb dich für eine Fraktion\n“
+                „ðŸŽŸ **Beschwerde Ticket** – Beschwerde einreichen\n“
+                „ðŸŽŸ **Bug Report** – Fehler oder Bug melden“
             ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
-        embed.set_footer(text="Cryptik Roleplay â€” Support System")
-        try:
+        embed.set_footer(text="Cryptik Roleplay – Supportsystem")
+        versuchen:
             await channel.send(embed=embed, view=TicketSelectView())
             print(f"Ticket-Embed automatisch gepostet in #{channel.name}")
-        except Exception as e:
-            await log_bot_error("auto_ticket_setup fehlgeschlagen", str(e), guild)
+        außer Ausnahme als e:
+            wait log_bot_error("auto_ticket_setup fehlgeschlagen", str(e), guild)
 
 
 async def auto_lohnliste_setup():
-    for guild in bot.guilds:
-        channel = guild.get_channel(LOHNLISTE_CHANNEL_ID)
-        if not channel:
-            continue
-        already_posted = False
-        try:
+    für Gilde in bot.guilds:
+        Kanal = guild.get_channel(LOHNLISTE_CHANNEL_ID)
+        falls nicht Kanal:
+            weitermachen
+        bereits_gepostet = False
+        versuchen:
             async for msg in channel.history(limit=20):
                 if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
+                    für emb in msg.embeds:
                         if emb.title and "Lohnliste" in emb.title:
-                            already_posted = True
-                            break
-                if already_posted:
-                    break
-        except Exception:
-            pass
-        if already_posted:
+                            bereits_gepostet = Wahr
+                            brechen
+                falls bereits gepostet:
+                    brechen
+        Ausnahme:
+            passieren
+        falls bereits gepostet:
             print(f"Lohnliste bereits vorhanden in #{channel.name}")
-            continue
+            weitermachen
         desc = (
-            f"<@&1490855796932739093>\n**1.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855789844234310>\n**2.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855790913785886>\n**3.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855791953973421>\n**4.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855792671461478>\n**5.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855793694871595>\n**6.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855795360006246>\n**1.200 ðŸ’µ StÃ¼ndlich** *(Zusatzlohn)*"
+            f"<@&1490855796932739093>\n**1.500 ðŸ'µ Stü¼ndlich**\n\n"
+            f"<@&1490855789844234310>\n**2.500 ðŸ'µ Stü¼ndlich**\n\n"
+            f"<@&1490855790913785886>\n**3.500 ðŸ'µ Stü¼ndlich**\n\n"
+            f"<@&1490855791953973421>\n**4.500 ðŸ'µ Stü¼ndlich**\n\n"
+            f"<@&1490855792671461478>\n**5.500 ðŸ'µ Stü¼ndlich**\n\n"
+            f"<@&1490855793694871595>\n**6.500 ðŸ'µ Stü¼ndlich**\n\n"
+            f"<@&1490855795360006246>\n**1.200 ðŸ'µ Stündlich** *(Zusatzlohn)*"
         )
-        embed = discord.Embed(
-            title="ðŸ’µ Lohnliste ðŸ’µ",
-            description=desc,
-            color=LOG_COLOR
-        )
-        try:
+        embed = discord.Embed(title="ðŸ'µ Lohnliste ðŸ'µ", description=desc, color=LOG_COLOR)
+        versuchen:
             await channel.send(embed=embed)
             print(f"Lohnliste automatisch gepostet in #{channel.name}")
-        except Exception as e:
-            await log_bot_error("auto_lohnliste_setup fehlgeschlagen", str(e), guild)
+        außer Ausnahme als e:
+            wait log_bot_error("auto_lohnliste_setup fehlgeschlagen", str(e), guild)
 
 
 @bot.event
@@ -994,9 +900,9 @@ async def on_error(event, *args, **kwargs):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
-        return
+        zurückkehren
     if isinstance(error, (commands.MissingRole, commands.CheckFailure)):
-        return
+        zurückkehren
     err = "".join(traceback.format_exception(type(error), error, error.__traceback__))
     await log_bot_error(f"Command: {ctx.command}", err, ctx.guild)
 
@@ -1004,120 +910,115 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_message(message):
     if message.author.bot:
-        return
+        zurückkehren
     if bot_start_time and message.created_at < bot_start_time:
-        return
-    member = message.author
-
+        zurückkehren
+    Mitglied = Nachricht.Autor
     if message.channel.id == COUNTING_CHANNEL_ID:
         await handle_counting(message)
-        return
-
+        zurückkehren
     if not is_admin(member) and DISCORD_INVITE_RE.search(message.content):
         await handle_discord_invite(message)
-        return
+        zurückkehren
     if not is_mod_or_admin(member) and message.channel.id != MEMES_CHANNEL_ID:
         if URL_RE.search(message.content):
             await handle_link_outside_memes(message)
-            return
-    if not is_mod_or_admin(member) and contains_vulgar(message.content):
+            zurückkehren
+    if not is_mod_or_admin(member) and contains_vulg(message.content):
         await handle_vulgar_message(message)
-        return
+        zurückkehren
     await check_spam(message)
     await bot.process_commands(message)
 
 
 async def handle_counting(message):
     if message.id in counting_handled:
-        return
+        zurückkehren
     counting_handled.add(message.id)
+    # FIX: sauberere Bereinigung des Sets
     if len(counting_handled) > 200:
-        oldest = list(counting_handled)[:100]
-        for mid in oldest:
+        zu_entfernen = Liste(counting_handled)[:100]
+        für mid in to_remove:
             counting_handled.discard(mid)
-
     content = message.content.strip()
-    try:
-        number = int(content)
-    except ValueError:
-        try:
+    versuchen:
+        Zahl = int(Inhalt)
+    außer ValueError:
+        versuchen:
             await message.delete()
-        except Exception:
-            pass
-        try:
+        Ausnahme:
+            passieren
+        versuchen:
             await message.channel.send(
-                f"âŒ {message.author.mention} Nur Zahlen sind hier erlaubt! Der ZÃ¤hler geht weiter bei **{counting_state['count'] + 1}**.",
+                f"â Œ {message.author.mention} Nur Zahlen sind hier erlaubt! Der Zähler geht weiter bei **{counting_state['count'] + 1}**.",
                 delete_after=5
             )
-        except Exception:
-            pass
-        return
-
-    expected = counting_state["count"] + 1
-
+        Ausnahme:
+            passieren
+        zurückkehren
+    erwartet = Zählzustand["Anzahl"] + 1
     if counting_state["last_user_id"] == message.author.id:
-        try:
+        versuchen:
             await message.delete()
-        except Exception:
-            pass
-        try:
+        Ausnahme:
+            passieren
+        versuchen:
             await message.channel.send(
-                f"âŒ {message.author.mention} Du kannst nicht zweimal hintereinander zÃ¤hlen! Der ZÃ¤hler steht bei **{counting_state['count']}**.",
+                f"â Œ {message.author.mention} Du kannst nicht zweimal hintereinander zählen! Der Zähler steht bei **{counting_state['count']}**.",
                 delete_after=5
             )
-        except Exception:
-            pass
-        return
-
-    if number == expected:
-        counting_state["count"] = number
+        Ausnahme:
+            passieren
+        zurückkehren
+    Wenn die Zahl dem Erwartungswert entspricht:
+        counting_state["count"] = Zahl
         counting_state["last_user_id"] = message.author.id
-        await message.add_reaction("âœ…")
-    else:
+        await message.add_reaction("✓…")
+    anders:
         counting_state["count"] = 0
         counting_state["last_user_id"] = None
-        try:
+        versuchen:
             await message.delete()
-        except Exception:
-            pass
-        try:
+        Ausnahme:
+            passieren
+        versuchen:
             await message.channel.send(
-                f"âŒ {message.author.mention} Falsche Zahl! Erwartet wurde **{expected}**, nicht **{number}**.\n"
-                f"Der ZÃ¤hler wurde zurÃ¼ckgesetzt. Fangt wieder bei **1** an!",
+                f"â Œ {message.author.mention} Falsche Zahl! Erwartet wurde **{expected}**, nicht **{number}**.\n"
+                f"Der Zähler wurde zurückgesetzt. Fangt wieder bei **1** an!",
                 delete_after=8
             )
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
 
 
 async def handle_discord_invite(message):
-    member = message.author
-    guild  = message.guild
-    try:
+    Mitglied = Nachricht.Autor
+    Gilde = Nachricht.Gilde
+    versuchen:
         await message.delete()
-    except Exception as e:
-        await log_bot_error("Nachricht lÃ¶schen (Discord Link)", str(e), guild)
+    außer Ausnahme als e:
+        wait log_bot_error("Nachricht löschen (Discord Link)", str(e), guild)
     timeout_ok, roles_removed = await apply_timeout_restrictions(
-        member, guild, duration_h=300, reason="Fremden Discord-Link gesendet"
+        Mitglied, Gilde, Dauer_h=300, Grund="Fremden Discord-Link gesendet"
     )
-    try:
+    versuchen:
         embed = discord.Embed(
-            description=(
-                "> Du hast gegen unsere Server Regeln verstoÃŸen\n\n"
-                "> Bitte wende dich an den Support"
+            Beschreibung=(
+                "> Du hast gegen unsere Server Regeln verstoßen\n\n"
+                „> Bitte wende dich an den Support“
             ),
-            color=MOD_COLOR
+            Farbe=MOD_COLOR
         )
         await member.send(content=member.mention, embed=embed)
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        timeout_status = "âœ… Timeout erteilt (300h)" if timeout_ok else "âŒ Timeout fehlgeschlagen â€” Berechtigung prÃ¼fen!"
-        rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
+        timeout_status = "âœ… Timeout erteilt (300h)" if timeout_ok else "â Œ Timeout fehlgeschlagen – Berechtigung prüfen!"
+        rollen_status = f"Entfernt: {', '.join(r.name for r in Roles_removed)}" if Roles_removed else "Keine Rollen entfernt"
         embed = discord.Embed(
-            title="ðŸ”¨ Moderation â€” Timeout",
-            description=(
+            title="ðŸ”¨ Moderation â€out",
+            Beschreibung=(
                 f"**Benutzer:** {member.mention} (`{member}`)\n"
                 f"**Timeout:** {timeout_status}\n"
                 f"**Rollen:** {rollen_status}\n"
@@ -1125,135 +1026,135 @@ async def handle_discord_invite(message):
                 f"**Kanal:** {message.channel.mention}\n"
                 f"**Nachricht:** {message.content[:300]}"
             ),
-            color=MOD_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=MOD_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await log_ch.send(embed=embed)
 
 
 async def handle_link_outside_memes(message):
-    try:
+    versuchen:
         await message.delete()
-    except Exception:
-        pass
-    try:
+    Ausnahme:
+        passieren
+    versuchen:
         await message.channel.send(
-            f"{message.author.mention} Bitte sende Links ausschlieÃŸlich im <#{MEMES_CHANNEL_ID}> Kanal",
+            f"{message.author.mention} Bitte senden Sie Links ausschließlich im <#{MEMES_CHANNEL_ID}> Kanal",
             delete_after=6
         )
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
 
 
 async def handle_vulgar_message(message):
-    try:
+    versuchen:
         await message.delete()
-    except Exception:
-        pass
-    try:
+    Ausnahme:
+        passieren
+    versuchen:
         embed = discord.Embed(
-            description=(
-                "> **Verwarnung:** Du hast einen vulgÃ¤ren Ausdruck verwendet.\n\n"
-                "> Bitte beachte unsere Serverregeln. Bei weiteren VerstÃ¶ÃŸen folgen Konsequenzen."
+            Beschreibung=(
+                "> **Verwarnung:** Du hast einen vulgären Ausdruck verwendet.\n\n"
+                "> Bitte beachte unsere Serverregeln. Bei weiteren Verstößen folgen Konsequenzen."
             ),
-            color=MOD_COLOR
+            Farbe=MOD_COLOR
         )
         await message.author.send(content=message.author.mention, embed=embed)
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
     log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
         embed = discord.Embed(
-            title="ðŸ”¨ Moderation â€” VulgÃ¤re Sprache",
-            description=(
+            title="ðŸ"¨ Moderation – Vulgäre Sprache",
+            Beschreibung=(
                 f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
                 f"**Kanal:** {message.channel.mention}\n"
                 f"**Nachricht:** {message.content[:300]}"
             ),
-            color=MOD_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=MOD_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await log_ch.send(embed=embed)
 
 
 async def check_spam(message):
-    user_id = message.author.id
-    now = datetime.now(timezone.utc)
-    if user_id not in spam_tracker:
+    Benutzer-ID = Nachricht.Autor-ID
+    jetzt = datetime.now(timezone.utc)
+    Falls die Benutzer-ID nicht im Spam-Tracker enthalten ist:
         spam_tracker[user_id] = []
     spam_tracker[user_id] = [t for t in spam_tracker[user_id] if (now - t).total_seconds() < 5]
     spam_tracker[user_id].append(now)
-    count = len(spam_tracker[user_id])
-    if count >= 5 and user_id in spam_warned:
+    Anzahl = Länge(spam_tracker[user_id])
+    Wenn count >= 5 und user_id in spam_warned enthalten ist:
         spam_tracker[user_id] = []
         spam_warned.discard(user_id)
-        try:
+        versuchen:
             await message.channel.purge(limit=50, check=lambda m: m.author.id == user_id)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
         timeout_ok, roles_removed = await apply_timeout_restrictions(
             message.author, message.guild, duration_m=10, reason="Wiederholtes Spammen"
         )
-        try:
+        versuchen:
             embed = discord.Embed(
-                description="> Du wurdest aufgrund von wiederholtem Spammen fÃ¼r **10 Minuten** stummgeschaltet.",
-                color=MOD_COLOR
+                description="> Du wurdest aufgrund von wiederholtem Spammen für **10 Minuten** stummgeschaltet.",
+                Farbe=MOD_COLOR
             )
             await message.author.send(content=message.author.mention, embed=embed)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
-            timeout_status = "âœ… Timeout erteilt (10min)" if timeout_ok else "âŒ Timeout fehlgeschlagen â€” Berechtigung prÃ¼fen!"
-            rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
+            timeout_status = "âœ… Timeout erteilt (10min)" if timeout_ok else "â Œ Timeout fehlgeschlagen – Berechtigung prüfen!"
+            rollen_status = f"Entfernt: {', '.join(r.name for r in Roles_removed)}" if Roles_removed else "Keine Rollen entfernt"
             embed = discord.Embed(
-                title="ðŸ”¨ Moderation â€” Timeout (Spam)",
-                description=(
+                title="ðŸ”¨ Moderation â€“ Timeout (Spam)",
+                Beschreibung=(
                     f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
                     f"**Timeout:** {timeout_status}\n"
                     f"**Rollen:** {rollen_status}\n"
                     f"**Grund:** Wiederholtes Spammen"
                 ),
-                color=MOD_COLOR,
-                timestamp=datetime.now(timezone.utc)
+                Farbe=MOD_COLOR,
+                Zeitstempel=datetime.now(timezone.utc)
             )
             await log_ch.send(embed=embed)
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.add(user_id)
-        try:
+        versuchen:
             await message.channel.purge(limit=50, check=lambda m: m.author.id == user_id)
-        except Exception:
-            pass
-        try:
+        Ausnahme:
+            passieren
+        versuchen:
             embed = discord.Embed(
-                description=(
-                    "> **Verwarnung:** Bitte vermeide es zu spammen.\n\n"
-                    "> Bei Wiederholung erhÃ¤ltst du einen 10 Minuten Timeout."
+                Beschreibung=(
+                    „> **Verwarnung:** Bitte vermeide es zu spammen.\n\n“
+                    "> Bei Wiederholung erhältst du einen 10 Minuten Timeout."
                 ),
-                color=MOD_COLOR
+                Farbe=MOD_COLOR
             )
             await message.author.send(content=message.author.mention, embed=embed)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
 
 
 @bot.event
 async def on_message_delete(message):
     if not message.guild or message.author.bot:
-        return
+        zurückkehren
     log_ch = message.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
+    falls nicht log_ch:
+        zurückkehren
     embed = discord.Embed(
-        title="ðŸ—‘ï¸ Nachricht gelÃ¶scht",
-        description=(
+        title="ðŸ—'ï¸ Nachricht gelöscht",
+        Beschreibung=(
             f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
             f"**Kanal:** {message.channel.mention}\n"
             f"**Inhalt:** {message.content[:500] if message.content else '*Kein Text*'}"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
 
@@ -1261,22 +1162,22 @@ async def on_message_delete(message):
 @bot.event
 async def on_message_edit(before, after):
     if not before.guild or before.author.bot:
-        return
-    if before.content == after.content:
-        return
+        zurückkehren
+    Wenn before.content == after.content:
+        zurückkehren
     log_ch = before.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
+    falls nicht log_ch:
+        zurückkehren
     embed = discord.Embed(
-        title="âœï¸ Nachricht bearbeitet",
-        description=(
+        title="âœ ï¸ Nachricht bearbeitet",
+        Beschreibung=(
             f"**Benutzer:** {before.author.mention} (`{before.author}`)\n"
             f"**Kanal:** {before.channel.mention}\n"
             f"**Vorher:** {before.content[:250] if before.content else '*Kein Text*'}\n"
             f"**Nachher:** {after.content[:250] if after.content else '*Kein Text*'}"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
 
@@ -1284,32 +1185,32 @@ async def on_message_edit(before, after):
 @bot.event
 async def on_member_update(before, after):
     if before.roles == after.roles:
-        return
-    guild  = after.guild
+        zurückkehren
+    Gilde = nach.Gilde
     log_ch = guild.get_channel(ROLE_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
-    added   = [r for r in after.roles if r not in before.roles]
-    removed = [r for r in before.roles if r not in after.roles]
-    if not added and not removed:
-        return
+    falls nicht log_ch:
+        zurückkehren
+    hinzugefügt = [r für r in nach.Rollen falls r nicht in vor.Rollen]
+    entfernt = [r für r in vorher.Rollen falls r nicht in nachher.Rollen]
+    falls nicht hinzugefügt und nicht entfernt:
+        zurückkehren
     description = f"**Benutzer:** {after.mention} (`{after}`)\n"
-    if added:
+    falls hinzugefügt:
         description += f"**HinzugefÃ¼gt:** {', '.join(r.mention for r in added)}\n"
-    if removed:
+    falls entfernt:
         description += f"**Entfernt:** {', '.join(r.mention for r in removed)}\n"
-    try:
+    versuchen:
         async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.member_role_update):
             if entry.target.id == after.id:
-                description += f"**GeÃ¤ndert von:** {entry.user.mention} (`{entry.user}`)"
-                break
-    except Exception:
-        pass
+                description += f"**Geändert von:** {entry.user.mention} (`{entry.user}`)"
+                brechen
+    Ausnahme:
+        passieren
     embed = discord.Embed(
-        title="ðŸŽ­ Rollen geÃ¤ndert",
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        title="ðŸŽ Rollen geändert",
+        Beschreibung=Beschreibung,
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
 
@@ -1317,330 +1218,322 @@ async def on_member_update(before, after):
 @bot.event
 async def on_member_ban(guild, user):
     log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
+    falls nicht log_ch:
+        zurückkehren
     reason = "Kein Grund angegeben"
-    banner = None
-    try:
+    Banner = Keine
+    versuchen:
         async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.ban):
             if entry.target.id == user.id:
-                reason = entry.reason or reason
-                banner = entry.user
-                break
-    except Exception:
-        pass
+                Grund = Eintrag.Grund oder Grund
+                Banner = Eintrag.Benutzer
+                brechen
+    Ausnahme:
+        passieren
     description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
-    if banner:
+    Banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
     embed = discord.Embed(
-        title="ðŸ”¨ Mitglied gebannt",
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        title="ðŸ"¨ Mitglied gegeben",
+        Beschreibung=Beschreibung,
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
 
 
 @bot.event
 async def on_member_remove(member):
-    guild  = member.guild
+    Gilde = Mitglied.Gilde
     log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
+    falls nicht log_ch:
+        zurückkehren
+    # FIX: spam_tracker und spam_warned für ausgetretene Member bereinigen
+    spam_tracker.pop(member.id, None)
+    spam_warned.discard(member.id)
     await asyncio.sleep(1)
-    action = "verlassen"
-    mod    = None
-    reason = None
-    try:
+    Aktion = "verlassen"
+    mod = None
+    Grund = Keiner
+    versuchen:
         async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.kick):
             if entry.target.id == member.id:
-                action = "gekickt"
-                mod    = entry.user
-                reason = entry.reason or "Kein Grund angegeben"
-                break
-    except Exception:
-        pass
-    try:
+                Aktion = "gekickt"
+                mod = entry.user
+                reason = enter.reason oder „Kein Grund angegeben“
+                brechen
+    Ausnahme:
+        passieren
+    versuchen:
         async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.ban):
             if entry.target.id == member.id:
-                return
-    except Exception:
-        pass
+                zurückkehren
+    Ausnahme:
+        passieren
     description = f"**Benutzer:** {member.mention} (`{member}`)\n**Aktion:** {action}"
-    if mod:
+    falls Mod:
         description += f"\n**Von:** {mod.mention} (`{mod}`)"
-    if reason:
-        description += f"\n**Grund:** {reason}"
-    title = "ðŸ‘¢ Mitglied gekickt" if action == "gekickt" else "ðŸšª Mitglied hat den Server verlassen"
+    Grund:
+        Beschreibung += f"\n**Grund:** {Grund}"
+    title = "ðŸ'¢ Mitglied gekickt" if action == "gekickt" else "ðŸšª Mitglied hat den Server verlassen"
     embed = discord.Embed(
-        title=title,
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Titel=Titel,
+        Beschreibung=Beschreibung,
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
 
 
 @bot.event
 async def on_invite_create(invite):
-    guild = invite.guild
-    if guild.id not in invite_cache:
+    Gilde = invite.guild
+    Falls guild.id nicht im invite_cache enthalten ist:
         invite_cache[guild.id] = {}
     invite_cache[guild.id][invite.code] = invite
 
 
 @bot.event
 async def on_invite_delete(invite):
-    guild = invite.guild
+    Gilde = invite.guild
     if guild.id in invite_cache and invite.code in invite_cache[guild.id]:
         del invite_cache[guild.id][invite.code]
 
 
 @bot.event
 async def on_member_join(member):
-    guild = member.guild
+    Gilde = Mitglied.Gilde
     if member.bot:
-        try:
-            await member.kick(reason="Bots sind auf diesem Server nicht erlaubt")
-        except Exception:
-            pass
-        try:
+        versuchen:
+            wait member.kick(reason="Bots sind auf diesem Server nicht erlaubt")
+        Ausnahme:
+            passieren
+        versuchen:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
                 if entry.target.id == member.id:
                     embed = discord.Embed(
-                        description="> Bots auf diesen Server hinzufÃ¼gen ist fÃ¼r dich leider nicht erlaubt.",
-                        color=MOD_COLOR
+                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                        Farbe=MOD_COLOR
                     )
-                    try:
+                    versuchen:
                         await entry.user.send(content=entry.user.mention, embed=embed)
-                    except Exception:
-                        pass
-                    break
-        except Exception:
-            pass
-        return
-
+                    Ausnahme:
+                        passieren
+                    brechen
+        Ausnahme:
+            passieren
+        zurückkehren
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
         embed = discord.Embed(
             title="âœ… Mitglied beigetreten",
             description=f"**Benutzer:** {member.mention} (`{member}`)",
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await member_log_ch.send(embed=embed)
-
-    inviter      = None
+    Einladender = Keine
     inviter_uses = 0
-    try:
-        new_invites    = await guild.fetch_invites()
-        new_invite_map = {inv.code: inv for inv in new_invites}
+    versuchen:
+        new_invites = await guild.fetch_invites()
+        new_invites_map = {inv.code: inv for inv in new_invites}
         old_invite_map = invite_cache.get(guild.id, {})
         for code, new_inv in new_invite_map.items():
             old_inv = old_invite_map.get(code)
             if old_inv and new_inv.uses > old_inv.uses:
-                inviter      = new_inv.inviter
+                Einladender = new_inv.inviter
                 inviter_uses = new_inv.uses
-                break
-        if not inviter:
+                brechen
+        falls nicht der Einladende:
             for code, old_inv in old_invite_map.items():
-                if code not in new_invite_map:
-                    inviter      = old_inv.inviter
+                Falls der Code nicht in new_invite_map enthalten ist:
+                    Einladender = alte_Einladung.Einladender
                     inviter_uses = (old_inv.uses or 0) + 1
-                    break
-        if not inviter:
-            try:
+                    brechen
+        falls nicht der Einladende:
+            versuchen:
                 vanity = await guild.vanity_invite()
                 if vanity and old_invite_map.get("vanity"):
                     old_vanity = old_invite_map["vanity"]
                     if vanity.uses > getattr(old_vanity, "uses", 0):
                         inviter_uses = vanity.uses
-                new_invite_map["vanity"] = vanity
-            except Exception:
-                pass
+                        new_invite_map["vanity"] = vanity
+            Ausnahme:
+                passieren
         invite_cache[guild.id] = new_invite_map
-    except Exception as e:
-        await log_bot_error("Invite-Tracking fehlgeschlagen", str(e), guild)
-
+    außer Ausnahme als e:
+        wait log_bot_error("Invite-Tracking fehlgeschlagen", str(e), Gilde)
     join_log_ch = guild.get_channel(JOIN_LOG_CHANNEL_ID)
     if join_log_ch:
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
-        if inviter:
+        falls der Einladende:
             description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
-            description += f"**Invites von {inviter.display_name}:** {inviter_uses}"
+            description += f"**Einladungen von {inviter.display_name}:** {inviter_uses}"
         elif inviter_uses > 0:
-            description += "**Eingeladen von:** Vanity-URL (Server-Link)"
-        else:
-            description += "**Eingeladen von:** Unbekannt *(Bot fehlt 'Server verwalten' Berechtigung?)*"
+            Beschreibung += "**Eingeladen von:** Vanity-URL (Server-Link)"
+        anders:
+            Beschreibung += "**Eingeladen von:** Unbekannt *(Bot fehlt 'Server verwalten' Berechtigung?)*"
         embed = discord.Embed(
             title="ðŸ“¥ Neues Mitglied",
-            description=description,
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Beschreibung=Beschreibung,
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         await join_log_ch.send(embed=embed)
-
-    rolle = guild.get_role(WHITELIST_ROLE_ID)
-    if rolle:
-        try:
+    Rolle = guild.get_role(WHITELIST_ROLE_ID)
+    wenn Würfelwurf:
+        versuchen:
             await member.add_roles(rolle)
-        except Exception:
-            pass
-
-    try:
+        Ausnahme:
+            passieren
+    versuchen:
         embed = discord.Embed(
-            description=(
-                "> Willkommen auf Kryptik Roleplay deinem RP server mit Ultimativem SpaÃŸ und Hochwertigem RP\n\n"
-                "> Wir wÃ¼nschen dir viel SpaÃŸ auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
-                "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit Ã¼ber ein Support Ticket im channel "
+            Beschreibung=(
+                "> Willkommen auf Kryptik Roleplay deinem RP Server mit Ultimativem Spaß und Hochwertigem RP\n\n"
+                "> Wir wünschen dir viel Spaß auf unserem Server und hoffen, dass du dich bei uns gut zurecht findest\n\n"
+                "> Solltest du mal Schwierigkeiten haben melde dich gerne jederzeit über ein Support Ticket im Kanal "
                 f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
             ),
-            color=LOG_COLOR
+            Farbe=LOG_COLOR
         )
         await member.send(content=member.mention, embed=embed)
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
+    # Startguthaben 5.000 ðŸ'µ
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, member.id)
+        if user_data["cash"] == 0 and user_data["bank"] == 0:
+            user_data["cash"] = START_CASH
+            save_economy(eco)
+    await log_money_action(
+        Gilde,
+        "Startguthaben vergeben",
+        f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} ðŸ'µ (Willkommensbonus)"
+    )
 
-    # â”€â”€ Startguthaben 5.000 ðŸ’µ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    eco       = load_economy()
-    user_data = get_user(eco, member.id)
-    if user_data["cash"] == 0 and user_data["bank"] == 0:
-        user_data["cash"] = START_CASH
-        save_economy(eco)
-        await log_money_action(
-            guild,
-            "Startguthaben vergeben",
-            f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} ðŸ’µ (Willkommensbonus)"
-        )
 
-
-# â”€â”€ Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â“€â“€ Befehle â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€ â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
 @bot.command(name="hallo")
 async def hallo(ctx):
-    await ctx.send(f"Hallo, {ctx.author.display_name}! ðŸ‘‹")
+    await ctx.send(f"Hallo, {ctx.author.display_name}! ðŸ'‹")
 
 
 @bot.command(name="testping")
-async def testping(ctx):
+async def testing(ctx):
     if not is_admin(ctx.author):
-        return
+        zurückkehren
     kanal = ctx.guild.get_channel(JOIN_LOG_CHANNEL_ID)
-    rolle = ctx.guild.get_role(MOD_ROLE_ID)
+    Rolle = ctx.guild.get_role(MOD_ROLE_ID)
     if kanal and rolle:
-        await kanal.send(f"{rolle.mention} Dies ist ein Test-Ping vom Bot!")
-    try:
+        wait kanal.send(f"{rolle.mention} Dies ist ein Test-Ping vom Bot!")
+    versuchen:
         await ctx.message.delete()
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
 
 
 @bot.command(name="botstatus")
 async def botstatus(ctx):
     if not is_admin(ctx.author):
-        return
+        zurückkehren
     await send_bot_status()
-    try:
+    versuchen:
         await ctx.message.delete()
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
 
 
 @bot.command(name="ticketsetup")
 async def ticketsetup(ctx):
-    """Sendet das Ticket-Embed in den Ticket-Kanal. Nur fÃ¼r Admins."""
+    „Sendet das Ticket-Embed in den Ticket-Kanal. Nur für Admins.“
     if not is_admin(ctx.author):
-        return
-    channel = ctx.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
-    if not channel:
-        await ctx.send("âŒ Ticket-Kanal nicht gefunden!")
-        return
+        zurückkehren
+    Kanal = ctx.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
+    falls nicht Kanal:
+        wait ctx.send("â Œ Ticket-Kanal nicht gefunden!")
+        zurückkehren
     embed = discord.Embed(
-        title="ðŸŽŸ Support â€” Ticket erstellen",
-        description=(
-            "BenÃ¶tigst du Hilfe oder mÃ¶chtest ein Anliegen melden?\n\n"
-            "WÃ¤hle unten im MenÃ¼ die passende Ticket-Art aus.\n"
-            "Unser Team wird sich schnellstmÃ¶glich um dich kÃ¼mmern.\n\n"
-            "**VerfÃ¼gbare Ticket-Arten:**\n"
-            "ðŸŽŸ **Support** â€” Allgemeiner Support\n"
-            "ðŸŽŸ **Highteam Ticket** â€” Direkter Kontakt zum Highteam\n"
-            "ðŸŽŸ **Fraktions Bewerbung** â€” Bewirb dich fÃ¼r eine Fraktion\n"
-            "ðŸŽŸ **Beschwerde Ticket** â€” Beschwerde einreichen\n"
-            "ðŸŽŸ **Bug Report** â€” Fehler oder Bug melden"
+        title="ðŸŽŸ Support – Ticket erstellen",
+        Beschreibung=(
+            „Benötigt du Hilfe oder möchtest du einen Betroffenen melden?\n\n“
+            „Wähle unten im Menü die passende Ticket-Art aus.\n“
+            „Unser Team wird sich schnellstmöglich um dich kümmern.\n\n“
+            „**Verfügbare Ticket-Arten:**\n“
+            „ðŸŽŸ **Support** – Allgemeiner Support\n“
+            „ðŸŽŸ **Highteam Ticket** – Direkter Kontakt zum Highteam\n“
+            „ðŸŽŸ **Fraktions Bewerbung** – Bewirb dich für eine Fraktion\n“
+            „ðŸŽŸ **Beschwerde Ticket** – Beschwerde einreichen\n“
+            „ðŸŽŸ **Bug Report** – Fehler oder Bug melden“
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Cryptik Roleplay â€” Support System")
-    view = TicketSelectView()
+    embed.set_footer(text="Cryptik Roleplay – Supportsystem")
+    Ansicht = TicketSelectView()
     await channel.send(embed=embed, view=view)
-    try:
+    versuchen:
         await ctx.message.delete()
-    except Exception:
-        pass
+    Ausnahme:
+        passieren
 
 
-# â”€â”€ Economy Slash Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# — Economy Slash Commands —
 
 def channel_error(channel_id: int) -> str:
-    return f"âŒ Du kannst diesen Command nur hier ausfÃ¼hren: <#{channel_id}>"
+    return f"â Œ Du kannst diesen Befehl nur hier ausführen: <#{channel_id}>"
 
 
 # /lohn-abholen
-@bot.tree.command(name="lohn-abholen", description="Hole deinen stÃ¼ndlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="lohn-abholen", description="Hole deinen wertvollen Lohn ab", guild=discord.Object(id=GUILD_ID))
 async def lohn_abholen(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != LOHN_CHANNEL_ID:
         await interaction.response.send_message(channel_error(LOHN_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     main_wages = [WAGE_ROLES[r] for r in role_ids if r in WAGE_ROLES]
     if len(main_wages) > 1:
         await interaction.response.send_message(
-            "âŒ Du hast mehrere Lohnklassen. Bitte wende dich ans Team.", ephemeral=True
+            „â Œ Du hast mehrere Lohnklassen. Bitte wende dich ans Team.“, ephemeral=True
         )
-        return
-    if not main_wages:
+        zurückkehren
+    falls nicht Hauptlohn:
         await interaction.response.send_message(
-            "âŒ Du hast keine Lohnklasse und kannst keinen Lohn abholen.", ephemeral=True
+            „â Œ Du hast keine Lohnklasse und kannst keinen Lohn abholen.“, ephemeral=True
         )
-        return
-
-    total_wage = main_wages[0]
+        zurückkehren
+    Gesamtlohn = Hauptlohn[0]
     if ADDITIONAL_WAGE_ROLE_ID in role_ids:
-        total_wage += ADDITIONAL_WAGE_ROLE_WAGE
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-    now       = datetime.now(timezone.utc)
-
-    if user_data["last_wage"]:
-        last = datetime.fromisoformat(user_data["last_wage"])
-        diff = (now - last).total_seconds()
-        if diff < 3600:
-            remaining = int(3600 - diff)
-            mins = remaining // 60
-            secs = remaining % 60
-            await interaction.response.send_message(
-                f"âŒ Du kannst deinen Lohn erst in **{mins}m {secs}s** wieder abholen.",
-                ephemeral=True
-            )
-            return
-
-    user_data["bank"]      += total_wage
-    user_data["last_wage"]  = now.isoformat()
-    save_economy(eco)
-
+        Gesamtlohn += ZUSÄTZLICHER_LOHN_ROLLENLOHN
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        jetzt = datetime.now(timezone.utc)
+        if user_data["last_wage"]:
+            last = datetime.fromisoformat(user_data["last_wage"])
+            diff = (jetzt - letzte).total_seconds()
+            if diff < 3600:
+                Rest = int(3600 - Differenz)
+                Minuten = verbleibend // 60
+                Sekunden = verbleibende % 60
+                await interaction.response.send_message(
+                    f"â Œ Du kannst deinen Lohn erst in **{mins}m {secs}s** wieder abholen.",
+                    ephemeral=True
+                )
+                zurückkehren
+        user_data["bank"] += total_wage
+        user_data["last_wage"] = now.isoformat()
+        save_economy(eco)
     embed = discord.Embed(
-        title="ðŸ’µ Lohn abgeholt!",
-        description=(
-            f"Du hast **{total_wage:,} ðŸ’µ** auf dein Konto erhalten.\n"
-            f"**Kontostand:** {user_data['bank']:,} ðŸ’µ"
+        title="ðŸ'µ Lohn abgeholt!",
+        Beschreibung=(
+            f"Du hast **{total_wage:,} ðŸ'µ** auf dein Konto erhalten.\n"
+            f"**Kontostand:** {user_data['bank']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=now
+        Farbe=LOG_COLOR,
+        Zeitstempel=jetzt
     )
     await interaction.response.send_message(embed=embed)
 
@@ -1649,491 +1542,431 @@ async def lohn_abholen(interaction: discord.Interaction):
 @bot.tree.command(name="kontostand", description="Zeigt deinen Kontostand an", guild=discord.Object(id=GUILD_ID))
 async def kontostand(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
         await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("âŒ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-    save_economy(eco)
-
+        wait interaction.response.send_message("â Œ Du hast keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        save_economy(eco)
     embed = discord.Embed(
-        title="ðŸ’³ Kontostand",
-        description=(
-            f"**Bargeld:** {user_data['cash']:,} ðŸ’µ\n"
-            f"**Bank:** {user_data['bank']:,} ðŸ’µ\n"
-            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} ðŸ’µ"
+        title="ðŸ'³ Kontostand",
+        Beschreibung=(
+            f"**Bargeld:** {user_data['cash']:,} ðŸ'µ\n"
+            f"**Bank:** {user_data['bank']:,} ðŸ'µ\n"
+            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # /einzahlen
 @bot.tree.command(name="einzahlen", description="Zahle Bargeld auf dein Bankkonto ein", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(betrag="Betrag wÃ¤hlen oder eingeben (1.000 â€“ 10.000.000 ðŸ’µ)")
+@app_commands.describe(betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 ðŸ'µ)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def einzahlen(interaction: discord.Interaction, betrag: int):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
         await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("âŒ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
+        wait interaction.response.send_message("â Œ Du hast keine Berechtigung.", ephemeral=True)
+        zurückkehren
     if betrag <= 0:
-        await interaction.response.send_message("âŒ Betrag muss grÃ¶ÃŸer als 0 sein.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-    reset_daily_if_needed(user_data)
-
-    if user_data["cash"] < betrag:
-        await interaction.response.send_message(
-            f"âŒ Nicht genug Bargeld. Dein Bargeld: **{user_data['cash']:,} ðŸ’µ**", ephemeral=True
-        )
-        return
-
-    if not is_adm:
-        user_limit = user_data.get("custom_limit") or DAILY_LIMIT
-        remaining  = user_limit - user_data["daily_deposit"]
-        if betrag > remaining:
+        wait interaction.response.send_message("â Œ Betrag muss größer als 0 sein.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        reset_daily_if_needed(user_data)
+        if user_data["cash"] < Betrag:
             await interaction.response.send_message(
-                f"âŒ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ’µ** einzahlen. "
-                f"(Limit: **{user_limit:,} ðŸ’µ**)",
-                ephemeral=True
+                f"â Œ Nicht genug Bargeld. Dein Bargeld: **{user_data['cash']:,} ðŸ'µ**", ephemeral=True
             )
-            return
-        user_data["daily_deposit"] += betrag
-
-    user_data["cash"] -= betrag
-    user_data["bank"] += betrag
-    save_economy(eco)
+            zurückkehren
+        falls nicht is_adm:
+            user_limit = user_data.get("custom_limit") or DAILY_LIMIT
+            verbleibend = Benutzerlimit - Benutzerdaten["tägliche Einzahlung"]
+            falls Betrag > Restbetrag:
+                await interaction.response.send_message(
+                    f"â Œ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ'µ** einzahlen. "
+                    f"(Limit: **{user_limit:,} ðŸ'µ**)", ephemeral=True
+                )
+                zurückkehren
+        user_data["daily_deposit"] += Betrag
+        user_data["cash"] -= betrag
+        user_data["bank"] += betrag
+        save_economy(eco)
     await log_money_action(
-        interaction.guild,
-        "Einzahlung",
-        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} ðŸ’µ\n"
-        f"**Bargeld danach:** {user_data['cash']:,} ðŸ’µ | **Bank danach:** {user_data['bank']:,} ðŸ’µ"
+        Interaktion.guild, "Einzahlung",
+        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} ðŸ'µ\n"
+        f"**Bargeld danach:** {user_data['cash']:,} ðŸ'µ | **Bank danach:** {user_data['bank']:,} ðŸ'µ"
     )
-
     embed = discord.Embed(
-        title="ðŸ¦ Eingezahlt",
-        description=(
-            f"**Eingezahlt:** {betrag:,} ðŸ’µ\n"
-            f"**Bargeld:** {user_data['cash']:,} ðŸ’µ\n"
-            f"**Bank:** {user_data['bank']:,} ðŸ’µ"
+        title="ðŸ ¦ Eingezahlt",
+        Beschreibung=(
+            f"**Eingezahlt:** {betrag:,} ðŸ'µ\n"
+            f"**Bargeld:** {user_data['cash']:,} ðŸ'µ\n"
+            f"**Bank:** {user_data['bank']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
 
 # /auszahlen
 @bot.tree.command(name="auszahlen", description="Hebe Geld von deinem Bankkonto ab", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(betrag="Betrag wÃ¤hlen oder eingeben (1.000 â€“ 10.000.000 ðŸ’µ)")
+@app_commands.describe(betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 ðŸ'µ)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def auszahlen(interaction: discord.Interaction, betrag: int):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
         await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("âŒ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
+        wait interaction.response.send_message("â Œ Du hast keine Berechtigung.", ephemeral=True)
+        zurückkehren
     if betrag <= 0:
-        await interaction.response.send_message("âŒ Betrag muss grÃ¶ÃŸer als 0 sein.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-    reset_daily_if_needed(user_data)
-
-    if user_data["bank"] < betrag:
-        await interaction.response.send_message(
-            f"âŒ Nicht genug Guthaben. Dein Kontostand: **{user_data['bank']:,} ðŸ’µ**", ephemeral=True
-        )
-        return
-
-    if not is_adm:
-        user_limit = user_data.get("custom_limit") or DAILY_LIMIT
-        remaining  = user_limit - user_data["daily_withdraw"]
-        if betrag > remaining:
+        wait interaction.response.send_message("â Œ Betrag muss größer als 0 sein.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        reset_daily_if_needed(user_data)
+        if user_data["bank"] < Betrag:
             await interaction.response.send_message(
-                f"âŒ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ’µ** auszahlen. "
-                f"(Limit: **{user_limit:,} ðŸ’µ**)",
-                ephemeral=True
+                f"â Œ Nicht genug Guthaben. Dein Kontostand: **{user_data['bank']:,} ðŸ'µ**", ephemeral=True
             )
-            return
+            zurückkehren
+        falls nicht is_adm:
+            user_limit = user_data.get("custom_limit") or DAILY_LIMIT
+            verbleibend = Benutzerlimit - Benutzerdaten["tägliche_Abhebung"]
+            falls Betrag > Restbetrag:
+                await interaction.response.send_message(
+                    f"â Œ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ'µ** auszahlen. "
+                    f"(Limit: **{user_limit:,} ðŸ'µ**)", ephemeral=True
+                )
+                zurückkehren
         user_data["daily_withdraw"] += betrag
-
-    user_data["bank"] -= betrag
-    user_data["cash"] += betrag
-    save_economy(eco)
+        user_data["bank"] -= betrag
+        user_data["cash"] += betrag
+        save_economy(eco)
     await log_money_action(
-        interaction.guild,
-        "Auszahlung",
-        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} ðŸ’µ\n"
-        f"**Bargeld danach:** {user_data['cash']:,} ðŸ’µ | **Bank danach:** {user_data['bank']:,} ðŸ’µ"
+        Interaktion.guild, "Auszahlung",
+        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} ðŸ'µ\n"
+        f"**Bargeld danach:** {user_data['cash']:,} ðŸ'µ | **Bank danach:** {user_data['bank']:,} ðŸ'µ"
     )
-
     embed = discord.Embed(
-        title="ðŸ’¸ Ausgezahlt",
-        description=(
-            f"**Ausgezahlt:** {betrag:,} ðŸ’µ\n"
-            f"**Bargeld:** {user_data['cash']:,} ðŸ’µ\n"
-            f"**Bank:** {user_data['bank']:,} ðŸ’µ"
+        title="ðŸ'¸ Ausgezahlt",
+        Beschreibung=(
+            f"**Ausgezahlt:** {betrag:,} ðŸ'µ\n"
+            f"**Bargeld:** {user_data['cash']:,} ðŸ'µ\n"
+            f"**Bank:** {user_data['bank']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
 
-# /Ã¼berweisen
-@bot.tree.command(name="Ã¼berweisen", description="Ãœberweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="EmpfÃ¤nger", betrag="Betrag wÃ¤hlen oder eingeben (1.000 â€“ 10.000.000 ðŸ’µ)")
+# /ueberweisen – FIX: war „überweisen“ mit Umlaut – verursachte den Railway-Crash
+@bot.tree.command(name="ueberweisen", description="üblicherweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="Empfanger", betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 ðŸ'µ)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
         await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("âŒ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
+        wait interaction.response.send_message("â Œ Du hast keine Berechtigung.", ephemeral=True)
+        zurückkehren
     if nutzer.id == interaction.user.id:
-        await interaction.response.send_message("âŒ Du kannst nicht an dich selbst Ã¼berweisen.", ephemeral=True)
-        return
-
+        wait interaction.response.send_message("â Œ Du kannst dich nicht selbst überweisen.", ephemeral=True)
+        zurückkehren
     if betrag <= 0:
-        await interaction.response.send_message("âŒ Betrag muss grÃ¶ÃŸer als 0 sein.", ephemeral=True)
-        return
-
-    eco        = load_economy()
-    sender     = get_user(eco, interaction.user.id)
-    receiver   = get_user(eco, nutzer.id)
-    reset_daily_if_needed(sender)
-
-    if sender["bank"] < betrag:
-        await interaction.response.send_message(
-            f"âŒ Nicht genug Guthaben. Dein Kontostand: **{sender['bank']:,} ðŸ’µ**", ephemeral=True
-        )
-        return
-
-    if not is_adm:
-        user_limit = sender.get("custom_limit") or DAILY_LIMIT
-        remaining  = user_limit - sender["daily_transfer"]
-        if betrag > remaining:
+        wait interaction.response.send_message("â Œ Betrag muss größer als 0 sein.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        sender = get_user(eco, interaction.user.id)
+        Empfänger = get_user(eco, nutzer.id)
+        reset_daily_if_needed(sender)
+        if sender["bank"] < betrag:
             await interaction.response.send_message(
-                f"âŒ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ’µ** Ã¼berweisen. "
-                f"(Limit: **{user_limit:,} ðŸ’µ**)",
-                ephemeral=True
+                f"â Œ Nicht genug Guthaben. Dein Kontostand: **{sender['bank']:,} ðŸ'µ**", ephemeral=True
             )
-            return
-        sender["daily_transfer"] += betrag
-
-    sender["bank"]   -= betrag
-    receiver["bank"] += betrag
-    save_economy(eco)
+            zurückkehren
+        falls nicht is_adm:
+            user_limit = sender.get("custom_limit") or DAILY_LIMIT
+            verbleibend = Benutzerlimit - Absender["tägliche Überweisung"]
+            falls Betrag > Restbetrag:
+                await interaction.response.send_message(
+                    f"â Œ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ'µ** überweisen. "
+                    f"(Limit: **{user_limit:,} ðŸ'µ**)", ephemeral=True
+                )
+                zurückkehren
+        sender["daily_transfer"] += Betrag
+        Absender["Bank"] -= Betrag
+        Empfänger["Bank"] += Betrag
+        save_economy(eco)
     await log_money_action(
-        interaction.guild,
-        "Ãœberweisung",
-        f"**Von:** {interaction.user.mention} â†’ **An:** {nutzer.mention}\n"
-        f"**Betrag:** {betrag:,} ðŸ’µ | **Sender-Bank danach:** {sender['bank']:,} ðŸ’µ"
+        interaction.guild, "Überweisung",
+        f"**Von:** {interaction.user.mention} â†' **An:** {nutzer.mention}\n"
+        f"**Betrag:** {betrag:,} ðŸ'µ | **Sender-Bank danach:** {sender['bank']:,} ðŸ'µ"
     )
-
     embed = discord.Embed(
-        title="ðŸ’³ Ãœberweisung",
-        description=(
+        title="ðŸ'³ Überweisung",
+        Beschreibung=(
             f"**An:** {nutzer.mention}\n"
-            f"**Betrag:** {betrag:,} ðŸ’µ\n"
-            f"**Dein Kontostand:** {sender['bank']:,} ðŸ’µ"
+            f"**Betrag:** {betrag:,} ðŸ'µ\n"
+            f"**Dein Kontostand:** {sender['bank']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
 
-# /shop
+# /Geschäft
 @bot.tree.command(name="shop", description="Zeigt den Shop an", guild=discord.Object(id=GUILD_ID))
 async def shop(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != SHOP_CHANNEL_ID:
         await interaction.response.send_message(channel_error(SHOP_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     items = load_shop()
-    if not items:
+    falls keine Artikel:
         await interaction.response.send_message(
-            embed=discord.Embed(
-                title="ðŸ›’ Shop",
-                description="Der Shop ist aktuell leer.",
-                color=LOG_COLOR
-            ),
+            embed=discord.Embed(title="ðŸ›' Shop", description="Der Shop ist aktuell leer.", color=LOG_COLOR),
             ephemeral=True
         )
-        return
-
-    desc = "\n".join(f"**{item['name']}** â€” {item['price']:,} ðŸ’µ" for item in items)
+        zurückkehren
+    desc = "\n".join(f"**{item['name']}** â€ {item['price']:,} ðŸ'µ" for item in items)
     embed = discord.Embed(
-        title="ðŸ›’ Shop",
-        description=desc,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        title="ðŸ›' Shop",
+        Beschreibung=desc,
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Kaufen mit /buy [itemname] â€¢ Nur mit Bargeld mÃ¶glich")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /buy
-@bot.tree.command(name="buy", description="Kaufe ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(itemname="Name des Items das du kaufen mÃ¶chtest")
+# /kaufen
+@bot.tree.command(name="buy", description="Einen Artikel aus dem Shop kaufen", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(itemname="Name des Artikels, den du kaufen möchtest")
 async def buy(interaction: discord.Interaction, itemname: str):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != SHOP_CHANNEL_ID:
         await interaction.response.send_message(channel_error(SHOP_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("âŒ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
+        wait interaction.response.send_message("â Œ Du hast keine Berechtigung.", ephemeral=True)
+        zurückkehren
     items = load_shop()
-    item  = next((i for i in items if i["name"].lower() == itemname.lower()), None)
-
-    if not item:
+    item = next((i for i in items if i["name"].lower() == itemname.lower()), None)
+    falls nicht Artikel:
         await interaction.response.send_message(
-            f"âŒ Item **{itemname}** wurde nicht gefunden. Nutze `/shop` um alle Items zu sehen.",
+            f"â Œ Artikel **{itemname}** wurde nicht. Nutze `/shop` um alle Artikel zu sehen.",
             ephemeral=True
         )
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-
-    if user_data["cash"] < item["price"]:
-        await interaction.response.send_message(
-            f"âŒ Du hast nicht genug **Bargeld**.\n"
-            f"Preis: **{item['price']:,} ðŸ’µ** | Dein Bargeld: **{user_data['cash']:,} ðŸ’µ**\n"
-            f"â„¹ï¸ KÃ¤ufe sind nur mit Bargeld mÃ¶glich. Hebe Geld mit `/auszahlen` ab.",
-            ephemeral=True
-        )
-        return
-
-    user_data["cash"] -= item["price"]
-    if "inventory" not in user_data:
-        user_data["inventory"] = []
-    user_data["inventory"].append(item["name"])
-    save_economy(eco)
-
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        if user_data["cash"] < item["price"]:
+            await interaction.response.send_message(
+                f"â Œ Du hast nicht genug **Bargeld**.\n"
+                f"Preis: **{item['price']:,} ðŸ'µ** | Dein Bargeld: **{user_data['cash']:,} ðŸ'µ**\n"
+                f"â„¹ï¸ Käufe sind nur mit Bargeld möglich. Hebe Geld mit `/auszahlen` ab.",
+                ephemeral=True
+            )
+            zurückkehren
+        user_data["cash"] -= item["price"]
+        user_data.setdefault("inventory", []).append(item["name"])
+        save_economy(eco)
     embed = discord.Embed(
-        title="âœ… Gekauft!",
-        description=(
-            f"Du hast **{item['name']}** fÃ¼r **{item['price']:,} ðŸ’µ** gekauft.\n"
-            f"**Verbleibendes Bargeld:** {user_data['cash']:,} ðŸ’µ"
+        title="✓ Gekauft!",
+        Beschreibung=(
+            f"Du hast **{item['name']}** für **{item['price']:,} ðŸ'µ** gekauft.\n"
+            f"**Verbleibendes Bargeld:** {user_data['cash']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
 
-# /set-limit (Team only)
+# /set-limit (Nur Team)
 @bot.tree.command(name="set-limit", description="[TEAM] Setzt das individuelle Tageslimit eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", limit="Neues Tageslimit")
 @app_commands.choices(limit=LIMIT_CHOICES)
 async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, limit: int):
     role_ids = [r.id for r in interaction.user.roles]
-    if ADMIN_ROLE_ID not in role_ids and MOD_ROLE_ID not in role_ids:
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    user_data["custom_limit"] = limit
-    save_economy(eco)
-
+    Falls ADMIN_ROLE_ID und MOD_ROLE_ID nicht in role_ids enthalten sind:
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        user_data["custom_limit"] = limit
+        save_economy(eco)
     embed = discord.Embed(
-        title="âš™ï¸ Limit gesetzt",
-        description=(
+        title="âš™ï¸ Limit gesetzt",
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Neues Tageslimit:** {limit:,} ðŸ’µ\n"
-            f"*(gilt fÃ¼r Einzahlen, Auszahlen & Ãœberweisen)*"
+            f"**Neues Tageslimit:** {limit:,} ðŸ'µ\n"
+            f"*(gilt für Einzahlen, Auszahlen & Überweisen)*"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     embed.set_footer(text=f"Gesetzt von {interaction.user.display_name}")
     await interaction.response.send_message(embed=embed)
 
 
-# /money-add (Admin only)
-@bot.tree.command(name="money-add", description="[ADMIN] FÃ¼ge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+# /money-add (Nur für Administratoren)
+@bot.tree.command(name="money-add", description="[ADMIN] Füge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 @app_commands.default_permissions(administrator=True)
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     if not is_admin(interaction.user):
-        await interaction.response.send_message("âŒ Kein Zugriff.", ephemeral=True)
-        return
-
+        Warten auf Interaktion.response.send_message("â Œ Kein Zugriff.", ephemeral=True)
+        zurückkehren
     if betrag <= 0:
-        await interaction.response.send_message("âŒ Betrag muss grÃ¶ÃŸer als 0 sein.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    user_data["cash"] += betrag
-    save_economy(eco)
+        wait interaction.response.send_message("â Œ Betrag muss größer als 0 sein.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        user_data["cash"] += betrag
+        save_economy(eco)
     await log_money_action(
-        interaction.guild,
-        "Admin: Geld hinzugefÃ¼gt",
-        f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} ðŸ’µ\n"
-        f"**Bargeld danach:** {user_data['cash']:,} ðŸ’µ\n**Admin:** {interaction.user.mention}"
+        interaction.guild, "Admin: Geld hinzugefügt",
+        f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} ðŸ'µ\n"
+        f"**Bargeld danach:** {user_data['cash']:,} ðŸ'µ\n**Admin:** {interaction.user.mention}"
     )
-
     embed = discord.Embed(
-        title="ðŸ’° Geld hinzugefÃ¼gt",
-        description=(
+        title="ðŸ'° Geld hinzugefügt",
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**HinzugefÃ¼gt:** {betrag:,} ðŸ’µ\n"
-            f"**Bargeld:** {user_data['cash']:,} ðŸ’µ"
+            f"**HinzugefÃ¼gt:** {betrag:,} ðŸ'µ\n"
+            f"**Bargeld:** {user_data['cash']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /remove-money (Admin only)
+# /remove-money (Nur für Administratoren)
 @bot.tree.command(name="remove-money", description="[ADMIN] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 @app_commands.default_permissions(administrator=True)
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     if not is_admin(interaction.user):
-        await interaction.response.send_message("âŒ Kein Zugriff.", ephemeral=True)
-        return
-
+        Warten auf Interaktion.response.send_message("â Œ Kein Zugriff.", ephemeral=True)
+        zurückkehren
     if betrag <= 0:
-        await interaction.response.send_message("âŒ Betrag muss grÃ¶ÃŸer als 0 sein.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    user_data["cash"] = max(0, user_data["cash"] - betrag)
-    save_economy(eco)
+        wait interaction.response.send_message("â Œ Betrag muss größer als 0 sein.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        user_data["cash"] = max(0, user_data["cash"] - betrag)
+        save_economy(eco)
     await log_money_action(
-        interaction.guild,
-        "Admin: Geld entfernt",
-        f"**Spieler:** {nutzer.mention}\n**Betrag:** -{betrag:,} ðŸ’µ\n"
-        f"**Bargeld danach:** {user_data['cash']:,} ðŸ’µ\n**Admin:** {interaction.user.mention}"
+        Interaktion.guild, „Admin: Geld entfernt“,
+        f"**Spieler:** {nutzer.mention}\n**Betrag:** -{betrag:,} ðŸ'µ\n"
+        f"**Bargeld danach:** {user_data['cash']:,} ðŸ'µ\n**Admin:** {interaction.user.mention}"
     )
-
     embed = discord.Embed(
-        title="ðŸ’¸ Geld entfernt",
-        description=(
+        title="ðŸ'¸ Geld entfernt",
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Entfernt:** {betrag:,} ðŸ’µ\n"
-            f"**Bargeld:** {user_data['cash']:,} ðŸ’µ"
+            f"**Entfernt:** {betrag:,} ðŸ'µ\n"
+            f"**Bargeld:** {user_data['cash']:,} ðŸ'µ"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /item-add (Admin only)
+# /item-add (Nur für Administratoren)
 @bot.tree.command(name="item-add", description="[ADMIN] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
 @app_commands.default_permissions(administrator=True)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not is_admin(interaction.user):
-        await interaction.response.send_message("âŒ Kein Zugriff.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    if "inventory" not in user_data:
-        user_data["inventory"] = []
-    user_data["inventory"].append(itemname)
-    save_economy(eco)
-
+        Warten auf Interaktion.response.send_message("â Œ Kein Zugriff.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        user_data.setdefault("inventory", []).append(itemname)
+        save_economy(eco)
     await interaction.response.send_message(
         embed=discord.Embed(
-            title="ðŸ“¦ Item hinzugefÃ¼gt",
-            description=f"**{itemname}** wurde **{nutzer.mention}** hinzugefÃ¼gt.",
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            title="ðŸ“¦ Item hinzugefügt",
+            description=f"**{itemname}** wurde **{nutzer.mention}** hinzugefügt.",
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         ),
         ephemeral=True
     )
 
 
-# /remove-item (Admin only)
+# /remove-item (Nur für Administratoren)
 @bot.tree.command(name="remove-item", description="[ADMIN] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
 @app_commands.default_permissions(administrator=True)
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not is_admin(interaction.user):
-        await interaction.response.send_message("âŒ Kein Zugriff.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    inventory = user_data.get("inventory", [])
-
-    if itemname not in inventory:
-        await interaction.response.send_message(
-            f"âŒ **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
-        )
-        return
-
-    inventory.remove(itemname)
-    user_data["inventory"] = inventory
-    save_economy(eco)
-
+        Warten auf Interaktion.response.send_message("â Œ Kein Zugriff.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        inventory = user_data.get("inventory", [])
+        Falls der Artikelname nicht im Inventar vorhanden ist:
+            await interaction.response.send_message(
+                f"â Œ **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
+            )
+            zurückkehren
+        inventory.remove(itemname)
+        user_data["inventory"] = inventory
+        save_economy(eco)
     await interaction.response.send_message(
         embed=discord.Embed(
             title="ðŸ“¦ Item entfernt",
             description=f"**{itemname}** wurde von **{nutzer.mention}** entfernt.",
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=LOG_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         ),
         ephemeral=True
     )
 
 
-# /shop-add (Admin only) with confirmation
+# /shop-add (Nur für Administratoren) mit Bestätigung
 class ShopAddConfirmView(discord.ui.View):
     def __init__(self, name: str, price: int):
         super().__init__(timeout=60)
-        self.name  = name
+        self.name = Name
         self.price = price
 
     @discord.ui.button(label="âœ… BestÃ¤tigen", style=discord.ButtonStyle.green)
@@ -2141,142 +1974,133 @@ class ShopAddConfirmView(discord.ui.View):
         items = load_shop()
         items.append({"name": self.name, "price": self.price})
         save_shop(items)
-        for item in self.children:
+        für Element in self.children:
             item.disabled = True
         await interaction.response.edit_message(
             embed=discord.Embed(
-                title="âœ… Item hinzugefÃ¼gt",
-                description=f"**{self.name}** fÃ¼r **{self.price:,} ðŸ’µ** wurde zum Shop hinzugefÃ¼gt.",
-                color=LOG_COLOR
+                title="✓ Artikel hinzugefügt",
+                description=f"**{self.name}** für **{self.price:,} ðŸ'µ** wurde zum Shop hinzugefügt.",
+                Farbe=LOG_COLOR
             ),
-            view=self
+            Ansicht=Selbst
         )
 
-    @discord.ui.button(label="âŒ Abbrechen", style=discord.ButtonStyle.red)
+    @discord.ui.button(label="☐ Abbrechen", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        for item in self.children:
+        für Element in self.children:
             item.disabled = True
         await interaction.response.edit_message(
             embed=discord.Embed(
-                title="âŒ Abgebrochen",
-                description="Das Item wurde nicht hinzugefÃ¼gt.",
-                color=MOD_COLOR
+                title="â Œ Abgebrochen",
+                description="Das Item wurde nicht hinzugefügt.",
+                Farbe=MOD_COLOR
             ),
-            view=self
+            Ansicht=Selbst
         )
 
 
-@bot.tree.command(name="shop-add", description="[ADMIN] FÃ¼ge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(itemname="Name des Items", preis="Preis in $")
+@bot.tree.command(name="shop-add", description="[ADMIN] Füge einen neuen Artikel zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(itemname="Name des Artikels", preis="Preis in $")
 @app_commands.default_permissions(administrator=True)
 async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
     if not is_admin(interaction.user):
-        await interaction.response.send_message("âŒ Kein Zugriff.", ephemeral=True)
-        return
-
-    if preis <= 0:
-        await interaction.response.send_message("âŒ Preis muss grÃ¶ÃŸer als 0 sein.", ephemeral=True)
-        return
-
+        Warten auf Interaktion.response.send_message("â Œ Kein Zugriff.", ephemeral=True)
+        zurückkehren
+    falls Preis <= 0:
+        wait interaction.response.send_message("â Œ Preis muss größer als 0 sein.", ephemeral=True)
+        zurückkehren
     embed = discord.Embed(
-        title="ðŸ›’ Neues Item hinzufÃ¼gen?",
-        description=(
+        title="ðŸ›' Neues Item hinzufügen?",
+        Beschreibung=(
             f"**Name:** {itemname}\n"
-            f"**Preis:** {preis:,} ðŸ’µ\n\n"
-            f"Bitte bestÃ¤tige das HinzufÃ¼gen."
+            f"**Preis:** {preis:,} ðŸ'µ\n\n"
+            f"Bitte bestätige das Hinzufügen."
         ),
-        color=LOG_COLOR
+        Farbe=LOG_COLOR
     )
     await interaction.response.send_message(embed=embed, view=ShopAddConfirmView(itemname, preis), ephemeral=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# WARN SYSTEM
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
+# WARNUNG SYSTEM
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
 
-# /warn (Team only)
+# /warn (Nur für Teams)
 @bot.tree.command(name="warn", description="[TEAM] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
     if not is_team(interaction.user):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
-    warns      = load_warns()
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    warns = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
     warn_entry = {
-        "grund":       grund,
-        "konsequenz":  konsequenz,
-        "warned_by":   interaction.user.id,
-        "timestamp":   datetime.now(timezone.utc).isoformat(),
+        "grund": grund,
+        "Konsequenz": Konsequenz,
+        "warned_by": interaction.user.id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
     user_warns.append(warn_entry)
     save_warns(warns)
     warn_count = len(user_warns)
-
     embed = discord.Embed(
-        title="âš ï¸ Verwarnung",
-        description=(
+        title="✓ Verwarnung",
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Grund:** {grund}\n"
             f"**Konsequenz:** {konsequenz}\n"
             f"**Verwarnt von:** {interaction.user.mention}\n"
-            f"**Warns gesamt:** {warn_count}"
+            f"**Warnungen insgesamt:** {warn_count}"
         ),
-        color=MOD_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=MOD_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     log_ch = interaction.guild.get_channel(WARN_LOG_CHANNEL_ID)
     if log_ch:
         await log_ch.send(embed=embed)
-
     await interaction.response.send_message(
-        f"âœ… Verwarnung fÃ¼r {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)", ephemeral=True
+        f"âœ… Verwarnung für {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)", ephemeral=True
     )
-
-    # Automatischer Timeout bei 3 Warns
     if warn_count >= WARN_AUTO_TIMEOUT_COUNT:
         timeout_dur = timedelta(days=2)
-        try:
-            await nutzer.timeout(timeout_dur, reason=f"Automatischer Timeout: {WARN_AUTO_TIMEOUT_COUNT} Warns erreicht")
-        except Exception:
-            pass
-        # Alle Rollen entfernen
-        try:
+        versuchen:
+            wait nutzer.timeout(timeout_dur, reason=f"Automatischer Timeout: {WARN_AUTO_TIMEOUT_COUNT} Warns erreicht")
+        Ausnahme:
+            passieren
+        versuchen:
             roles_to_remove = [r for r in nutzer.roles if r != interaction.guild.default_role and not r.managed]
-            if roles_to_remove:
-                await nutzer.remove_roles(*roles_to_remove, reason="Automatischer Timeout: 3 Warns")
-        except Exception:
-            pass
-        # DM senden
-        try:
+            falls Rollen_zu_entfernen:
+                wait nutzer.remove_roles(*roles_to_remove, reason="Automatischer Timeout: 3 Warns")
+        Ausnahme:
+            passieren
+        versuchen:
             dm_embed = discord.Embed(
-                title="ðŸ”‡ Du wurdest getimeoutet",
-                description=(
+                title="ðŸ”‡ Du wurdest getimoutet",
+                Beschreibung=(
                     f"Du hast auf **{interaction.guild.name}** {WARN_AUTO_TIMEOUT_COUNT} Verwarnungen erhalten "
-                    f"und wurdest daher fÃ¼r **2 Tage** getimeoutet.\n\n"
+                    f"und wurde daher für **2 Tage** getimeoutet.\n\n"
                     f"**Letzte Verwarnung:**\n"
                     f"Grund: {grund}\nKonsequenz: {konsequenz}\n\n"
-                    f"Deine Rollen wurden vorÃ¼bergehend entfernt.\n"
+                    f"Deine Rollen wurden vorübergehend entfernt.\n"
                     f"Nach dem Timeout melde dich bitte bei einem Teammitglied."
                 ),
-                color=MOD_COLOR,
-                timestamp=datetime.now(timezone.utc)
+                Farbe=MOD_COLOR,
+                Zeitstempel=datetime.now(timezone.utc)
             )
             await nutzer.send(embed=dm_embed)
-        except Exception:
-            pass
+        Ausnahme:
+            passieren
         timeout_embed = discord.Embed(
-            title="ðŸ”‡ Automatischer Timeout",
-            description=(
+            title="ðŸ"‡ Automatischer Timeout",
+            Beschreibung=(
                 f"**Spieler:** {nutzer.mention}\n"
-                f"**Grund:** {WARN_AUTO_TIMEOUT_COUNT} Warns erreicht\n"
+                f"**Grund:** {WARN_AUTO_TIMEOUT_COUNT} Warnt erreicht\n"
                 f"**Dauer:** 2 Tage\n"
                 f"**Rollen entfernt:** âœ…"
             ),
-            color=MOD_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            Farbe=MOD_COLOR,
+            Zeitstempel=datetime.now(timezone.utc)
         )
         if log_ch:
             await log_ch.send(embed=timeout_embed)
@@ -2287,30 +2111,26 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
 @app_commands.describe(nutzer="Spieler")
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
     if not is_team(interaction.user):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
-    warns      = load_warns()
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    warns = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
-
     if not user_warns:
         await interaction.response.send_message(
             f"âœ… {nutzer.mention} hat keine Verwarnungen.", ephemeral=True
         )
-        return
-
-    lines = []
+        zurückkehren
+    Zeilen = []
     for i, w in enumerate(user_warns, 1):
-        ts  = w.get("timestamp", "")[:10]
-        lines.append(f"**#{i}** â€” {w['grund']} | Konsequenz: {w['konsequenz']} *(am {ts})*")
-
+        ts = w.get("timestamp", "")[:10]
+        lines.append(f"**#{i}** – {w['grund']} | Konsequenz: {w['konsequenz']} *(am {ts})*")
     embed = discord.Embed(
-        title=f"âš ï¸ Warns von {nutzer.display_name}",
+        title=f"âš ï¸ Warnt von {nutzer.display_name}",
         description="\n".join(lines),
-        color=MOD_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=MOD_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
-    embed.set_footer(text=f"Gesamt: {len(user_warns)} Warn(s)")
+    embed.set_footer(text=f"Gesamt: {len(user_warns)} Warnung(en)")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -2320,114 +2140,101 @@ async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
 @app_commands.describe(nutzer="Spieler")
 async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
     if not is_team(interaction.user):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
-    warns      = load_warns()
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    warns = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
-
     if not user_warns:
         await interaction.response.send_message(
-            f"â„¹ï¸ {nutzer.mention} hat keine Verwarnungen.", ephemeral=True
+            f"â„¹ï¸ {nutzer.mention} hat keine Verwarnungen.", ephemeral=True
         )
-        return
-
-    removed = user_warns.pop()
+        zurückkehren
+    entfernt = user_warns.pop()
     save_warns(warns)
-
     embed = discord.Embed(
         title="âœ… Verwarnung entfernt",
-        description=(
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Entfernter Warn:** {removed['grund']}\n"
             f"**Verbleibende Warns:** {len(user_warns)}"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# INVENTAR SYSTEM
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
+# INVENTAR-SYSTEM
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
 
-# /rucksack
-@bot.tree.command(name="rucksack", description="Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
+# /Rucksack
+@bot.tree.command(name="Rucksack", Beschreibung="Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
 async def rucksack(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-    allowed  = is_adm or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES) or MOD_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
+    erlaubt = is_adm oder CITIZEN_ROLE_ID in role_ids oder any(r in role_ids für r in WAGE_ROLES) oder MOD_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
         await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
-        return
-
-    if not allowed:
-        await interaction.response.send_message("âŒ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+        zurückkehren
+    falls nicht erlaubt:
+        wait interaction.response.send_message("â Œ Du hast keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        save_economy(eco)
     inventory = user_data.get("inventory", [])
-
-    if not inventory:
+    falls nicht im Lagerbestand:
         desc = "*Dein Rucksack ist leer.*"
-    else:
-        from collections import Counter
-        counts = Counter(inventory)
-        desc   = "\n".join(f"â€¢ **{item}** Ã—{count}" for item, count in counts.items())
-
+    anders:
+        Anzahl = Zähler(Inventar)
+        desc = "\n".join(f"â€¢ **{item}** Ã—{count}" for item, count in counts.items())
     embed = discord.Embed(
-        title=f"ðŸŽ’ Rucksack von {interaction.user.display_name}",
-        description=desc,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        title=f"ðŸŽ' Rucksack von {interaction.user.display_name}",
+        Beschreibung=desc,
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /Ã¼bergeben
-@bot.tree.command(name="Ã¼bergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="EmpfÃ¤nger", item="Name des Items")
+# /uebergeben â† FIX: war „übergeben“ mit Umlaut
+@bot.tree.command(name="uebergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="Empfanger", item="Name des Items")
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
-    if not is_adm and interaction.channel.id != UEBERGEBEN_CHANNEL_ID:
+    is_adm = ADMIN_ROLE_ID in role_ids
+    wenn nicht is_adm und interaction.channel.id != UEBERGEBEN_CHANNEL_ID:
         await interaction.response.send_message(channel_error(UEBERGEBEN_CHANNEL_ID), ephemeral=True)
-        return
-
+        zurückkehren
     if nutzer.id == interaction.user.id:
-        await interaction.response.send_message("âŒ Du kannst nicht an dich selbst Ã¼bergeben.", ephemeral=True)
-        return
-
-    eco        = load_economy()
-    giver_data = get_user(eco, interaction.user.id)
-    inv        = giver_data.get("inventory", [])
-
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
-    if not match:
-        await interaction.response.send_message(
-            f"âŒ **{item}** ist nicht in deinem Inventar.", ephemeral=True
-        )
-        return
-
-    inv.remove(match)
-    receiver_data = get_user(eco, nutzer.id)
-    receiver_data.setdefault("inventory", []).append(match)
-    save_economy(eco)
-
+        wait interaction.response.send_message("â Œ Du kannst dich nicht selbst übergeben.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        giver_data = get_user(eco, interaction.user.id)
+        inv = giver_data.get("inventory", [])
+        item_lower = item.lower()
+        match = next((i for i in inv if i.lower() == item_lower), None)
+        falls keine Übereinstimmung:
+            await interaction.response.send_message(
+                f"â Œ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+            )
+            zurückkehren
+        inv.remove(match)
+        receiver_data = get_user(eco, nutzer.id)
+        receiver_data.setdefault("inventory", []).append(match)
+        save_economy(eco)
     embed = discord.Embed(
-        title="ðŸ¤ Item Ã¼bergeben",
-        description=(
+        title="ðŸ¤ Item Ã¼bergeben",
+        Beschreibung=(
             f"**Von:** {interaction.user.mention}\n"
             f"**An:** {nutzer.mention}\n"
-            f"**Item:** {match}"
+            f"**Artikel:** {match}"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
@@ -2435,180 +2242,167 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
 # /verstecken
 @bot.tree.command(name="verstecken", description="Verstecke ein Item aus deinem Inventar", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(item="Name des Items", ort="Wo versteckst du es?")
-async def verstecken(interaction: discord.Interaction, item: str, ort: str):
+async def Verstecken(interaction: discord.Interaction, item: str, ort: str):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
+    is_adm = ADMIN_ROLE_ID in role_ids
     if not is_adm and interaction.channel.id != VERSTECKEN_CHANNEL_ID:
         await interaction.response.send_message(channel_error(VERSTECKEN_CHANNEL_ID), ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-    inv       = user_data.get("inventory", [])
-
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
-    if not match:
-        await interaction.response.send_message(
-            f"âŒ **{item}** ist nicht in deinem Inventar.", ephemeral=True
-        )
-        return
-
-    inv.remove(match)
-    save_economy(eco)
-
-    import uuid
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, interaction.user.id)
+        inv = user_data.get("inventory", [])
+        item_lower = item.lower()
+        match = next((i for i in inv if i.lower() == item_lower), None)
+        falls keine Übereinstimmung:
+            await interaction.response.send_message(
+                f"â Œ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+            )
+            zurückkehren
+        inv.remove(match)
+        save_economy(eco)
     item_id = str(uuid.uuid4())[:8]
-    hidden  = load_hidden_items()
+    versteckt = load_hidden_items()
     hidden.append({
-        "id":       item_id,
+        "id": item_id,
         "owner_id": interaction.user.id,
-        "item":     match,
-        "location": ort,
+        "item": Übereinstimmung,
+        "Standort": Ort,
     })
     save_hidden_items(hidden)
-
     view = VersteckRetrieveView(item_id, interaction.user.id)
     bot.add_view(view)
-
     embed = discord.Embed(
-        title="ðŸ•µï¸ Item versteckt",
-        description=(
+        title="ðŸ•µï¸ Item versteckt",
+        Beschreibung=(
             f"**Item:** {match}\n"
             f"**Versteckt an:** {ort}\n\n"
             f"Nur du kannst es wieder herausnehmen."
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, view=view)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# TEAM ITEM COMMANDS
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
+# TEAM-GEGENSTANDSBEFEHLE
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
 
-# /item-geben (Team only)
+# /item-geben (Nur für Teams)
 @bot.tree.command(name="item-geben", description="[TEAM] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", item="Itemname")
 async def item_geben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     if not is_team(interaction.user):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    user_data.setdefault("inventory", []).append(item)
-    save_economy(eco)
-
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        user_data.setdefault("inventory", []).append(item)
+        save_economy(eco)
     embed = discord.Embed(
-        title="ðŸŽ Item gegeben",
-        description=(
+        title="ðŸŽ Item gegeben",
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Item:** {item}\n"
+            f"**Artikel:** {item}\n"
             f"**Vergeben von:** {interaction.user.mention}"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /item-entfernen (Team only)
+# /item-entfernen (Nur für Teams)
 @bot.tree.command(name="item-entfernen", description="[TEAM] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", item="Itemname")
 async def item_entfernen(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     if not is_team(interaction.user):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    inv       = user_data.get("inventory", [])
-
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
-    if not match:
-        await interaction.response.send_message(
-            f"âŒ **{item}** ist nicht im Inventar von {nutzer.mention}.", ephemeral=True
-        )
-        return
-
-    inv.remove(match)
-    save_economy(eco)
-
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
+    async with economy_lock:
+        eco = load_economy()
+        user_data = get_user(eco, nutzer.id)
+        inv = user_data.get("inventory", [])
+        item_lower = item.lower()
+        match = next((i for i in inv if i.lower() == item_lower), None)
+        falls keine Übereinstimmung:
+            await interaction.response.send_message(
+                f"â Œ **{item}** ist nicht im Inventar von {nutzer.mention}.", ephemeral=True
+            )
+            zurückkehren
+        inv.remove(match)
+        save_economy(eco)
     embed = discord.Embed(
-        title="ðŸ—‘ï¸ Item entfernt",
-        description=(
+        title="ðŸ—'ï¸ Item entfernt",
+        Beschreibung=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Item:** {match}\n"
             f"**Entfernt von:** {interaction.user.mention}"
         ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        Farbe=LOG_COLOR,
+        Zeitstempel=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
 # KARTENKONTROLLE
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â•
 
 KARTENKONTROLLE_CHANNEL_ID = 1491116234459185162
+
 
 @bot.tree.command(name="kartenkontrolle", description="[TEAM] Sendet eine DM-Erinnerung zur Kartenkontrolle an alle Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 async def kartenkontrolle(interaction: discord.Interaction):
     if not is_team(interaction.user):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
-        return
-
+        Warten auf Interaktion.response.send_message("â Œ Keine Berechtigung.", ephemeral=True)
+        zurückkehren
     await interaction.response.defer(ephemeral=True)
-
-    guild        = interaction.guild
+    Gilde = Interaktion.Gilde
     channel_link = f"https://discord.com/channels/{guild.id}/{KARTENKONTROLLE_CHANNEL_ID}"
-
-    sent     = 0
-    failed   = 0
-    for member in guild.members:
+    gesendet = 0
+    fehlgeschlagen = 0
+    für Mitglieder in guild.members:
         if member.bot:
-            continue
+            weitermachen
         role_ids = [r.id for r in member.roles]
         is_member_role = (
             CITIZEN_ROLE_ID in role_ids
-            or any(r in role_ids for r in WAGE_ROLES)
+            oder any(r in role_ids for r in WAGE_ROLES)
         )
-        if not is_member_role:
-            continue
-        try:
+        falls nicht is_member_role:
+            weitermachen
+        versuchen:
             dm_embed = discord.Embed(
                 title="ðŸªª Kartenkontrolle",
-                description=(
+                Beschreibung=(
                     f"**Hallo {member.display_name}!**\n\n"
                     f"Es findet gerade eine **Kartenkontrolle** statt.\n"
                     f"Bitte begib dich in den Kanal:\n"
                     f"[ðŸ”— Zur Kartenkontrolle]({channel_link})\n\n"
                     f"*Diese Nachricht wurde automatisch durch das Team gesendet.*"
                 ),
-                color=LOG_COLOR,
-                timestamp=datetime.now(timezone.utc)
+                Farbe=LOG_COLOR,
+                Zeitstempel=datetime.now(timezone.utc)
             )
             await member.send(embed=dm_embed)
-            sent += 1
-        except Exception:
-            failed += 1
-
+            gesendet += 1
+        Ausnahme:
+            fehlgeschlagen += 1
     await interaction.followup.send(
         f"âœ… Kartenkontrolle-DM gesendet!\n**Erfolgreich:** {sent} | **Fehlgeschlagen (DMs zu):** {failed}",
         ephemeral=True
     )
 
 
-token = os.environ.get("DISCORD_TOKEN")
-if not token:
-    raise RuntimeError("DISCORD_TOKEN ist nicht gesetzt.")
+# â“€â“€ Bot starten â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â ”€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€â“€
 
+token = os.environ.get("DISCORD_TOKEN")
+Falls kein Token:
+    raise RuntimeError("DISCORD_TOKEN ist nicht gesetzt.")
 bot.run(token)
