@@ -49,17 +49,17 @@ async def on_member_join(member):
         except discord.Forbidden:
             pass
 
-    # Willkommensnachricht sauber, nur einmal
+    # Saubere Willkommensnachricht
     try:
         embed = discord.Embed(
             description=(
-                f"Willkommen auf Kryptik Roleplay, {member.display_name}!\n\n"
+                "Willkommen auf Kryptik Roleplay!\n\n"
                 "Wir wünschen dir viel Spaß auf unserem Server und hoffen, dass du dich gut zurechtfindest.\n\n"
                 "Bei Problemen melde dich jederzeit über ein Support Ticket im Channel <#1490855943230066818>."
             ),
             color=0x00BFFF
         )
-        await member.send(embed=embed)  # <- kein content=member.mention
+        await member.send(embed=embed)  # nur Embed, kein content
         welcomed_members.add(member.id)
     except discord.Forbidden:
         pass
