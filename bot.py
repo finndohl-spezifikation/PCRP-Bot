@@ -10,19 +10,14 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 bot_start_time = None
 
-# Kanal-ID, in den die Nachricht gesendet wird
-CHANNEL_ID = 1490878151897911557
+# Set für Mitglieder, denen bereits die Willkommensnachricht geschickt wurde
+welcomed_members = set()
 
 @bot.event
 async def on_ready():
     global bot_start_time
     bot_start_time = datetime.now(timezone.utc)
     print(f"Bot ist online als {bot.user} (ID: {bot.user.id})")
-
-    # Einmalig "Hallo" in den Kanal senden
-    channel = bot.get_channel(CHANNEL_ID)
-    if channel:
-        await channel.send("Hallo! 👋")
 
 @bot.event
 async def on_message(message):
@@ -34,12 +29,19 @@ async def on_message(message):
 
 @bot.event
 async def on_member_join(member):
+    # Prüfen, ob das Mitglied schon begrüßt wurde
+    if member.id in welcomed_members:
+        return
+
+    # Rolle hinzufügen
     rolle = member.guild.get_role(1490855725516460234)
     if rolle:
         try:
             await member.add_roles(rolle)
         except discord.Forbidden:
             pass
+
+    # Willkommensnachricht
     try:
         embed = discord.Embed(
             description=(
@@ -50,6 +52,7 @@ async def on_member_join(member):
             color=0x00BFFF
         )
         await member.send(content=member.mention, embed=embed)
+        welcomed_members.add(member.id)  # Mitglied als begrüßt markieren
     except discord.Forbidden:
         pass
 
