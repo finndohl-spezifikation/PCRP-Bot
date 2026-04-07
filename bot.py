@@ -30,11 +30,13 @@ MEMES_CHANNEL_ID       = 1490882578276810924
 GUILD_ID               = 1490839259907887239
 TICKET_CHANNEL_ID      = 1490855943230066818
 
-TICKET_SETUP_CHANNEL_ID  = 1490885002030874775
+TICKET_SETUP_CHANNEL_ID  = 1490882553559650355
 TICKET_CATEGORY_DEFAULT  = 1490882554570608751
 TICKET_CATEGORY_HIGHTEAM = 1491069210389119016
 TICKET_CATEGORY_FRAKTION = 1491069425384685750
 TICKET_LOG_CHANNEL_ID    = 1490878139306606743
+
+COUNTING_CHANNEL_ID = 1490882580487340044
 
 LOG_COLOR = 0x00BFFF
 MOD_COLOR = 0xFF0000
@@ -53,9 +55,10 @@ VULGAR_WORDS = [
     "mistkerl", "penner", "hurenkind", "dummficker", "scheiß",
 ]
 
-spam_tracker = {}
+spam_tracker  = {}
 spam_warned   = set()
 ticket_data   = {}
+counting_state = {"count": 0, "last_user_id": None}
 
 FEATURES = {
     "Discord Link Schutz":         True,
@@ -71,6 +74,7 @@ FEATURES = {
     "Fehler Logging":              True,
     "Rollen-Entfernung (Timeout)": True,
     "Ticket System":               True,
+    "Zähl-Kanal":                  True,
 }
 
 
@@ -136,12 +140,18 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
     except Exception as e:
         await log_bot_error(
             f"Timeout fehlgeschlagen ({reason})",
-            f"Benutzer: {member} ({member.id})\nFehler: {e}",
+            f"Benutzer: {member} ({member.id})\nFehler: {e}\n\n"
+            f"Mögliche Ursachen:\n"
+            f"- Bot hat keine 'Mitglieder moderieren' Berechtigung\n"
+            f"- Bot-Rolle ist niedriger als die Ziel-Rolle",
             guild
         )
     roles_removed = []
     try:
-        roles_to_remove = [r for r in member.roles if r != guild.default_role and not r.managed]
+        roles_to_remove = [
+            r for r in member.roles
+            if r != guild.default_role and not r.managed
+        ]
         if roles_to_remove:
             await member.remove_roles(*roles_to_remove, reason=f"Timeout: {reason}")
             roles_removed = roles_to_remove
@@ -150,6 +160,8 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
     return timeout_ok, roles_removed
 
 
+# ── Ticket System ──────────────────────────────────────────────────────
+
 TICKET_TYPE_NAMES = {
     "support":    "Support",
     "highteam":   "Highteam Ticket",
@@ -157,6 +169,7 @@ TICKET_TYPE_NAMES = {
     "beschwerde": "Beschwerde Ticket",
     "bug":        "Bug Report",
 }
+
 TICKET_TYPE_CATEGORIES = {
     "support":    TICKET_CATEGORY_DEFAULT,
     "highteam":   TICKET_CATEGORY_HIGHTEAM,
@@ -169,142 +182,256 @@ TICKET_TYPE_CATEGORIES = {
 async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     guild  = interaction.guild
     member = interaction.user
+
     for ch in guild.text_channels:
         data = ticket_data.get(ch.id)
         if data and data["creator_id"] == member.id:
-            await interaction.response.send_message("❌ Du hast bereits ein offenes Ticket!", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Du hast bereits ein offenes Ticket!", ephemeral=True
+            )
             return
+
     type_name   = TICKET_TYPE_NAMES.get(ticket_type, ticket_type)
     category_id = TICKET_TYPE_CATEGORIES.get(ticket_type, TICKET_CATEGORY_DEFAULT)
     category    = guild.get_channel(category_id)
     admin_role  = guild.get_role(ADMIN_ROLE_ID)
     mod_role    = guild.get_role(MOD_ROLE_ID)
+
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        member: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_channels=True, manage_messages=True),
+        member: discord.PermissionOverwrite(
+            view_channel=True, send_messages=True, read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True, send_messages=True, read_message_history=True,
+            manage_channels=True, manage_messages=True
+        ),
     }
     if admin_role:
-        overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_channels=True, manage_messages=True)
+        overwrites[admin_role] = discord.PermissionOverwrite(
+            view_channel=True, send_messages=True, read_message_history=True,
+            manage_channels=True, manage_messages=True
+        )
     if mod_role:
-        overwrites[mod_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, manage_channels=True, manage_messages=True)
+        overwrites[mod_role] = discord.PermissionOverwrite(
+            view_channel=True, send_messages=True, read_message_history=True,
+            manage_channels=True, manage_messages=True
+        )
+
     safe_name    = member.name[:15].lower().replace(" ", "-")
     channel_name = f"ticket-{ticket_type}-{safe_name}"
+
     try:
         channel = await guild.create_text_channel(
-            name=channel_name, category=category,
+            name=channel_name,
+            category=category,
             overwrites=overwrites,
             topic=f"Ticket von {member} ({member.id}) | Typ: {type_name}"
         )
     except Exception as e:
-        await interaction.response.send_message("❌ Ticket konnte nicht erstellt werden.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Ticket konnte nicht erstellt werden.", ephemeral=True
+        )
         await log_bot_error("Ticket erstellen fehlgeschlagen", str(e), guild)
         return
+
     ticket_data[channel.id] = {
-        "creator_id": member.id, "creator_name": str(member),
-        "type": ticket_type, "type_name": type_name,
-        "handler": None, "handler_id": None,
-        "opened_at": datetime.now(timezone.utc).isoformat(),
+        "creator_id":   member.id,
+        "creator_name": str(member),
+        "type":         ticket_type,
+        "type_name":    type_name,
+        "handler":      None,
+        "handler_id":   None,
+        "opened_at":    datetime.now(timezone.utc).isoformat(),
     }
+
     team_mentions = ""
     if admin_role:
         team_mentions += admin_role.mention + " "
     if mod_role:
         team_mentions += mod_role.mention
+
     welcome_embed = discord.Embed(
         title=f"🎟 {type_name}",
         description=(
             f"Willkommen {member.mention}!\n\n"
             f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstmöglich um dein Anliegen kümmern.\n\n"
-            f"**Ticket-Typ:** {type_name}\n**Erstellt von:** {member.mention}\n"
+            f"**Ticket-Typ:** {type_name}\n"
+            f"**Erstellt von:** {member.mention}\n"
             f"**Erstellt am:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
         ),
-        color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
     welcome_embed.set_footer(text="Nur Teammitglieder können das Ticket schließen")
-    await channel.send(content=team_mentions, embed=welcome_embed, view=TicketActionView())
-    await interaction.response.send_message(f"✅ Dein Ticket wurde erstellt: {channel.mention}", ephemeral=True)
+
+    action_view = TicketActionView()
+    await channel.send(content=team_mentions, embed=welcome_embed, view=action_view)
+
+    await interaction.response.send_message(
+        f"✅ Dein Ticket wurde erstellt: {channel.mention}", ephemeral=True
+    )
+
     log_ch = guild.get_channel(TICKET_LOG_CHANNEL_ID)
     if log_ch:
-        await log_ch.send(embed=discord.Embed(
+        log_embed = discord.Embed(
             title="📂 Ticket Geöffnet",
-            description=f"**Benutzer:** {member.mention} (`{member}`)\n**Typ:** {type_name}\n**Channel:** {channel.mention}",
-            color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            description=(
+                f"**Benutzer:** {member.mention} (`{member}`)\n"
+                f"**Typ:** {type_name}\n"
+                f"**Channel:** {channel.mention}"
+            ),
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await log_ch.send(embed=log_embed)
 
 
 class TicketSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Support", emoji="🎟", value="support", description="Allgemeiner Support"),
-            discord.SelectOption(label="Highteam Ticket", emoji="🎟", value="highteam", description="Direkter Kontakt zum Highteam"),
-            discord.SelectOption(label="Fraktions Bewerbung", emoji="🎟", value="fraktion", description="Bewerbung für eine Fraktion"),
-            discord.SelectOption(label="Beschwerde Ticket", emoji="🎟", value="beschwerde", description="Beschwerde einreichen"),
-            discord.SelectOption(label="Bug Report", emoji="🎟", value="bug", description="Fehler oder Bug melden"),
+            discord.SelectOption(
+                label="Support",
+                emoji="🎟",
+                value="support",
+                description="Allgemeiner Support"
+            ),
+            discord.SelectOption(
+                label="Highteam Ticket",
+                emoji="🎟",
+                value="highteam",
+                description="Direkter Kontakt zum Highteam"
+            ),
+            discord.SelectOption(
+                label="Fraktions Bewerbung",
+                emoji="🎟",
+                value="fraktion",
+                description="Bewerbung für eine Fraktion"
+            ),
+            discord.SelectOption(
+                label="Beschwerde Ticket",
+                emoji="🎟",
+                value="beschwerde",
+                description="Beschwerde einreichen"
+            ),
+            discord.SelectOption(
+                label="Bug Report",
+                emoji="🎟",
+                value="bug",
+                description="Fehler oder Bug melden"
+            ),
         ]
-        super().__init__(placeholder="🎟 Wähle eine Ticket-Art aus...", options=options, custom_id="ticket_select_main")
+        super().__init__(
+            placeholder="🎟 Wähle eine Ticket-Art aus...",
+            options=options,
+            custom_id="ticket_select_main"
+        )
+
     async def callback(self, interaction: discord.Interaction):
         await create_ticket(interaction, self.values[0])
+
 
 class TicketSelectView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
 
+
 class AssignUserSelect(discord.ui.UserSelect):
     def __init__(self):
-        super().__init__(placeholder="Person auswählen...", custom_id="ticket_assign_user_select", min_values=1, max_values=1)
+        super().__init__(
+            placeholder="Person auswählen...",
+            custom_id="ticket_assign_user_select",
+            min_values=1,
+            max_values=1
+        )
+
     async def callback(self, interaction: discord.Interaction):
-        user = self.values[0]
+        user    = self.values[0]
         channel = interaction.channel
         try:
-            await channel.set_permissions(user, view_channel=True, send_messages=True, read_message_history=True)
+            await channel.set_permissions(
+                user,
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True
+            )
         except Exception as e:
-            await interaction.response.send_message("❌ Berechtigung konnte nicht gesetzt werden.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Berechtigung konnte nicht gesetzt werden.", ephemeral=True
+            )
             await log_bot_error("Ticket-Zuweisung fehlgeschlagen", str(e), interaction.guild)
             return
+
         if channel.id in ticket_data:
             ticket_data[channel.id]["handler"]    = str(user)
             ticket_data[channel.id]["handler_id"] = user.id
-        await channel.send(embed=discord.Embed(
-            description=f"👤 {user.mention} wurde dem Ticket zugewiesen.\n**Zugewiesen von:** {interaction.user.mention}",
-            color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
-        await interaction.response.send_message(f"✅ {user.mention} wurde dem Ticket zugewiesen.", ephemeral=True)
+
+        assign_embed = discord.Embed(
+            description=(
+                f"👤 {user.mention} wurde dem Ticket zugewiesen.\n"
+                f"**Zugewiesen von:** {interaction.user.mention}"
+            ),
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await channel.send(embed=assign_embed)
+        await interaction.response.send_message(
+            f"✅ {user.mention} wurde dem Ticket zugewiesen.", ephemeral=True
+        )
+
 
 class AssignView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=60)
         self.add_item(AssignUserSelect())
 
+
 class TicketActionView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Ticket schließen", style=discord.ButtonStyle.red, emoji="🔒", custom_id="ticket_close_btn")
+    @discord.ui.button(
+        label="Ticket schließen",
+        style=discord.ButtonStyle.red,
+        emoji="🔒",
+        custom_id="ticket_close_btn"
+    )
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not is_mod_or_admin(interaction.user):
-            await interaction.response.send_message("❌ Nur Teammitglieder können Tickets schließen.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Nur Teammitglieder können Tickets schließen.", ephemeral=True
+            )
             return
+
         channel = interaction.channel
-        data = ticket_data.get(channel.id)
+        data    = ticket_data.get(channel.id)
         if not data:
-            await interaction.response.send_message("❌ Ticket-Daten nicht gefunden.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Ticket-Daten nicht gefunden.", ephemeral=True
+            )
             return
+
         await interaction.response.defer(ephemeral=True)
+
         ticket_data[channel.id]["handler"]    = str(interaction.user)
         ticket_data[channel.id]["handler_id"] = interaction.user.id
-        await channel.send(embed=discord.Embed(
+
+        closing_embed = discord.Embed(
             title="🔒 Ticket wird geschlossen...",
             description="Das Ticket wird in wenigen Sekunden geschlossen.",
-            color=MOD_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            color=MOD_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await channel.send(embed=closing_embed)
+
         transcript_lines = [
             f"=== Ticket Transkript: {data['type_name']} ===",
             f"Erstellt von  : {data['creator_name']}",
             f"Bearbeitet von: {str(interaction.user)}",
             f"Datum         : {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M')} UTC",
-            "=" * 55, ""
+            "=" * 55,
+            ""
         ]
         try:
             async for msg in channel.history(limit=500, oldest_first=True):
@@ -315,18 +442,22 @@ class TicketActionView(discord.ui.View):
                     transcript_lines.append(f"[{ts}] {msg.author}: {msg.content}")
                 for emb in msg.embeds:
                     if emb.title:
-                        transcript_lines.append(f"[{ts}] {msg.author} [Embed]: {emb.title}")
+                        transcript_lines.append(f"[{ts}] {msg.author} [Embed-Titel]: {emb.title}")
                     if emb.description:
-                        transcript_lines.append(f"  ↳ {emb.description[:200].replace(chr(10), ' ')}")
+                        short = emb.description[:300].replace("\n", " ")
+                        transcript_lines.append(f"  ↳ {short}")
         except Exception:
             transcript_lines.append("(Transkript konnte nicht vollständig geladen werden)")
+
+        transcript_text = "\n".join(transcript_lines)
         transcript_file = discord.File(
-            fp=io.BytesIO("\n".join(transcript_lines).encode("utf-8")),
+            fp=io.BytesIO(transcript_text.encode("utf-8")),
             filename=f"transkript-{channel.name}.txt"
         )
+
         log_ch = interaction.guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_ch:
-            await log_ch.send(embed=discord.Embed(
+            closed_embed = discord.Embed(
                 title="📁 Ticket Geschlossen",
                 description=(
                     f"**Benutzer:** <@{data['creator_id']}> (`{data['creator_name']}`)\n"
@@ -334,11 +465,25 @@ class TicketActionView(discord.ui.View):
                     f"**Geschlossen von:** {interaction.user.mention} (`{interaction.user}`)\n"
                     f"**Channel:** #{channel.name}"
                 ),
-                color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-            ), file=transcript_file)
+                color=LOG_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await log_ch.send(embed=closed_embed, file=transcript_file)
+
         creator = interaction.guild.get_member(data["creator_id"])
         if creator:
             try:
+                dm_embed = discord.Embed(
+                    title="🎟 Dein Ticket wurde geschlossen",
+                    description=(
+                        f"Dein **{data['type_name']}** auf **Cryptik Roleplay** wurde geschlossen.\n\n"
+                        f"**Bearbeitet von:** {interaction.user.display_name}\n\n"
+                        f"Wie zufrieden warst du mit der Bearbeitung?\n"
+                        f"Bitte bewerte unseren Support:"
+                    ),
+                    color=LOG_COLOR,
+                    timestamp=datetime.now(timezone.utc)
+                )
                 rating_view = RatingView(
                     channel_name=channel.name,
                     handler_name=interaction.user.display_name,
@@ -347,17 +492,10 @@ class TicketActionView(discord.ui.View):
                     creator_name=data["creator_name"],
                     guild=interaction.guild
                 )
-                await creator.send(embed=discord.Embed(
-                    title="🎟 Dein Ticket wurde geschlossen",
-                    description=(
-                        f"Dein **{data['type_name']}** auf **Cryptik Roleplay** wurde geschlossen.\n\n"
-                        f"**Bearbeitet von:** {interaction.user.display_name}\n\n"
-                        f"Wie zufrieden warst du mit der Bearbeitung?\nBitte bewerte unseren Support:"
-                    ),
-                    color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-                ), view=rating_view)
+                await creator.send(embed=dm_embed, view=rating_view)
             except Exception:
                 pass
+
         ticket_data.pop(channel.id, None)
         await asyncio.sleep(3)
         try:
@@ -365,12 +503,24 @@ class TicketActionView(discord.ui.View):
         except Exception as e:
             await log_bot_error("Ticket löschen fehlgeschlagen", str(e), interaction.guild)
 
-    @discord.ui.button(label="Person zuweisen", style=discord.ButtonStyle.blurple, emoji="👤", custom_id="ticket_assign_btn")
+    @discord.ui.button(
+        label="Person zuweisen",
+        style=discord.ButtonStyle.blurple,
+        emoji="👤",
+        custom_id="ticket_assign_btn"
+    )
     async def assign_person(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not is_mod_or_admin(interaction.user):
-            await interaction.response.send_message("❌ Nur Teammitglieder können Personen zuweisen.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Nur Teammitglieder können Personen zuweisen.", ephemeral=True
+            )
             return
-        await interaction.response.send_message("Wähle eine Person aus:", view=AssignView(), ephemeral=True)
+        assign_view = AssignView()
+        await interaction.response.send_message(
+            "Wähle eine Person aus die dem Ticket zugewiesen werden soll:",
+            view=assign_view,
+            ephemeral=True
+        )
 
 
 class RatingView(discord.ui.View):
@@ -386,29 +536,42 @@ class RatingView(discord.ui.View):
 
     async def submit_rating(self, interaction: discord.Interaction, stars: int):
         if self.rated:
-            await interaction.response.send_message("Du hast dieses Ticket bereits bewertet.", ephemeral=True)
+            await interaction.response.send_message(
+                "Du hast dieses Ticket bereits bewertet.", ephemeral=True
+            )
             return
         self.rated = True
+
         star_display = "⭐" * stars + "☆" * (5 - stars)
-        await interaction.response.send_message(embed=discord.Embed(
+
+        thank_embed = discord.Embed(
             title="💙 Danke für deine Bewertung!",
             description=(
                 f"Du hast **{star_display}** ({stars}/5) gegeben.\n\n"
-                f"Vielen Dank für dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern."
+                f"Vielen Dank für dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
+                f"Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gelöst."
             ),
-            color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await interaction.response.send_message(embed=thank_embed)
+
         log_ch = self.guild_ref.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_ch:
-            await log_ch.send(embed=discord.Embed(
+            rating_embed = discord.Embed(
                 title="⭐ Ticket Bewertung",
                 description=(
-                    f"**Ticket:** {self.channel_name}\n**Typ:** {self.ticket_type}\n"
-                    f"**Erstellt von:** {self.creator_name}\n**Bearbeitet von:** {self.handler_name}\n"
+                    f"**Ticket:** {self.channel_name}\n"
+                    f"**Typ:** {self.ticket_type}\n"
+                    f"**Erstellt von:** {self.creator_name}\n"
+                    f"**Bearbeitet von:** {self.handler_name}\n"
                     f"**Bewertung:** {star_display} ({stars}/5)"
                 ),
-                color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-            ))
+                color=LOG_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await log_ch.send(embed=rating_embed)
+
         for item in self.children:
             item.disabled = True
         try:
@@ -419,33 +582,46 @@ class RatingView(discord.ui.View):
     @discord.ui.button(label="⭐ 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
     async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 1)
+
     @discord.ui.button(label="⭐ 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
     async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 2)
+
     @discord.ui.button(label="⭐ 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
     async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 3)
+
     @discord.ui.button(label="⭐ 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
     async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 4)
+
     @discord.ui.button(label="⭐ 5", style=discord.ButtonStyle.green, custom_id="rating_5")
     async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.submit_rating(interaction, 5)
 
+
+def guild_member_bot(guild: discord.Guild):
+    return guild.me
+
+
+# ── Events ──────────────────────────────────────────────────────────────
 
 @bot.event
 async def on_ready():
     global bot_start_time, invite_cache
     bot_start_time = datetime.now(timezone.utc)
     print(f"Bot ist online als {bot.user} (ID: {bot.user.id})")
+
     bot.add_view(TicketSelectView())
     bot.add_view(TicketActionView())
+
     for guild in bot.guilds:
         try:
             invites = await guild.fetch_invites()
             invite_cache[guild.id] = {inv.code: inv for inv in invites}
         except Exception:
             pass
+
     await auto_ticket_setup()
     await send_bot_status()
 
@@ -468,7 +644,7 @@ async def auto_ticket_setup():
         except Exception:
             pass
         if already_posted:
-            print(f"Ticket-Embed bereits vorhanden in #{channel.name}")
+            print(f"Ticket-Embed bereits vorhanden in #{channel.name} — kein erneutes Posten.")
             continue
         embed = discord.Embed(
             title="🎟 Support — Ticket erstellen",
@@ -517,6 +693,11 @@ async def on_message(message):
     if bot_start_time and message.created_at < bot_start_time:
         return
     member = message.author
+
+    if message.channel.id == COUNTING_CHANNEL_ID:
+        await handle_counting(message)
+        return
+
     if not is_admin(member) and DISCORD_INVITE_RE.search(message.content):
         await handle_discord_invite(message)
         return
@@ -531,6 +712,62 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
+async def handle_counting(message):
+    content = message.content.strip()
+    try:
+        number = int(content)
+    except ValueError:
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        try:
+            await message.channel.send(
+                f"❌ {message.author.mention} Nur Zahlen sind hier erlaubt! Der Zähler geht weiter bei **{counting_state['count'] + 1}**.",
+                delete_after=5
+            )
+        except Exception:
+            pass
+        return
+
+    expected = counting_state["count"] + 1
+
+    if counting_state["last_user_id"] == message.author.id:
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        try:
+            await message.channel.send(
+                f"❌ {message.author.mention} Du kannst nicht zweimal hintereinander zählen! Der Zähler steht bei **{counting_state['count']}**.",
+                delete_after=5
+            )
+        except Exception:
+            pass
+        return
+
+    if number == expected:
+        counting_state["count"] = number
+        counting_state["last_user_id"] = message.author.id
+        await message.add_reaction("✅")
+    else:
+        old_count = counting_state["count"]
+        counting_state["count"] = 0
+        counting_state["last_user_id"] = None
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        try:
+            await message.channel.send(
+                f"❌ {message.author.mention} Falsche Zahl! Erwartet wurde **{expected}**, nicht **{number}**.\n"
+                f"Der Zähler wurde zurückgesetzt. Fangt wieder bei **1** an!",
+                delete_after=8
+            )
+        except Exception:
+            pass
+
+
 async def handle_discord_invite(message):
     member = message.author
     guild  = message.guild
@@ -542,25 +779,34 @@ async def handle_discord_invite(message):
         member, guild, duration_h=300, reason="Fremden Discord-Link gesendet"
     )
     try:
-        await member.send(content=member.mention, embed=discord.Embed(
-            description="> Du hast gegen unsere Server Regeln verstoßen\n\n> Bitte wende dich an den Support",
+        embed = discord.Embed(
+            description=(
+                "> Du hast gegen unsere Server Regeln verstoßen\n\n"
+                "> Bitte wende dich an den Support"
+            ),
             color=MOD_COLOR
-        ))
+        )
+        await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        timeout_status = "✅ Timeout erteilt (300h)" if timeout_ok else "❌ Timeout fehlgeschlagen"
+        timeout_status = "✅ Timeout erteilt (300h)" if timeout_ok else "❌ Timeout fehlgeschlagen — Berechtigung prüfen!"
         rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
-        await log_ch.send(embed=discord.Embed(
+        embed = discord.Embed(
             title="🔨 Moderation — Timeout",
             description=(
-                f"**Benutzer:** {member.mention} (`{member}`)\n**Timeout:** {timeout_status}\n"
-                f"**Rollen:** {rollen_status}\n**Grund:** Fremden Discord-Link gesendet\n"
-                f"**Kanal:** {message.channel.mention}\n**Nachricht:** {message.content[:300]}"
+                f"**Benutzer:** {member.mention} (`{member}`)\n"
+                f"**Timeout:** {timeout_status}\n"
+                f"**Rollen:** {rollen_status}\n"
+                f"**Grund:** Fremden Discord-Link gesendet\n"
+                f"**Kanal:** {message.channel.mention}\n"
+                f"**Nachricht:** {message.content[:300]}"
             ),
-            color=MOD_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            color=MOD_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await log_ch.send(embed=embed)
 
 
 async def handle_link_outside_memes(message):
@@ -583,22 +829,29 @@ async def handle_vulgar_message(message):
     except Exception:
         pass
     try:
-        await message.author.send(content=message.author.mention, embed=discord.Embed(
-            description="> **Verwarnung:** Du hast einen vulgären Ausdruck verwendet.\n\n> Bitte beachte unsere Serverregeln. Bei weiteren Verstößen folgen Konsequenzen.",
+        embed = discord.Embed(
+            description=(
+                "> **Verwarnung:** Du hast einen vulgären Ausdruck verwendet.\n\n"
+                "> Bitte beachte unsere Serverregeln. Bei weiteren Verstößen folgen Konsequenzen."
+            ),
             color=MOD_COLOR
-        ))
+        )
+        await message.author.send(content=message.author.mention, embed=embed)
     except Exception:
         pass
     log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        await log_ch.send(embed=discord.Embed(
+        embed = discord.Embed(
             title="🔨 Moderation — Vulgäre Sprache",
             description=(
                 f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
-                f"**Kanal:** {message.channel.mention}\n**Nachricht:** {message.content[:300]}"
+                f"**Kanal:** {message.channel.mention}\n"
+                f"**Nachricht:** {message.content[:300]}"
             ),
-            color=MOD_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            color=MOD_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await log_ch.send(embed=embed)
 
 
 async def check_spam(message):
@@ -620,24 +873,29 @@ async def check_spam(message):
             message.author, message.guild, duration_m=10, reason="Wiederholtes Spammen"
         )
         try:
-            await message.author.send(content=message.author.mention, embed=discord.Embed(
+            embed = discord.Embed(
                 description="> Du wurdest aufgrund von wiederholtem Spammen für **10 Minuten** stummgeschaltet.",
                 color=MOD_COLOR
-            ))
+            )
+            await message.author.send(content=message.author.mention, embed=embed)
         except Exception:
             pass
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
-            timeout_status = "✅ Timeout erteilt (10min)" if timeout_ok else "❌ Timeout fehlgeschlagen"
+            timeout_status = "✅ Timeout erteilt (10min)" if timeout_ok else "❌ Timeout fehlgeschlagen — Berechtigung prüfen!"
             rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
-            await log_ch.send(embed=discord.Embed(
+            embed = discord.Embed(
                 title="🔨 Moderation — Timeout (Spam)",
                 description=(
                     f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
-                    f"**Timeout:** {timeout_status}\n**Rollen:** {rollen_status}\n**Grund:** Wiederholtes Spammen"
+                    f"**Timeout:** {timeout_status}\n"
+                    f"**Rollen:** {rollen_status}\n"
+                    f"**Grund:** Wiederholtes Spammen"
                 ),
-                color=MOD_COLOR, timestamp=datetime.now(timezone.utc)
-            ))
+                color=MOD_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await log_ch.send(embed=embed)
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.add(user_id)
@@ -646,10 +904,14 @@ async def check_spam(message):
         except Exception:
             pass
         try:
-            await message.author.send(content=message.author.mention, embed=discord.Embed(
-                description="> **Verwarnung:** Bitte vermeide es zu spammen.\n\n> Bei Wiederholung erhältst du einen 10 Minuten Timeout.",
+            embed = discord.Embed(
+                description=(
+                    "> **Verwarnung:** Bitte vermeide es zu spammen.\n\n"
+                    "> Bei Wiederholung erhältst du einen 10 Minuten Timeout."
+                ),
                 color=MOD_COLOR
-            ))
+            )
+            await message.author.send(content=message.author.mention, embed=embed)
         except Exception:
             pass
 
@@ -661,15 +923,17 @@ async def on_message_delete(message):
     log_ch = message.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
     if not log_ch:
         return
-    await log_ch.send(embed=discord.Embed(
+    embed = discord.Embed(
         title="🗑️ Nachricht gelöscht",
         description=(
             f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
             f"**Kanal:** {message.channel.mention}\n"
             f"**Inhalt:** {message.content[:500] if message.content else '*Kein Text*'}"
         ),
-        color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-    ))
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
 
 
 @bot.event
@@ -681,7 +945,7 @@ async def on_message_edit(before, after):
     log_ch = before.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
     if not log_ch:
         return
-    await log_ch.send(embed=discord.Embed(
+    embed = discord.Embed(
         title="✏️ Nachricht bearbeitet",
         description=(
             f"**Benutzer:** {before.author.mention} (`{before.author}`)\n"
@@ -689,8 +953,10 @@ async def on_message_edit(before, after):
             f"**Vorher:** {before.content[:250] if before.content else '*Kein Text*'}\n"
             f"**Nachher:** {after.content[:250] if after.content else '*Kein Text*'}"
         ),
-        color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-    ))
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
 
 
 @bot.event
@@ -717,10 +983,13 @@ async def on_member_update(before, after):
                 break
     except Exception:
         pass
-    await log_ch.send(embed=discord.Embed(
-        title="🎭 Rollen geändert", description=description,
-        color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-    ))
+    embed = discord.Embed(
+        title="🎭 Rollen geändert",
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
 
 
 @bot.event
@@ -741,10 +1010,13 @@ async def on_member_ban(guild, user):
     description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
     if banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
-    await log_ch.send(embed=discord.Embed(
-        title="🔨 Mitglied gebannt", description=description,
-        color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-    ))
+    embed = discord.Embed(
+        title="🔨 Mitglied gebannt",
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
 
 
 @bot.event
@@ -778,10 +1050,13 @@ async def on_member_remove(member):
     if reason:
         description += f"\n**Grund:** {reason}"
     title = "👢 Mitglied gekickt" if action == "gekickt" else "🚪 Mitglied hat den Server verlassen"
-    await log_ch.send(embed=discord.Embed(
-        title=title, description=description,
-        color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-    ))
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await log_ch.send(embed=embed)
 
 
 @bot.event
@@ -810,11 +1085,12 @@ async def on_member_join(member):
         try:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
                 if entry.target.id == member.id:
+                    embed = discord.Embed(
+                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                        color=MOD_COLOR
+                    )
                     try:
-                        await entry.user.send(content=entry.user.mention, embed=discord.Embed(
-                            description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
-                            color=MOD_COLOR
-                        ))
+                        await entry.user.send(content=entry.user.mention, embed=embed)
                     except Exception:
                         pass
                     break
@@ -824,13 +1100,15 @@ async def on_member_join(member):
 
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
-        await member_log_ch.send(embed=discord.Embed(
+        embed = discord.Embed(
             title="✅ Mitglied beigetreten",
             description=f"**Benutzer:** {member.mention} (`{member}`)",
-            color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await member_log_ch.send(embed=embed)
 
-    inviter = None
+    inviter      = None
     inviter_uses = 0
     try:
         new_invites    = await guild.fetch_invites()
@@ -852,7 +1130,8 @@ async def on_member_join(member):
             try:
                 vanity = await guild.vanity_invite()
                 if vanity and old_invite_map.get("vanity"):
-                    if vanity.uses > getattr(old_invite_map["vanity"], "uses", 0):
+                    old_vanity = old_invite_map["vanity"]
+                    if vanity.uses > getattr(old_vanity, "uses", 0):
                         inviter_uses = vanity.uses
                 new_invite_map["vanity"] = vanity
             except Exception:
@@ -865,15 +1144,19 @@ async def on_member_join(member):
     if join_log_ch:
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
         if inviter:
-            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n**Invites von {inviter.display_name}:** {inviter_uses}"
+            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
+            description += f"**Invites von {inviter.display_name}:** {inviter_uses}"
         elif inviter_uses > 0:
             description += "**Eingeladen von:** Vanity-URL (Server-Link)"
         else:
-            description += "**Eingeladen von:** Unbekannt"
-        await join_log_ch.send(embed=discord.Embed(
-            title="📥 Neues Mitglied", description=description,
-            color=LOG_COLOR, timestamp=datetime.now(timezone.utc)
-        ))
+            description += "**Eingeladen von:** Unbekannt *(Bot fehlt 'Server verwalten' Berechtigung?)*"
+        embed = discord.Embed(
+            title="📥 Neues Mitglied",
+            description=description,
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await join_log_ch.send(embed=embed)
 
     rolle = guild.get_role(WHITELIST_ROLE_ID)
     if rolle:
@@ -883,18 +1166,21 @@ async def on_member_join(member):
             pass
 
     try:
-        await member.send(content=member.mention, embed=discord.Embed(
+        embed = discord.Embed(
             description=(
                 "> Willkommen auf Kryptik Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
                 "> Wir wünschen dir viel Spaß auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
-                f"> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
+                "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
                 f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
             ),
             color=LOG_COLOR
-        ))
+        )
+        await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
 
+
+# ── Commands ──────────────────────────────────────────────────────────────
 
 @bot.command(name="hallo")
 async def hallo(ctx):
@@ -928,6 +1214,7 @@ async def botstatus(ctx):
 
 @bot.command(name="ticketsetup")
 async def ticketsetup(ctx):
+    """Sendet das Ticket-Embed in den Ticket-Kanal. Nur für Admins."""
     if not is_admin(ctx.author):
         return
     channel = ctx.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
@@ -951,7 +1238,8 @@ async def ticketsetup(ctx):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Cryptik Roleplay — Support System")
-    await channel.send(embed=embed, view=TicketSelectView())
+    view = TicketSelectView()
+    await channel.send(embed=embed, view=view)
     try:
         await ctx.message.delete()
     except Exception:
