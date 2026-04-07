@@ -174,7 +174,7 @@ async def handle_discord_invite(message):
         pass
     try:
         embed = discord.Embed(
-            description=("> Du hast gegen unsere Server Regeln verstoßen\n\n> Bitte wende dich an den Support"),
+            description="> Du hast gegen unsere Server Regeln verstoßen\n\n> Bitte wende dich an den Support",
             color=MOD_COLOR
         )
         await member.send(content=member.mention, embed=embed)
@@ -288,7 +288,7 @@ async def check_spam(message):
             pass
         try:
             embed = discord.Embed(
-                description=("> **Verwarnung:** Bitte vermeide es zu spammen.\n\n> Bei Wiederholung erhältst du einen 10 Minuten Timeout."),
+                description="> **Verwarnung:** Bitte vermeide es zu spammen.\n\n> Bei Wiederholung erhältst du einen 10 Minuten Timeout.",
                 color=MOD_COLOR
             )
             await message.author.send(content=message.author.mention, embed=embed)
@@ -436,7 +436,10 @@ async def on_member_join(member):
         try:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
                 if entry.target.id == member.id:
-                    embed = discord.Embed(description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.", color=MOD_COLOR)
+                    embed = discord.Embed(
+                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                        color=MOD_COLOR
+                    )
                     try:
                         await entry.user.send(content=entry.user.mention, embed=embed)
                     except Exception:
@@ -447,7 +450,12 @@ async def on_member_join(member):
         return
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
-        embed = discord.Embed(title="✅ Mitglied beigetreten", description=f"**Benutzer:** {member.mention} (`{member}`)", color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
+        embed = discord.Embed(
+            title="✅ Mitglied beigetreten",
+            description=f"**Benutzer:** {member.mention} (`{member}`)",
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
         await member_log_ch.send(embed=embed)
     inviter = None
     inviter_uses = 0
