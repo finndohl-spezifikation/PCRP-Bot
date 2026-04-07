@@ -1,6 +1,7 @@
 eco = load_economy()
 user_data = get_user(eco, interaction.user.id)
 
+
 if user_data["cash"] < item["price"]:
     await interaction.reponse.send_message(
     f"❌ Du hast nicht genug **Bargeld**.\n"
