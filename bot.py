@@ -712,8 +712,10 @@ async def on_ready():
     await auto_lohnliste_setup()
     await send_bot_status()
     try:
-        synced = await bot.tree.sync()
-        print(f"Slash Commands synced: {len(synced)}")
+        guild_obj = discord.Object(id=GUILD_ID)
+        bot.tree.copy_global_to(guild=guild_obj)
+        synced = await bot.tree.sync(guild=guild_obj)
+        print(f"Slash Commands synced (Guild): {len(synced)}")
     except Exception as e:
         print(f"Slash Command sync fehlgeschlagen: {e}")
 
