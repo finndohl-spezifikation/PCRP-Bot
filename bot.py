@@ -111,7 +111,7 @@ VERSTECKEN_CHANNEL_ID   = 1490882591023173682
 TEAM_CITIZEN_CHANNEL_ID = 1490882591023173682
 
 WARN_AUTO_TIMEOUT_COUNT = 3
-START_CASH              = 5_000     # Startguthaben fÃ¼r neue Spieler
+START_CASH              = 5_000     # Startguthaben für neue Spieler
 
 LOG_COLOR = 0x00BFFF
 MOD_COLOR = 0xFF0000
@@ -394,7 +394,7 @@ class VersteckRetrieveView(discord.ui.View):
             await interaction.response.send_message("âŒ Item wurde bereits geborgen oder existiert nicht mehr.", ephemeral=True)
             return
 
-        # Item zurÃ¼ck ins Inventar
+        # Item zurück ins Inventar
         eco       = load_economy()
         user_data = get_user(eco, interaction.user.id)
         user_data.setdefault("inventory", []).append(entry["item"])
@@ -513,7 +513,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         title=f"ðŸŽŸ {type_name}",
         description=(
             f"Willkommen {member.mention}!\n\n"
-            f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstmÃ¶glich um dein Anliegen kÃ¼mmern.\n\n"
+            f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstmÃ¶glich um dein Anliegen kümmern.\n\n"
             f"**Ticket-Typ:** {type_name}\n"
             f"**Erstellt von:** {member.mention}\n"
             f"**Erstellt am:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
@@ -564,7 +564,7 @@ class TicketSelect(discord.ui.Select):
                 label="Fraktions Bewerbung",
                 emoji="ðŸŽŸ",
                 value="fraktion",
-                description="Bewerbung fÃ¼r eine Fraktion"
+                description="Bewerbung für eine Fraktion"
             ),
             discord.SelectOption(
                 label="Beschwerde Ticket",
@@ -803,10 +803,10 @@ class RatingView(discord.ui.View):
         star_display = "â­" * stars + "â˜†" * (5 - stars)
 
         thank_embed = discord.Embed(
-            title="ðŸ’™ Danke fÃ¼r deine Bewertung!",
+            title="ðŸ’™ Danke für deine Bewertung!",
             description=(
                 f"Du hast **{star_display}** ({stars}/5) gegeben.\n\n"
-                f"Vielen Dank fÃ¼r dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
+                f"Vielen Dank für dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
                 f"Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gelÃ¶st."
             ),
             color=LOG_COLOR,
@@ -924,12 +924,12 @@ async def auto_ticket_setup():
             title="ðŸŽŸ Support â€” Ticket erstellen",
             description=(
                 "BenÃ¶tigst du Hilfe oder mÃ¶chtest ein Anliegen melden?\n\n"
-                "WÃ¤hle unten im MenÃ¼ die passende Ticket-Art aus.\n"
-                "Unser Team wird sich schnellstmÃ¶glich um dich kÃ¼mmern.\n\n"
-                "**VerfÃ¼gbare Ticket-Arten:**\n"
+                "WÃ¤hle unten im Menü die passende Ticket-Art aus.\n"
+                "Unser Team wird sich schnellstmÃ¶glich um dich kümmern.\n\n"
+                "**Verfügbare Ticket-Arten:**\n"
                 "ðŸŽŸ **Support** â€” Allgemeiner Support\n"
                 "ðŸŽŸ **Highteam Ticket** â€” Direkter Kontakt zum Highteam\n"
-                "ðŸŽŸ **Fraktions Bewerbung** â€” Bewirb dich fÃ¼r eine Fraktion\n"
+                "ðŸŽŸ **Fraktions Bewerbung** â€” Bewirb dich für eine Fraktion\n"
                 "ðŸŽŸ **Beschwerde Ticket** â€” Beschwerde einreichen\n"
                 "ðŸŽŸ **Bug Report** â€” Fehler oder Bug melden"
             ),
@@ -965,13 +965,13 @@ async def auto_lohnliste_setup():
             print(f"Lohnliste bereits vorhanden in #{channel.name}")
             continue
         desc = (
-            f"<@&1490855796932739093>\n**1.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855789844234310>\n**2.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855790913785886>\n**3.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855791953973421>\n**4.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855792671461478>\n**5.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855793694871595>\n**6.500 ðŸ’µ StÃ¼ndlich**\n\n"
-            f"<@&1490855795360006246>\n**1.200 ðŸ’µ StÃ¼ndlich** *(Zusatzlohn)*"
+            f"<@&1490855796932739093>\n**1.500 ðŸ’µ Stündlich**\n\n"
+            f"<@&1490855789844234310>\n**2.500 ðŸ’µ Stündlich**\n\n"
+            f"<@&1490855790913785886>\n**3.500 ðŸ’µ Stündlich**\n\n"
+            f"<@&1490855791953973421>\n**4.500 ðŸ’µ Stündlich**\n\n"
+            f"<@&1490855792671461478>\n**5.500 ðŸ’µ Stündlich**\n\n"
+            f"<@&1490855793694871595>\n**6.500 ðŸ’µ Stündlich**\n\n"
+            f"<@&1490855795360006246>\n**1.200 ðŸ’µ Stündlich** *(Zusatzlohn)*"
         )
         embed = discord.Embed(
             title="ðŸ’µ Lohnliste ðŸ’µ",
@@ -1083,7 +1083,7 @@ async def handle_counting(message):
         try:
             await message.channel.send(
                 f"âŒ {message.author.mention} Falsche Zahl! Erwartet wurde **{expected}**, nicht **{number}**.\n"
-                f"Der ZÃ¤hler wurde zurÃ¼ckgesetzt. Fangt wieder bei **1** an!",
+                f"Der ZÃ¤hler wurde zurückgesetzt. Fangt wieder bei **1** an!",
                 delete_after=8
             )
         except Exception:
@@ -1113,7 +1113,7 @@ async def handle_discord_invite(message):
         pass
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        timeout_status = "âœ… Timeout erteilt (300h)" if timeout_ok else "âŒ Timeout fehlgeschlagen â€” Berechtigung prÃ¼fen!"
+        timeout_status = "âœ… Timeout erteilt (300h)" if timeout_ok else "âŒ Timeout fehlgeschlagen â€” Berechtigung prüfen!"
         rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
         embed = discord.Embed(
             title="ðŸ”¨ Moderation â€” Timeout",
@@ -1196,7 +1196,7 @@ async def check_spam(message):
         )
         try:
             embed = discord.Embed(
-                description="> Du wurdest aufgrund von wiederholtem Spammen fÃ¼r **10 Minuten** stummgeschaltet.",
+                description="> Du wurdest aufgrund von wiederholtem Spammen für **10 Minuten** stummgeschaltet.",
                 color=MOD_COLOR
             )
             await message.author.send(content=message.author.mention, embed=embed)
@@ -1204,7 +1204,7 @@ async def check_spam(message):
             pass
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
-            timeout_status = "âœ… Timeout erteilt (10min)" if timeout_ok else "âŒ Timeout fehlgeschlagen â€” Berechtigung prÃ¼fen!"
+            timeout_status = "âœ… Timeout erteilt (10min)" if timeout_ok else "âŒ Timeout fehlgeschlagen â€” Berechtigung prüfen!"
             rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
             embed = discord.Embed(
                 title="ðŸ”¨ Moderation â€” Timeout (Spam)",
@@ -1295,7 +1295,7 @@ async def on_member_update(before, after):
         return
     description = f"**Benutzer:** {after.mention} (`{after}`)\n"
     if added:
-        description += f"**HinzugefÃ¼gt:** {', '.join(r.mention for r in added)}\n"
+        description += f"**Hinzugefügt:** {', '.join(r.mention for r in added)}\n"
     if removed:
         description += f"**Entfernt:** {', '.join(r.mention for r in removed)}\n"
     try:
@@ -1408,7 +1408,7 @@ async def on_member_join(member):
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
                 if entry.target.id == member.id:
                     embed = discord.Embed(
-                        description="> Bots auf diesen Server hinzufÃ¼gen ist fÃ¼r dich leider nicht erlaubt.",
+                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
                         color=MOD_COLOR
                     )
                     try:
@@ -1491,8 +1491,8 @@ async def on_member_join(member):
         embed = discord.Embed(
             description=(
                 "> Willkommen auf Kryptik Roleplay deinem RP server mit Ultimativem SpaÃŸ und Hochwertigem RP\n\n"
-                "> Wir wÃ¼nschen dir viel SpaÃŸ auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
-                "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit Ã¼ber ein Support Ticket im channel "
+                "> Wir wünschen dir viel SpaÃŸ auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
+                "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
                 f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
             ),
             color=LOG_COLOR
@@ -1548,7 +1548,7 @@ async def botstatus(ctx):
 
 @bot.command(name="ticketsetup")
 async def ticketsetup(ctx):
-    """Sendet das Ticket-Embed in den Ticket-Kanal. Nur fÃ¼r Admins."""
+    """Sendet das Ticket-Embed in den Ticket-Kanal. Nur für Admins."""
     if not is_admin(ctx.author):
         return
     channel = ctx.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
@@ -1559,12 +1559,12 @@ async def ticketsetup(ctx):
         title="ðŸŽŸ Support â€” Ticket erstellen",
         description=(
             "BenÃ¶tigst du Hilfe oder mÃ¶chtest ein Anliegen melden?\n\n"
-            "WÃ¤hle unten im MenÃ¼ die passende Ticket-Art aus.\n"
-            "Unser Team wird sich schnellstmÃ¶glich um dich kÃ¼mmern.\n\n"
-            "**VerfÃ¼gbare Ticket-Arten:**\n"
+            "WÃ¤hle unten im Menü die passende Ticket-Art aus.\n"
+            "Unser Team wird sich schnellstmÃ¶glich um dich kümmern.\n\n"
+            "**Verfügbare Ticket-Arten:**\n"
             "ðŸŽŸ **Support** â€” Allgemeiner Support\n"
             "ðŸŽŸ **Highteam Ticket** â€” Direkter Kontakt zum Highteam\n"
-            "ðŸŽŸ **Fraktions Bewerbung** â€” Bewirb dich fÃ¼r eine Fraktion\n"
+            "ðŸŽŸ **Fraktions Bewerbung** â€” Bewirb dich für eine Fraktion\n"
             "ðŸŽŸ **Beschwerde Ticket** â€” Beschwerde einreichen\n"
             "ðŸŽŸ **Bug Report** â€” Fehler oder Bug melden"
         ),
@@ -1583,11 +1583,11 @@ async def ticketsetup(ctx):
 # â”€â”€ Economy Slash Commands â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def channel_error(channel_id: int) -> str:
-    return f"âŒ Du kannst diesen Command nur hier ausfÃ¼hren: <#{channel_id}>"
+    return f"âŒ Du kannst diesen Command nur hier ausführen: <#{channel_id}>"
 
 
 # /lohn-abholen
-@bot.tree.command(name="lohn-abholen", description="Hole deinen stÃ¼ndlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="lohn-abholen", description="Hole deinen stündlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
 async def lohn_abholen(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
     is_adm   = ADMIN_ROLE_ID in role_ids
@@ -1806,8 +1806,8 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
     await interaction.response.send_message(embed=embed)
 
 
-# /Ã¼berweisen
-@bot.tree.command(name="Ã¼berweisen", description="Ãœberweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
+# /überweisen
+@bot.tree.command(name="überweisen", description="Ãœberweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="EmpfÃ¤nger", betrag="Betrag wÃ¤hlen oder eingeben (1.000 â€“ 10.000.000 ðŸ’µ)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
@@ -1823,7 +1823,7 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
         return
 
     if nutzer.id == interaction.user.id:
-        await interaction.response.send_message("âŒ Du kannst nicht an dich selbst Ã¼berweisen.", ephemeral=True)
+        await interaction.response.send_message("âŒ Du kannst nicht an dich selbst überweisen.", ephemeral=True)
         return
 
     if betrag <= 0:
@@ -1846,7 +1846,7 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
         remaining  = user_limit - sender["daily_transfer"]
         if betrag > remaining:
             await interaction.response.send_message(
-                f"âŒ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ’µ** Ã¼berweisen. "
+                f"âŒ Tageslimit erreicht. Du kannst heute noch **{remaining:,} ðŸ’µ** überweisen. "
                 f"(Limit: **{user_limit:,} ðŸ’µ**)",
                 ephemeral=True
             )
@@ -1955,7 +1955,7 @@ async def buy(interaction: discord.Interaction, itemname: str):
     embed = discord.Embed(
         title="âœ… Gekauft!",
         description=(
-            f"Du hast **{item['name']}** fÃ¼r **{item['price']:,} ðŸ’µ** gekauft.\n"
+            f"Du hast **{item['name']}** für **{item['price']:,} ðŸ’µ** gekauft.\n"
             f"**Verbleibendes Bargeld:** {user_data['cash']:,} ðŸ’µ"
         ),
         color=LOG_COLOR,
@@ -1985,7 +1985,7 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
         description=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Neues Tageslimit:** {limit:,} ðŸ’µ\n"
-            f"*(gilt fÃ¼r Einzahlen, Auszahlen & Ãœberweisen)*"
+            f"*(gilt für Einzahlen, Auszahlen & Ãœberweisen)*"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -1995,7 +1995,7 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
 
 
 # /money-add (Admin only)
-@bot.tree.command(name="money-add", description="[ADMIN] FÃ¼ge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="money-add", description="[ADMIN] Füge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 @app_commands.default_permissions(administrator=True)
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
@@ -2013,16 +2013,16 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
     save_economy(eco)
     await log_money_action(
         interaction.guild,
-        "Admin: Geld hinzugefÃ¼gt",
+        "Admin: Geld hinzugefügt",
         f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} ðŸ’µ\n"
         f"**Bargeld danach:** {user_data['cash']:,} ðŸ’µ\n**Admin:** {interaction.user.mention}"
     )
 
     embed = discord.Embed(
-        title="ðŸ’° Geld hinzugefÃ¼gt",
+        title="ðŸ’° Geld hinzugefügt",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**HinzugefÃ¼gt:** {betrag:,} ðŸ’µ\n"
+            f"**Hinzugefügt:** {betrag:,} ðŸ’µ\n"
             f"**Bargeld:** {user_data['cash']:,} ðŸ’µ"
         ),
         color=LOG_COLOR,
@@ -2086,8 +2086,8 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 
     await interaction.response.send_message(
         embed=discord.Embed(
-            title="ðŸ“¦ Item hinzugefÃ¼gt",
-            description=f"**{itemname}** wurde **{nutzer.mention}** hinzugefÃ¼gt.",
+            title="ðŸ“¦ Item hinzugefügt",
+            description=f"**{itemname}** wurde **{nutzer.mention}** hinzugefügt.",
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         ),
@@ -2145,8 +2145,8 @@ class ShopAddConfirmView(discord.ui.View):
             item.disabled = True
         await interaction.response.edit_message(
             embed=discord.Embed(
-                title="âœ… Item hinzugefÃ¼gt",
-                description=f"**{self.name}** fÃ¼r **{self.price:,} ðŸ’µ** wurde zum Shop hinzugefÃ¼gt.",
+                title="âœ… Item hinzugefügt",
+                description=f"**{self.name}** für **{self.price:,} ðŸ’µ** wurde zum Shop hinzugefügt.",
                 color=LOG_COLOR
             ),
             view=self
@@ -2159,14 +2159,14 @@ class ShopAddConfirmView(discord.ui.View):
         await interaction.response.edit_message(
             embed=discord.Embed(
                 title="âŒ Abgebrochen",
-                description="Das Item wurde nicht hinzugefÃ¼gt.",
+                description="Das Item wurde nicht hinzugefügt.",
                 color=MOD_COLOR
             ),
             view=self
         )
 
 
-@bot.tree.command(name="shop-add", description="[ADMIN] FÃ¼ge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="shop-add", description="[ADMIN] Füge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(itemname="Name des Items", preis="Preis in $")
 @app_commands.default_permissions(administrator=True)
 async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
@@ -2179,11 +2179,11 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
         return
 
     embed = discord.Embed(
-        title="ðŸ›’ Neues Item hinzufÃ¼gen?",
+        title="ðŸ›’ Neues Item hinzufügen?",
         description=(
             f"**Name:** {itemname}\n"
             f"**Preis:** {preis:,} ðŸ’µ\n\n"
-            f"Bitte bestÃ¤tige das HinzufÃ¼gen."
+            f"Bitte bestÃ¤tige das Hinzufügen."
         ),
         color=LOG_COLOR
     )
@@ -2232,7 +2232,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
         await log_ch.send(embed=embed)
 
     await interaction.response.send_message(
-        f"âœ… Verwarnung fÃ¼r {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)", ephemeral=True
+        f"âœ… Verwarnung für {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)", ephemeral=True
     )
 
     # Automatischer Timeout bei 3 Warns
@@ -2255,10 +2255,10 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
                 title="ðŸ”‡ Du wurdest getimeoutet",
                 description=(
                     f"Du hast auf **{interaction.guild.name}** {WARN_AUTO_TIMEOUT_COUNT} Verwarnungen erhalten "
-                    f"und wurdest daher fÃ¼r **2 Tage** getimeoutet.\n\n"
+                    f"und wurdest daher für **2 Tage** getimeoutet.\n\n"
                     f"**Letzte Verwarnung:**\n"
                     f"Grund: {grund}\nKonsequenz: {konsequenz}\n\n"
-                    f"Deine Rollen wurden vorÃ¼bergehend entfernt.\n"
+                    f"Deine Rollen wurden vorübergehend entfernt.\n"
                     f"Nach dem Timeout melde dich bitte bei einem Teammitglied."
                 ),
                 color=MOD_COLOR,
@@ -2387,8 +2387,8 @@ async def rucksack(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /Ã¼bergeben
-@bot.tree.command(name="Ã¼bergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
+# /übergeben
+@bot.tree.command(name="übergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="EmpfÃ¤nger", item="Name des Items")
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     role_ids = [r.id for r in interaction.user.roles]
@@ -2399,7 +2399,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
         return
 
     if nutzer.id == interaction.user.id:
-        await interaction.response.send_message("âŒ Du kannst nicht an dich selbst Ã¼bergeben.", ephemeral=True)
+        await interaction.response.send_message("âŒ Du kannst nicht an dich selbst übergeben.", ephemeral=True)
         return
 
     eco        = load_economy()
@@ -2420,7 +2420,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     save_economy(eco)
 
     embed = discord.Embed(
-        title="ðŸ¤ Item Ã¼bergeben",
+        title="ðŸ¤ Item übergeben",
         description=(
             f"**Von:** {interaction.user.mention}\n"
             f"**An:** {nutzer.mention}\n"
