@@ -480,6 +480,16 @@ async def hallo(ctx):
     await ctx.send(f"Hallo, {ctx.author.display_name}! 👋")
 
 
+@bot.command(name="testping")
+@commands.has_role(ADMIN_ROLE_ID)
+async def testping(ctx):
+    kanal = ctx.guild.get_channel(JOIN_LOG_CHANNEL_ID)
+    rolle = ctx.guild.get_role(MOD_ROLE_ID)
+    if kanal and rolle:
+        await kanal.send(f"{rolle.mention} Dies ist ein Test-Ping vom Bot!")
+    await ctx.message.delete()
+
+
 token = os.environ.get("DISCORD_TOKEN")
 if not token:
     raise RuntimeError("DISCORD_TOKEN ist nicht gesetzt.")
