@@ -13,11 +13,19 @@ bot_start_time = None
 # Set für Mitglieder, denen bereits die Willkommensnachricht geschickt wurde
 welcomed_members = set()
 
+# Kanal-ID für einmalige Hallo-Nachricht beim Bot-Start (optional)
+CHANNEL_ID = 1490878151897911557
+
 @bot.event
 async def on_ready():
     global bot_start_time
     bot_start_time = datetime.now(timezone.utc)
     print(f"Bot ist online als {bot.user} (ID: {bot.user.id})")
+
+    # Einmalig "Hallo" in den Kanal senden
+    channel = bot.get_channel(CHANNEL_ID)
+    if channel:
+        await channel.send("Hallo! 👋")
 
 @bot.event
 async def on_message(message):
@@ -29,7 +37,7 @@ async def on_message(message):
 
 @bot.event
 async def on_member_join(member):
-    # Prüfen, ob das Mitglied schon begrüßt wurde
+    # Prüfen, ob Mitglied schon begrüßt wurde
     if member.id in welcomed_members:
         return
 
@@ -41,18 +49,18 @@ async def on_member_join(member):
         except discord.Forbidden:
             pass
 
-    # Willkommensnachricht
+    # Willkommensnachricht sauber, nur einmal
     try:
         embed = discord.Embed(
             description=(
-                "> Willkommen auf Kryptik Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
-                "> Wir wünschen dir viel Spaß auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
-                "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel <#1490855943230066818>"
+                "Willkommen auf Kryptik Roleplay!\n\n"
+                "Wir wünschen dir viel Spaß auf unserem Server und hoffen, dass du dich gut zurechtfindest.\n\n"
+                "Bei Problemen melde dich jederzeit über ein Support Ticket im Channel <#1490855943230066818>."
             ),
             color=0x00BFFF
         )
         await member.send(content=member.mention, embed=embed)
-        welcomed_members.add(member.id)  # Mitglied als begrüßt markieren
+        welcomed_members.add(member.id)
     except discord.Forbidden:
         pass
 
