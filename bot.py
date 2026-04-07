@@ -1,4 +1,3 @@
-
 eco = load_economy()
 user_data = get_user(eco, interaction.user.id)
 
