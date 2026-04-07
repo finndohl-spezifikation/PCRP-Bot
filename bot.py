@@ -1,8 +1,11 @@
 import os
 import io
+import json
 import discord
+from discord import app_commands
 from discord.ext import commands
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 import re
 import asyncio
 import traceback
@@ -37,6 +40,30 @@ TICKET_CATEGORY_FRAKTION = 1491069425384685750
 TICKET_LOG_CHANNEL_ID    = 1490878139306606743
 
 COUNTING_CHANNEL_ID = 1490882580487340044
+
+# ── Economy ──────────────────────────────────────────────────────────────
+LOHNLISTE_CHANNEL_ID = 1490890346668888194
+LOHN_CHANNEL_ID      = 1490890348254200049
+BANK_CHANNEL_ID      = 1490890349382734044
+SHOP_CHANNEL_ID      = 1490890311755628584
+
+CITIZEN_ROLE_ID = 1490855722534310003
+
+WAGE_ROLES = {
+    1490855796932739093: 1500,
+    1490855789844234310: 2500,
+    1490855790913785886: 3500,
+    1490855791953973421: 4500,
+    1490855792671461478: 5500,
+    1490855793694871595: 6500,
+}
+ADDITIONAL_WAGE_ROLE_ID   = 1490855795360006246
+ADDITIONAL_WAGE_ROLE_WAGE = 1200
+
+DAILY_LIMIT = 1_000_000
+
+ECONOMY_FILE = Path(__file__).parent / "economy_data.json"
+SHOP_FILE    = Path(__file__).parent / "shop_data.json"
 
 LOG_COLOR = 0x00BFFF
 MOD_COLOR = 0xFF0000
@@ -75,6 +102,7 @@ FEATURES = {
     "Rollen-Entfernung (Timeout)": True,
     "Ticket System":               True,
     "Zähl-Kanal":                  True,
+    "Economy System":              True,
 }
 
 
@@ -158,6 +186,64 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
     except Exception as e:
         await log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
     return timeout_ok, roles_removed
+
+
+# ── Economy Helpers ──────────────────────────────────────────────────────
+
+def load_economy():
+    if ECONOMY_FILE.exists():
+        with open(ECONOMY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_economy(data):
+    with open(ECONOMY_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def get_user(data, user_id):
+    uid = str(user_id)
+    if uid not in data:
+        data[uid] = {
+            "cash": 0,
+            "bank": 0,
+            "last_wage": None,
+            "daily_deposit": 0,
+            "daily_withdraw": 0,
+            "daily_transfer": 0,
+            "daily_reset": None,
+            "inventory": [],
+        }
+    return data[uid]
+
+def reset_daily_if_needed(user_data):
+    now = datetime.now(timezone.utc)
+    if user_data.get("daily_reset") is None:
+        user_data["daily_reset"] = now.isoformat()
+        return
+    last_reset = datetime.fromisoformat(user_data["daily_reset"])
+    if (now - last_reset).total_seconds() >= 86400:
+        user_data["daily_deposit"]  = 0
+        user_data["daily_withdraw"] = 0
+        user_data["daily_transfer"] = 0
+        user_data["daily_reset"]    = now.isoformat()
+
+def load_shop():
+    if SHOP_FILE.exists():
+        with open(SHOP_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+def save_shop(items):
+    with open(SHOP_FILE, "w", encoding="utf-8") as f:
+        json.dump(items, f, indent=2, ensure_ascii=False)
+
+def has_citizen_or_wage(member):
+    role_ids = [r.id for r in member.roles]
+    return (
+        CITIZEN_ROLE_ID in role_ids
+        or ADMIN_ROLE_ID in role_ids
+        or any(r in role_ids for r in WAGE_ROLES)
+    )
 
 
 # ── Ticket System ──────────────────────────────────────────────────────
@@ -623,7 +709,13 @@ async def on_ready():
             pass
 
     await auto_ticket_setup()
+    await auto_lohnliste_setup()
     await send_bot_status()
+    try:
+        synced = await bot.tree.sync()
+        print(f"Slash Commands synced: {len(synced)}")
+    except Exception as e:
+        print(f"Slash Command sync fehlgeschlagen: {e}")
 
 
 async def auto_ticket_setup():
@@ -668,6 +760,47 @@ async def auto_ticket_setup():
             print(f"Ticket-Embed automatisch gepostet in #{channel.name}")
         except Exception as e:
             await log_bot_error("auto_ticket_setup fehlgeschlagen", str(e), guild)
+
+
+async def auto_lohnliste_setup():
+    for guild in bot.guilds:
+        channel = guild.get_channel(LOHNLISTE_CHANNEL_ID)
+        if not channel:
+            continue
+        already_posted = False
+        try:
+            async for msg in channel.history(limit=20):
+                if msg.author == guild.me and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Lohnliste" in emb.title:
+                            already_posted = True
+                            break
+                if already_posted:
+                    break
+        except Exception:
+            pass
+        if already_posted:
+            print(f"Lohnliste bereits vorhanden in #{channel.name}")
+            continue
+        desc = (
+            f"<@&1490855796932739093>\n**1.500 💵 Stündlich**\n\n"
+            f"<@&1490855789844234310>\n**2.500 💵 Stündlich**\n\n"
+            f"<@&1490855790913785886>\n**3.500 💵 Stündlich**\n\n"
+            f"<@&1490855791953973421>\n**4.500 💵 Stündlich**\n\n"
+            f"<@&1490855792671461478>\n**5.500 💵 Stündlich**\n\n"
+            f"<@&1490855793694871595>\n**6.500 💵 Stündlich**\n\n"
+            f"<@&1490855795360006246>\n**1.200 💵 Stündlich** *(Zusatzlohn)*"
+        )
+        embed = discord.Embed(
+            title="💵 Lohnliste 💵",
+            description=desc,
+            color=LOG_COLOR
+        )
+        try:
+            await channel.send(embed=embed)
+            print(f"Lohnliste automatisch gepostet in #{channel.name}")
+        except Exception as e:
+            await log_bot_error("auto_lohnliste_setup fehlgeschlagen", str(e), guild)
 
 
 @bot.event
@@ -1244,6 +1377,556 @@ async def ticketsetup(ctx):
         await ctx.message.delete()
     except Exception:
         pass
+
+
+# ── Economy Slash Commands ───────────────────────────────────────────────
+
+def channel_error(channel_id: int) -> str:
+    return f"❌ Du kannst diesen Command nur hier ausführen: <#{channel_id}>"
+
+
+# /lohn-abholen
+@bot.tree.command(name="lohn-abholen", description="Hole deinen stündlichen Lohn ab")
+async def lohn_abholen(interaction: discord.Interaction):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != LOHN_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(LOHN_CHANNEL_ID), ephemeral=True)
+        return
+
+    main_wages = [WAGE_ROLES[r] for r in role_ids if r in WAGE_ROLES]
+    if len(main_wages) > 1:
+        await interaction.response.send_message(
+            "❌ Du hast mehrere Lohnklassen. Bitte wende dich ans Team.", ephemeral=True
+        )
+        return
+    if not main_wages:
+        await interaction.response.send_message(
+            "❌ Du hast keine Lohnklasse und kannst keinen Lohn abholen.", ephemeral=True
+        )
+        return
+
+    total_wage = main_wages[0]
+    if ADDITIONAL_WAGE_ROLE_ID in role_ids:
+        total_wage += ADDITIONAL_WAGE_ROLE_WAGE
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    now       = datetime.now(timezone.utc)
+
+    if user_data["last_wage"]:
+        last = datetime.fromisoformat(user_data["last_wage"])
+        diff = (now - last).total_seconds()
+        if diff < 3600:
+            remaining = int(3600 - diff)
+            mins = remaining // 60
+            secs = remaining % 60
+            await interaction.response.send_message(
+                f"❌ Du kannst deinen Lohn erst in **{mins}m {secs}s** wieder abholen.",
+                ephemeral=True
+            )
+            return
+
+    user_data["cash"]      += total_wage
+    user_data["last_wage"]  = now.isoformat()
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="💵 Lohn abgeholt!",
+        description=(
+            f"Du hast **{total_wage:,} 💵** als Bargeld erhalten.\n"
+            f"**Bargeld:** {user_data['cash']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=now
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+# /kontostand
+@bot.tree.command(name="kontostand", description="Zeigt deinen Kontostand an")
+async def kontostand(interaction: discord.Interaction):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
+        return
+
+    if not is_adm and not has_citizen_or_wage(interaction.user):
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="💳 Kontostand",
+        description=(
+            f"**Bargeld:** {user_data['cash']:,} 💵\n"
+            f"**Bank:** {user_data['bank']:,} 💵\n"
+            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# /einzahlen
+@bot.tree.command(name="einzahlen", description="Zahle Bargeld auf dein Bankkonto ein")
+@app_commands.describe(betrag="Betrag (Vielfaches von 10, max. 1.000.000 💵)")
+async def einzahlen(interaction: discord.Interaction, betrag: int):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
+        return
+
+    if not is_adm and not has_citizen_or_wage(interaction.user):
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    if betrag <= 0 or betrag % 10 != 0 or betrag > DAILY_LIMIT:
+        await interaction.response.send_message(
+            "❌ Ungültiger Betrag. Bitte ein Vielfaches von 10 zwischen 10 💵 und 1.000.000 💵 eingeben.",
+            ephemeral=True
+        )
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    reset_daily_if_needed(user_data)
+
+    if user_data["cash"] < betrag:
+        await interaction.response.send_message(
+            f"❌ Nicht genug Bargeld. Dein Bargeld: **{user_data['cash']:,} 💵**", ephemeral=True
+        )
+        return
+
+    if not is_adm:
+        remaining = DAILY_LIMIT - user_data["daily_deposit"]
+        if betrag > remaining:
+            await interaction.response.send_message(
+                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💵** einzahlen.",
+                ephemeral=True
+            )
+            return
+        user_data["daily_deposit"] += betrag
+
+    user_data["cash"] -= betrag
+    user_data["bank"] += betrag
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="🏦 Eingezahlt",
+        description=(
+            f"**Eingezahlt:** {betrag:,} 💵\n"
+            f"**Bargeld:** {user_data['cash']:,} 💵\n"
+            f"**Bank:** {user_data['bank']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+# /auszahlen
+@bot.tree.command(name="auszahlen", description="Hebe Geld von deinem Bankkonto ab")
+@app_commands.describe(betrag="Betrag (Vielfaches von 10, max. 1.000.000 💵)")
+async def auszahlen(interaction: discord.Interaction, betrag: int):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
+        return
+
+    if not is_adm and not has_citizen_or_wage(interaction.user):
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    if betrag <= 0 or betrag % 10 != 0 or betrag > DAILY_LIMIT:
+        await interaction.response.send_message(
+            "❌ Ungültiger Betrag. Bitte ein Vielfaches von 10 zwischen 10 💵 und 1.000.000 💵 eingeben.",
+            ephemeral=True
+        )
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    reset_daily_if_needed(user_data)
+
+    if user_data["bank"] < betrag:
+        await interaction.response.send_message(
+            f"❌ Nicht genug Guthaben. Dein Kontostand: **{user_data['bank']:,} 💵**", ephemeral=True
+        )
+        return
+
+    if not is_adm:
+        remaining = DAILY_LIMIT - user_data["daily_withdraw"]
+        if betrag > remaining:
+            await interaction.response.send_message(
+                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💵** auszahlen.",
+                ephemeral=True
+            )
+            return
+        user_data["daily_withdraw"] += betrag
+
+    user_data["bank"] -= betrag
+    user_data["cash"] += betrag
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="💸 Ausgezahlt",
+        description=(
+            f"**Ausgezahlt:** {betrag:,} 💵\n"
+            f"**Bargeld:** {user_data['cash']:,} 💵\n"
+            f"**Bank:** {user_data['bank']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+# /überweisen
+@bot.tree.command(name="überweisen", description="Überweise Geld an einen anderen Spieler")
+@app_commands.describe(nutzer="Empfänger", betrag="Betrag (Vielfaches von 10, max. 1.000.000 💵)")
+async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
+        return
+
+    if not is_adm and not has_citizen_or_wage(interaction.user):
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    if nutzer.id == interaction.user.id:
+        await interaction.response.send_message("❌ Du kannst nicht an dich selbst überweisen.", ephemeral=True)
+        return
+
+    if betrag <= 0 or betrag % 10 != 0 or betrag > DAILY_LIMIT:
+        await interaction.response.send_message(
+            "❌ Ungültiger Betrag. Bitte ein Vielfaches von 10 zwischen 10 💵 und 1.000.000 💵 eingeben.",
+            ephemeral=True
+        )
+        return
+
+    eco        = load_economy()
+    sender     = get_user(eco, interaction.user.id)
+    receiver   = get_user(eco, nutzer.id)
+    reset_daily_if_needed(sender)
+
+    if sender["bank"] < betrag:
+        await interaction.response.send_message(
+            f"❌ Nicht genug Guthaben. Dein Kontostand: **{sender['bank']:,} 💵**", ephemeral=True
+        )
+        return
+
+    if not is_adm:
+        remaining = DAILY_LIMIT - sender["daily_transfer"]
+        if betrag > remaining:
+            await interaction.response.send_message(
+                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💵** überweisen.",
+                ephemeral=True
+            )
+            return
+        sender["daily_transfer"] += betrag
+
+    sender["bank"]   -= betrag
+    receiver["bank"] += betrag
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="💳 Überweisung",
+        description=(
+            f"**An:** {nutzer.mention}\n"
+            f"**Betrag:** {betrag:,} 💵\n"
+            f"**Dein Kontostand:** {sender['bank']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+# /shop
+@bot.tree.command(name="shop", description="Zeigt den Shop an")
+async def shop(interaction: discord.Interaction):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != SHOP_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(SHOP_CHANNEL_ID), ephemeral=True)
+        return
+
+    items = load_shop()
+    if not items:
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="🛒 Shop",
+                description="Der Shop ist aktuell leer.",
+                color=LOG_COLOR
+            ),
+            ephemeral=True
+        )
+        return
+
+    desc = "\n".join(f"**{item['name']}** — {item['price']:,} 💵" for item in items)
+    embed = discord.Embed(
+        title="🛒 Shop",
+        description=desc,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Kaufen mit /buy [itemname] • Nur mit Bargeld möglich")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# /buy
+@bot.tree.command(name="buy", description="Kaufe ein Item aus dem Shop")
+@app_commands.describe(itemname="Name des Items das du kaufen möchtest")
+async def buy(interaction: discord.Interaction, itemname: str):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != SHOP_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(SHOP_CHANNEL_ID), ephemeral=True)
+        return
+
+    if not is_adm and not has_citizen_or_wage(interaction.user):
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    items = load_shop()
+    item  = next((i for i in items if i["name"].lower() == itemname.lower()), None)
+
+    if not item:
+        await interaction.response.send_message(
+            f"❌ Item **{itemname}** wurde nicht gefunden. Nutze `/shop` um alle Items zu sehen.",
+            ephemeral=True
+        )
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+
+    if user_data["cash"] < item["price"]:
+        await interaction.response.send_message(
+            f"❌ Du hast nicht genug **Bargeld**.\n"
+            f"Preis: **{item['price']:,} 💵** | Dein Bargeld: **{user_data['cash']:,} 💵**\n"
+            f"ℹ️ Käufe sind nur mit Bargeld möglich. Hebe Geld mit `/auszahlen` ab.",
+            ephemeral=True
+        )
+        return
+
+    user_data["cash"] -= item["price"]
+    if "inventory" not in user_data:
+        user_data["inventory"] = []
+    user_data["inventory"].append(item["name"])
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="✅ Gekauft!",
+        description=(
+            f"Du hast **{item['name']}** für **{item['price']:,} 💵** gekauft.\n"
+            f"**Verbleibendes Bargeld:** {user_data['cash']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed)
+
+
+# /money-add (Admin only)
+@bot.tree.command(name="money-add", description="[ADMIN] Füge einem Spieler Geld hinzu")
+@app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
+@app_commands.default_permissions(administrator=True)
+async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    if betrag <= 0:
+        await interaction.response.send_message("❌ Betrag muss größer als 0 sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["cash"] += betrag
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="💰 Geld hinzugefügt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Hinzugefügt:** {betrag:,} 💵\n"
+            f"**Bargeld:** {user_data['cash']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# /remove-money (Admin only)
+@bot.tree.command(name="remove-money", description="[ADMIN] Entferne Geld von einem Spieler")
+@app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
+@app_commands.default_permissions(administrator=True)
+async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    if betrag <= 0:
+        await interaction.response.send_message("❌ Betrag muss größer als 0 sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["cash"] = max(0, user_data["cash"] - betrag)
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="💸 Geld entfernt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Entfernt:** {betrag:,} 💵\n"
+            f"**Bargeld:** {user_data['cash']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# /item-add (Admin only)
+@bot.tree.command(name="item-add", description="[ADMIN] Gib einem Spieler ein Item")
+@app_commands.describe(nutzer="Spieler", itemname="Itemname")
+@app_commands.default_permissions(administrator=True)
+async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    if "inventory" not in user_data:
+        user_data["inventory"] = []
+    user_data["inventory"].append(itemname)
+    save_economy(eco)
+
+    await interaction.response.send_message(
+        embed=discord.Embed(
+            title="📦 Item hinzugefügt",
+            description=f"**{itemname}** wurde **{nutzer.mention}** hinzugefügt.",
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        ),
+        ephemeral=True
+    )
+
+
+# /remove-item (Admin only)
+@bot.tree.command(name="remove-item", description="[ADMIN] Entferne ein Item von einem Spieler")
+@app_commands.describe(nutzer="Spieler", itemname="Itemname")
+@app_commands.default_permissions(administrator=True)
+async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    inventory = user_data.get("inventory", [])
+
+    if itemname not in inventory:
+        await interaction.response.send_message(
+            f"❌ **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
+        )
+        return
+
+    inventory.remove(itemname)
+    user_data["inventory"] = inventory
+    save_economy(eco)
+
+    await interaction.response.send_message(
+        embed=discord.Embed(
+            title="📦 Item entfernt",
+            description=f"**{itemname}** wurde von **{nutzer.mention}** entfernt.",
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        ),
+        ephemeral=True
+    )
+
+
+# /shop-add (Admin only) with confirmation
+class ShopAddConfirmView(discord.ui.View):
+    def __init__(self, name: str, price: int):
+        super().__init__(timeout=60)
+        self.name  = name
+        self.price = price
+
+    @discord.ui.button(label="✅ Bestätigen", style=discord.ButtonStyle.green)
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        items = load_shop()
+        items.append({"name": self.name, "price": self.price})
+        save_shop(items)
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(
+            embed=discord.Embed(
+                title="✅ Item hinzugefügt",
+                description=f"**{self.name}** für **{self.price:,} 💵** wurde zum Shop hinzugefügt.",
+                color=LOG_COLOR
+            ),
+            view=self
+        )
+
+    @discord.ui.button(label="❌ Abbrechen", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(
+            embed=discord.Embed(
+                title="❌ Abgebrochen",
+                description="Das Item wurde nicht hinzugefügt.",
+                color=MOD_COLOR
+            ),
+            view=self
+        )
+
+
+@bot.tree.command(name="shop-add", description="[ADMIN] Füge ein neues Item zum Shop hinzu")
+@app_commands.describe(itemname="Name des Items", preis="Preis in $")
+@app_commands.default_permissions(administrator=True)
+async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    if preis <= 0:
+        await interaction.response.send_message("❌ Preis muss größer als 0 sein.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🛒 Neues Item hinzufügen?",
+        description=(
+            f"**Name:** {itemname}\n"
+            f"**Preis:** {preis:,} 💵\n\n"
+            f"Bitte bestätige das Hinzufügen."
+        ),
+        color=LOG_COLOR
+    )
+    await interaction.response.send_message(embed=embed, view=ShopAddConfirmView(itemname, preis), ephemeral=True)
 
 
 token = os.environ.get("DISCORD_TOKEN")
