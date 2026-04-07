@@ -66,6 +66,7 @@ FEATURES = {
     "Thread-Schutz":               True,
 }
 
+
 def is_admin(member):
     return any(r.id == ADMIN_ROLE_ID for r in member.roles)
 
@@ -117,9 +118,6 @@ async def send_bot_status():
             pass
 
 async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=None, reason="Regelverstoß"):
-    """Timeout erteilen + alle Rollen entfernen + nur Warteraum sichtbar/betretbar."""
-
-    # 1. Discord Timeout
     timeout_ok = False
     if duration_h:
         timeout_until = datetime.now(timezone.utc) + timedelta(hours=duration_h)
@@ -138,7 +136,6 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
             guild
         )
 
-    # 2. Alle Rollen entfernen
     roles_removed = []
     try:
         roles_to_remove = [
@@ -151,7 +148,6 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
     except Exception as e:
         await log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
 
-    # 3. Warteraum suchen (Text + Voice) und Zugang gewähren
     warteraum_channels = [
         c for c in guild.channels
         if "warteraum" in c.name.lower()
@@ -183,6 +179,7 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
 
     return timeout_ok, roles_removed, warteraum_ref
 
+
 @bot.event
 async def on_ready():
     global bot_start_time, invite_cache
@@ -196,10 +193,12 @@ async def on_ready():
             pass
     await send_bot_status()
 
+
 @bot.event
 async def on_error(event, *args, **kwargs):
     err = traceback.format_exc()
     await log_bot_error(f"Event: {event}", err)
+
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -209,6 +208,7 @@ async def on_command_error(ctx, error):
         return
     err = "".join(traceback.format_exception(type(error), error, error.__traceback__))
     await log_bot_error(f"Command: {ctx.command}", err, ctx.guild)
+
 
 @bot.event
 async def on_message(message):
@@ -230,6 +230,7 @@ async def on_message(message):
     await check_spam(message)
     await bot.process_commands(message)
 
+
 async def handle_discord_invite(message):
     member = message.author
     guild  = message.guild
@@ -242,7 +243,10 @@ async def handle_discord_invite(message):
     )
     try:
         embed = discord.Embed(
-            description=("> Du hast gegen unsere Server Regeln verstoßen\n\n> Bitte wende dich an den Support"),
+            description=(
+                "> Du hast gegen unsere Server Regeln verstoßen\n\n"
+                "> Bitte wende dich an den Support"
+            ),
             color=MOD_COLOR
         )
         await member.send(content=member.mention, embed=embed)
@@ -269,6 +273,7 @@ async def handle_discord_invite(message):
         )
         await log_ch.send(embed=embed)
 
+
 async def handle_link_outside_memes(message):
     try:
         await message.delete()
@@ -281,6 +286,7 @@ async def handle_link_outside_memes(message):
         )
     except Exception:
         pass
+
 
 async def handle_vulgar_message(message):
     try:
@@ -312,6 +318,7 @@ async def handle_vulgar_message(message):
         )
         await log_ch.send(embed=embed)
 
+
 async def check_spam(message):
     user_id = message.author.id
     now = datetime.now(timezone.utc)
@@ -320,6 +327,7 @@ async def check_spam(message):
     spam_tracker[user_id] = [t for t in spam_tracker[user_id] if (now - t).total_seconds() < 5]
     spam_tracker[user_id].append(now)
     count = len(spam_tracker[user_id])
+
     if count >= 5 and user_id in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.discard(user_id)
@@ -356,6 +364,7 @@ async def check_spam(message):
                 timestamp=datetime.now(timezone.utc)
             )
             await log_ch.send(embed=embed)
+
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.add(user_id)
@@ -375,6 +384,7 @@ async def check_spam(message):
         except Exception:
             pass
 
+
 @bot.event
 async def on_message_delete(message):
     if not message.guild or message.author.bot:
@@ -393,6 +403,7 @@ async def on_message_delete(message):
         timestamp=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
+
 
 @bot.event
 async def on_message_edit(before, after):
@@ -415,6 +426,7 @@ async def on_message_edit(before, after):
         timestamp=datetime.now(timezone.utc)
     )
     await log_ch.send(embed=embed)
+
 
 @bot.event
 async def on_member_update(before, after):
@@ -440,8 +452,14 @@ async def on_member_update(before, after):
                 break
     except Exception:
         pass
-    embed = discord.Embed(title="🎭 Rollen geändert", description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
+    embed = discord.Embed(
+        title="🎭 Rollen geändert",
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
     await log_ch.send(embed=embed)
+
 
 @bot.event
 async def on_member_ban(guild, user):
@@ -461,8 +479,14 @@ async def on_member_ban(guild, user):
     description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
     if banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
-    embed = discord.Embed(title="🔨 Mitglied gebannt", description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
+    embed = discord.Embed(
+        title="🔨 Mitglied gebannt",
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
     await log_ch.send(embed=embed)
+
 
 @bot.event
 async def on_member_remove(member):
@@ -495,8 +519,14 @@ async def on_member_remove(member):
     if reason:
         description += f"\n**Grund:** {reason}"
     title = "👢 Mitglied gekickt" if action == "gekickt" else "🚪 Mitglied hat den Server verlassen"
-    embed = discord.Embed(title=title, description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
     await log_ch.send(embed=embed)
+
 
 @bot.event
 async def on_invite_create(invite):
@@ -504,6 +534,13 @@ async def on_invite_create(invite):
     if guild.id not in invite_cache:
         invite_cache[guild.id] = {}
     invite_cache[guild.id][invite.code] = invite
+
+@bot.event
+async def on_invite_delete(invite):
+    guild = invite.guild
+    if guild.id in invite_cache and invite.code in invite_cache[guild.id]:
+        del invite_cache[guild.id][invite.code]
+
 
 @bot.event
 async def on_member_join(member):
@@ -516,7 +553,10 @@ async def on_member_join(member):
         try:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
                 if entry.target.id == member.id:
-                    embed = discord.Embed(description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.", color=MOD_COLOR)
+                    embed = discord.Embed(
+                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                        color=MOD_COLOR
+                    )
                     try:
                         await entry.user.send(content=entry.user.mention, embed=embed)
                     except Exception:
@@ -525,40 +565,81 @@ async def on_member_join(member):
         except Exception:
             pass
         return
+
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
-        embed = discord.Embed(title="✅ Mitglied beigetreten", description=f"**Benutzer:** {member.mention} (`{member}`)", color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
+        embed = discord.Embed(
+            title="✅ Mitglied beigetreten",
+            description=f"**Benutzer:** {member.mention} (`{member}`)",
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
         await member_log_ch.send(embed=embed)
-    inviter = None
+
+    inviter      = None
     inviter_uses = 0
     try:
         new_invites    = await guild.fetch_invites()
         new_invite_map = {inv.code: inv for inv in new_invites}
         old_invite_map = invite_cache.get(guild.id, {})
+
+        # Fall 1: Invite noch vorhanden, uses gestiegen
         for code, new_inv in new_invite_map.items():
             old_inv = old_invite_map.get(code)
             if old_inv and new_inv.uses > old_inv.uses:
                 inviter      = new_inv.inviter
                 inviter_uses = new_inv.uses
                 break
+
+        # Fall 2: Einmal-Invite — nach Nutzung aus der Liste verschwunden
+        if not inviter:
+            for code, old_inv in old_invite_map.items():
+                if code not in new_invite_map:
+                    inviter      = old_inv.inviter
+                    inviter_uses = (old_inv.uses or 0) + 1
+                    break
+
+        # Fall 3: Vanity-URL
+        if not inviter:
+            try:
+                vanity = await guild.vanity_invite()
+                if vanity and old_invite_map.get("vanity"):
+                    old_vanity = old_invite_map["vanity"]
+                    if vanity.uses > getattr(old_vanity, "uses", 0):
+                        inviter_uses = vanity.uses
+                new_invite_map["vanity"] = vanity
+            except Exception:
+                pass
+
         invite_cache[guild.id] = new_invite_map
-    except Exception:
-        pass
+    except Exception as e:
+        await log_bot_error("Invite-Tracking fehlgeschlagen", str(e), guild)
+
     join_log_ch = guild.get_channel(JOIN_LOG_CHANNEL_ID)
     if join_log_ch:
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
         if inviter:
-            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n**Invites von {inviter.display_name}:** {inviter_uses}"
+            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
+            description += f"**Invites von {inviter.display_name}:** {inviter_uses}"
+        elif inviter_uses > 0:
+            description += "**Eingeladen von:** Vanity-URL (Server-Link)"
         else:
-            description += "**Eingeladen von:** Unbekannt"
-        embed = discord.Embed(title="📥 Neues Mitglied", description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
+            description += "**Eingeladen von:** Unbekannt *(Bot fehlt 'Server verwalten' Berechtigung?)*"
+        embed = discord.Embed(
+            title="📥 Neues Mitglied",
+            description=description,
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
         await join_log_ch.send(embed=embed)
+
     rolle = guild.get_role(WHITELIST_ROLE_ID)
     if rolle:
         try:
             await member.add_roles(rolle)
         except Exception:
             pass
+
     try:
         embed = discord.Embed(
             description=(
@@ -572,6 +653,7 @@ async def on_member_join(member):
         await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
+
 
 @bot.command(name="hallo")
 async def hallo(ctx):
@@ -599,6 +681,7 @@ async def botstatus(ctx):
         await ctx.message.delete()
     except Exception:
         pass
+
 
 token = os.environ.get("DISCORD_TOKEN")
 if not token:
