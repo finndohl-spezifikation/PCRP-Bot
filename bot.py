@@ -50,17 +50,20 @@ spam_tracker = {}
 spam_warned   = set()
 
 FEATURES = {
-    "Discord Link Schutz":    True,
-    "Link Filter (Memes)":   True,
-    "Vulgäre Wörter Filter": True,
-    "Spam Schutz":           True,
-    "Nachrichten Log":       True,
-    "Bearbeitungs Log":      True,
-    "Rollen Log":            True,
-    "Member Log":            True,
-    "Join Log + Invites":    True,
-    "Bot Kick":              True,
-    "Fehler Logging":        True,
+    "Discord Link Schutz":         True,
+    "Link Filter (Memes)":         True,
+    "Vulgäre Wörter Filter":       True,
+    "Spam Schutz":                 True,
+    "Nachrichten Log":             True,
+    "Bearbeitungs Log":            True,
+    "Rollen Log":                  True,
+    "Member Log":                  True,
+    "Join Log + Invites":          True,
+    "Bot Kick":                    True,
+    "Fehler Logging":              True,
+    "Rollen-Entfernung (Timeout)": True,
+    "Warteraum-Zugang (Timeout)":  True,
+    "Thread-Schutz":               True,
 }
 
 def is_admin(member):
@@ -114,7 +117,7 @@ async def send_bot_status():
             pass
 
 async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=None, reason="Regelverstoß"):
-    """Timeout erteilen + alle Rollen entfernen + nur Warteraum sichtbar machen."""
+    """Timeout erteilen + alle Rollen entfernen + nur Warteraum sichtbar/betretbar."""
 
     # 1. Discord Timeout
     timeout_ok = False
@@ -135,7 +138,7 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
             guild
         )
 
-    # 2. Alle Rollen entfernen (außer @everyone und Bot-verwaltete Rollen)
+    # 2. Alle Rollen entfernen
     roles_removed = []
     try:
         roles_to_remove = [
@@ -148,23 +151,37 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
     except Exception as e:
         await log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
 
-    # 3. Nur Warteraum-Channel sichtbar machen
-    warteraum = discord.utils.find(
-        lambda c: "warteraum" in c.name.lower() and isinstance(c, discord.TextChannel),
-        guild.channels
-    )
-    if warteraum:
+    # 3. Warteraum suchen (Text + Voice) und Zugang gewähren
+    warteraum_channels = [
+        c for c in guild.channels
+        if "warteraum" in c.name.lower()
+        and isinstance(c, (discord.TextChannel, discord.VoiceChannel))
+    ]
+    warteraum_ref = None
+    for wch in warteraum_channels:
         try:
-            await warteraum.set_permissions(
-                member,
-                view_channel=True,
-                send_messages=False,
-                read_message_history=True
-            )
+            if isinstance(wch, discord.TextChannel):
+                warteraum_ref = warteraum_ref or wch
+                await wch.set_permissions(
+                    member,
+                    view_channel=True,
+                    send_messages=False,
+                    read_message_history=True,
+                    create_public_threads=False,
+                    create_private_threads=False
+                )
+            elif isinstance(wch, discord.VoiceChannel):
+                warteraum_ref = warteraum_ref or wch
+                await wch.set_permissions(
+                    member,
+                    view_channel=True,
+                    connect=True,
+                    speak=False
+                )
         except Exception as e:
             await log_bot_error("Warteraum-Berechtigung fehlgeschlagen", str(e), guild)
 
-    return timeout_ok, roles_removed, warteraum
+    return timeout_ok, roles_removed, warteraum_ref
 
 @bot.event
 async def on_ready():
@@ -216,33 +233,26 @@ async def on_message(message):
 async def handle_discord_invite(message):
     member = message.author
     guild  = message.guild
-
     try:
         await message.delete()
     except Exception as e:
         await log_bot_error("Nachricht löschen (Discord Link)", str(e), guild)
-
     timeout_ok, roles_removed, warteraum = await apply_timeout_restrictions(
         member, guild, duration_h=300, reason="Fremden Discord-Link gesendet"
     )
-
     try:
         embed = discord.Embed(
-            description=(
-                "> Du hast gegen unsere Server Regeln verstoßen\n\n"
-                "> Bitte wende dich an den Support"
-            ),
+            description=("> Du hast gegen unsere Server Regeln verstoßen\n\n> Bitte wende dich an den Support"),
             color=MOD_COLOR
         )
         await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
-
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        timeout_status   = "✅ Timeout erteilt (300h)" if timeout_ok else "❌ Timeout fehlgeschlagen — Bot-Berechtigung prüfen!"
+        timeout_status   = "✅ Timeout erteilt (300h)" if timeout_ok else "❌ Timeout fehlgeschlagen — Berechtigung prüfen!"
         rollen_status    = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
-        warteraum_status = f"✅ Nur {warteraum.mention} sichtbar" if warteraum else "❌ Warteraum-Channel nicht gefunden"
+        warteraum_status = f"✅ Nur {warteraum.mention} sichtbar" if warteraum else "❌ Warteraum nicht gefunden (Kanalname prüfen)"
         embed = discord.Embed(
             title="🔨 Moderation — Timeout",
             description=(
@@ -310,7 +320,6 @@ async def check_spam(message):
     spam_tracker[user_id] = [t for t in spam_tracker[user_id] if (now - t).total_seconds() < 5]
     spam_tracker[user_id].append(now)
     count = len(spam_tracker[user_id])
-
     if count >= 5 and user_id in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.discard(user_id)
@@ -331,9 +340,9 @@ async def check_spam(message):
             pass
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
-            timeout_status   = "✅ Timeout erteilt (10min)" if timeout_ok else "❌ Timeout fehlgeschlagen — Bot-Berechtigung prüfen!"
+            timeout_status   = "✅ Timeout erteilt (10min)" if timeout_ok else "❌ Timeout fehlgeschlagen — Berechtigung prüfen!"
             rollen_status    = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
-            warteraum_status = f"✅ Nur {warteraum.mention} sichtbar" if warteraum else "❌ Warteraum-Channel nicht gefunden"
+            warteraum_status = f"✅ Nur {warteraum.mention} sichtbar" if warteraum else "❌ Warteraum nicht gefunden (Kanalname prüfen)"
             embed = discord.Embed(
                 title="🔨 Moderation — Timeout (Spam)",
                 description=(
@@ -347,7 +356,6 @@ async def check_spam(message):
                 timestamp=datetime.now(timezone.utc)
             )
             await log_ch.send(embed=embed)
-
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
         spam_warned.add(user_id)
@@ -432,12 +440,7 @@ async def on_member_update(before, after):
                 break
     except Exception:
         pass
-    embed = discord.Embed(
-        title="🎭 Rollen geändert",
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
+    embed = discord.Embed(title="🎭 Rollen geändert", description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
     await log_ch.send(embed=embed)
 
 @bot.event
@@ -458,12 +461,7 @@ async def on_member_ban(guild, user):
     description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
     if banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
-    embed = discord.Embed(
-        title="🔨 Mitglied gebannt",
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
+    embed = discord.Embed(title="🔨 Mitglied gebannt", description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
     await log_ch.send(embed=embed)
 
 @bot.event
@@ -497,12 +495,7 @@ async def on_member_remove(member):
     if reason:
         description += f"\n**Grund:** {reason}"
     title = "👢 Mitglied gekickt" if action == "gekickt" else "🚪 Mitglied hat den Server verlassen"
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
+    embed = discord.Embed(title=title, description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
     await log_ch.send(embed=embed)
 
 @bot.event
@@ -523,10 +516,7 @@ async def on_member_join(member):
         try:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
                 if entry.target.id == member.id:
-                    embed = discord.Embed(
-                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
-                        color=MOD_COLOR
-                    )
+                    embed = discord.Embed(description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.", color=MOD_COLOR)
                     try:
                         await entry.user.send(content=entry.user.mention, embed=embed)
                     except Exception:
@@ -537,14 +527,9 @@ async def on_member_join(member):
         return
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
-        embed = discord.Embed(
-            title="✅ Mitglied beigetreten",
-            description=f"**Benutzer:** {member.mention} (`{member}`)",
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
+        embed = discord.Embed(title="✅ Mitglied beigetreten", description=f"**Benutzer:** {member.mention} (`{member}`)", color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
         await member_log_ch.send(embed=embed)
-    inviter      = None
+    inviter = None
     inviter_uses = 0
     try:
         new_invites    = await guild.fetch_invites()
@@ -563,16 +548,10 @@ async def on_member_join(member):
     if join_log_ch:
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
         if inviter:
-            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
-            description += f"**Invites von {inviter.display_name}:** {inviter_uses}"
+            description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n**Invites von {inviter.display_name}:** {inviter_uses}"
         else:
             description += "**Eingeladen von:** Unbekannt"
-        embed = discord.Embed(
-            title="📥 Neues Mitglied",
-            description=description,
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
+        embed = discord.Embed(title="📥 Neues Mitglied", description=description, color=LOG_COLOR, timestamp=datetime.now(timezone.utc))
         await join_log_ch.send(embed=embed)
     rolle = guild.get_role(WHITELIST_ROLE_ID)
     if rolle:
