@@ -120,7 +120,7 @@ DISCORD_INVITE_RE = re.compile(
 URL_RE = re.compile(r'https?://\S+', re.IGNORECASE)
 
 VULGÄRE_WÖRTER = [
-    "fotze", "wichser", "hurensohn", „arschloch“, „fick“, „ficken“,
+    "fotze", "wichser", "hurensohn", "arschloch", "fick", "ficken",
     "neger", "nigger", "wichsen", "schlampe", "nutte", "hure", "wixer",
     "drecksau“, "scheisskopf", "pisser", "dreckssack", "mongo", "spast",
     "vollidiot", "schwachkopf", "dreckskerl", "mistkerl", "penner",
