@@ -10,11 +10,19 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 bot_start_time = None
 
+# Kanal-ID, in den die Nachricht gesendet wird
+CHANNEL_ID = 1490878151897911557
+
 @bot.event
 async def on_ready():
     global bot_start_time
     bot_start_time = datetime.now(timezone.utc)
     print(f"Bot ist online als {bot.user} (ID: {bot.user.id})")
+
+    # Einmalig "Hallo" in den Kanal senden
+    channel = bot.get_channel(CHANNEL_ID)
+    if channel:
+        await channel.send("Hallo! 👋")
 
 @bot.event
 async def on_message(message):
