@@ -43,6 +43,22 @@ MEMES_CHANNEL_ID       = 1490882578276810924
 GUILD_ID               = 1490839259907887239
 TICKET_CHANNEL_ID      = 1490855943230066818
 
+# Rollen die automatisch vergeben werden, sobald ein Charakter erstellt wurde
+CHARAKTER_ROLLEN = [
+    1490855719853887569,
+    1490855722534310003,
+    1490855728473178282,
+    1490855731950256128,
+    1490855741647618251,
+    1490855750329696446,
+    1490855759674740849,
+    1490855768532975687,
+    1490855768948211905,
+    1490855779694280876,
+    1490855796932739093,
+    1490855788829216940,
+]
+
 TICKET_SETUP_CHANNEL_ID  = 1490882553559650355
 TICKET_CATEGORY_DEFAULT  = 1490882554570608751
 TICKET_CATEGORY_HIGHTEAM = 1491069210389119016
@@ -97,10 +113,16 @@ LIMIT_CHOICES = [
     app_commands.Choice(name="10.000.000 💵",  value=10_000_000),
 ]
 
-ECONOMY_FILE      = Path(__file__).parent / "economy_data.json"
-SHOP_FILE         = Path(__file__).parent / "shop_data.json"
-WARNS_FILE        = Path(__file__).parent / "warns_data.json"
-HIDDEN_ITEMS_FILE = Path(__file__).parent / "hidden_items.json"
+# Persistenter Datenspeicher — auf Railway: Volume unter /data mounten und DATA_DIR=/data setzen
+# Ohne DATA_DIR wird der Ordner "data" neben der Bot-Datei genutzt (lokal ok, Railway: verloren bei Redeploy!)
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+ECONOMY_FILE      = DATA_DIR / "economy_data.json"
+SHOP_FILE         = DATA_DIR / "shop_data.json"
+WARNS_FILE        = DATA_DIR / "warns_data.json"
+HIDDEN_ITEMS_FILE = DATA_DIR / "hidden_items.json"
+AUSWEIS_FILE      = DATA_DIR / "ausweis_data.json"
 
 # Neue Kanal- und Rollen-IDs
 WARN_LOG_CHANNEL_ID     = 1491113577258684466
@@ -109,6 +131,13 @@ RUCKSACK_CHANNEL_ID     = 1490882592445304972
 UEBERGEBEN_CHANNEL_ID   = 1490882589014364250
 VERSTECKEN_CHANNEL_ID   = 1490882591023173682
 TEAM_CITIZEN_CHANNEL_ID = 1490882591023173682
+
+WELCOME_CHANNEL_ID  = 1490878151897911557
+GOODBYE_CHANNEL_ID  = 1490878154733260951
+EINREISE_CHANNEL_ID = 1490878156582686853
+AUSWEIS_CHANNEL_ID  = 1490882590012604538
+LEGAL_ROLE_ID       = 1490855729635135489
+ILLEGAL_ROLE_ID     = 1490855730767597738
 
 WARN_AUTO_TIMEOUT_COUNT = 3
 START_CASH              = 5_000     # Startguthaben für neue Spieler
@@ -886,7 +915,8 @@ async def on_ready():
 
     await auto_ticket_setup()
     await auto_lohnliste_setup()
-    await send_bot_status()
+    await auto_einreise_setup()
+    bot.add_view(EinreiseView())
     try:
         guild_obj = discord.Object(id=GUILD_ID)
         # Guild-Commands registrieren (sofort aktiv, keine globalen Duplikate)
@@ -1501,6 +1531,34 @@ async def on_member_join(member):
     except Exception:
         pass
 
+    # Willkommens-Embed im Welcome-Kanal
+    welcome_ch = guild.get_channel(WELCOME_CHANNEL_ID)
+    if welcome_ch:
+        try:
+            w_embed = discord.Embed(
+                title="📥 Willkommen auf dem Server!",
+                description=(
+                    f"Herzlich Willkommen {member.mention} auf **Kryptik Roleplay**!\n\n"
+                    f"Wir freuen uns dich hier zu haben.\n"
+                    f"Bitte wähle deine Einreiseart und erstelle deinen Ausweis."
+                ),
+                color=LOG_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            w_embed.set_thumbnail(url=member.display_avatar.url)
+            w_embed.add_field(name="Mitglied", value=str(member), inline=True)
+            w_embed.add_field(name="ID", value=str(member.id), inline=True)
+            w_embed.set_footer(text=f"Mitglied #{guild.member_count}")
+            await welcome_ch.send(embed=w_embed)
+        except Exception:
+            pass
+
+    # Nickname setzen
+    try:
+        await member.edit(nick="RP Name | PSN")
+    except Exception:
+        pass
+
     # ── Startguthaben 5.000 💵 ────────────────────────────────────────────
     eco       = load_economy()
     user_data = get_user(eco, member.id)
@@ -1646,25 +1704,38 @@ async def lohn_abholen(interaction: discord.Interaction):
 
 
 # /kontostand
-@bot.tree.command(name="kontostand", description="Zeigt deinen Kontostand an", guild=discord.Object(id=GUILD_ID))
-async def kontostand(interaction: discord.Interaction):
-    role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
+@bot.tree.command(name="kontostand", description="Zeigt den Kontostand an (Team: auch per @Erwähnung)", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
+async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = None):
+    role_ids  = [r.id for r in interaction.user.roles]
+    is_team   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
 
-    if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-        return
-
-    if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
-        return
+    # @ Option: nur für Teamrollen
+    if nutzer is not None:
+        if not is_team:
+            await interaction.response.send_message(
+                "❌ Du hast keine Berechtigung, den Kontostand anderer Mitglieder abzurufen.",
+                ephemeral=True
+            )
+            return
+        ziel = nutzer
+    else:
+        # Eigener Kontostand: Kanalprüfung & Rollenprüfung
+        if not is_team and interaction.channel.id != BANK_CHANNEL_ID:
+            await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
+            return
+        if not is_team and not has_citizen_or_wage(interaction.user):
+            await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+            return
+        ziel = interaction.user
 
     eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+    user_data = get_user(eco, ziel.id)
     save_economy(eco)
 
+    titel = "💳 Kontostand" if ziel.id == interaction.user.id else f"💳 Kontostand — {ziel.display_name}"
     embed = discord.Embed(
-        title="💳 Kontostand",
+        title=titel,
         description=(
             f"**Bargeld:** {user_data['cash']:,} 💵\n"
             f"**Bank:** {user_data['bank']:,} 💵\n"
@@ -1673,6 +1744,7 @@ async def kontostand(interaction: discord.Interaction):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_thumbnail(url=ziel.display_avatar.url)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -1807,7 +1879,7 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
 
 
 # /überweisen
-@bot.tree.command(name="überweisen", description="Überweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ueberweisen", description="Überweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empfänger", betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💵)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
@@ -1898,15 +1970,53 @@ async def shop(interaction: discord.Interaction):
         )
         return
 
-    desc = "\n".join(f"**{item['name']}** — {item['price']:,} 💵" for item in items)
+    lines = []
+    for item in items:
+        line = f"**{item['name']}** — {item['price']:,} 💵"
+        ar = item.get("allowed_role")
+        if ar:
+            r = interaction.guild.get_role(ar)
+            line += f"  🔒 *{r.name if r else ar}*"
+        lines.append(line)
+
     embed = discord.Embed(
         title="🛒 Shop",
-        description=desc,
+        description="\n".join(lines),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Kaufen mit /buy [itemname] • Nur mit Bargeld möglich")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# Hilfsfunktion: Item in Inventar-Liste suchen (exakt → Anfang → enthält)
+def find_inventory_item(inventory: list, query: str):
+    q = query.lower().strip()
+    for i in inventory:
+        if i.lower() == q:
+            return i
+    for i in inventory:
+        if i.lower().startswith(q):
+            return i
+    for i in inventory:
+        if q in i.lower():
+            return i
+    return None
+
+
+# Hilfsfunktion: Item per Name suchen (exakt → Anfang → enthält)
+def find_shop_item(items, query: str):
+    q = query.lower().strip()
+    for item in items:
+        if item["name"].lower() == q:
+            return item
+    for item in items:
+        if item["name"].lower().startswith(q):
+            return item
+    for item in items:
+        if q in item["name"].lower():
+            return item
+    return None
 
 
 # /buy
@@ -1925,7 +2035,7 @@ async def buy(interaction: discord.Interaction, itemname: str):
         return
 
     items = load_shop()
-    item  = next((i for i in items if i["name"].lower() == itemname.lower()), None)
+    item  = find_shop_item(items, itemname)
 
     if not item:
         await interaction.response.send_message(
@@ -1933,6 +2043,18 @@ async def buy(interaction: discord.Interaction, itemname: str):
             ephemeral=True
         )
         return
+
+    # Rollenprüfung: Hat das Item eine Rollenbeschränkung?
+    allowed_role = item.get("allowed_role")
+    if allowed_role and not is_adm:
+        if allowed_role not in role_ids:
+            rolle_obj = interaction.guild.get_role(allowed_role)
+            rname     = rolle_obj.name if rolle_obj else f"<@&{allowed_role}>"
+            await interaction.response.send_message(
+                f"❌ Dieses Item ist nur für die Rolle **{rname}** erhältlich.",
+                ephemeral=True
+            )
+            return
 
     eco       = load_economy()
     user_data = get_user(eco, interaction.user.id)
@@ -2108,20 +2230,21 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     user_data = get_user(eco, nutzer.id)
     inventory = user_data.get("inventory", [])
 
-    if itemname not in inventory:
+    match = find_inventory_item(inventory, itemname)
+    if not match:
         await interaction.response.send_message(
             f"❌ **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
         )
         return
 
-    inventory.remove(itemname)
+    inventory.remove(match)
     user_data["inventory"] = inventory
     save_economy(eco)
 
     await interaction.response.send_message(
         embed=discord.Embed(
             title="📦 Item entfernt",
-            description=f"**{itemname}** wurde von **{nutzer.mention}** entfernt.",
+            description=f"**{match}** wurde von **{nutzer.mention}** entfernt.",
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         ),
@@ -2129,24 +2252,32 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     )
 
 
-# /shop-add (Admin only) with confirmation
+# /shop-add (Team only) with confirmation + optional role restriction
 class ShopAddConfirmView(discord.ui.View):
-    def __init__(self, name: str, price: int):
+    def __init__(self, name: str, price: int, allowed_role_id: int | None = None):
         super().__init__(timeout=60)
-        self.name  = name
-        self.price = price
+        self.name            = name
+        self.price           = price
+        self.allowed_role_id = allowed_role_id
 
     @discord.ui.button(label="✅ Bestätigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         items = load_shop()
-        items.append({"name": self.name, "price": self.price})
+        entry = {"name": self.name, "price": self.price}
+        if self.allowed_role_id:
+            entry["allowed_role"] = self.allowed_role_id
+        items.append(entry)
         save_shop(items)
         for item in self.children:
             item.disabled = True
+        rolle_info = ""
+        if self.allowed_role_id:
+            r = interaction.guild.get_role(self.allowed_role_id)
+            rolle_info = f"\n**Nur für:** {r.mention if r else self.allowed_role_id}"
         await interaction.response.edit_message(
             embed=discord.Embed(
                 title="✅ Item hinzugefügt",
-                description=f"**{self.name}** für **{self.price:,} 💵** wurde zum Shop hinzugefügt.",
+                description=f"**{self.name}** für **{self.price:,} 💵** wurde zum Shop hinzugefügt.{rolle_info}",
                 color=LOG_COLOR
             ),
             view=self
@@ -2166,11 +2297,15 @@ class ShopAddConfirmView(discord.ui.View):
         )
 
 
-@bot.tree.command(name="shop-add", description="[ADMIN] Füge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(itemname="Name des Items", preis="Preis in $")
-@app_commands.default_permissions(administrator=True)
-async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
-    if not is_admin(interaction.user):
+@bot.tree.command(name="shop-add", description="[TEAM] Füge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(
+    itemname="Name des Items",
+    preis="Preis in $",
+    rolle="(Optional) Nur diese Rolle kann das Item kaufen"
+)
+@app_commands.default_permissions(manage_messages=True)
+async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, rolle: discord.Role = None):
+    if not is_team(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
@@ -2178,16 +2313,22 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
         await interaction.response.send_message("❌ Preis muss größer als 0 sein.", ephemeral=True)
         return
 
+    rolle_info = f"\n**Nur für:** {rolle.mention}" if rolle else "\n**Rollenbeschränkung:** Keine"
     embed = discord.Embed(
         title="🛒 Neues Item hinzufügen?",
         description=(
             f"**Name:** {itemname}\n"
-            f"**Preis:** {preis:,} 💵\n\n"
+            f"**Preis:** {preis:,} 💵"
+            f"{rolle_info}\n\n"
             f"Bitte bestätige das Hinzufügen."
         ),
         color=LOG_COLOR
     )
-    await interaction.response.send_message(embed=embed, view=ShopAddConfirmView(itemname, preis), ephemeral=True)
+    await interaction.response.send_message(
+        embed=embed,
+        view=ShopAddConfirmView(itemname, preis, rolle.id if rolle else None),
+        ephemeral=True
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -2353,42 +2494,53 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
 # ═══════════════════════════════════════════════════════════════════════
 
 # /rucksack
-@bot.tree.command(name="rucksack", description="Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
-async def rucksack(interaction: discord.Interaction):
+@bot.tree.command(name="rucksack", description="Zeige dein Inventar an (Team: auch per @Erwähnung)", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="(Nur Team) Spieler dessen Rucksack angezeigt werden soll")
+async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-    allowed  = is_adm or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES) or MOD_ROLE_ID in role_ids
+    is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
+    allowed  = is_team or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
 
-    if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
-        return
-
-    if not allowed:
-        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
-        return
+    if nutzer is not None:
+        if not is_team:
+            await interaction.response.send_message(
+                "❌ Du hast keine Berechtigung, den Rucksack anderer Spieler einzusehen.",
+                ephemeral=True
+            )
+            return
+        ziel = nutzer
+    else:
+        if not is_team and interaction.channel.id != RUCKSACK_CHANNEL_ID:
+            await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
+            return
+        if not allowed:
+            await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+            return
+        ziel = interaction.user
 
     eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+    user_data = get_user(eco, ziel.id)
     inventory = user_data.get("inventory", [])
 
     if not inventory:
-        desc = "*Dein Rucksack ist leer.*"
+        desc = f"*{'Dein' if ziel.id == interaction.user.id else ziel.display_name + 's'} Rucksack ist leer.*"
     else:
         from collections import Counter
         counts = Counter(inventory)
         desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
 
     embed = discord.Embed(
-        title=f"🎒 Rucksack von {interaction.user.display_name}",
+        title=f"🎒 Rucksack von {ziel.display_name}",
         description=desc,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_thumbnail(url=ziel.display_avatar.url)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # /übergeben
-@bot.tree.command(name="übergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="uebergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empfänger", item="Name des Items")
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     role_ids = [r.id for r in interaction.user.roles]
@@ -2406,8 +2558,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     giver_data = get_user(eco, interaction.user.id)
     inv        = giver_data.get("inventory", [])
 
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
+    match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
             f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
@@ -2447,8 +2598,7 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     user_data = get_user(eco, interaction.user.id)
     inv       = user_data.get("inventory", [])
 
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
+    match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
             f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
@@ -2529,8 +2679,7 @@ async def item_entfernen(interaction: discord.Interaction, nutzer: discord.Membe
     user_data = get_user(eco, nutzer.id)
     inv       = user_data.get("inventory", [])
 
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
+    match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
             f"❌ **{item}** ist nicht im Inventar von {nutzer.mention}.", ephemeral=True
@@ -2603,6 +2752,432 @@ async def kartenkontrolle(interaction: discord.Interaction):
 
     await interaction.followup.send(
         f"✅ Kartenkontrolle-DM gesendet!\n**Erfolgreich:** {sent} | **Fehlgeschlagen (DMs zu):** {failed}",
+        ephemeral=True
+    )
+
+
+
+
+# ── Ausweis Helpers ──────────────────────────────────────────────────────────
+
+def load_ausweis():
+    if AUSWEIS_FILE.exists():
+        with open(AUSWEIS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_ausweis(data):
+    with open(AUSWEIS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+import random
+import string
+
+def generate_ausweisnummer():
+    letters = random.choices(string.ascii_uppercase, k=2)
+    digits  = random.choices(string.digits, k=6)
+    return "".join(letters) + "-" + "".join(digits)
+
+
+# ── Einreise Modal 1 ──────────────────────────────────────────────────────────
+
+class EinreiseModal(discord.ui.Modal, title="Ausweis erstellen"):
+    vorname       = discord.ui.TextInput(label="Vorname",              placeholder="Max",                  max_length=50)
+    nachname      = discord.ui.TextInput(label="Nachname",             placeholder="Mustermann",           max_length=50)
+    gebdatum_alter = discord.ui.TextInput(label="Geburtsdatum / Alter", placeholder="TT.MM.JJJJ / 25",   max_length=30)
+    nationalitaet = discord.ui.TextInput(label="Nationalitaet",        placeholder="Deutsch",             max_length=50)
+    wohnort       = discord.ui.TextInput(label="Wohnort",              placeholder="Los Santos",          max_length=100)
+
+    def __init__(self, einreise_typ: str):
+        super().__init__()
+        self.einreise_typ = einreise_typ
+
+    async def on_submit(self, interaction: discord.Interaction):
+        teile = self.gebdatum_alter.value.split("/")
+        geburtsdatum = teile[0].strip() if len(teile) >= 1 else self.gebdatum_alter.value.strip()
+        alter        = teile[1].strip() if len(teile) >= 2 else "?"
+
+        ausweisnummer = generate_ausweisnummer()
+        typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
+        ausweis_data  = load_ausweis()
+        ausweis_data[str(interaction.user.id)] = {
+            "vorname":       self.vorname.value,
+            "nachname":      self.nachname.value,
+            "geburtsdatum":  geburtsdatum,
+            "alter":         alter,
+            "nationalitaet": self.nationalitaet.value,
+            "wohnort":       self.wohnort.value,
+            "einreise_typ":  self.einreise_typ,
+            "ausweisnummer": ausweisnummer,
+            "discord_name":  str(interaction.user),
+            "discord_id":    interaction.user.id,
+        }
+        save_ausweis(ausweis_data)
+
+        # Charakter-Rollen automatisch zuweisen
+        member = interaction.guild.get_member(interaction.user.id)
+        if member:
+            rollen_zu_vergeben = [
+                interaction.guild.get_role(rid)
+                for rid in CHARAKTER_ROLLEN
+                if interaction.guild.get_role(rid) is not None
+            ]
+            if rollen_zu_vergeben:
+                try:
+                    await member.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt")
+                except discord.Forbidden:
+                    pass
+
+        embed = discord.Embed(
+            title="🪪 Ausweis ausgestellt",
+            description="Dein Ausweis wurde erfolgreich erstellt!",
+            color=0x000000,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="Name",          value=f"{self.vorname.value} {self.nachname.value}", inline=True)
+        embed.add_field(name="Geburtsdatum",  value=geburtsdatum,                                  inline=True)
+        embed.add_field(name="Alter",         value=alter,                                         inline=True)
+        embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
+        embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
+        embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
+        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                          inline=False)
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.set_footer(text="Kryptik Roleplay — Ausweis")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── Einreise Select Menu ──────────────────────────────────────────────────────
+
+class EinreiseSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Legale Einreise",
+                emoji="🤵",
+                value="legal",
+                description="Einreise als legaler Bewohner"
+            ),
+            discord.SelectOption(
+                label="Illegale Einreise",
+                emoji="🥷",
+                value="illegal",
+                description="Einreise als illegale Person"
+            ),
+        ]
+        super().__init__(
+            placeholder="✈️ Wähle deine Einreiseart...",
+            options=options,
+            custom_id="einreise_select_main"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        member  = interaction.user
+        guild   = interaction.guild
+        role_ids = [r.id for r in member.roles]
+
+        # Prüfen ob bereits eingereist
+        if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
+            await interaction.response.send_message(
+                "❌ Du hast bereits eine Einreiseart gewählt. Eine Änderung ist nur durch den RP-Tod möglich.",
+                ephemeral=True
+            )
+            return
+
+        typ = self.values[0]
+        role_id = LEGAL_ROLE_ID if typ == "legal" else ILLEGAL_ROLE_ID
+        role    = guild.get_role(role_id)
+
+        if role:
+            try:
+                await member.add_roles(role, reason=f"Einreise: {typ}")
+            except Exception as e:
+                await log_bot_error("Einreise-Rolle vergeben fehlgeschlagen", str(e), guild)
+
+        await interaction.response.send_modal(EinreiseModal(typ))
+
+
+class EinreiseView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(EinreiseSelect())
+
+
+async def auto_einreise_setup():
+    for guild in bot.guilds:
+        channel = guild.get_channel(EINREISE_CHANNEL_ID)
+        if not channel:
+            continue
+        already_posted = False
+        try:
+            async for msg in channel.history(limit=20):
+                if msg.author.id == bot.user.id and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Einreise" in emb.title:
+                            already_posted = True
+                            break
+                if already_posted:
+                    break
+        except Exception:
+            pass
+        if already_posted:
+            print(f"Einreise-Embed bereits vorhanden in #{channel.name}")
+            continue
+        embed = discord.Embed(
+            title="✈️ Einreise — Kryptik Roleplay",
+            description=(
+                "🤵‍♂️ **Legale Einreise** 🤵‍♂️\n"
+                "Du wirst auf unserem Server als Legale Person einreisen. "
+                "Du darfst als Legaler Bewohner keine Illegalen Aktivitäten ausführen.\n\n"
+                "🥷 **Illegale Einreise** 🥷\n"
+                "Du wirst auf unserem Server als Illegale Person einreisen. "
+                "Du darfst keine Staatlichen Berufe ausüben.\n\n"
+                "⚠️ **Hinweis** ⚠️\n"
+                "Eine Änderung der Einreiseart ist nur durch den RP-Tod deines Charakters möglich."
+            ),
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.set_footer(text="Kryptik Roleplay — Einreisesystem")
+        try:
+            await channel.send(embed=embed, view=EinreiseView())
+            print(f"Einreise-Embed automatisch gepostet in #{channel.name}")
+        except Exception as e:
+            await log_bot_error("auto_einreise_setup fehlgeschlagen", str(e), guild)
+
+
+# ── Abschied Event ────────────────────────────────────────────────────────────
+
+@bot.event
+async def on_member_remove(member):
+    guild    = member.guild
+    goodbye_ch = guild.get_channel(GOODBYE_CHANNEL_ID)
+    if goodbye_ch:
+        try:
+            g_embed = discord.Embed(
+                title="📤 Mitglied hat den Server verlassen",
+                description=(
+                    f"**{member.mention}** hat uns verlassen.\n\n"
+                    f"Wir wünschen dir alles Gute!\n"
+                    f"Du bist jederzeit herzlich willkommen zurückzukehren."
+                ),
+                color=LOG_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            g_embed.set_thumbnail(url=member.display_avatar.url)
+            g_embed.add_field(name="Mitglied", value=str(member), inline=True)
+            g_embed.add_field(name="ID",       value=str(member.id), inline=True)
+            g_embed.set_footer(text=f"Noch {guild.member_count} Mitglieder")
+            await goodbye_ch.send(embed=g_embed)
+        except Exception:
+            pass
+
+
+# /ausweisen
+@bot.tree.command(name="ausweisen", description="Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
+async def ausweisen(interaction: discord.Interaction):
+    if interaction.channel.id != AUSWEIS_CHANNEL_ID and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message(
+            f"❌ Diesen Command kannst du nur in <#{AUSWEIS_CHANNEL_ID}> benutzen.", ephemeral=True
+        )
+        return
+
+    ausweis_data = load_ausweis()
+    entry = ausweis_data.get(str(interaction.user.id))
+
+    if not entry:
+        await interaction.response.send_message(
+            "❌ Du hast noch keinen Ausweis. Wähle zuerst deine Einreiseart und erstelle deinen Ausweis.",
+            ephemeral=True
+        )
+        return
+
+    typ_label = "🤵 Legale Einreise" if entry.get("einreise_typ") == "legal" else "🥷 Illegale Einreise"
+
+    embed = discord.Embed(
+        title="🪪 Personalausweis",
+        color=0x000000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_thumbnail(url=interaction.user.display_avatar.url)
+    embed.add_field(name="Name",          value=f"{entry['vorname']} {entry['nachname']}", inline=True)
+    embed.add_field(name="Geburtsdatum",  value=entry["geburtsdatum"],                     inline=True)
+    embed.add_field(name="Alter",         value=entry["alter"],                            inline=True)
+    embed.add_field(name="Nationalität",  value=entry["nationalitaet"],                    inline=True)
+    embed.add_field(name="Wohnort",       value=entry["wohnort"],                          inline=True)
+    embed.add_field(name="Einreiseart",   value=typ_label,                                 inline=True)
+    embed.add_field(name="Ausweisnummer", value=f"``{entry['ausweisnummer']}``",       inline=False)
+    embed.set_footer(text="Kryptik Roleplay — Personalausweis")
+
+    await interaction.response.send_message(embed=embed)
+
+
+
+# /ausweis-remove (Admin only)
+@bot.tree.command(name="ausweis-remove", description="[ADMIN] Loescht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="Spieler dessen Ausweis geloescht werden soll")
+@app_commands.default_permissions(administrator=True)
+async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
+    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    ausweis_data = load_ausweis()
+    uid = str(nutzer.id)
+
+    if uid not in ausweis_data:
+        await interaction.response.send_message(
+            f"❌ {nutzer.mention} hat keinen Ausweis.", ephemeral=True
+        )
+        return
+
+    del ausweis_data[uid]
+    save_ausweis(ausweis_data)
+
+    embed = discord.Embed(
+        title="🗑️ Ausweis gelöscht",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Gelöscht von:** {interaction.user.mention}"
+        ),
+        color=MOD_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── Admin Ausweis-Erstellen Modal (einzelnes Modal) ───────────────────────────
+
+class AusweisCreateModal(discord.ui.Modal, title="Ausweis erstellen (Admin)"):
+    vorname        = discord.ui.TextInput(label="Vorname",              placeholder="Max",               max_length=50)
+    nachname       = discord.ui.TextInput(label="Nachname",             placeholder="Mustermann",        max_length=50)
+    gebdatum_alter = discord.ui.TextInput(label="Geburtsdatum / Alter", placeholder="TT.MM.JJJJ / 25", max_length=30)
+    nationalitaet  = discord.ui.TextInput(label="Nationalitaet",        placeholder="Deutsch",          max_length=50)
+    wohnort        = discord.ui.TextInput(label="Wohnort",              placeholder="Los Santos",       max_length=100)
+
+    def __init__(self, target_id: int, einreise_typ: str):
+        super().__init__()
+        self.target_id    = target_id
+        self.einreise_typ = einreise_typ
+
+    async def on_submit(self, interaction: discord.Interaction):
+        teile        = self.gebdatum_alter.value.split("/")
+        geburtsdatum = teile[0].strip() if len(teile) >= 1 else self.gebdatum_alter.value.strip()
+        alter        = teile[1].strip() if len(teile) >= 2 else "?"
+
+        ausweisnummer = generate_ausweisnummer()
+        typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
+
+        ausweis_data = load_ausweis()
+        ausweis_data[str(self.target_id)] = {
+            "vorname":       self.vorname.value,
+            "nachname":      self.nachname.value,
+            "geburtsdatum":  geburtsdatum,
+            "alter":         alter,
+            "nationalitaet": self.nationalitaet.value,
+            "wohnort":       self.wohnort.value,
+            "einreise_typ":  self.einreise_typ,
+            "ausweisnummer": ausweisnummer,
+            "erstellt_von":  str(interaction.user),
+        }
+        save_ausweis(ausweis_data)
+
+        target         = interaction.guild.get_member(self.target_id)
+        target_mention = target.mention if target else f"<@{self.target_id}>"
+
+        # Charakter-Rollen automatisch vergeben
+        if target:
+            rollen_zu_vergeben = [
+                interaction.guild.get_role(rid)
+                for rid in CHARAKTER_ROLLEN
+                if interaction.guild.get_role(rid) is not None
+            ]
+            if rollen_zu_vergeben:
+                try:
+                    await target.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt (Admin)")
+                except discord.Forbidden:
+                    pass
+
+        embed = discord.Embed(
+            title="🪪 Ausweis erstellt",
+            color=0x000000,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="Spieler",       value=target_mention,                                inline=False)
+        embed.add_field(name="Name",          value=f"{self.vorname.value} {self.nachname.value}", inline=True)
+        embed.add_field(name="Geburtsdatum",  value=geburtsdatum,                                  inline=True)
+        embed.add_field(name="Alter",         value=alter,                                         inline=True)
+        embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
+        embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
+        embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
+        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                          inline=False)
+        embed.set_footer(text=f"Erstellt von {interaction.user.display_name}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class AusweisCreateEinreiseSelect(discord.ui.Select):
+    def __init__(self, target_id: int):
+        self.target_id = target_id
+        options = [
+            discord.SelectOption(label="Legale Einreise",   emoji="🤵", value="legal"),
+            discord.SelectOption(label="Illegale Einreise", emoji="🥷", value="illegal"),
+        ]
+        super().__init__(placeholder="Einreiseart wählen...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(
+            AusweisCreateModal(self.target_id, self.values[0])
+        )
+
+class AusweisCreateSelectView(discord.ui.View):
+    def __init__(self, target_id: int):
+        super().__init__(timeout=120)
+        self.add_item(AusweisCreateEinreiseSelect(target_id))
+
+
+# /ausweis-create (Admin only)
+@bot.tree.command(name="ausweis-create", description="[ADMIN] Erstellt einen Ausweis fuer einen Spieler", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
+@app_commands.default_permissions(administrator=True)
+async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
+    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    ausweis_data = load_ausweis()
+    if str(nutzer.id) in ausweis_data:
+        await interaction.response.send_message(
+            f"❌ {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove loeschen.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.send_message(
+        f"Wähle die Einreiseart für {nutzer.mention}:",
+        view=AusweisCreateSelectView(nutzer.id),
+        ephemeral=True
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# /delete — Nachrichten löschen (Team only)
+# ═══════════════════════════════════════════════════════════════════════
+
+@bot.tree.command(name="delete", description="[TEAM] Löscht eine bestimmte Anzahl von Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(anzahl="Anzahl der zu löschenden Nachrichten (max. 100)")
+@app_commands.default_permissions(manage_messages=True)
+async def delete_messages(interaction: discord.Interaction, anzahl: int):
+    if not is_team(interaction.user):
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    if anzahl < 1 or anzahl > 100:
+        await interaction.response.send_message("❌ Bitte eine Zahl zwischen 1 und 100 angeben.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    geloescht = await interaction.channel.purge(limit=anzahl)
+    await interaction.followup.send(
+        f"✅ **{len(geloescht)}** Nachrichten wurden gelöscht.",
         ephemeral=True
     )
 
