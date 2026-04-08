@@ -1934,7 +1934,7 @@ async def buy(interaction: discord.Interaction, itemname: str):
         )
         return
 
-  
+
     eco = load_economy()
     user_data = get_user(eco, interaction.user.id)
 
