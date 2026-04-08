@@ -43,6 +43,22 @@ MEMES_CHANNEL_ID       = 1490882578276810924
 GUILD_ID               = 1490839259907887239
 TICKET_CHANNEL_ID      = 1490855943230066818
 
+# Rollen die automatisch vergeben werden, sobald ein Charakter erstellt wurde
+CHARAKTER_ROLLEN = [
+    1490855719853887569,
+    1490855722534310003,
+    1490855728473178282,
+    1490855731950256128,
+    1490855741647618251,
+    1490855750329696446,
+    1490855759674740849,
+    1490855768532975687,
+    1490855768948211905,
+    1490855779694280876,
+    1490855796932739093,
+    1490855788829216940,
+]
+
 TICKET_SETUP_CHANNEL_ID  = 1490882553559650355
 TICKET_CATEGORY_DEFAULT  = 1490882554570608751
 TICKET_CATEGORY_HIGHTEAM = 1491069210389119016
@@ -1683,25 +1699,38 @@ async def lohn_abholen(interaction: discord.Interaction):
 
 
 # /kontostand
-@bot.tree.command(name="kontostand", description="Zeigt deinen Kontostand an", guild=discord.Object(id=GUILD_ID))
-async def kontostand(interaction: discord.Interaction):
-    role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
+@bot.tree.command(name="kontostand", description="Zeigt den Kontostand an (Team: auch per @Erwähnung)", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
+async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = None):
+    role_ids  = [r.id for r in interaction.user.roles]
+    is_team   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
 
-    if not is_adm and interaction.channel.id != BANK_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-        return
-
-    if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
-        return
+    # @ Option: nur für Teamrollen
+    if nutzer is not None:
+        if not is_team:
+            await interaction.response.send_message(
+                "❌ Du hast keine Berechtigung, den Kontostand anderer Mitglieder abzurufen.",
+                ephemeral=True
+            )
+            return
+        ziel = nutzer
+    else:
+        # Eigener Kontostand: Kanalprüfung & Rollenprüfung
+        if not is_team and interaction.channel.id != BANK_CHANNEL_ID:
+            await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
+            return
+        if not is_team and not has_citizen_or_wage(interaction.user):
+            await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+            return
+        ziel = interaction.user
 
     eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+    user_data = get_user(eco, ziel.id)
     save_economy(eco)
 
+    titel = "💳 Kontostand" if ziel.id == interaction.user.id else f"💳 Kontostand — {ziel.display_name}"
     embed = discord.Embed(
-        title="💳 Kontostand",
+        title=titel,
         description=(
             f"**Bargeld:** {user_data['cash']:,} 💵\n"
             f"**Bank:** {user_data['bank']:,} 💵\n"
@@ -1710,6 +1739,7 @@ async def kontostand(interaction: discord.Interaction):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_thumbnail(url=ziel.display_avatar.url)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -2702,6 +2732,20 @@ class EinreiseModal(discord.ui.Modal, title="Ausweis erstellen"):
         }
         save_ausweis(ausweis_data)
 
+        # Charakter-Rollen automatisch zuweisen
+        member = interaction.guild.get_member(interaction.user.id)
+        if member:
+            rollen_zu_vergeben = [
+                interaction.guild.get_role(rid)
+                for rid in CHARAKTER_ROLLEN
+                if interaction.guild.get_role(rid) is not None
+            ]
+            if rollen_zu_vergeben:
+                try:
+                    await member.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt")
+                except discord.Forbidden:
+                    pass
+
         embed = discord.Embed(
             title="🪪 Ausweis ausgestellt",
             description="Dein Ausweis wurde erfolgreich erstellt!",
@@ -2714,7 +2758,7 @@ class EinreiseModal(discord.ui.Modal, title="Ausweis erstellen"):
         embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
         embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
         embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
-        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                        inline=False)
+        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                          inline=False)
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
         embed.set_footer(text="Kryptik Roleplay — Ausweis")
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2957,6 +3001,19 @@ class AusweisCreateModal(discord.ui.Modal, title="Ausweis erstellen (Admin)"):
 
         target         = interaction.guild.get_member(self.target_id)
         target_mention = target.mention if target else f"<@{self.target_id}>"
+
+        # Charakter-Rollen automatisch vergeben
+        if target:
+            rollen_zu_vergeben = [
+                interaction.guild.get_role(rid)
+                for rid in CHARAKTER_ROLLEN
+                if interaction.guild.get_role(rid) is not None
+            ]
+            if rollen_zu_vergeben:
+                try:
+                    await target.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt (Admin)")
+                except discord.Forbidden:
+                    pass
 
         embed = discord.Embed(
             title="🪪 Ausweis erstellt",
