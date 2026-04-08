@@ -2669,55 +2669,33 @@ def generate_ausweisnummer():
 
 # ── Einreise Modal 1 ──────────────────────────────────────────────────────────
 
-_einreise_temp = {}
-
-class EinreiseModal1(discord.ui.Modal, title="Ausweis erstellen — Teil 1"):
-    vorname      = discord.ui.TextInput(label="Vorname",      placeholder="Max",         max_length=50)
-    nachname     = discord.ui.TextInput(label="Nachname",     placeholder="Mustermann",  max_length=50)
-    geburtsdatum = discord.ui.TextInput(label="Geburtsdatum", placeholder="TT.MM.JJJJ", max_length=20)
-    alter        = discord.ui.TextInput(label="Alter",        placeholder="25",          max_length=5)
-    nationalitaet = discord.ui.TextInput(label="Nationalität", placeholder="Deutsch",   max_length=50)
+class EinreiseModal(discord.ui.Modal, title="Ausweis erstellen"):
+    vorname       = discord.ui.TextInput(label="Vorname",              placeholder="Max",                  max_length=50)
+    nachname      = discord.ui.TextInput(label="Nachname",             placeholder="Mustermann",           max_length=50)
+    gebdatum_alter = discord.ui.TextInput(label="Geburtsdatum / Alter", placeholder="TT.MM.JJJJ / 25",   max_length=30)
+    nationalitaet = discord.ui.TextInput(label="Nationalitaet",        placeholder="Deutsch",             max_length=50)
+    wohnort       = discord.ui.TextInput(label="Wohnort",              placeholder="Los Santos",          max_length=100)
 
     def __init__(self, einreise_typ: str):
         super().__init__()
         self.einreise_typ = einreise_typ
 
     async def on_submit(self, interaction: discord.Interaction):
-        _einreise_temp[interaction.user.id] = {
-            "typ":          self.einreise_typ,
-            "vorname":      self.vorname.value,
-            "nachname":     self.nachname.value,
-            "geburtsdatum": self.geburtsdatum.value,
-            "alter":        self.alter.value,
-            "nationalitaet": self.nationalitaet.value,
-        }
-        await interaction.response.send_modal(EinreiseModal2(self.einreise_typ))
-
-
-class EinreiseModal2(discord.ui.Modal, title="Ausweis erstellen — Teil 2"):
-    wohnort = discord.ui.TextInput(label="Wohnort", placeholder="Los Santos", max_length=100)
-
-    def __init__(self, einreise_typ: str):
-        super().__init__()
-        self.einreise_typ = einreise_typ
-
-    async def on_submit(self, interaction: discord.Interaction):
-        data = _einreise_temp.pop(interaction.user.id, {})
-        if not data:
-            await interaction.response.send_message("❌ Fehler: Daten nicht gefunden. Bitte erneut versuchen.", ephemeral=True)
-            return
+        teile = self.gebdatum_alter.value.split("/")
+        geburtsdatum = teile[0].strip() if len(teile) >= 1 else self.gebdatum_alter.value.strip()
+        alter        = teile[1].strip() if len(teile) >= 2 else "?"
 
         ausweisnummer = generate_ausweisnummer()
-        typ_label  = "🤵 Legale Einreise" if data["typ"] == "legal" else "🥷 Illegale Einreise"
-        ausweis_data = load_ausweis()
+        typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
+        ausweis_data  = load_ausweis()
         ausweis_data[str(interaction.user.id)] = {
-            "vorname":       data["vorname"],
-            "nachname":      data["nachname"],
-            "geburtsdatum":  data["geburtsdatum"],
-            "alter":         data["alter"],
-            "nationalitaet": data["nationalitaet"],
+            "vorname":       self.vorname.value,
+            "nachname":      self.nachname.value,
+            "geburtsdatum":  geburtsdatum,
+            "alter":         alter,
+            "nationalitaet": self.nationalitaet.value,
             "wohnort":       self.wohnort.value,
-            "einreise_typ":  data["typ"],
+            "einreise_typ":  self.einreise_typ,
             "ausweisnummer": ausweisnummer,
             "discord_name":  str(interaction.user),
             "discord_id":    interaction.user.id,
@@ -2726,20 +2704,19 @@ class EinreiseModal2(discord.ui.Modal, title="Ausweis erstellen — Teil 2"):
 
         embed = discord.Embed(
             title="🪪 Ausweis ausgestellt",
-            description=f"Dein Ausweis wurde erfolgreich erstellt!",
+            description="Dein Ausweis wurde erfolgreich erstellt!",
             color=0x000000,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.add_field(name="Name",          value=f"{data['vorname']} {data['nachname']}", inline=True)
-        embed.add_field(name="Geburtsdatum",  value=data["geburtsdatum"],                    inline=True)
-        embed.add_field(name="Alter",         value=data["alter"],                           inline=True)
-        embed.add_field(name="Nationalität",  value=data["nationalitaet"],                   inline=True)
-        embed.add_field(name="Wohnort",       value=self.wohnort.value,                      inline=True)
-        embed.add_field(name="Einreiseart",   value=typ_label,                               inline=True)
-        embed.add_field(name="Ausweisnummer", value=f"``{ausweisnummer}``",              inline=False)
+        embed.add_field(name="Name",          value=f"{self.vorname.value} {self.nachname.value}", inline=True)
+        embed.add_field(name="Geburtsdatum",  value=geburtsdatum,                                  inline=True)
+        embed.add_field(name="Alter",         value=alter,                                         inline=True)
+        embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
+        embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
+        embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
+        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                        inline=False)
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
         embed.set_footer(text="Kryptik Roleplay — Ausweis")
-
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -2790,7 +2767,7 @@ class EinreiseSelect(discord.ui.Select):
             except Exception as e:
                 await log_bot_error("Einreise-Rolle vergeben fehlgeschlagen", str(e), guild)
 
-        await interaction.response.send_modal(EinreiseModal1(typ))
+        await interaction.response.send_modal(EinreiseModal(typ))
 
 
 class EinreiseView(discord.ui.View):
@@ -2942,16 +2919,14 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# ── Admin Ausweis-Erstellen Modals ────────────────────────────────────────────
+# ── Admin Ausweis-Erstellen Modal (einzelnes Modal) ───────────────────────────
 
-_ausweis_create_temp = {}
-
-class AusweisCreateModal1(discord.ui.Modal, title="Ausweis erstellen — Teil 1"):
-    vorname       = discord.ui.TextInput(label="Vorname",       placeholder="Max",         max_length=50)
-    nachname      = discord.ui.TextInput(label="Nachname",      placeholder="Mustermann",  max_length=50)
-    geburtsdatum  = discord.ui.TextInput(label="Geburtsdatum",  placeholder="TT.MM.JJJJ", max_length=20)
-    alter         = discord.ui.TextInput(label="Alter",         placeholder="25",          max_length=5)
-    nationalitaet = discord.ui.TextInput(label="Nationalitaet", placeholder="Deutsch",    max_length=50)
+class AusweisCreateModal(discord.ui.Modal, title="Ausweis erstellen (Admin)"):
+    vorname        = discord.ui.TextInput(label="Vorname",              placeholder="Max",               max_length=50)
+    nachname       = discord.ui.TextInput(label="Nachname",             placeholder="Mustermann",        max_length=50)
+    gebdatum_alter = discord.ui.TextInput(label="Geburtsdatum / Alter", placeholder="TT.MM.JJJJ / 25", max_length=30)
+    nationalitaet  = discord.ui.TextInput(label="Nationalitaet",        placeholder="Deutsch",          max_length=50)
+    wohnort        = discord.ui.TextInput(label="Wohnort",              placeholder="Los Santos",       max_length=100)
 
     def __init__(self, target_id: int, einreise_typ: str):
         super().__init__()
@@ -2959,62 +2934,43 @@ class AusweisCreateModal1(discord.ui.Modal, title="Ausweis erstellen — Teil 1"
         self.einreise_typ = einreise_typ
 
     async def on_submit(self, interaction: discord.Interaction):
-        _ausweis_create_temp[interaction.user.id] = {
-            "target_id":     self.target_id,
-            "einreise_typ":  self.einreise_typ,
-            "vorname":       self.vorname.value,
-            "nachname":      self.nachname.value,
-            "geburtsdatum":  self.geburtsdatum.value,
-            "alter":         self.alter.value,
-            "nationalitaet": self.nationalitaet.value,
-        }
-        await interaction.response.send_modal(AusweisCreateModal2())
-
-
-class AusweisCreateModal2(discord.ui.Modal, title="Ausweis erstellen — Teil 2"):
-    wohnort = discord.ui.TextInput(label="Wohnort", placeholder="Los Santos", max_length=100)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        data = _ausweis_create_temp.pop(interaction.user.id, {})
-        if not data:
-            await interaction.response.send_message(
-                "❌ Fehler: Sitzungsdaten nicht gefunden.", ephemeral=True
-            )
-            return
+        teile        = self.gebdatum_alter.value.split("/")
+        geburtsdatum = teile[0].strip() if len(teile) >= 1 else self.gebdatum_alter.value.strip()
+        alter        = teile[1].strip() if len(teile) >= 2 else "?"
 
         ausweisnummer = generate_ausweisnummer()
-        typ_label     = "🤵 Legale Einreise" if data["einreise_typ"] == "legal" else "🥷 Illegale Einreise"
+        typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
 
         ausweis_data = load_ausweis()
-        ausweis_data[str(data["target_id"])] = {
-            "vorname":       data["vorname"],
-            "nachname":      data["nachname"],
-            "geburtsdatum":  data["geburtsdatum"],
-            "alter":         data["alter"],
-            "nationalitaet": data["nationalitaet"],
+        ausweis_data[str(self.target_id)] = {
+            "vorname":       self.vorname.value,
+            "nachname":      self.nachname.value,
+            "geburtsdatum":  geburtsdatum,
+            "alter":         alter,
+            "nationalitaet": self.nationalitaet.value,
             "wohnort":       self.wohnort.value,
-            "einreise_typ":  data["einreise_typ"],
+            "einreise_typ":  self.einreise_typ,
             "ausweisnummer": ausweisnummer,
             "erstellt_von":  str(interaction.user),
         }
         save_ausweis(ausweis_data)
 
-        target         = interaction.guild.get_member(data["target_id"])
-        target_mention = target.mention if target else f"<@{data['target_id']}>"
+        target         = interaction.guild.get_member(self.target_id)
+        target_mention = target.mention if target else f"<@{self.target_id}>"
 
         embed = discord.Embed(
             title="🪪 Ausweis erstellt",
             color=0x000000,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.add_field(name="Spieler",       value=target_mention,                          inline=False)
-        embed.add_field(name="Name",          value=f"{data['vorname']} {data['nachname']}", inline=True)
-        embed.add_field(name="Geburtsdatum",  value=data["geburtsdatum"],                    inline=True)
-        embed.add_field(name="Alter",         value=data["alter"],                           inline=True)
-        embed.add_field(name="Nationalitaet", value=data["nationalitaet"],                   inline=True)
-        embed.add_field(name="Wohnort",       value=self.wohnort.value,                      inline=True)
-        embed.add_field(name="Einreiseart",   value=typ_label,                               inline=True)
-        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                    inline=False)
+        embed.add_field(name="Spieler",       value=target_mention,                                inline=False)
+        embed.add_field(name="Name",          value=f"{self.vorname.value} {self.nachname.value}", inline=True)
+        embed.add_field(name="Geburtsdatum",  value=geburtsdatum,                                  inline=True)
+        embed.add_field(name="Alter",         value=alter,                                         inline=True)
+        embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
+        embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
+        embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
+        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                          inline=False)
         embed.set_footer(text=f"Erstellt von {interaction.user.display_name}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -3030,7 +2986,7 @@ class AusweisCreateEinreiseSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(
-            AusweisCreateModal1(self.target_id, self.values[0])
+            AusweisCreateModal(self.target_id, self.values[0])
         )
 
 class AusweisCreateSelectView(discord.ui.View):
