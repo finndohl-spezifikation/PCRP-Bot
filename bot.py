@@ -452,8 +452,8 @@ async def rucksack(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /übergeben
-@bot.tree.command(name="übergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
+# /uebergeben
+@bot.tree.command(name="uebergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empfänger", item="Name des Items")
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     role_ids = [r.id for r in interaction.user.roles]
