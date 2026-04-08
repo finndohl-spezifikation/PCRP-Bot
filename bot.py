@@ -1989,6 +1989,21 @@ async def shop(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# Hilfsfunktion: Item in Inventar-Liste suchen (exakt → Anfang → enthält)
+def find_inventory_item(inventory: list, query: str):
+    q = query.lower().strip()
+    for i in inventory:
+        if i.lower() == q:
+            return i
+    for i in inventory:
+        if i.lower().startswith(q):
+            return i
+    for i in inventory:
+        if q in i.lower():
+            return i
+    return None
+
+
 # Hilfsfunktion: Item per Name suchen (exakt → Anfang → enthält)
 def find_shop_item(items, query: str):
     q = query.lower().strip()
@@ -2215,20 +2230,21 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     user_data = get_user(eco, nutzer.id)
     inventory = user_data.get("inventory", [])
 
-    if itemname not in inventory:
+    match = find_inventory_item(inventory, itemname)
+    if not match:
         await interaction.response.send_message(
             f"❌ **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
         )
         return
 
-    inventory.remove(itemname)
+    inventory.remove(match)
     user_data["inventory"] = inventory
     save_economy(eco)
 
     await interaction.response.send_message(
         embed=discord.Embed(
             title="📦 Item entfernt",
-            description=f"**{itemname}** wurde von **{nutzer.mention}** entfernt.",
+            description=f"**{match}** wurde von **{nutzer.mention}** entfernt.",
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         ),
@@ -2478,37 +2494,48 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
 # ═══════════════════════════════════════════════════════════════════════
 
 # /rucksack
-@bot.tree.command(name="rucksack", description="Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
-async def rucksack(interaction: discord.Interaction):
+@bot.tree.command(name="rucksack", description="Zeige dein Inventar an (Team: auch per @Erwähnung)", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="(Nur Team) Spieler dessen Rucksack angezeigt werden soll")
+async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
-    allowed  = is_adm or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES) or MOD_ROLE_ID in role_ids
+    is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
+    allowed  = is_team or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
 
-    if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
-        return
-
-    if not allowed:
-        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
-        return
+    if nutzer is not None:
+        if not is_team:
+            await interaction.response.send_message(
+                "❌ Du hast keine Berechtigung, den Rucksack anderer Spieler einzusehen.",
+                ephemeral=True
+            )
+            return
+        ziel = nutzer
+    else:
+        if not is_team and interaction.channel.id != RUCKSACK_CHANNEL_ID:
+            await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
+            return
+        if not allowed:
+            await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+            return
+        ziel = interaction.user
 
     eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+    user_data = get_user(eco, ziel.id)
     inventory = user_data.get("inventory", [])
 
     if not inventory:
-        desc = "*Dein Rucksack ist leer.*"
+        desc = f"*{'Dein' if ziel.id == interaction.user.id else ziel.display_name + 's'} Rucksack ist leer.*"
     else:
         from collections import Counter
         counts = Counter(inventory)
         desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
 
     embed = discord.Embed(
-        title=f"🎒 Rucksack von {interaction.user.display_name}",
+        title=f"🎒 Rucksack von {ziel.display_name}",
         description=desc,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_thumbnail(url=ziel.display_avatar.url)
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -2531,8 +2558,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     giver_data = get_user(eco, interaction.user.id)
     inv        = giver_data.get("inventory", [])
 
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
+    match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
             f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
@@ -2572,8 +2598,7 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     user_data = get_user(eco, interaction.user.id)
     inv       = user_data.get("inventory", [])
 
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
+    match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
             f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
@@ -2654,8 +2679,7 @@ async def item_entfernen(interaction: discord.Interaction, nutzer: discord.Membe
     user_data = get_user(eco, nutzer.id)
     inv       = user_data.get("inventory", [])
 
-    item_lower = item.lower()
-    match      = next((i for i in inv if i.lower() == item_lower), None)
+    match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
             f"❌ **{item}** ist nicht im Inventar von {nutzer.mention}.", ephemeral=True
