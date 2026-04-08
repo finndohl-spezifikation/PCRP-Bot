@@ -504,8 +504,23 @@ class VersteckRetrieveView(discord.ui.View):
         except Exception:
             pass
 
-        await interaction.response.send_message(
-            f"✅ **{entry['item']}** wurde aus dem Versteck (**{entry['location']}**) geholt.",
+        # Öffentliche Nachricht im Kanal für alle sichtbar
+        public_embed = discord.Embed(
+            title="📦 Item aus Versteck geholt",
+            description=(
+                f"**{interaction.user.mention}** hat ein Item aus einem Versteck geholt!\n\n"
+                f"**Item:** {entry['item']}\n"
+                f"**Versteck-Ort:** {entry['location']}"
+            ),
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        public_embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        await interaction.response.send_message(embed=public_embed)
+
+        # Bestätigung nur für den Nutzer
+        await interaction.followup.send(
+            f"✅ **{entry['item']}** ist wieder in deinem Rucksack.",
             ephemeral=True
         )
 
@@ -3374,3 +3389,4 @@ if not token:
     raise RuntimeError("DISCORD_TOKEN ist nicht gesetzt.")
 
 bot.run(token)
+Made with Replit
