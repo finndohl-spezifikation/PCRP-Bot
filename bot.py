@@ -113,11 +113,16 @@ LIMIT_CHOICES = [
     app_commands.Choice(name="10.000.000 💵",  value=10_000_000),
 ]
 
-ECONOMY_FILE      = Path(__file__).parent / "economy_data.json"
-SHOP_FILE         = Path(__file__).parent / "shop_data.json"
-WARNS_FILE        = Path(__file__).parent / "warns_data.json"
-HIDDEN_ITEMS_FILE = Path(__file__).parent / "hidden_items.json"
-AUSWEIS_FILE      = Path(__file__).parent / "ausweis_data.json"
+# Persistenter Datenspeicher — auf Railway: Volume unter /data mounten und DATA_DIR=/data setzen
+# Ohne DATA_DIR wird der Ordner "data" neben der Bot-Datei genutzt (lokal ok, Railway: verloren bei Redeploy!)
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+ECONOMY_FILE      = DATA_DIR / "economy_data.json"
+SHOP_FILE         = DATA_DIR / "shop_data.json"
+WARNS_FILE        = DATA_DIR / "warns_data.json"
+HIDDEN_ITEMS_FILE = DATA_DIR / "hidden_items.json"
+AUSWEIS_FILE      = DATA_DIR / "ausweis_data.json"
 
 # Neue Kanal- und Rollen-IDs
 WARN_LOG_CHANNEL_ID     = 1491113577258684466
