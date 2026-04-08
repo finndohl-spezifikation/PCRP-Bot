@@ -1965,15 +1965,38 @@ async def shop(interaction: discord.Interaction):
         )
         return
 
-    desc = "\n".join(f"**{item['name']}** — {item['price']:,} 💵" for item in items)
+    lines = []
+    for item in items:
+        line = f"**{item['name']}** — {item['price']:,} 💵"
+        ar = item.get("allowed_role")
+        if ar:
+            r = interaction.guild.get_role(ar)
+            line += f"  🔒 *{r.name if r else ar}*"
+        lines.append(line)
+
     embed = discord.Embed(
         title="🛒 Shop",
-        description=desc,
+        description="\n".join(lines),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Kaufen mit /buy [itemname] • Nur mit Bargeld möglich")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# Hilfsfunktion: Item per Name suchen (exakt → Anfang → enthält)
+def find_shop_item(items, query: str):
+    q = query.lower().strip()
+    for item in items:
+        if item["name"].lower() == q:
+            return item
+    for item in items:
+        if item["name"].lower().startswith(q):
+            return item
+    for item in items:
+        if q in item["name"].lower():
+            return item
+    return None
 
 
 # /buy
@@ -1992,7 +2015,7 @@ async def buy(interaction: discord.Interaction, itemname: str):
         return
 
     items = load_shop()
-    item  = next((i for i in items if i["name"].lower() == itemname.lower()), None)
+    item  = find_shop_item(items, itemname)
 
     if not item:
         await interaction.response.send_message(
@@ -2000,6 +2023,18 @@ async def buy(interaction: discord.Interaction, itemname: str):
             ephemeral=True
         )
         return
+
+    # Rollenprüfung: Hat das Item eine Rollenbeschränkung?
+    allowed_role = item.get("allowed_role")
+    if allowed_role and not is_adm:
+        if allowed_role not in role_ids:
+            rolle_obj = interaction.guild.get_role(allowed_role)
+            rname     = rolle_obj.name if rolle_obj else f"<@&{allowed_role}>"
+            await interaction.response.send_message(
+                f"❌ Dieses Item ist nur für die Rolle **{rname}** erhältlich.",
+                ephemeral=True
+            )
+            return
 
     eco       = load_economy()
     user_data = get_user(eco, interaction.user.id)
@@ -2196,24 +2231,32 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     )
 
 
-# /shop-add (Admin only) with confirmation
+# /shop-add (Team only) with confirmation + optional role restriction
 class ShopAddConfirmView(discord.ui.View):
-    def __init__(self, name: str, price: int):
+    def __init__(self, name: str, price: int, allowed_role_id: int | None = None):
         super().__init__(timeout=60)
-        self.name  = name
-        self.price = price
+        self.name            = name
+        self.price           = price
+        self.allowed_role_id = allowed_role_id
 
     @discord.ui.button(label="✅ Bestätigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         items = load_shop()
-        items.append({"name": self.name, "price": self.price})
+        entry = {"name": self.name, "price": self.price}
+        if self.allowed_role_id:
+            entry["allowed_role"] = self.allowed_role_id
+        items.append(entry)
         save_shop(items)
         for item in self.children:
             item.disabled = True
+        rolle_info = ""
+        if self.allowed_role_id:
+            r = interaction.guild.get_role(self.allowed_role_id)
+            rolle_info = f"\n**Nur für:** {r.mention if r else self.allowed_role_id}"
         await interaction.response.edit_message(
             embed=discord.Embed(
                 title="✅ Item hinzugefügt",
-                description=f"**{self.name}** für **{self.price:,} 💵** wurde zum Shop hinzugefügt.",
+                description=f"**{self.name}** für **{self.price:,} 💵** wurde zum Shop hinzugefügt.{rolle_info}",
                 color=LOG_COLOR
             ),
             view=self
@@ -2233,11 +2276,15 @@ class ShopAddConfirmView(discord.ui.View):
         )
 
 
-@bot.tree.command(name="shop-add", description="[ADMIN] Füge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(itemname="Name des Items", preis="Preis in $")
-@app_commands.default_permissions(administrator=True)
-async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
-    if not is_admin(interaction.user):
+@bot.tree.command(name="shop-add", description="[TEAM] Füge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(
+    itemname="Name des Items",
+    preis="Preis in $",
+    rolle="(Optional) Nur diese Rolle kann das Item kaufen"
+)
+@app_commands.default_permissions(manage_messages=True)
+async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, rolle: discord.Role = None):
+    if not is_team(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
@@ -2245,16 +2292,22 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int):
         await interaction.response.send_message("❌ Preis muss größer als 0 sein.", ephemeral=True)
         return
 
+    rolle_info = f"\n**Nur für:** {rolle.mention}" if rolle else "\n**Rollenbeschränkung:** Keine"
     embed = discord.Embed(
         title="🛒 Neues Item hinzufügen?",
         description=(
             f"**Name:** {itemname}\n"
-            f"**Preis:** {preis:,} 💵\n\n"
+            f"**Preis:** {preis:,} 💵"
+            f"{rolle_info}\n\n"
             f"Bitte bestätige das Hinzufügen."
         ),
         color=LOG_COLOR
     )
-    await interaction.response.send_message(embed=embed, view=ShopAddConfirmView(itemname, preis), ephemeral=True)
+    await interaction.response.send_message(
+        embed=embed,
+        view=ShopAddConfirmView(itemname, preis, rolle.id if rolle else None),
+        ephemeral=True
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -3072,6 +3125,30 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
     await interaction.response.send_message(
         f"Wähle die Einreiseart für {nutzer.mention}:",
         view=AusweisCreateSelectView(nutzer.id),
+        ephemeral=True
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# /delete — Nachrichten löschen (Team only)
+# ═══════════════════════════════════════════════════════════════════════
+
+@bot.tree.command(name="delete", description="[TEAM] Löscht eine bestimmte Anzahl von Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(anzahl="Anzahl der zu löschenden Nachrichten (max. 100)")
+@app_commands.default_permissions(manage_messages=True)
+async def delete_messages(interaction: discord.Interaction, anzahl: int):
+    if not is_team(interaction.user):
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    if anzahl < 1 or anzahl > 100:
+        await interaction.response.send_message("❌ Bitte eine Zahl zwischen 1 und 100 angeben.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    geloescht = await interaction.channel.purge(limit=anzahl)
+    await interaction.followup.send(
+        f"✅ **{len(geloescht)}** Nachrichten wurden gelöscht.",
         ephemeral=True
     )
 
