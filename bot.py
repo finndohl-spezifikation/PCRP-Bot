@@ -411,6 +411,42 @@ async def betrag_autocomplete(
     return choices[:25]
 
 
+# ── Shop-Item Autocomplete ────────────────────────────────────────────────
+
+async def shop_item_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[app_commands.Choice[str]]:
+    items = load_shop()
+    current_lower = current.lower()
+    choices = []
+    for item in items:
+        name = item["name"]
+        if current_lower == "" or current_lower in name.lower():
+            choices.append(app_commands.Choice(name=name, value=name))
+    return choices[:25]
+
+
+# ── Inventar-Item Autocomplete ────────────────────────────────────────────
+
+async def inventory_item_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+) -> list[app_commands.Choice[str]]:
+    from collections import Counter
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    inventory = user_data.get("inventory", [])
+    counts    = Counter(inventory)
+    current_lower = current.lower()
+    choices = []
+    for item_name, count in counts.items():
+        label = f"{item_name} (×{count})"
+        if current_lower == "" or current_lower in item_name.lower():
+            choices.append(app_commands.Choice(name=label, value=item_name))
+    return choices[:25]
+
+
 # ── BEHEBUNG 2: Normalisierungsfunktion für Item-Namen ────────────────────
 # Entfernt Emojis, Pipe-Zeichen und normalisiert Leerzeichen,
 # damit z.B. "Handy" das Item "📱| Handy" sicher findet.
@@ -2282,6 +2318,7 @@ async def remove_money(interaction: discord.Interaction, nutzer: discord.Member,
 # BEHEBUNG 1: Nur Items aus dem Shop können vergeben werden
 @bot.tree.command(name="item-add", description="[ADMIN] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname (muss im Shop vorhanden sein)")
+@app_commands.autocomplete(itemname=shop_item_autocomplete)
 @app_commands.default_permissions(administrator=True)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not is_admin(interaction.user):
@@ -2637,17 +2674,22 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
 
 # /übergeben
 @bot.tree.command(name="uebergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="Empfänger", item="Name des Items")
-async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
+@app_commands.describe(nutzer="Empfänger", item="Item auswählen", menge="Wie viele möchtest du übergeben? (Standard: 1)")
+@app_commands.autocomplete(item=inventory_item_autocomplete)
+async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
     is_adm   = ADMIN_ROLE_ID in role_ids
 
-    if not is_adm and interaction.channel.id != UEBERGEBEN_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(UEBERGEBEN_CHANNEL_ID), ephemeral=True)
+    if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
         return
 
     if nutzer.id == interaction.user.id:
         await interaction.response.send_message("❌ Du kannst nicht an dich selbst übergeben.", ephemeral=True)
+        return
+
+    if menge < 1:
+        await interaction.response.send_message("❌ Die Menge muss mindestens 1 sein.", ephemeral=True)
         return
 
     eco        = load_economy()
@@ -2661,17 +2703,29 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
         )
         return
 
-    inv.remove(match)
+    # Prüfen ob genug vorhanden
+    available = inv.count(match)
+    if available < menge:
+        await interaction.response.send_message(
+            f"❌ Du hast nur **{available}×** **{match}** im Inventar, aber möchtest **{menge}×** übergeben.",
+            ephemeral=True
+        )
+        return
+
+    # Menge übertragen
+    for _ in range(menge):
+        inv.remove(match)
     receiver_data = get_user(eco, nutzer.id)
-    receiver_data.setdefault("inventory", []).append(match)
+    receiver_data.setdefault("inventory", []).extend([match] * menge)
     save_economy(eco)
 
+    menge_text = f"×{menge}" if menge > 1 else ""
     embed = discord.Embed(
         title="🤝 Item übergeben",
         description=(
             f"**Von:** {interaction.user.mention}\n"
             f"**An:** {nutzer.mention}\n"
-            f"**Item:** {match}"
+            f"**Item:** {match} {menge_text}"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -2740,6 +2794,7 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
 @bot.tree.command(name="item-geben", description="[TEAM] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", item="Itemname (muss im Shop vorhanden sein)")
+@app_commands.autocomplete(item=shop_item_autocomplete)
 async def item_geben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
     if not is_team(interaction.user):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
