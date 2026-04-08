@@ -2908,6 +2908,161 @@ async def ausweisen(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
+
+# /ausweis-remove (Admin only)
+@bot.tree.command(name="ausweis-remove", description="[ADMIN] Loescht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="Spieler dessen Ausweis geloescht werden soll")
+@app_commands.default_permissions(administrator=True)
+async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
+    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    ausweis_data = load_ausweis()
+    uid = str(nutzer.id)
+
+    if uid not in ausweis_data:
+        await interaction.response.send_message(
+            f"❌ {nutzer.mention} hat keinen Ausweis.", ephemeral=True
+        )
+        return
+
+    del ausweis_data[uid]
+    save_ausweis(ausweis_data)
+
+    embed = discord.Embed(
+        title="🗑️ Ausweis gelöscht",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Gelöscht von:** {interaction.user.mention}"
+        ),
+        color=MOD_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── Admin Ausweis-Erstellen Modals ────────────────────────────────────────────
+
+_ausweis_create_temp = {}
+
+class AusweisCreateModal1(discord.ui.Modal, title="Ausweis erstellen — Teil 1"):
+    vorname       = discord.ui.TextInput(label="Vorname",       placeholder="Max",         max_length=50)
+    nachname      = discord.ui.TextInput(label="Nachname",      placeholder="Mustermann",  max_length=50)
+    geburtsdatum  = discord.ui.TextInput(label="Geburtsdatum",  placeholder="TT.MM.JJJJ", max_length=20)
+    alter         = discord.ui.TextInput(label="Alter",         placeholder="25",          max_length=5)
+    nationalitaet = discord.ui.TextInput(label="Nationalitaet", placeholder="Deutsch",    max_length=50)
+
+    def __init__(self, target_id: int, einreise_typ: str):
+        super().__init__()
+        self.target_id    = target_id
+        self.einreise_typ = einreise_typ
+
+    async def on_submit(self, interaction: discord.Interaction):
+        _ausweis_create_temp[interaction.user.id] = {
+            "target_id":     self.target_id,
+            "einreise_typ":  self.einreise_typ,
+            "vorname":       self.vorname.value,
+            "nachname":      self.nachname.value,
+            "geburtsdatum":  self.geburtsdatum.value,
+            "alter":         self.alter.value,
+            "nationalitaet": self.nationalitaet.value,
+        }
+        await interaction.response.send_modal(AusweisCreateModal2())
+
+
+class AusweisCreateModal2(discord.ui.Modal, title="Ausweis erstellen — Teil 2"):
+    wohnort = discord.ui.TextInput(label="Wohnort", placeholder="Los Santos", max_length=100)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        data = _ausweis_create_temp.pop(interaction.user.id, {})
+        if not data:
+            await interaction.response.send_message(
+                "❌ Fehler: Sitzungsdaten nicht gefunden.", ephemeral=True
+            )
+            return
+
+        ausweisnummer = generate_ausweisnummer()
+        typ_label     = "🤵 Legale Einreise" if data["einreise_typ"] == "legal" else "🥷 Illegale Einreise"
+
+        ausweis_data = load_ausweis()
+        ausweis_data[str(data["target_id"])] = {
+            "vorname":       data["vorname"],
+            "nachname":      data["nachname"],
+            "geburtsdatum":  data["geburtsdatum"],
+            "alter":         data["alter"],
+            "nationalitaet": data["nationalitaet"],
+            "wohnort":       self.wohnort.value,
+            "einreise_typ":  data["einreise_typ"],
+            "ausweisnummer": ausweisnummer,
+            "erstellt_von":  str(interaction.user),
+        }
+        save_ausweis(ausweis_data)
+
+        target         = interaction.guild.get_member(data["target_id"])
+        target_mention = target.mention if target else f"<@{data['target_id']}>"
+
+        embed = discord.Embed(
+            title="🪪 Ausweis erstellt",
+            color=0x000000,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="Spieler",       value=target_mention,                          inline=False)
+        embed.add_field(name="Name",          value=f"{data['vorname']} {data['nachname']}", inline=True)
+        embed.add_field(name="Geburtsdatum",  value=data["geburtsdatum"],                    inline=True)
+        embed.add_field(name="Alter",         value=data["alter"],                           inline=True)
+        embed.add_field(name="Nationalitaet", value=data["nationalitaet"],                   inline=True)
+        embed.add_field(name="Wohnort",       value=self.wohnort.value,                      inline=True)
+        embed.add_field(name="Einreiseart",   value=typ_label,                               inline=True)
+        embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                    inline=False)
+        embed.set_footer(text=f"Erstellt von {interaction.user.display_name}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class AusweisCreateEinreiseSelect(discord.ui.Select):
+    def __init__(self, target_id: int):
+        self.target_id = target_id
+        options = [
+            discord.SelectOption(label="Legale Einreise",   emoji="🤵", value="legal"),
+            discord.SelectOption(label="Illegale Einreise", emoji="🥷", value="illegal"),
+        ]
+        super().__init__(placeholder="Einreiseart wählen...", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(
+            AusweisCreateModal1(self.target_id, self.values[0])
+        )
+
+class AusweisCreateSelectView(discord.ui.View):
+    def __init__(self, target_id: int):
+        super().__init__(timeout=120)
+        self.add_item(AusweisCreateEinreiseSelect(target_id))
+
+
+# /ausweis-create (Admin only)
+@bot.tree.command(name="ausweis-create", description="[ADMIN] Erstellt einen Ausweis fuer einen Spieler", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
+@app_commands.default_permissions(administrator=True)
+async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
+    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    ausweis_data = load_ausweis()
+    if str(nutzer.id) in ausweis_data:
+        await interaction.response.send_message(
+            f"❌ {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove loeschen.",
+            ephemeral=True
+        )
+        return
+
+    await interaction.response.send_message(
+        f"Wähle die Einreiseart für {nutzer.mention}:",
+        view=AusweisCreateSelectView(nutzer.id),
+        ephemeral=True
+    )
+
+
 token = os.environ.get("DISCORD_TOKEN")
 if not token:
     raise RuntimeError("DISCORD_TOKEN ist nicht gesetzt.")
