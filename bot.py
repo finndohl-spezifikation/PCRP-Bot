@@ -416,7 +416,9 @@ def has_handy(member):
     eco = load_economy()
     user_data = get_user(eco, member.id)
     inventory = user_data.get("inventory", [])
-    return any(normalize_item_name(i) == normalize_item_name(HANDY_ITEM_NAME) for i in inventory)
+    norm_handy = normalize_item_name(HANDY_ITEM_NAME)  # z.B. "handy"
+    # Permissiver Check: normalisierter Itemname muss "handy" enthalten
+    return any(norm_handy in normalize_item_name(i) for i in inventory)
 
 
 # \u2500\u2500 Money Log Helper \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -2799,6 +2801,45 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, 
         view=ShopAddConfirmView(itemname, preis, rolle.id if rolle else None),
         ephemeral=True
     )
+
+
+# /delete-item (Team only) \u2014 Item aus dem Shop entfernen
+@bot.tree.command(name="delete-item", description="[TEAM] Entfernt ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+@app_commands.describe(itemname="Name des Items das aus dem Shop entfernt werden soll")
+@app_commands.autocomplete(itemname=shop_item_autocomplete)
+async def delete_item(interaction: discord.Interaction, itemname: str):
+    if not is_team(interaction.user):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        return
+
+    items = load_shop()
+    shop_item = find_shop_item(items, itemname)
+
+    if not shop_item:
+        await interaction.response.send_message(
+            f"\u274C Das Item **{itemname}** wurde im Shop nicht gefunden.\n"
+            f"Nutze `/shop` um alle verf\u00FCgbaren Items zu sehen.",
+            ephemeral=True
+        )
+        return
+
+    items.remove(shop_item)
+    save_shop(items)
+
+    embed = discord.Embed(
+        title="\U0001F5D1\uFE0F Item aus Shop entfernt",
+        description=(
+            f"**Item:** {shop_item['name']}\n"
+            f"**Preis war:** {shop_item['price']:,} \U0001F4B5\n"
+            f"**Entfernt von:** {interaction.user.mention}\n\n"
+            f"Das Item ist ab sofort nicht mehr im Shop verf\u00FCgbar.\n"
+            f"*(Bereits gekaufte Items bleiben in den Inventaren der Spieler.)*"
+        ),
+        color=MOD_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
