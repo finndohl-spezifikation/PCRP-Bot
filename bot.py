@@ -2213,6 +2213,7 @@ async def lohn_abholen(interaction: discord.Interaction):
 # /kontostand
 @bot.tree.command(name="kontostand", description="[Konto] Zeigt den Kontostand an", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -2262,6 +2263,7 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
 @bot.tree.command(name="einzahlen", description="[Konto] Zahle Bargeld auf dein Bankkonto ein", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(betrag="Betrag w\u00E4hlen oder eingeben (1.000 \u2013 10.000.000 \U0001F4B5)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -2332,6 +2334,7 @@ async def einzahlen(interaction: discord.Interaction, betrag: int):
 @bot.tree.command(name="auszahlen", description="[Konto] Hebe Geld von deinem Bankkonto ab", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(betrag="Betrag w\u00E4hlen oder eingeben (1.000 \u2013 10.000.000 \U0001F4B5)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -2402,6 +2405,7 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
 @bot.tree.command(name="ueberweisen", description="[Konto] \u00DCberweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empf\u00E4nger", betrag="Betrag w\u00E4hlen oder eingeben (1.000 \u2013 10.000.000 \U0001F4B5)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -2475,6 +2479,7 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
 
 # /shop
 @bot.tree.command(name="shop", description="[Shop] Zeigt den Shop an", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -2570,6 +2575,7 @@ def find_shop_item(items, query: str):
 # /buy
 @bot.tree.command(name="buy", description="[Shop] Kaufe ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(itemname="Name des Items das du kaufen m\u00F6chtest")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -2646,6 +2652,7 @@ async def buy(interaction: discord.Interaction, itemname: str):
 @bot.tree.command(name="set-limit", description="[Finance] Setzt das individuelle Tageslimit eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", limit="Neues Tageslimit")
 @app_commands.choices(limit=LIMIT_CHOICES)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(FINANCE_ROLE_ID)
 async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, limit: int):
     role_ids = [r.id for r in interaction.user.roles]
@@ -2675,6 +2682,7 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
 # /money-add (Finance-Rolle only)
 @bot.tree.command(name="money-add", description="[Finance] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(FINANCE_ROLE_ID)
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     if not any(r.id == FINANCE_ROLE_ID for r in interaction.user.roles):
@@ -2712,6 +2720,7 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 # /remove-money (Finance-Rolle only)
 @bot.tree.command(name="remove-money", description="[Finance] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(FINANCE_ROLE_ID)
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     if not any(r.id == FINANCE_ROLE_ID for r in interaction.user.roles):
@@ -2750,6 +2759,7 @@ async def remove_money(interaction: discord.Interaction, nutzer: discord.Member,
 @bot.tree.command(name="item-add", description="[Team] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname (muss im Shop vorhanden sein)")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(ITEM_ROLE_ID)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not any(r.id == ITEM_ROLE_ID for r in interaction.user.roles):
@@ -2791,6 +2801,7 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 # /remove-item (Admin only)
 @bot.tree.command(name="remove-item", description="[Team] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(ITEM_ROLE_ID)
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not any(r.id == ITEM_ROLE_ID for r in interaction.user.roles):
@@ -2874,6 +2885,7 @@ class ShopAddConfirmView(discord.ui.View):
     preis="Preis in $",
     rolle="(Optional) Nur diese Rolle kann das Item kaufen"
 )
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(SHOP_ROLE_ID)
 async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, rolle: discord.Role = None):
     if not any(r.id == SHOP_ROLE_ID for r in interaction.user.roles):
@@ -2906,6 +2918,7 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, 
 @bot.tree.command(name="delete-item", description="[Shop] Entfernt ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(itemname="Name des Items das aus dem Shop entfernt werden soll")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(SHOP_ROLE_ID)
 async def delete_item(interaction: discord.Interaction, itemname: str):
     if not any(r.id == SHOP_ROLE_ID for r in interaction.user.roles):
@@ -2962,6 +2975,7 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
 
 @bot.tree.command(name="warn", description="[Warn] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(WARN_PERM_ROLE_ID)
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
     if not any(r.id == WARN_PERM_ROLE_ID for r in interaction.user.roles):
@@ -3046,6 +3060,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
 
 @bot.tree.command(name="team-warn", description="[Admin] Team-Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(ADMIN_ROLE_ID)
 async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
@@ -3105,6 +3120,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
 
 @bot.tree.command(name="teamwarn-list", description="[Admin] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(ADMIN_ROLE_ID)
 async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
@@ -3137,6 +3153,7 @@ async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member
 
 @bot.tree.command(name="remove-teamwarn", description="[Admin] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(ADMIN_ROLE_ID)
 async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
@@ -3185,6 +3202,7 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
 
 @bot.tree.command(name="warn-list", description="[Warn] Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(WARN_PERM_ROLE_ID)
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == WARN_PERM_ROLE_ID for r in interaction.user.roles):
@@ -3217,6 +3235,7 @@ async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
 
 @bot.tree.command(name="remove-warn", description="[Warn] Letzte Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(WARN_PERM_ROLE_ID)
 async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == WARN_PERM_ROLE_ID for r in interaction.user.roles):
@@ -3251,6 +3270,7 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
 # /rucksack
 @bot.tree.command(name="rucksack", description="[Inventar] Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Spieler dessen Inventar angezeigt werden soll")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -3303,6 +3323,7 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
 @bot.tree.command(name="uebergeben", description="[Inventar] Gib ein Item an jemanden weiter", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empf\u00E4nger", item="Item ausw\u00E4hlen", menge="Wie viele m\u00F6chtest du \u00FCbergeben? (Standard: 1)")
 @app_commands.autocomplete(item=inventory_item_autocomplete)
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -3370,6 +3391,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
 # /verstecken
 @bot.tree.command(name="verstecken", description="[Inventar] Verstecke ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(item="Name des Items", ort="Wo versteckst du es?")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -3436,6 +3458,7 @@ KARTENKONTROLLE_CHANNEL_ID = 1491116234459185162
 
 
 @bot.tree.command(name="kartenkontrolle", description="[Team] Kartenkontrolle-Erinnerung per DM senden", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(MOD_ROLE_ID, ADMIN_ROLE_ID)
 async def kartenkontrolle(interaction: discord.Interaction):
     if not is_team(interaction.user):
@@ -3696,6 +3719,7 @@ async def auto_einreise_setup():
 
 # /ausweisen
 @bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(
     CITIZEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID,
     1490855796932739093, 1490855789844234310, 1490855790913785886,
@@ -3746,6 +3770,7 @@ async def ausweisen(interaction: discord.Interaction):
 # /ausweis-remove (Ausweis-Rolle only)
 @bot.tree.command(name="ausweis-remove", description="[Ausweis] L\u00F6scht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler dessen Ausweis geloescht werden soll")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(AUSWEIS_ROLE_ID)
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
     if AUSWEIS_ROLE_ID not in [r.id for r in interaction.user.roles]:
@@ -3874,6 +3899,7 @@ async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, ta
 # /ausweis-create (Ausweis-Rolle only)
 @bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis f\u00FCr einen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(AUSWEIS_ROLE_ID)
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == AUSWEIS_ROLE_ID for r in interaction.user.roles):
@@ -3902,6 +3928,7 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
 
 @bot.tree.command(name="delete", description="[Team] L\u00F6scht Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(anzahl="Anzahl der zu l\u00F6schenden Nachrichten (max. 100)")
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(MOD_ROLE_ID, ADMIN_ROLE_ID)
 async def delete_messages(interaction: discord.Interaction, anzahl: int):
     if not is_team(interaction.user):
@@ -3977,6 +4004,7 @@ async def create_event_channel_flow(admin: discord.Member, guild: discord.Guild,
 
 
 @bot.tree.command(name="create-event", description="[Team] Erstellt ein neues Event", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(MOD_ROLE_ID, ADMIN_ROLE_ID)
 async def create_event(interaction: discord.Interaction):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
@@ -4110,6 +4138,7 @@ async def create_giveaway_channel_flow(admin: discord.Member, guild: discord.Gui
 
 
 @bot.tree.command(name="create-giveaway", description="[Team] Erstellt ein neues Giveaway", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(MOD_ROLE_ID, ADMIN_ROLE_ID)
 async def create_giveaway(interaction: discord.Interaction):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
@@ -4221,6 +4250,7 @@ async def commands_list(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(LOBBY_ROLE_ID)
 async def lobby_abstimmung(interaction: discord.Interaction):
     if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
@@ -4272,6 +4302,7 @@ async def lobby_abstimmung(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="lobby-open", description="[LOBBY] \u00D6ffnet die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(LOBBY_ROLE_ID)
 async def lobby_open(interaction: discord.Interaction):
     if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
@@ -4317,6 +4348,7 @@ async def lobby_open(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="lobby-close", description="[LOBBY] Schlie\u00DFt die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions()
 @app_commands.checks.has_any_role(LOBBY_ROLE_ID)
 async def lobby_close(interaction: discord.Interaction):
     if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
