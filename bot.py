@@ -582,7 +582,7 @@ class VersteckRetrieveView(discord.ui.View):
                 f"{interaction.user.mention} hat **{entry['item']}** "
                 f"aus dem Versteck an **{entry['location']}** geholt."
             ),
-            color=0xFFA500,
+            color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
         try:
@@ -1564,35 +1564,41 @@ async def handle_counting(message):
 async def handle_discord_invite(message):
     member = message.author
     guild  = message.guild
+    grund  = "Fremden Discord-Link gesendet"
     try:
         await message.delete()
     except Exception as e:
         await log_bot_error("Nachricht l\u00F6schen (Discord Link)", str(e), guild)
-    timeout_ok, roles_removed = await apply_timeout_restrictions(
-        member, guild, duration_h=300, reason="Fremden Discord-Link gesendet"
-    )
     try:
-        embed = discord.Embed(
+        dm_embed = discord.Embed(
+            title="\U0001F6AB Du wurdest permanent gebannt",
             description=(
-                "> Du hast gegen unsere Server Regeln versto\u00DFen\n\n"
-                "> Bitte wende dich an den Support"
+                f"**Server:** {guild.name}\n"
+                f"**Grund:** {grund}\n\n"
+                "Du hast einen fremden Discord-Einladungslink gesendet, was gegen unsere Serverregeln verst\u00F6\u00DFt.\n"
+                "Bei Fragen wende dich an den Support."
             ),
-            color=MOD_COLOR
+            color=MOD_COLOR,
+            timestamp=datetime.now(timezone.utc)
         )
-        await member.send(content=member.mention, embed=embed)
+        await member.send(embed=dm_embed)
     except Exception:
         pass
+    ban_ok = False
+    try:
+        await guild.ban(member, reason=grund, delete_message_days=1)
+        ban_ok = True
+    except Exception as e:
+        await log_bot_error("Perma-Bann fehlgeschlagen (Discord Link)", str(e), guild)
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
-        timeout_status = "\u2705 Timeout erteilt (300h)" if timeout_ok else "\u274C Timeout fehlgeschlagen \u2014 Berechtigung pr\u00FCfen!"
-        rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
+        ban_status = "\u2705 Permanent gebannt" if ban_ok else "\u274C Bann fehlgeschlagen \u2014 Berechtigung pr\u00FCfen!"
         embed = discord.Embed(
-            title="\U0001F528 Moderation \u2014 Timeout",
+            title="\U0001F528 Moderation \u2014 Permanent Bann",
             description=(
                 f"**Benutzer:** {member.mention} (`{member}`)\n"
-                f"**Timeout:** {timeout_status}\n"
-                f"**Rollen:** {rollen_status}\n"
-                f"**Grund:** Fremden Discord-Link gesendet\n"
+                f"**Status:** {ban_status}\n"
+                f"**Grund:** {grund}\n"
                 f"**Kanal:** {message.channel.mention}\n"
                 f"**Nachricht:** {message.content[:300]}"
             ),
@@ -3403,6 +3409,61 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
         timestamp=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, view=view)
+
+
+
+# /use-item
+@bot.tree.command(name="use-item", description="[Inventar] Benutze und entferne ein Item aus deinem Inventar", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(
+    item="Name des Items das du benutzen mÃ¶chtest",
+    menge="Wie viele mÃ¶chtest du benutzen? (Standard: 1)"
+)
+async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
+    role_ids = [r.id for r in interaction.user.roles]
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
+        return
+
+    if menge < 1:
+        await interaction.response.send_message("âŒ Die Menge muss mindestens **1** sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    inv       = user_data.get("inventory", [])
+
+    match = find_inventory_item(inv, item)
+    if not match:
+        await interaction.response.send_message(
+            f"âŒ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+        )
+        return
+
+    verfuegbar = inv.count(match)
+    if menge > verfuegbar:
+        await interaction.response.send_message(
+            f"âŒ Du hast nur **{verfuegbar}x {match}** im Inventar, aber mÃ¶chtest **{menge}** benutzen.",
+            ephemeral=True
+        )
+        return
+
+    for _ in range(menge):
+        inv.remove(match)
+    save_economy(eco)
+
+    menge_text = f" Ã— {menge}" if menge > 1 else ""
+    embed = discord.Embed(
+        title="âœ… Item benutzt",
+        description=(
+            f"**{interaction.user.mention}** hat **{match}**{menge_text} benutzt.\n"
+            f"Das Item wurde aus dem Inventar entfernt."
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed)
 
 
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
