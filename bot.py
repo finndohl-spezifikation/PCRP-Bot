@@ -3363,80 +3363,6 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
 # TEAM ITEM COMMANDS
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-@bot.tree.command(name="item-geben", description="[Team] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
-@app_commands.describe(nutzer="Spieler", item="Itemname (muss im Shop vorhanden sein)")
-@app_commands.autocomplete(item=shop_item_autocomplete)
-async def item_geben(interaction: discord.Interaction, nutzer: discord.Member, item: str):
-    if not is_team(interaction.user):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
-    shop_items = load_shop()
-    shop_item  = find_shop_item(shop_items, item)
-    if not shop_item:
-        await interaction.response.send_message(
-            f"\u274C Das Item **{item}** existiert nicht im Shop.\n"
-            f"Es k\u00F6nnen nur vorhandene Shop-Items vergeben werden. Nutze `/shop` um alle Items zu sehen.",
-            ephemeral=True
-        )
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    user_data.setdefault("inventory", []).append(shop_item["name"])
-    save_economy(eco)
-
-    if normalize_item_name(shop_item["name"]) == normalize_item_name(HANDY_ITEM_NAME):
-        await give_handy_channel_access(interaction.guild, nutzer)
-
-    embed = discord.Embed(
-        title="\U0001F381 Item gegeben",
-        description=(
-            f"**Spieler:** {nutzer.mention}\n"
-            f"**Item:** {shop_item['name']}\n"
-            f"**Vergeben von:** {interaction.user.mention}"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@bot.tree.command(name="item-entfernen", description="[Team] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
-@app_commands.describe(nutzer="Spieler", item="Itemname")
-async def item_entfernen(interaction: discord.Interaction, nutzer: discord.Member, item: str):
-    if not is_team(interaction.user):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, nutzer.id)
-    inv       = user_data.get("inventory", [])
-
-    match = find_inventory_item(inv, item)
-    if not match:
-        await interaction.response.send_message(
-            f"\u274C **{item}** ist nicht im Inventar von {nutzer.mention}.", ephemeral=True
-        )
-        return
-
-    inv.remove(match)
-    save_economy(eco)
-
-    embed = discord.Embed(
-        title="\U0001F5D1\uFE0F Item entfernt",
-        description=(
-            f"**Spieler:** {nutzer.mention}\n"
-            f"**Item:** {match}\n"
-            f"**Entfernt von:** {interaction.user.mention}"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 # KARTENKONTROLLE
@@ -4178,8 +4104,6 @@ async def commands_list(interaction: discord.Interaction):
         name="\U0001F6E1\uFE0F Team",
         value=(
             "`/set-limit` \u2014 Tageslimit setzen\n"
-            "`/item-geben` \u2014 Item an Spieler geben\n"
-            "`/item-entfernen` \u2014 Item von Spieler entfernen\n"
             "`/kartenkontrolle` \u2014 Kartenkontrolle-DM senden\n"
             "`/ausweis-create` \u2014 Ausweis erstellen\n"
             "`/delete` \u2014 Nachrichten l\u00F6schen\n"
