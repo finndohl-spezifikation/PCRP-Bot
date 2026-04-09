@@ -576,6 +576,20 @@ class VersteckRetrieveView(discord.ui.View):
             ephemeral=True
         )
 
+        embed_public = discord.Embed(
+            title="\U0001F4E6 Item aus Versteck geholt",
+            description=(
+                f"{interaction.user.mention} hat **{entry['item']}** "
+                f"aus dem Versteck an **{entry['location']}** geholt."
+            ),
+            color=0xFFA500,
+            timestamp=datetime.now(timezone.utc)
+        )
+        try:
+            await interaction.channel.send(embed=embed_public)
+        except Exception:
+            pass
+
         if IC_CHAT_CHANNEL_ID:
             ic_channel = interaction.guild.get_channel(IC_CHAT_CHANNEL_ID)
             if ic_channel:
@@ -2543,8 +2557,11 @@ def find_shop_item(items, query: str):
 
 # /buy
 @bot.tree.command(name="buy", description="[Shop] Kaufe ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(itemname="Name des Items das du kaufen m\u00F6chtest")
-async def buy(interaction: discord.Interaction, itemname: str):
+@app_commands.describe(
+    itemname="Name des Items das du kaufen m\u00F6chtest",
+    menge="Wie viele m\u00F6chtest du kaufen? (Standard: 1)"
+)
+async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
     is_adm   = ADMIN_ROLE_ID in role_ids
 
@@ -2554,6 +2571,14 @@ async def buy(interaction: discord.Interaction, itemname: str):
 
     if not is_adm and not has_citizen_or_wage(interaction.user):
         await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    if menge < 1:
+        await interaction.response.send_message("\u274C Die Menge muss mindestens **1** sein.", ephemeral=True)
+        return
+
+    if menge > 100:
+        await interaction.response.send_message("\u274C Du kannst maximal **100** Items auf einmal kaufen.", ephemeral=True)
         return
 
     items = load_shop()
@@ -2577,32 +2602,35 @@ async def buy(interaction: discord.Interaction, itemname: str):
             )
             return
 
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
+    eco        = load_economy()
+    user_data  = get_user(eco, interaction.user.id)
+    gesamtpreis = item["price"] * menge
 
-    if user_data["cash"] < item["price"]:
+    if user_data["cash"] < gesamtpreis:
         await interaction.response.send_message(
             f"\u274C Du hast nicht genug **Bargeld**.\n"
-            f"Preis: **{item['price']:,} \U0001F4B5** | Dein Bargeld: **{user_data['cash']:,} \U0001F4B5**\n"
+            f"Preis: **{item['price']:,} \U0001F4B5** \u00D7 {menge} = **{gesamtpreis:,} \U0001F4B5** | Dein Bargeld: **{user_data['cash']:,} \U0001F4B5**\n"
             f"\u2139\uFE0F K\u00E4ufe sind nur mit Bargeld m\u00F6glich. Hebe Geld mit `/auszahlen` ab.",
             ephemeral=True
         )
         return
 
-    user_data["cash"] -= item["price"]
+    user_data["cash"] -= gesamtpreis
     if "inventory" not in user_data:
         user_data["inventory"] = []
-    user_data["inventory"].append(item["name"])
+    for _ in range(menge):
+        user_data["inventory"].append(item["name"])
     save_economy(eco)
 
     # \u2500\u2500 Handy-Kauf: Kanal-Berechtigung geben \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     if normalize_item_name(item["name"]) == normalize_item_name(HANDY_ITEM_NAME):
         await give_handy_channel_access(interaction.guild, interaction.user)
 
+    menge_text = f" \u00D7 {menge}" if menge > 1 else ""
     embed = discord.Embed(
         title="\u2705 Gekauft!",
         description=(
-            f"Du hast **{item['name']}** f\u00FCr **{item['price']:,} \U0001F4B5** gekauft.\n"
+            f"Du hast **{item['name']}**{menge_text} f\u00FCr **{gesamtpreis:,} \U0001F4B5** gekauft.\n"
             f"**Verbleibendes Bargeld:** {user_data['cash']:,} \U0001F4B5"
         ),
         color=LOG_COLOR,
