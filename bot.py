@@ -3390,4 +3390,3 @@ if not token:
     raise RuntimeError("DISCORD_TOKEN ist nicht gesetzt.")
 
 bot.run(token)
-Made with Replit
