@@ -1309,6 +1309,24 @@ async def on_ready():
     await auto_einreise_setup()
     await auto_handy_setup()
 
+    GALAXY_BOT_ID = 270904126974590976
+    for guild in bot.guilds:
+        galaxy = guild.get_member(GALAXY_BOT_ID)
+        if galaxy:
+            try:
+                await guild.ban(galaxy, reason="Galaxy Bot ist auf diesem Server nicht erlaubt", delete_message_days=0)
+                log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
+                if log_ch:
+                    embed = discord.Embed(
+                        title="\U0001F528 Galaxy Bot gebannt",
+                        description="Galaxy Bot wurde beim Start automatisch vom Server gebannt.",
+                        color=MOD_COLOR,
+                        timestamp=datetime.now(timezone.utc)
+                    )
+                    await log_ch.send(embed=embed)
+            except Exception as e:
+                await log_bot_error("Galaxy Bot Ban fehlgeschlagen", str(e), guild)
+
     try:
         guild_obj = discord.Object(id=GUILD_ID)
         synced = await bot.tree.sync(guild=guild_obj)
@@ -1843,6 +1861,22 @@ async def on_member_join(member):
     guild = member.guild
 
     if member.bot:
+        GALAXY_BOT_ID = 270904126974590976
+        if member.id == GALAXY_BOT_ID:
+            try:
+                await guild.ban(member, reason="Galaxy Bot ist auf diesem Server nicht erlaubt", delete_message_days=0)
+                log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
+                if log_ch:
+                    embed = discord.Embed(
+                        title="\U0001F528 Galaxy Bot gebannt",
+                        description="Galaxy Bot hat versucht dem Server beizutreten und wurde automatisch gebannt.",
+                        color=MOD_COLOR,
+                        timestamp=datetime.now(timezone.utc)
+                    )
+                    await log_ch.send(embed=embed)
+            except Exception:
+                pass
+            return
         try:
             await member.kick(reason="Bots sind auf diesem Server nicht erlaubt")
         except Exception:
@@ -2099,7 +2133,7 @@ def channel_error(channel_id: int) -> str:
 
 
 # /lohn-abholen
-@bot.tree.command(name="lohn-abholen", description="Hole deinen st\u00FCndlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="lohn-abholen", description="[Konto] Hole deinen st\u00FCndlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
 async def lohn_abholen(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
     is_adm   = ADMIN_ROLE_ID in role_ids
@@ -2158,7 +2192,7 @@ async def lohn_abholen(interaction: discord.Interaction):
 
 
 # /kontostand
-@bot.tree.command(name="kontostand", description="Zeigt den Kontostand an (Team: auch per @Erw\u00E4hnung)", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="kontostand", description="[Konto] Zeigt den Kontostand an", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
 async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids  = [r.id for r in interaction.user.roles]
@@ -2201,7 +2235,7 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
 
 
 # /einzahlen
-@bot.tree.command(name="einzahlen", description="Zahle Bargeld auf dein Bankkonto ein", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="einzahlen", description="[Konto] Zahle Bargeld auf dein Bankkonto ein", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(betrag="Betrag w\u00E4hlen oder eingeben (1.000 \u2013 10.000.000 \U0001F4B5)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def einzahlen(interaction: discord.Interaction, betrag: int):
@@ -2266,7 +2300,7 @@ async def einzahlen(interaction: discord.Interaction, betrag: int):
 
 
 # /auszahlen
-@bot.tree.command(name="auszahlen", description="Hebe Geld von deinem Bankkonto ab", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="auszahlen", description="[Konto] Hebe Geld von deinem Bankkonto ab", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(betrag="Betrag w\u00E4hlen oder eingeben (1.000 \u2013 10.000.000 \U0001F4B5)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def auszahlen(interaction: discord.Interaction, betrag: int):
@@ -2331,7 +2365,7 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
 
 
 # /ueberweisen
-@bot.tree.command(name="ueberweisen", description="\u00DCberweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ueberweisen", description="[Konto] \u00DCberweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empf\u00E4nger", betrag="Betrag w\u00E4hlen oder eingeben (1.000 \u2013 10.000.000 \U0001F4B5)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
@@ -2401,7 +2435,7 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
 
 
 # /shop
-@bot.tree.command(name="shop", description="Zeigt den Shop an", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="shop", description="[Shop] Zeigt den Shop an", guild=discord.Object(id=GUILD_ID))
 async def shop(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
     is_adm   = ADMIN_ROLE_ID in role_ids
@@ -2490,7 +2524,7 @@ def find_shop_item(items, query: str):
 
 
 # /buy
-@bot.tree.command(name="buy", description="Kaufe ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="buy", description="[Shop] Kaufe ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(itemname="Name des Items das du kaufen m\u00F6chtest")
 async def buy(interaction: discord.Interaction, itemname: str):
     role_ids = [r.id for r in interaction.user.roles]
@@ -2560,7 +2594,7 @@ async def buy(interaction: discord.Interaction, itemname: str):
 
 
 # /set-limit (Team only)
-@bot.tree.command(name="set-limit", description="[TEAM] Setzt das individuelle Tageslimit eines Spielers", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="set-limit", description="[Team] Setzt das individuelle Tageslimit eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", limit="Neues Tageslimit")
 @app_commands.choices(limit=LIMIT_CHOICES)
@@ -2590,7 +2624,7 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
 
 
 # /money-add (Admin only)
-@bot.tree.command(name="money-add", description="[ADMIN] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="money-add", description="[Admin] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 @app_commands.default_permissions(administrator=True)
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
@@ -2627,7 +2661,7 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 
 
 # /remove-money (Admin only)
-@bot.tree.command(name="remove-money", description="[ADMIN] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="remove-money", description="[Admin] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 @app_commands.default_permissions(administrator=True)
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
@@ -2664,12 +2698,12 @@ async def remove_money(interaction: discord.Interaction, nutzer: discord.Member,
 
 
 # /item-add (Admin only)
-@bot.tree.command(name="item-add", description="[ADMIN] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="item-add", description="[Admin] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname (muss im Shop vorhanden sein)")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
-@app_commands.default_permissions(administrator=True)
+@app_commands.default_permissions(manage_messages=True)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
-    if not is_admin(interaction.user):
+    if not any(r.id == 1490855718658510908 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -2706,11 +2740,11 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 
 
 # /remove-item (Admin only)
-@bot.tree.command(name="remove-item", description="[ADMIN] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="remove-item", description="[Admin] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
-@app_commands.default_permissions(administrator=True)
+@app_commands.default_permissions(manage_messages=True)
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
-    if not is_admin(interaction.user):
+    if not any(r.id == 1490855718658510908 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -2785,7 +2819,7 @@ class ShopAddConfirmView(discord.ui.View):
         )
 
 
-@bot.tree.command(name="shop-add", description="[TEAM] F\u00FCge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="shop-add", description="[Shop] F\u00FCge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(
     itemname="Name des Items",
     preis="Preis in $",
@@ -2793,7 +2827,7 @@ class ShopAddConfirmView(discord.ui.View):
 )
 @app_commands.default_permissions(manage_messages=True)
 async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, rolle: discord.Role = None):
-    if not is_team(interaction.user):
+    if not any(r.id == 1490855717354213388 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -2820,12 +2854,12 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, 
 
 
 # /delete-item (Team only) \u2014 Item aus dem Shop entfernen
-@bot.tree.command(name="delete-item", description="[TEAM] Entfernt ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="delete-item", description="[Shop] Entfernt ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(itemname="Name des Items das aus dem Shop entfernt werden soll")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
 async def delete_item(interaction: discord.Interaction, itemname: str):
-    if not is_team(interaction.user):
+    if not any(r.id == 1490855717354213388 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
@@ -2877,11 +2911,11 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
 # WARN SYSTEM
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-@bot.tree.command(name="warn", description="[TEAM] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="warn", description="[Warn] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
-    if not is_team(interaction.user):
+    if not any(r.id == 1490855711674994688 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
@@ -2961,7 +2995,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
             await log_ch.send(embed=timeout_embed)
 
 
-@bot.tree.command(name="team-warn", description="[ADMIN] Team-Verwarnung an einen Spieler ausgeben (kein Timeout)", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="team-warn", description="[Admin] Team-Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
@@ -3020,7 +3054,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
     )
 
 
-@bot.tree.command(name="teamwarn-list", description="[ADMIN] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="teamwarn-list", description="[Admin] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler")
 async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member):
@@ -3052,7 +3086,7 @@ async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="remove-teamwarn", description="[ADMIN] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="remove-teamwarn", description="[Admin] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler")
 async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Member):
@@ -3100,10 +3134,11 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="warn-list", description="Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="warn-list", description="[Warn] Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler")
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
-    if not is_team(interaction.user):
+    if not any(r.id == 1490855711674994688 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
@@ -3131,11 +3166,11 @@ async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="remove-warn", description="[TEAM] Letzte Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="remove-warn", description="[Warn] Letzte Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler")
 async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
-    if not is_team(interaction.user):
+    if not any(r.id == 1490855711674994688 for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
@@ -3165,7 +3200,7 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
 
 
 # /rucksack
-@bot.tree.command(name="rucksack", description="Zeige dein Inventar an (Team: auch per @Erw\u00E4hnung)", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="rucksack", description="[Inventar] Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Spieler dessen Inventar angezeigt werden soll")
 async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids = [r.id for r in interaction.user.roles]
@@ -3211,7 +3246,7 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
 
 
 # /uebergeben
-@bot.tree.command(name="uebergeben", description="Gib ein Item aus deinem Inventar an jemanden weiter", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="uebergeben", description="[Inventar] Gib ein Item an jemanden weiter", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Empf\u00E4nger", item="Item ausw\u00E4hlen", menge="Wie viele m\u00F6chtest du \u00FCbergeben? (Standard: 1)")
 @app_commands.autocomplete(item=inventory_item_autocomplete)
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str, menge: int = 1):
@@ -3274,7 +3309,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
 
 
 # /verstecken
-@bot.tree.command(name="verstecken", description="Verstecke ein Item aus deinem Inventar", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="verstecken", description="[Inventar] Verstecke ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(item="Name des Items", ort="Wo versteckst du es?")
 async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     role_ids = [r.id for r in interaction.user.roles]
@@ -3328,7 +3363,7 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
 # TEAM ITEM COMMANDS
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-@bot.tree.command(name="item-geben", description="[TEAM] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="item-geben", description="[Team] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", item="Itemname (muss im Shop vorhanden sein)")
 @app_commands.autocomplete(item=shop_item_autocomplete)
@@ -3368,7 +3403,7 @@ async def item_geben(interaction: discord.Interaction, nutzer: discord.Member, i
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="item-entfernen", description="[TEAM] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="item-entfernen", description="[Team] Entferne ein Item von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", item="Itemname")
 async def item_entfernen(interaction: discord.Interaction, nutzer: discord.Member, item: str):
@@ -3410,7 +3445,7 @@ async def item_entfernen(interaction: discord.Interaction, nutzer: discord.Membe
 KARTENKONTROLLE_CHANNEL_ID = 1491116234459185162
 
 
-@bot.tree.command(name="kartenkontrolle", description="[TEAM] Sendet eine DM-Erinnerung zur Kartenkontrolle an alle Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="kartenkontrolle", description="[Team] Kartenkontrolle-Erinnerung per DM senden", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 async def kartenkontrolle(interaction: discord.Interaction):
     if not is_team(interaction.user):
@@ -3670,7 +3705,7 @@ async def auto_einreise_setup():
 
 
 # /ausweisen
-@bot.tree.command(name="ausweisen", description="Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
 async def ausweisen(interaction: discord.Interaction):
     if interaction.channel.id != AUSWEIS_CHANNEL_ID and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
         await interaction.response.send_message(
@@ -3709,7 +3744,7 @@ async def ausweisen(interaction: discord.Interaction):
 
 
 # /ausweis-remove (Admin only)
-@bot.tree.command(name="ausweis-remove", description="[ADMIN] Loescht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ausweis-remove", description="[Admin] L\u00F6scht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler dessen Ausweis geloescht werden soll")
 @app_commands.default_permissions(administrator=True)
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
@@ -3837,7 +3872,7 @@ async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, ta
 
 
 # /ausweis-create (Team only)
-@bot.tree.command(name="ausweis-create", description="[TEAM] Erstellt einen Ausweis fuer einen Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis f\u00FCr einen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
 @app_commands.default_permissions(manage_messages=True)
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
@@ -3865,7 +3900,7 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
 # /delete \u2014 Nachrichten l\u00F6schen (Team only)
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-@bot.tree.command(name="delete", description="[TEAM] L\u00F6scht eine bestimmte Anzahl von Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="delete", description="[Team] L\u00F6scht Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(anzahl="Anzahl der zu l\u00F6schenden Nachrichten (max. 100)")
 @app_commands.default_permissions(manage_messages=True)
 async def delete_messages(interaction: discord.Interaction, anzahl: int):
@@ -3941,7 +3976,7 @@ async def create_event_channel_flow(admin: discord.Member, guild: discord.Guild,
     await channel.send(f"{admin.mention} \u2705 **Event wurde erfolgreich gepostet** in {event_channel.mention}!", delete_after=10)
 
 
-@bot.tree.command(name="create-event", description="[TEAM] Erstellt ein neues Event", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="create-event", description="[Team] Erstellt ein neues Event", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 async def create_event(interaction: discord.Interaction):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
@@ -4074,7 +4109,7 @@ async def create_giveaway_channel_flow(admin: discord.Member, guild: discord.Gui
         await log_bot_error("Giveaway-Auswertung fehlgeschlagen", str(e), guild)
 
 
-@bot.tree.command(name="create-giveaway", description="[TEAM] Erstellt ein neues Giveaway", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="create-giveaway", description="[Team] Erstellt ein neues Giveaway", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 async def create_giveaway(interaction: discord.Interaction):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
