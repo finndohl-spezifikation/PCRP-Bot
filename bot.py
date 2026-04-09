@@ -576,6 +576,24 @@ class VersteckRetrieveView(discord.ui.View):
             ephemeral=True
         )
 
+        if IC_CHAT_CHANNEL_ID:
+            ic_channel = interaction.guild.get_channel(IC_CHAT_CHANNEL_ID)
+            if ic_channel:
+                embed = discord.Embed(
+                    title="\U0001F575\uFE0F IC \u2014 Item aus Versteck geholt",
+                    description=(
+                        f"**{interaction.user.display_name}** hat **{entry['item']}** "
+                        f"aus dem Versteck an **{entry['location']}** geholt."
+                    ),
+                    color=0xFFA500,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.set_footer(text=f"Nutzer: {interaction.user} \u2022 ID: {interaction.user.id}")
+                try:
+                    await ic_channel.send(embed=embed)
+                except Exception:
+                    pass
+
 
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 # HANDY SYSTEM
