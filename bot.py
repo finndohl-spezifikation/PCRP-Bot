@@ -4489,6 +4489,10 @@ async def lobby_close(interaction: discord.Interaction):
     option_nein="Name f\u00FCr den roten Balken (\u274C) â€” Standard: Ablehnung"
 )
 async def abstimmung_cmd(interaction: discord.Interaction, frage: str, option_ja: str = "Zustimmung", option_nein: str = "Ablehnung"):
+    if not any(r.id == MOD_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Serverteam verf\u00FCgbar.", ephemeral=True)
+        return
+
     poll = {
         "question":     frage,
         "option_ja":    option_ja,
@@ -4498,7 +4502,8 @@ async def abstimmung_cmd(interaction: discord.Interaction, frage: str, option_ja
         "red_voters":   [],
     }
     embed = build_abstimmung_embed(poll)
-    await interaction.response.send_message(embed=embed)
+    ping_text = f"<@&{CITIZEN_ROLE_ID}>"
+    await interaction.response.send_message(content=ping_text, embed=embed)
     msg = await interaction.original_response()
 
     poll["message_id"] = msg.id
