@@ -123,12 +123,14 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 ECONOMY_FILE      = DATA_DIR / "economy_data.json"
 SHOP_FILE         = DATA_DIR / "shop_data.json"
 WARNS_FILE        = DATA_DIR / "warns_data.json"
+TEAM_WARNS_FILE   = DATA_DIR / "team_warns_data.json"
 HIDDEN_ITEMS_FILE = DATA_DIR / "hidden_items.json"
 AUSWEIS_FILE      = DATA_DIR / "ausweis_data.json"
 HANDY_FILE        = DATA_DIR / "handy_numbers.json"
 
 # Neue Kanal- und Rollen-IDs
-WARN_LOG_CHANNEL_ID     = 1491113577258684466
+WARN_LOG_CHANNEL_ID      = 1491113577258684466
+TEAM_WARN_LOG_CHANNEL_ID = 1490878144146833450
 MONEY_LOG_CHANNEL_ID    = 1490878138429997087
 RUCKSACK_CHANNEL_ID     = 1490882592445304972
 UEBERGEBEN_CHANNEL_ID   = 1490882589014364250
@@ -372,6 +374,22 @@ def save_warns(data):
 
 
 def get_user_warns(warns, user_id):
+    return warns.setdefault(str(user_id), [])
+
+
+def load_team_warns():
+    if TEAM_WARNS_FILE.exists():
+        with open(TEAM_WARNS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_team_warns(data):
+    with open(TEAM_WARNS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def get_user_team_warns(warns, user_id):
     return warns.setdefault(str(user_id), [])
 
 
@@ -764,35 +782,36 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
 
 
 async def auto_handy_setup():
-    """LÃ¶scht das alte Handy-Embed und postet ein frisches mit korrekten Emojis."""
+    """Postet das Handy-Embed nur wenn noch keins im Kanal ist."""
     for guild in bot.guilds:
         channel = guild.get_channel(HANDY_CHANNEL_ID)
         if not channel:
             continue
-        # Altes Handy-Embed des Bots lÃ¶schen
+        embed_exists = False
         try:
-            async for msg in channel.history(limit=20):
+            async for msg in channel.history(limit=30):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Handy" in emb.title:
-                            try:
-                                await msg.delete()
-                            except Exception:
-                                pass
+                            embed_exists = True
                             break
+                if embed_exists:
+                    break
         except Exception:
             pass
-        # Frisches Embed mit korrekten Emojis posten
+        if embed_exists:
+            print(f"Handy-Embed bereits vorhanden in #{channel.name}, \u00FCberspringe.")
+            continue
         embed = discord.Embed(
             title="\U0001F4F1 Handy \u2014 Einstellungen",
             description=(
                 "Willkommen in deinen Handy-Einstellungen!\n\n"
                 "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
                 "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-                "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
-                "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
+                "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zust\u00E4ndige Einheit\n"
+                "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine pers\u00F6nliche LA-Nummer\n"
                 "**\U0001F4F1 Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
-                "\u26A0\uFE0F *Du benÃ¶tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+                "\u26A0\uFE0F *Du ben\u00F6tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
             ),
             color=0x00BFFF,
             timestamp=datetime.now(timezone.utc)
@@ -2053,10 +2072,10 @@ async def handysetup(ctx):
             "Willkommen in deinen Handy-Einstellungen!\n\n"
             "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
             "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-            "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
-            "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
+            "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zust\u00E4ndige Einheit\n"
+            "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine pers\u00F6nliche LA-Nummer\n"
             "**\U0001F4F1 Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
-            "\u26A0\uFE0F *Du benÃ¶tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+            "\u26A0\uFE0F *Du ben\u00F6tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
         ),
         color=0x00BFFF,
         timestamp=datetime.now(timezone.utc)
@@ -2946,17 +2965,16 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
         await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
         return
 
-    warns      = load_warns()
-    user_warns = get_user_warns(warns, nutzer.id)
+    warns      = load_team_warns()
+    user_warns = get_user_team_warns(warns, nutzer.id)
     warn_entry = {
         "grund":      grund,
         "konsequenz": konsequenz,
         "warned_by":  interaction.user.id,
         "timestamp":  datetime.now(timezone.utc).isoformat(),
-        "typ":        "team-warn",
     }
     user_warns.append(warn_entry)
-    save_warns(warns)
+    save_team_warns(warns)
     warn_count = len(user_warns)
 
     embed = discord.Embed(
@@ -2966,12 +2984,12 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
             f"**Grund:** {grund}\n"
             f"**Konsequenz:** {konsequenz}\n"
             f"**Verwarnt von:** {interaction.user.mention}\n"
-            f"**Warns gesamt:** {warn_count}"
+            f"**Team-Warns gesamt:** {warn_count}"
         ),
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    log_ch = interaction.guild.get_channel(WARN_LOG_CHANNEL_ID)
+    log_ch = interaction.guild.get_channel(TEAM_WARN_LOG_CHANNEL_ID)
     if log_ch:
         await log_ch.send(embed=embed)
 
@@ -2982,7 +3000,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
                 f"**Server:** {interaction.guild.name}\n"
                 f"**Grund:** {grund}\n"
                 f"**Konsequenz:** {konsequenz}\n"
-                f"**Warns gesamt:** {warn_count}\n\n"
+                f"**Team-Warns gesamt:** {warn_count}\n\n"
                 f"Bitte halte dich an die Serverregeln."
             ),
             color=MOD_COLOR,
@@ -2993,9 +3011,89 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
         pass
 
     await interaction.response.send_message(
-        f"\u2705 Team-Verwarnung f\u00FCr {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)",
+        f"\u2705 Team-Verwarnung f\u00FCr {nutzer.mention} gespeichert. (Team-Warns gesamt: **{warn_count}**)",
         ephemeral=True
     )
+
+
+@bot.tree.command(name="teamwarn-list", description="[ADMIN] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler")
+async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
+        return
+
+    warns      = load_team_warns()
+    user_warns = get_user_team_warns(warns, nutzer.id)
+
+    if not user_warns:
+        await interaction.response.send_message(
+            f"\u2705 {nutzer.mention} hat keine Team-Verwarnungen.", ephemeral=True
+        )
+        return
+
+    lines = []
+    for i, w in enumerate(user_warns, 1):
+        ts = w.get("timestamp", "")[:10]
+        lines.append(f"**#{i}** \u2014 {w['grund']} | Konsequenz: {w['konsequenz']} *(am {ts})*")
+
+    embed = discord.Embed(
+        title=f"\U0001F6E1\uFE0F Team-Warns von {nutzer.display_name}",
+        description="\n".join(lines),
+        color=MOD_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Gesamt: {len(user_warns)} Team-Warn(s)")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="remove-teamwarn", description="[ADMIN] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler")
+async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Member):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
+        return
+
+    warns      = load_team_warns()
+    user_warns = get_user_team_warns(warns, nutzer.id)
+
+    if not user_warns:
+        await interaction.response.send_message(
+            f"\u2139\uFE0F {nutzer.mention} hat keine Team-Verwarnungen.", ephemeral=True
+        )
+        return
+
+    removed = user_warns.pop()
+    save_team_warns(warns)
+
+    log_ch = interaction.guild.get_channel(TEAM_WARN_LOG_CHANNEL_ID)
+    if log_ch:
+        log_embed = discord.Embed(
+            title="\U0001F5D1\uFE0F Team-Verwarnung entfernt",
+            description=(
+                f"**Spieler:** {nutzer.mention}\n"
+                f"**Entfernte Verwarnung:** {removed['grund']}\n"
+                f"**Entfernt von:** {interaction.user.mention}\n"
+                f"**Verbleibende Team-Warns:** {len(user_warns)}"
+            ),
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await log_ch.send(embed=log_embed)
+
+    embed = discord.Embed(
+        title="\u2705 Team-Verwarnung entfernt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Entfernte Verwarnung:** {removed['grund']}\n"
+            f"**Verbleibende Team-Warns:** {len(user_warns)}"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="warn-list", description="Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
