@@ -3223,142 +3223,123 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# ── Admin Ausweis-Erstellen Modal ─────────────────────────────────────────────
+# ── Admin Ausweis-Erstellen (Chat-basiert per DM) ──────────────────────────────
 
-class AusweisCreateModal(discord.ui.Modal, title="Ausweis erstellen (Admin)"):
-    vorname        = discord.ui.TextInput(label="Vorname",              placeholder="Max",               max_length=50)
-    nachname       = discord.ui.TextInput(label="Nachname",             placeholder="Mustermann",        max_length=50)
-    gebdatum_alter = discord.ui.TextInput(label="Geburtsdatum / Alter", placeholder="TT.MM.JJJJ / 25", max_length=30)
-    nationalitaet  = discord.ui.TextInput(label="Nationalitaet",        placeholder="Deutsch",          max_length=50)
-    wohnort        = discord.ui.TextInput(label="Wohnort",              placeholder="Los Santos",       max_length=100)
+async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, target: discord.Member, original_channel: discord.TextChannel):
+    def dm_check(m):
+        return m.author.id == admin.id and isinstance(m.channel, discord.DMChannel)
 
-    def __init__(self, target_id: int, einreise_typ: str):
-        super().__init__()
-        self.target_id    = target_id
-        self.einreise_typ = einreise_typ
+    felder = [
+        ("vorname",       "📝 **Vorname** des Spielers:"),
+        ("nachname",      "📝 **Nachname** des Spielers:"),
+        ("geburtsdatum",  "📝 **Geburtsdatum** (Format: TT.MM.JJJJ):"),
+        ("alter",         "📝 **Alter** (z.B. 25):"),
+        ("herkunft",      "📝 **Herkunft** (z.B. Deutsch):"),
+        ("wohnort",       "📝 **Wohnort** (z.B. Los Santos):"),
+        ("einreise_typ",  "📝 **Einreiseart** — Tippe `legal` oder `illegal`:"),
+    ]
 
-    async def on_submit(self, interaction: discord.Interaction):
+    antworten = {}
+
+    try:
+        dm = await admin.create_dm()
+        await dm.send(
+            f"🪪 **Ausweis-Erstellung für {target.display_name} gestartet!**\n"
+            f"Beantworte bitte die folgenden **{len(felder)} Fragen**. "
+            f"Du hast jeweils **2 Minuten** pro Antwort."
+        )
+    except Exception:
+        await original_channel.send(
+            f"{admin.mention} ❌ Ich kann dir keine DM senden. Bitte aktiviere DMs von Servermitgliedern.",
+            delete_after=15
+        )
+        return
+
+    for key, frage in felder:
+        await dm.send(frage)
         try:
-            teile        = self.gebdatum_alter.value.split("/")
-            geburtsdatum = teile[0].strip() if len(teile) >= 1 else self.gebdatum_alter.value.strip()
-            alter        = teile[1].strip() if len(teile) >= 2 else "?"
+            antwort = await bot.wait_for("message", check=dm_check, timeout=120.0)
+            wert = antwort.content.strip()
 
-            ausweisnummer = generate_ausweisnummer()
-            typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
+            if key == "einreise_typ":
+                if wert.lower() not in ("legal", "illegal"):
+                    await dm.send("❌ Ungültige Eingabe. Bitte starte den Command erneut und tippe `legal` oder `illegal`.")
+                    return
+                wert = wert.lower()
 
-            ausweis_data = load_ausweis()
-            ausweis_data[str(self.target_id)] = {
-                "vorname":       self.vorname.value,
-                "nachname":      self.nachname.value,
-                "geburtsdatum":  geburtsdatum,
-                "alter":         alter,
-                "nationalitaet": self.nationalitaet.value,
-                "wohnort":       self.wohnort.value,
-                "einreise_typ":  self.einreise_typ,
-                "ausweisnummer": ausweisnummer,
-                "erstellt_von":  str(interaction.user),
-            }
-            save_ausweis(ausweis_data)
+            antworten[key] = wert
+        except asyncio.TimeoutError:
+            await dm.send("❌ Zeit abgelaufen! Bitte starte `/ausweis-create` erneut.")
+            return
 
-            target         = interaction.guild.get_member(self.target_id)
-            target_mention = target.mention if target else f"<@{self.target_id}>"
+    ausweisnummer = generate_ausweisnummer()
+    typ_label     = "🤵 Legale Einreise" if antworten["einreise_typ"] == "legal" else "🥷 Illegale Einreise"
 
-            # Charakter-Rollen automatisch vergeben
-            if target:
-                rollen_zu_vergeben = [
-                    interaction.guild.get_role(rid)
-                    for rid in CHARAKTER_ROLLEN
-                    if interaction.guild.get_role(rid) is not None
-                ]
-                if rollen_zu_vergeben:
-                    try:
-                        await target.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt (Admin)")
-                    except Exception:
-                        pass
+    ausweis_data = load_ausweis()
+    ausweis_data[str(target.id)] = {
+        "vorname":       antworten["vorname"],
+        "nachname":      antworten["nachname"],
+        "geburtsdatum":  antworten["geburtsdatum"],
+        "alter":         antworten["alter"],
+        "nationalitaet": antworten["herkunft"],
+        "wohnort":       antworten["wohnort"],
+        "einreise_typ":  antworten["einreise_typ"],
+        "ausweisnummer": ausweisnummer,
+        "erstellt_von":  str(admin),
+    }
+    save_ausweis(ausweis_data)
 
-            embed = discord.Embed(
-                title="🪪 Ausweis erstellt",
-                color=0x000000,
-                timestamp=datetime.now(timezone.utc)
-            )
-            embed.add_field(name="Spieler",       value=target_mention,                                inline=False)
-            embed.add_field(name="Name",          value=f"{self.vorname.value} {self.nachname.value}", inline=True)
-            embed.add_field(name="Geburtsdatum",  value=geburtsdatum,                                  inline=True)
-            # BEHEBUNG 4: Alter wird korrekt angezeigt
-            embed.add_field(name="Alter",         value=alter,                                         inline=True)
-            embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
-            embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
-            embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
-            embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                          inline=False)
-            embed.set_footer(text=f"Erstellt von {interaction.user.display_name}")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        except Exception as e:
-            err = traceback.format_exc()
-            await log_bot_error("AusweisCreateModal on_submit Fehler", err, interaction.guild)
-            try:
-                await interaction.response.send_message(
-                    "❌ Beim Erstellen des Ausweises ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-                    ephemeral=True
-                )
-            except Exception:
-                pass
-
-    # BEHEBUNG 4: on_error Handler verhindert den Discord "Anwendung antwortet nicht" Fehler
-    async def on_error(self, interaction: discord.Interaction, error: Exception):
-        err = traceback.format_exc()
-        await log_bot_error("AusweisCreateModal Fehler", err, interaction.guild)
+    rollen_zu_vergeben = [
+        guild.get_role(rid)
+        for rid in CHARAKTER_ROLLEN
+        if guild.get_role(rid) is not None
+    ]
+    if rollen_zu_vergeben:
         try:
-            await interaction.response.send_message(
-                "❌ Beim Erstellen des Ausweises ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-                ephemeral=True
-            )
+            await target.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt (Team)")
         except Exception:
             pass
 
+    embed = discord.Embed(
+        title="🪪 Ausweis erstellt",
+        color=0x000000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.add_field(name="Spieler",       value=target.mention,                                        inline=False)
+    embed.add_field(name="Name",          value=f"{antworten['vorname']} {antworten['nachname']}",     inline=True)
+    embed.add_field(name="Geburtsdatum",  value=antworten["geburtsdatum"],                             inline=True)
+    embed.add_field(name="Alter",         value=antworten["alter"],                                    inline=True)
+    embed.add_field(name="Herkunft",      value=antworten["herkunft"],                                 inline=True)
+    embed.add_field(name="Wohnort",       value=antworten["wohnort"],                                  inline=True)
+    embed.add_field(name="Einreiseart",   value=typ_label,                                             inline=True)
+    embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                                  inline=False)
+    embed.set_footer(text=f"Erstellt von {admin.display_name}")
 
-class AusweisCreateEinreiseSelect(discord.ui.Select):
-    def __init__(self, target_id: int):
-        self.target_id = target_id
-        options = [
-            discord.SelectOption(label="Legale Einreise",   emoji="🤵", value="legal"),
-            discord.SelectOption(label="Illegale Einreise", emoji="🥷", value="illegal"),
-        ]
-        super().__init__(placeholder="Einreiseart wählen...", options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(
-            AusweisCreateModal(self.target_id, self.values[0])
-        )
-
-
-class AusweisCreateSelectView(discord.ui.View):
-    def __init__(self, target_id: int):
-        super().__init__(timeout=120)
-        self.add_item(AusweisCreateEinreiseSelect(target_id))
+    await dm.send("✅ **Ausweis erfolgreich erstellt!**", embed=embed)
 
 
-# /ausweis-create (Admin only)
-@bot.tree.command(name="ausweis-create", description="[ADMIN] Erstellt einen Ausweis fuer einen Spieler", guild=discord.Object(id=GUILD_ID))
+# /ausweis-create (Team only)
+@bot.tree.command(name="ausweis-create", description="[TEAM] Erstellt einen Ausweis fuer einen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
-@app_commands.default_permissions(administrator=True)
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
-    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
     ausweis_data = load_ausweis()
     if str(nutzer.id) in ausweis_data:
         await interaction.response.send_message(
-            f"❌ {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove loeschen.",
+            f"❌ {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove löschen.",
             ephemeral=True
         )
         return
 
     await interaction.response.send_message(
-        f"Wähle die Einreiseart für {nutzer.mention}:",
-        view=AusweisCreateSelectView(nutzer.id),
+        f"✅ Ausweis-Erstellung für **{nutzer.display_name}** gestartet!\n"
+        f"Ich schicke dir die Fragen per **DM** — nur du siehst sie.",
         ephemeral=True
     )
+    asyncio.create_task(ausweis_create_dm_flow(interaction.user, interaction.guild, nutzer, interaction.channel))
 
 
 # ═══════════════════════════════════════════════════════════════════════
