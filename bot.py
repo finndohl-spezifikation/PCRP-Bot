@@ -130,6 +130,7 @@ WARNS_FILE        = DATA_DIR / "warns_data.json"
 TEAM_WARNS_FILE   = DATA_DIR / "team_warns_data.json"
 HIDDEN_ITEMS_FILE  = DATA_DIR / "hidden_items.json"
 COUNTING_FILE      = DATA_DIR / "counting_state.json"
+ABSTIMMUNG_FILE    = DATA_DIR / "abstimmung_data.json"
 AUSWEIS_FILE      = DATA_DIR / "ausweis_data.json"
 HANDY_FILE        = DATA_DIR / "handy_numbers.json"
 
@@ -428,6 +429,58 @@ def save_counting_state(state):
 
 # Globaler Zust\u00E4nde wird beim Start aus Datei geladen
 counting_state = load_counting_state()
+
+
+# \u2500\u2500 Abstimmung Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+def load_abstimmung():
+    if ABSTIMMUNG_FILE.exists():
+        with open(ABSTIMMUNG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def save_abstimmung(data):
+    with open(ABSTIMMUNG_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+abstimmung_polls = load_abstimmung()
+
+
+def make_progress_bar(count: int, total: int, width: int = 20) -> str:
+    if total == 0:
+        filled = 0
+    else:
+        filled = round(count / total * width)
+    filled = max(0, min(width, filled))
+    return "\u2588" * filled + "\u2591" * (width - filled)
+
+
+def build_abstimmung_embed(poll: dict) -> discord.Embed:
+    g_count = len(poll["green_voters"])
+    r_count = len(poll["red_voters"])
+    total   = g_count + r_count
+
+    g_pct    = round(g_count / total * 100) if total > 0 else 0
+    r_pct    = round(r_count / total * 100) if total > 0 else 0
+    g_bar    = make_progress_bar(g_count, total)
+    r_bar    = make_progress_bar(r_count, total)
+
+    description = (
+        f"\u2705 **{poll['option_ja']}** \u2014 {g_count} Stimme(n)\n"
+        f"`{g_bar}` **{g_pct}%**\n\n"
+        f"\u274C **{poll['option_nein']}** \u2014 {r_count} Stimme(n)\n"
+        f"`{r_bar}` **{r_pct}%**\n\n"
+        f"\U0001F465 **Gesamt:** {total} Abstimmung(en)"
+    )
+    embed = discord.Embed(
+        title=f"\U0001F5F3\uFE0F Abstimmung \u2014 {poll['question']}",
+        description=description,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    return embed
 
 
 # \u2500\u2500 Handy Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -4426,6 +4479,129 @@ async def lobby_close(interaction: discord.Interaction):
     except Exception:
         embed.set_image(url=GIF_URL)
         await kanal.send(content=ping_text, embed=embed)
+
+
+# /abstimmung
+@bot.tree.command(name="abstimmung", description="[Allgemein] Erstelle eine Abstimmung mit Balken", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(
+    frage="Die Frage oder das Thema der Abstimmung",
+    option_ja="Name f\u00FCr den gr\u00FCnen Balken (\u2705) â€” Standard: Zustimmung",
+    option_nein="Name f\u00FCr den roten Balken (\u274C) â€” Standard: Ablehnung"
+)
+async def abstimmung_cmd(interaction: discord.Interaction, frage: str, option_ja: str = "Zustimmung", option_nein: str = "Ablehnung"):
+    poll = {
+        "question":     frage,
+        "option_ja":    option_ja,
+        "option_nein":  option_nein,
+        "channel_id":   interaction.channel.id,
+        "green_voters": [],
+        "red_voters":   [],
+    }
+    embed = build_abstimmung_embed(poll)
+    await interaction.response.send_message(embed=embed)
+    msg = await interaction.original_response()
+
+    poll["message_id"] = msg.id
+    abstimmung_polls[str(msg.id)] = poll
+    save_abstimmung(abstimmung_polls)
+
+    await msg.add_reaction("\u2705")
+    await msg.add_reaction("\u274C")
+
+
+@bot.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    if payload.user_id == bot.user.id:
+        return
+    msg_id = str(payload.message_id)
+    if msg_id not in abstimmung_polls:
+        return
+
+    poll      = abstimmung_polls[msg_id]
+    uid       = payload.user_id
+    emoji_str = str(payload.emoji)
+    is_green  = "\u2705" in emoji_str
+    is_red    = "\u274C" in emoji_str
+
+    if not is_green and not is_red:
+        try:
+            channel = bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            await message.remove_reaction(payload.emoji, discord.Object(id=uid))
+        except Exception:
+            pass
+        return
+
+    if is_green:
+        if uid not in poll["green_voters"]:
+            poll["green_voters"].append(uid)
+        if uid in poll["red_voters"]:
+            poll["red_voters"].remove(uid)
+            try:
+                channel = bot.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                user    = await bot.fetch_user(uid)
+                await message.remove_reaction("\u274C", user)
+            except Exception:
+                pass
+    elif is_red:
+        if uid not in poll["red_voters"]:
+            poll["red_voters"].append(uid)
+        if uid in poll["green_voters"]:
+            poll["green_voters"].remove(uid)
+            try:
+                channel = bot.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                user    = await bot.fetch_user(uid)
+                await message.remove_reaction("\u2705", user)
+            except Exception:
+                pass
+
+    save_abstimmung(abstimmung_polls)
+
+    try:
+        channel = bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        embed   = build_abstimmung_embed(poll)
+        await message.edit(embed=embed)
+    except Exception:
+        pass
+
+
+@bot.event
+async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
+    if payload.user_id == bot.user.id:
+        return
+    msg_id = str(payload.message_id)
+    if msg_id not in abstimmung_polls:
+        return
+
+    poll      = abstimmung_polls[msg_id]
+    uid       = payload.user_id
+    emoji_str = str(payload.emoji)
+    is_green  = "\u2705" in emoji_str
+    is_red    = "\u274C" in emoji_str
+
+    changed = False
+    if is_green and uid in poll["green_voters"]:
+        poll["green_voters"].remove(uid)
+        changed = True
+    elif is_red and uid in poll["red_voters"]:
+        poll["red_voters"].remove(uid)
+        changed = True
+
+    if not changed:
+        return
+
+    save_abstimmung(abstimmung_polls)
+
+    try:
+        channel = bot.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        embed   = build_abstimmung_embed(poll)
+        await message.edit(embed=embed)
+    except Exception:
+        pass
 
 
 # \u2500\u2500 Bot starten \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
