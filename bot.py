@@ -2938,6 +2938,66 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
             await log_ch.send(embed=timeout_embed)
 
 
+@bot.tree.command(name="team-warn", description="[ADMIN] Team-Verwarnung an einen Spieler ausgeben (kein Timeout)", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
+async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
+        return
+
+    warns      = load_warns()
+    user_warns = get_user_warns(warns, nutzer.id)
+    warn_entry = {
+        "grund":      grund,
+        "konsequenz": konsequenz,
+        "warned_by":  interaction.user.id,
+        "timestamp":  datetime.now(timezone.utc).isoformat(),
+        "typ":        "team-warn",
+    }
+    user_warns.append(warn_entry)
+    save_warns(warns)
+    warn_count = len(user_warns)
+
+    embed = discord.Embed(
+        title="\U0001F6E1\uFE0F Team-Verwarnung",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Grund:** {grund}\n"
+            f"**Konsequenz:** {konsequenz}\n"
+            f"**Verwarnt von:** {interaction.user.mention}\n"
+            f"**Warns gesamt:** {warn_count}"
+        ),
+        color=MOD_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    log_ch = interaction.guild.get_channel(WARN_LOG_CHANNEL_ID)
+    if log_ch:
+        await log_ch.send(embed=embed)
+
+    try:
+        dm_embed = discord.Embed(
+            title="\U0001F6E1\uFE0F Du hast eine Team-Verwarnung erhalten",
+            description=(
+                f"**Server:** {interaction.guild.name}\n"
+                f"**Grund:** {grund}\n"
+                f"**Konsequenz:** {konsequenz}\n"
+                f"**Warns gesamt:** {warn_count}\n\n"
+                f"Bitte halte dich an die Serverregeln."
+            ),
+            color=MOD_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await nutzer.send(embed=dm_embed)
+    except Exception:
+        pass
+
+    await interaction.response.send_message(
+        f"\u2705 Team-Verwarnung f\u00FCr {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)",
+        ephemeral=True
+    )
+
+
 @bot.tree.command(name="warn-list", description="Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
