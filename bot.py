@@ -754,54 +754,12 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
         title="\u2705 Dispatch gesendet!",
         description=(
             f"Dein **{dispatch_type}-Dispatch** wurde erfolgreich abgesendet.\n"
-            f"**Benachrichtigt:** {sent} Einheiten\n\n"
-            f"Falls niemand reagiert, kannst du unten im IC-Chat pingen."
+            f"**Benachrichtigt:** {sent} Einheiten"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-
-    nobody_view = DispatchNobodyView(dispatch_type, member)
-    await interaction.followup.send(embed=confirm_embed, view=nobody_view, ephemeral=True)
-
-
-class DispatchNobodyView(discord.ui.View):
-    """Kurzlebige View, die dem Dispatcher erlaubt, den IC-Chat zu pingen wenn niemand kommt."""
-    def __init__(self, dispatch_type: str, requester: discord.Member):
-        super().__init__(timeout=600)  # 10 Minuten verf\u00FCgbar
-        self.dispatch_type = dispatch_type
-        self.requester     = requester
-
-    @discord.ui.button(
-        label="\U0001F4E2 Niemand kommt \u2014 IC-Chat pingen",
-        style=discord.ButtonStyle.red,
-        emoji="\U0001F4E2"
-    )
-    async def ping_ic_chat(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.requester.id:
-            await interaction.response.send_message("\u274C Nur der Absender kann diese Aktion ausf\u00FChren.", ephemeral=True)
-            return
-
-        guild = interaction.guild
-        ic_ch = guild.get_channel(IC_CHAT_CHANNEL_ID) if IC_CHAT_CHANNEL_ID else None
-
-        if not ic_ch:
-            await interaction.response.send_message(
-                "\u274C IC-Chat-Kanal nicht konfiguriert. Bitte wende dich ans Team.",
-                ephemeral=True
-            )
-            return
-
-        try:
-            await ic_ch.send(
-                f"\U0001F4E2 {self.requester.mention} hat einen **{self.dispatch_type}-Dispatch** abgesendet "
-                f"und wartet noch auf eine Einheit! \U0001F6A8"
-            )
-            button.disabled = True
-            await interaction.response.edit_message(view=self)
-            await interaction.followup.send("\u2705 IC-Chat wurde gepingt!", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"\u274C Fehler beim Pingen: {e}", ephemeral=True)
+    await interaction.followup.send(embed=confirm_embed, ephemeral=True)
 
 
 async def auto_handy_setup():
@@ -2827,14 +2785,29 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
     items.remove(shop_item)
     save_shop(items)
 
+    # Item auch aus allen Spieler-Inventaren entfernen
+    item_name = shop_item["name"]
+    eco = load_economy()
+    players_cleaned = 0
+    total_removed   = 0
+    for uid, user_data in eco.items():
+        inv = user_data.get("inventory", [])
+        before = len(inv)
+        user_data["inventory"] = [i for i in inv if i != item_name]
+        removed = before - len(user_data["inventory"])
+        if removed > 0:
+            players_cleaned += 1
+            total_removed   += removed
+    save_economy(eco)
+
     embed = discord.Embed(
         title="\U0001F5D1\uFE0F Item aus Shop entfernt",
         description=(
-            f"**Item:** {shop_item['name']}\n"
+            f"**Item:** {item_name}\n"
             f"**Preis war:** {shop_item['price']:,} \U0001F4B5\n"
             f"**Entfernt von:** {interaction.user.mention}\n\n"
-            f"Das Item ist ab sofort nicht mehr im Shop verf\u00FCgbar.\n"
-            f"*(Bereits gekaufte Items bleiben in den Inventaren der Spieler.)*"
+            f"**Inventare bereinigt:** {players_cleaned} Spieler\n"
+            f"**Items entfernt:** {total_removed}x"
         ),
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
