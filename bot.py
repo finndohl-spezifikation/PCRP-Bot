@@ -2050,14 +2050,14 @@ async def ticketsetup(ctx):
 
 @bot.command(name="handysetup")
 async def handysetup(ctx):
-    """Postet das Handy-Embed erneut im Handy-Kanal. Nur fÃ¼r Admins."""
+    """Postet das Handy-Embed erneut im Handy-Kanal. Nur für Admins."""
     if not is_admin(ctx.author):
         return
     channel = ctx.guild.get_channel(HANDY_CHANNEL_ID)
     if not channel:
         await ctx.send("\u274C Handy-Kanal nicht gefunden!")
         return
-    # Altes Embed lÃ¶schen
+    # Altes Embed löschen
     try:
         async for msg in channel.history(limit=20):
             if msg.author.id == ctx.bot.user.id and msg.embeds:
@@ -4137,6 +4137,51 @@ async def lobby_abstimmung(interaction: discord.Interaction):
     await msg.add_reaction("\u2705")
     await msg.add_reaction("\U0001F551")
     await msg.add_reaction("\u274C")
+
+
+@bot.tree.command(name="lobby-open", description="[LOBBY] \u00D6ffnet die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+async def lobby_open(interaction: discord.Interaction):
+    if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Lobby-Team verf\u00FCgbar.", ephemeral=True)
+        return
+
+    kanal = interaction.guild.get_channel(LOBBY_CHANNEL_ID)
+    if not kanal:
+        await interaction.response.send_message("\u274C Lobby-Kanal nicht gefunden.", ephemeral=True)
+        return
+
+    host_name = interaction.user.display_name
+
+    embed = discord.Embed(
+        title="Lobby Status",
+        description=(
+            "Jetzt Ge\u00F6ffnet\n\n"
+            f"**Lobby Host**\n{host_name}\n\n"
+            "Das Team von Cryptik Roleplay w\u00FCnscht euch Viel spa\u00DF beim RP"
+        ),
+        color=0x00BFFF,
+        timestamp=datetime.now(timezone.utc)
+    )
+
+    GIF_URL = "https://share.creavite.co/69d7bee5a828deb1587385f2.gif"
+    ping_text = "<@&1490855734517174376>"
+
+    await interaction.response.send_message("\u2705 Lobby ge\u00F6ffnet!", ephemeral=True)
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(GIF_URL) as resp:
+                if resp.status == 200:
+                    gif_bytes = await resp.read()
+                    gif_file = discord.File(io.BytesIO(gif_bytes), filename="lobby_open.gif")
+                    embed.set_image(url="attachment://lobby_open.gif")
+                    await kanal.send(content=ping_text, file=gif_file, embed=embed)
+                else:
+                    raise ValueError(f"HTTP {resp.status}")
+    except Exception:
+        embed.set_image(url=GIF_URL)
+        await kanal.send(content=ping_text, embed=embed)
 
 
 # \u2500\u2500 Bot starten \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
