@@ -4123,6 +4123,106 @@ async def create_giveaway(interaction: discord.Interaction):
     asyncio.create_task(create_giveaway_channel_flow(interaction.user, interaction.guild, interaction.channel))
 
 
+@bot.tree.command(name="commands", description="Zeigt alle Bot-Commands an", guild=discord.Object(id=GUILD_ID))
+async def commands_list(interaction: discord.Interaction):
+    if not any(r.id == MOD_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="\U0001F916 Bot Commands \u2014 \u00DCbersicht",
+        color=0x00BFFF,
+        timestamp=datetime.now(timezone.utc)
+    )
+
+    embed.add_field(
+        name="\U0001F4B3 Konto",
+        value=(
+            "`/lohn-abholen` \u2014 St\u00FCndlichen Lohn abholen\n"
+            "`/kontostand` \u2014 Kontostand anzeigen\n"
+            "`/einzahlen` \u2014 Bargeld einzahlen\n"
+            "`/auszahlen` \u2014 Geld abheben\n"
+            "`/ueberweisen` \u2014 Geld \u00FCberweisen"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F6D2 Shop",
+        value=(
+            "`/shop` \u2014 Shop anzeigen\n"
+            "`/buy` \u2014 Item kaufen\n"
+            "`/shop-add` \u2014 Item zum Shop hinzuf\u00FCgen\n"
+            "`/delete-item` \u2014 Item aus Shop entfernen"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F392 Inventar",
+        value=(
+            "`/rucksack` \u2014 Inventar anzeigen\n"
+            "`/uebergeben` \u2014 Item weitergeben\n"
+            "`/verstecken` \u2014 Item verstecken"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F4CB Warn",
+        value=(
+            "`/warn` \u2014 Verwarnung ausgeben\n"
+            "`/warn-list` \u2014 Verwarnungen anzeigen\n"
+            "`/remove-warn` \u2014 Verwarnung entfernen"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F6E1\uFE0F Team",
+        value=(
+            "`/set-limit` \u2014 Tageslimit setzen\n"
+            "`/item-geben` \u2014 Item an Spieler geben\n"
+            "`/item-entfernen` \u2014 Item von Spieler entfernen\n"
+            "`/kartenkontrolle` \u2014 Kartenkontrolle-DM senden\n"
+            "`/ausweis-create` \u2014 Ausweis erstellen\n"
+            "`/delete` \u2014 Nachrichten l\u00F6schen\n"
+            "`/create-event` \u2014 Event erstellen\n"
+            "`/create-giveaway` \u2014 Giveaway erstellen"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F528 Admin",
+        value=(
+            "`/money-add` \u2014 Geld hinzuf\u00FCgen\n"
+            "`/remove-money` \u2014 Geld entfernen\n"
+            "`/item-add` \u2014 Item an Spieler geben\n"
+            "`/remove-item` \u2014 Item von Spieler entfernen\n"
+            "`/team-warn` \u2014 Team-Verwarnung ausgeben\n"
+            "`/teamwarn-list` \u2014 Team-Verwarnungen anzeigen\n"
+            "`/remove-teamwarn` \u2014 Team-Verwarnung entfernen\n"
+            "`/ausweis-remove` \u2014 Ausweis l\u00F6schen"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F4DD Ausweis",
+        value=(
+            "`/ausweisen` \u2014 Ausweis vorzeigen\n"
+            "`/ausweis-create` \u2014 Ausweis erstellen"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="\U0001F3AE Lobby",
+        value=(
+            "`/lobby-abstimmung` \u2014 Lobby-Abstimmung senden\n"
+            "`/lobby-open` \u2014 Lobby \u00F6ffnen\n"
+            "`/lobby-close` \u2014 Lobby schlie\u00DFen"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="Cryptik Roleplay \u2014 Bot Commands")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 @bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 async def lobby_abstimmung(interaction: discord.Interaction):
