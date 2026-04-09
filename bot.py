@@ -3,12 +3,13 @@ import io
 import json
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import re
 import asyncio
 import traceback
+import signal
 
 # Sicherheitscheck: Bot läuft NUR auf Railway, nie doppelt in Replit
 # Auf Railway ist RAILWAY_ENVIRONMENT automatisch gesetzt
@@ -113,16 +114,75 @@ LIMIT_CHOICES = [
     app_commands.Choice(name="10.000.000 💵",  value=10_000_000),
 ]
 
-# Persistenter Datenspeicher — auf Railway: Volume unter /data mounten und DATA_DIR=/data setzen
-# Ohne DATA_DIR wird der Ordner "data" neben der Bot-Datei genutzt (lokal ok, Railway: verloren bei Redeploy!)
+# ── Persistenter Datenspeicher ────────────────────────────────────────────
+# Railway: Volume unter /data mounten und DATA_DIR=/data als Umgebungsvariable setzen.
+# Ohne DATA_DIR wird "data/" neben der Bot-Datei genutzt — geht verloren bei Redeploy!
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Warnung wenn kein persistentes Verzeichnis gesetzt ist
+_using_persistent_volume = bool(os.environ.get("DATA_DIR"))
+if not _using_persistent_volume:
+    print("=" * 65)
+    print("⚠️  WARNUNG: DATA_DIR ist nicht gesetzt!")
+    print("   Daten werden in ./data/ gespeichert und gehen bei Redeploy verloren.")
+    print("   Auf Railway: Volume mounten und DATA_DIR=/data setzen!")
+    print("=" * 65)
 
 ECONOMY_FILE      = DATA_DIR / "economy_data.json"
 SHOP_FILE         = DATA_DIR / "shop_data.json"
 WARNS_FILE        = DATA_DIR / "warns_data.json"
 HIDDEN_ITEMS_FILE = DATA_DIR / "hidden_items.json"
 AUSWEIS_FILE      = DATA_DIR / "ausweis_data.json"
+
+
+# ── Sichere Speicher-Helfer (atomar + Backup) ─────────────────────────────
+
+import shutil
+
+def safe_json_save(filepath: Path, data) -> None:
+    """
+    Speichert JSON-Daten sicher:
+    1. Schreibt zuerst in eine .tmp Datei (kein Datenverlust bei Absturz)
+    2. Ersetzt die Hauptdatei atomar
+    3. Erstellt eine .bak Sicherungskopie
+    """
+    tmp_path = filepath.with_suffix(".tmp")
+    bak_path = filepath.with_suffix(".bak")
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        tmp_path.replace(filepath)
+        shutil.copy2(filepath, bak_path)
+    except Exception as e:
+        print(f"[FEHLER] safe_json_save({filepath.name}): {e}")
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def safe_json_load(filepath: Path, default):
+    """
+    Lädt JSON-Daten mit automatischem Fallback:
+    1. Versucht die Hauptdatei zu lesen
+    2. Bei Fehler: Fallback auf .bak Sicherungskopie
+    3. Wenn beides fehlt/kaputt: gibt default zurück
+    """
+    bak_path = filepath.with_suffix(".bak")
+    for path in [filepath, bak_path]:
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    result = json.load(f)
+                if path == bak_path:
+                    print(f"[WARNUNG] {filepath.name} kaputt — Backup geladen: {bak_path.name}")
+                    safe_json_save(filepath, result)
+                return result
+            except Exception as e:
+                print(f"[FEHLER] Lesen von {path.name} fehlgeschlagen: {e}")
+    return default
+
 
 # Neue Kanal- und Rollen-IDs
 WARN_LOG_CHANNEL_ID     = 1491113577258684466
@@ -274,15 +334,11 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
 # ── Economy Helpers ──────────────────────────────────────────────────────
 
 def load_economy():
-    if ECONOMY_FILE.exists():
-        with open(ECONOMY_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    return safe_json_load(ECONOMY_FILE, {})
 
 
 def save_economy(data):
-    with open(ECONOMY_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    safe_json_save(ECONOMY_FILE, data)
 
 
 def get_user(data, user_id):
@@ -316,15 +372,11 @@ def reset_daily_if_needed(user_data):
 
 
 def load_shop():
-    if SHOP_FILE.exists():
-        with open(SHOP_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    return safe_json_load(SHOP_FILE, [])
 
 
 def save_shop(items):
-    with open(SHOP_FILE, "w", encoding="utf-8") as f:
-        json.dump(items, f, indent=2, ensure_ascii=False)
+    safe_json_save(SHOP_FILE, items)
 
 
 def has_citizen_or_wage(member):
@@ -343,15 +395,11 @@ def is_team(member):
 # ── Warn Helpers ──────────────────────────────────────────────────────────
 
 def load_warns():
-    if WARNS_FILE.exists():
-        with open(WARNS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    return safe_json_load(WARNS_FILE, {})
 
 
 def save_warns(data):
-    with open(WARNS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    safe_json_save(WARNS_FILE, data)
 
 
 def get_user_warns(warns, user_id):
@@ -361,15 +409,11 @@ def get_user_warns(warns, user_id):
 # ── Hidden Items Helpers ──────────────────────────────────────────────────
 
 def load_hidden_items():
-    if HIDDEN_ITEMS_FILE.exists():
-        with open(HIDDEN_ITEMS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    return safe_json_load(HIDDEN_ITEMS_FILE, [])
 
 
 def save_hidden_items(data):
-    with open(HIDDEN_ITEMS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    safe_json_save(HIDDEN_ITEMS_FILE, data)
 
 
 # ── Money Log Helper ──────────────────────────────────────────────────────
@@ -995,6 +1039,12 @@ async def on_ready():
     await auto_lohnliste_setup()
     await auto_einreise_setup()
     bot.add_view(EinreiseView())
+
+    # Automatischen Backup-Task starten
+    if not auto_backup_task.is_running():
+        auto_backup_task.start()
+        print("[BACKUP] Auto-Backup-Task gestartet (alle 30 Minuten)")
+
     try:
         guild_obj = discord.Object(id=GUILD_ID)
         # Guild-Commands registrieren (sofort aktiv, keine globalen Duplikate)
@@ -2938,15 +2988,11 @@ async def kartenkontrolle(interaction: discord.Interaction):
 # ── Ausweis Helpers ──────────────────────────────────────────────────────────
 
 def load_ausweis():
-    if AUSWEIS_FILE.exists():
-        with open(AUSWEIS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    return safe_json_load(AUSWEIS_FILE, {})
 
 
 def save_ausweis(data):
-    with open(AUSWEIS_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    safe_json_save(AUSWEIS_FILE, data)
 
 
 import random
@@ -2995,9 +3041,18 @@ class EinreiseModal(discord.ui.Modal, title="Ausweis erstellen"):
             }
             save_ausweis(ausweis_data)
 
-            # Charakter-Rollen automatisch zuweisen
             member = interaction.guild.get_member(interaction.user.id)
             if member:
+                # Einreise-Rolle vergeben (Legal / Illegal)
+                einreise_role_id = LEGAL_ROLE_ID if self.einreise_typ == "legal" else ILLEGAL_ROLE_ID
+                einreise_role    = interaction.guild.get_role(einreise_role_id)
+                if einreise_role:
+                    try:
+                        await member.add_roles(einreise_role, reason=f"Einreise: {self.einreise_typ}")
+                    except Exception:
+                        pass
+
+                # Charakter-Rollen automatisch zuweisen
                 rollen_zu_vergeben = [
                     interaction.guild.get_role(rid)
                     for rid in CHARAKTER_ROLLEN
@@ -3076,7 +3131,6 @@ class EinreiseSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         member   = interaction.user
-        guild    = interaction.guild
         role_ids = [r.id for r in member.roles]
 
         # Prüfen ob bereits eingereist
@@ -3087,16 +3141,8 @@ class EinreiseSelect(discord.ui.Select):
             )
             return
 
-        typ     = self.values[0]
-        role_id = LEGAL_ROLE_ID if typ == "legal" else ILLEGAL_ROLE_ID
-        role    = guild.get_role(role_id)
-
-        if role:
-            try:
-                await member.add_roles(role, reason=f"Einreise: {typ}")
-            except Exception as e:
-                await log_bot_error("Einreise-Rolle vergeben fehlgeschlagen", str(e), guild)
-
+        # Modal sofort öffnen — Rolle & Daten werden erst im on_submit gespeichert
+        typ = self.values[0]
         await interaction.response.send_modal(EinreiseModal(typ))
 
 
@@ -3382,6 +3428,67 @@ async def delete_messages(interaction: discord.Interaction, anzahl: int):
         f"✅ **{len(geloescht)}** Nachrichten wurden gelöscht.",
         ephemeral=True
     )
+
+
+# ── Datensicherung ────────────────────────────────────────────────────────────
+
+BACKUP_DIR = DATA_DIR / "backups"
+BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
+ALL_DATA_FILES = [
+    ECONOMY_FILE,
+    SHOP_FILE,
+    WARNS_FILE,
+    HIDDEN_ITEMS_FILE,
+    AUSWEIS_FILE,
+]
+
+
+def backup_all_data():
+    """Erstellt einen Snapshot aller Datendateien im backups/-Ordner."""
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    saved = []
+    for src in ALL_DATA_FILES:
+        if src.exists():
+            dst = BACKUP_DIR / f"{src.stem}_{ts}.json"
+            try:
+                shutil.copy2(src, dst)
+                saved.append(src.name)
+            except Exception as e:
+                print(f"[BACKUP] Fehler beim Sichern von {src.name}: {e}")
+    # Alte Backups aufräumen: nur die letzten 10 je Datei behalten
+    for src in ALL_DATA_FILES:
+        old_backups = sorted(BACKUP_DIR.glob(f"{src.stem}_*.json"))
+        for old in old_backups[:-10]:
+            try:
+                old.unlink()
+            except Exception:
+                pass
+    if saved:
+        print(f"[BACKUP] Gesichert: {', '.join(saved)}")
+
+
+@tasks.loop(minutes=30)
+async def auto_backup_task():
+    """Automatischer Backup alle 30 Minuten."""
+    try:
+        backup_all_data()
+    except Exception as e:
+        print(f"[BACKUP] Auto-Backup Fehler: {e}")
+
+
+def _shutdown_handler(signum, frame):
+    """Beim Herunterfahren (SIGTERM/SIGINT) alle Daten nochmal sichern."""
+    print("[SHUTDOWN] Signal empfangen — erstelle finalen Backup...")
+    try:
+        backup_all_data()
+    except Exception as e:
+        print(f"[SHUTDOWN] Backup-Fehler: {e}")
+    print("[SHUTDOWN] Backup abgeschlossen. Bot wird beendet.")
+
+
+signal.signal(signal.SIGTERM, _shutdown_handler)
+signal.signal(signal.SIGINT,  _shutdown_handler)
 
 
 token = os.environ.get("DISCORD_TOKEN")
