@@ -66,6 +66,7 @@ TICKET_CATEGORY_DEFAULT  = 1490882554570608751
 TICKET_CATEGORY_HIGHTEAM = 1491069210389119016
 TICKET_CATEGORY_FRAKTION = 1491069425384685750
 TICKET_LOG_CHANNEL_ID    = 1490878139306606743
+TICKET_RATING_CHANNEL_ID = 1491788506404491336
 
 COUNTING_CHANNEL_ID = 1490882580487340044
 
@@ -564,7 +565,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Dispatch MD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="ðŸš¨ | Dispatch MD",
+        label="\U0001F6A8 | Dispatch MD",
         style=discord.ButtonStyle.red,
         custom_id="handy_dispatch_md",
         row=0
@@ -574,7 +575,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Dispatch PD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="ðŸš¨ | Dispatch PD",
+        label="\U0001F6A8 | Dispatch PD",
         style=discord.ButtonStyle.red,
         custom_id="handy_dispatch_pd",
         row=0
@@ -584,7 +585,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Dispatch ADAC \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="ðŸš¨ | Dispatch ADAC",
+        label="\U0001F6A8 | Dispatch ADAC",
         style=discord.ButtonStyle.red,
         custom_id="handy_dispatch_adac",
         row=0
@@ -594,7 +595,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Handy Nummer Einsehen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="ðŸ“± | Handy Nummer Einsehen",
+        label="\U0001F4F1 | Handy Nummer Einsehen",
         style=discord.ButtonStyle.blurple,
         custom_id="handy_nummer",
         row=1
@@ -783,15 +784,15 @@ async def auto_handy_setup():
             pass
         # Frisches Embed mit korrekten Emojis posten
         embed = discord.Embed(
-            title="ðŸ“± Handy \u2014 Einstellungen",
+            title="\U0001F4F1 Handy \u2014 Einstellungen",
             description=(
                 "Willkommen in deinen Handy-Einstellungen!\n\n"
                 "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
                 "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-                "**ðŸš¨ Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
-                "**ðŸ“± Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
-                "**ðŸ“± Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
-                "âš ï¸ *Du benÃ¶tigst das Item* `ðŸ“±| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+                "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
+                "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
+                "**\U0001F4F1 Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
+                "\u26A0\uFE0F *Du benÃ¶tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
             ),
             color=0x00BFFF,
             timestamp=datetime.now(timezone.utc)
@@ -1158,6 +1159,72 @@ class TicketActionView(discord.ui.View):
         )
 
 
+class CommentModal(discord.ui.Modal, title="\u2B50 Ticket Bewertung"):
+    kommentar = discord.ui.TextInput(
+        label="Wie war deine Erfahrung? (optional)",
+        style=discord.TextStyle.long,
+        placeholder="Schreibe hier dein Feedback zur Ticket-Bearbeitung...",
+        required=False,
+        max_length=1000
+    )
+
+    def __init__(self, stars: int, rating_view: "RatingView"):
+        super().__init__()
+        self.stars       = stars
+        self.rating_view = rating_view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.rating_view.rated:
+            await interaction.response.send_message(
+                "Du hast dieses Ticket bereits bewertet.", ephemeral=True
+            )
+            return
+        self.rating_view.rated = True
+
+        stars        = self.stars
+        star_display = "\u2B50" * stars + "\u2606" * (5 - stars)
+        comment_text = self.kommentar.value.strip() if self.kommentar.value else ""
+
+        thank_desc = (
+            f"Du hast **{star_display}** ({stars}/5) gegeben.\n\n"
+            + (f"**Dein Kommentar:**\n{comment_text}\n\n" if comment_text else "")
+            + "Vielen Dank f\u00FCr dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
+            "Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gel\u00F6st."
+        )
+        thank_embed = discord.Embed(
+            title="\U0001F499 Danke f\u00FCr deine Bewertung!",
+            description=thank_desc,
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        await interaction.response.send_message(embed=thank_embed)
+
+        log_ch = self.rating_view.guild_ref.get_channel(TICKET_RATING_CHANNEL_ID)
+        if log_ch:
+            rating_desc = (
+                f"**Ticket:** {self.rating_view.channel_name}\n"
+                f"**Typ:** {self.rating_view.ticket_type}\n"
+                f"**Erstellt von:** {self.rating_view.creator_name}\n"
+                f"**Bearbeitet von:** {self.rating_view.handler_name}\n"
+                f"**Bewertung:** {star_display} ({stars}/5)"
+                + (f"\n**Kommentar:** {comment_text}" if comment_text else "")
+            )
+            rating_embed = discord.Embed(
+                title="\u2B50 Ticket Bewertung",
+                description=rating_desc,
+                color=LOG_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            await log_ch.send(embed=rating_embed)
+
+        for item in self.rating_view.children:
+            item.disabled = True
+        try:
+            await interaction.message.edit(view=self.rating_view)
+        except Exception:
+            pass
+
+
 class RatingView(discord.ui.View):
     def __init__(self, channel_name, handler_name, handler_id, ticket_type, creator_name, guild):
         super().__init__(timeout=604800)
@@ -1169,70 +1236,26 @@ class RatingView(discord.ui.View):
         self.guild_ref    = guild
         self.rated        = False
 
-    async def submit_rating(self, interaction: discord.Interaction, stars: int):
-        if self.rated:
-            await interaction.response.send_message(
-                "Du hast dieses Ticket bereits bewertet.", ephemeral=True
-            )
-            return
-        self.rated = True
-
-        star_display = "\u2B50" * stars + "\u2606" * (5 - stars)
-
-        thank_embed = discord.Embed(
-            title="\U0001F499 Danke f\u00FCr deine Bewertung!",
-            description=(
-                f"Du hast **{star_display}** ({stars}/5) gegeben.\n\n"
-                f"Vielen Dank f\u00FCr dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
-                f"Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gel\u00F6st."
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
-        await interaction.response.send_message(embed=thank_embed)
-
-        log_ch = self.guild_ref.get_channel(TICKET_LOG_CHANNEL_ID)
-        if log_ch:
-            rating_embed = discord.Embed(
-                title="\u2B50 Ticket Bewertung",
-                description=(
-                    f"**Ticket:** {self.channel_name}\n"
-                    f"**Typ:** {self.ticket_type}\n"
-                    f"**Erstellt von:** {self.creator_name}\n"
-                    f"**Bearbeitet von:** {self.handler_name}\n"
-                    f"**Bewertung:** {star_display} ({stars}/5)"
-                ),
-                color=LOG_COLOR,
-                timestamp=datetime.now(timezone.utc)
-            )
-            await log_ch.send(embed=rating_embed)
-
-        for item in self.children:
-            item.disabled = True
-        try:
-            await interaction.message.edit(view=self)
-        except Exception:
-            pass
-
     @discord.ui.button(label="\u2B50 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
     async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.submit_rating(interaction, 1)
+        await interaction.response.send_modal(CommentModal(stars=1, rating_view=self))
 
     @discord.ui.button(label="\u2B50 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
     async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.submit_rating(interaction, 2)
+        await interaction.response.send_modal(CommentModal(stars=2, rating_view=self))
 
     @discord.ui.button(label="\u2B50 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
     async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.submit_rating(interaction, 3)
+        await interaction.response.send_modal(CommentModal(stars=3, rating_view=self))
 
     @discord.ui.button(label="\u2B50 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
     async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.submit_rating(interaction, 4)
+        await interaction.response.send_modal(CommentModal(stars=4, rating_view=self))
 
     @discord.ui.button(label="\u2B50 5", style=discord.ButtonStyle.green, custom_id="rating_5")
     async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.submit_rating(interaction, 5)
+        await interaction.response.send_modal(CommentModal(stars=5, rating_view=self))
+
 
 
 # \u2500\u2500 Events \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -2025,15 +2048,15 @@ async def handysetup(ctx):
     except Exception:
         pass
     embed = discord.Embed(
-        title="ðŸ“± Handy \u2014 Einstellungen",
+        title="\U0001F4F1 Handy \u2014 Einstellungen",
         description=(
             "Willkommen in deinen Handy-Einstellungen!\n\n"
             "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
             "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-            "**ðŸš¨ Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
-            "**ðŸ“± Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
-            "**ðŸ“± Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
-            "âš ï¸ *Du benÃ¶tigst das Item* `ðŸ“±| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+            "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
+            "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
+            "**\U0001F4F1 Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
+            "\u26A0\uFE0F *Du benÃ¶tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
         ),
         color=0x00BFFF,
         timestamp=datetime.now(timezone.utc)
