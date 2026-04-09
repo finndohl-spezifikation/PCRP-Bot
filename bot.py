@@ -4105,7 +4105,6 @@ async def commands_list(interaction: discord.Interaction):
         value=(
             "`/set-limit` \u2014 Tageslimit setzen\n"
             "`/kartenkontrolle` \u2014 Kartenkontrolle-DM senden\n"
-            "`/ausweis-create` \u2014 Ausweis erstellen\n"
             "`/delete` \u2014 Nachrichten l\u00F6schen\n"
             "`/create-event` \u2014 Event erstellen\n"
             "`/create-giveaway` \u2014 Giveaway erstellen"
