@@ -3415,8 +3415,8 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
 # /use-item
 @bot.tree.command(name="use-item", description="[Inventar] Benutze und entferne ein Item aus deinem Inventar", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(
-    item="Name des Items das du benutzen mÃ¶chtest",
-    menge="Wie viele mÃ¶chtest du benutzen? (Standard: 1)"
+    item="Name des Items das du benutzen m\u00F6chtest",
+    menge="Wie viele m\u00F6chtest du benutzen? (Standard: 1)"
 )
 async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
@@ -3427,7 +3427,7 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
         return
 
     if menge < 1:
-        await interaction.response.send_message("âŒ Die Menge muss mindestens **1** sein.", ephemeral=True)
+        await interaction.response.send_message("\u274C Die Menge muss mindestens **1** sein.", ephemeral=True)
         return
 
     eco       = load_economy()
@@ -3437,14 +3437,14 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
     match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
-            f"âŒ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+            f"\u274C **{item}** ist nicht in deinem Inventar.", ephemeral=True
         )
         return
 
     verfuegbar = inv.count(match)
     if menge > verfuegbar:
         await interaction.response.send_message(
-            f"âŒ Du hast nur **{verfuegbar}x {match}** im Inventar, aber mÃ¶chtest **{menge}** benutzen.",
+            f"\u274C Du hast nur **{verfuegbar}x {match}** im Inventar, aber m\u00F6chtest **{menge}** benutzen.",
             ephemeral=True
         )
         return
@@ -3453,9 +3453,9 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
         inv.remove(match)
     save_economy(eco)
 
-    menge_text = f" Ã— {menge}" if menge > 1 else ""
+    menge_text = f" \u00D7 {menge}" if menge > 1 else ""
     embed = discord.Embed(
-        title="âœ… Item benutzt",
+        title="\u2705 Item benutzt",
         description=(
             f"**{interaction.user.mention}** hat **{match}**{menge_text} benutzt.\n"
             f"Das Item wurde aus dem Inventar entfernt."
