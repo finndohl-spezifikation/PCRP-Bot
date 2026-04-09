@@ -3431,49 +3431,121 @@ async def create_event(interaction: discord.Interaction):
 GIVEAWAY_CHANNEL_ID = 1490882565618536551
 
 
+def parse_dauer_zu_sekunden(text: str):
+    """Parst eine Zeitangabe wie '2 Tage', '3 Stunden', '30 Minuten' in Sekunden."""
+    text = text.lower().strip()
+    einheiten = {
+        "tag": 86400, "tage": 86400,
+        "stunde": 3600, "stunden": 3600,
+        "minute": 60, "minuten": 60,
+        "sekunde": 1, "sekunden": 1,
+    }
+    gesamt = 0
+    gefunden = False
+    teile = text.split()
+    i = 0
+    while i < len(teile):
+        try:
+            zahl = float(teile[i].replace(",", "."))
+            if i + 1 < len(teile):
+                einheit = teile[i + 1].rstrip(".")
+                if einheit in einheiten:
+                    gesamt += int(zahl * einheiten[einheit])
+                    gefunden = True
+                    i += 2
+                    continue
+        except ValueError:
+            pass
+        i += 1
+    return gesamt if gefunden else None
+
+
 async def create_giveaway_channel_flow(admin: discord.Member, guild: discord.Guild, channel: discord.TextChannel):
     def check(m):
         return m.author.id == admin.id and m.channel.id == channel.id
 
-    felder = [
-        ("gewinn",      "🎁 **Was wird verlost?** (z.B. 500.000$, Fahrzeug, Item):"),
-        ("beschreibung","📝 **Beschreibung des Giveaways:**"),
-        ("laufzeit",    "⏱️ **Wie lange läuft das Giveaway?** (z.B. 24 Stunden, 3 Tage):"),
-        ("gewinner",    "🏆 **Wie viele Gewinner?** (z.B. 1, 3):"),
-        ("bedingungen", "📋 **Teilnahmebedingungen?** (z.B. Keine, Mindestens 30 Tage auf dem Server):"),
-    ]
+    # Frage 1: Was wird verlost?
+    frage1 = await channel.send(f"{admin.mention} 🎁 **Was wird verlost?** (z.B. 500.000$, Fahrzeug, Item):")
+    antwort1 = await bot.wait_for("message", check=check, timeout=None)
+    gewinn = antwort1.content.strip()
+    try:
+        await frage1.delete()
+        await antwort1.delete()
+    except Exception:
+        pass
 
-    antworten = {}
-
-    for key, frage in felder:
-        frage_msg = await channel.send(f"{admin.mention} {frage}")
-        antwort = await bot.wait_for("message", check=check, timeout=None)
-        antworten[key] = antwort.content.strip()
+    # Frage 2: Laufzeit
+    frage2 = await channel.send(f"{admin.mention} ⏱️ **Wie lange läuft das Giveaway?** (z.B. `2 Tage`, `12 Stunden`, `30 Minuten`):")
+    while True:
+        antwort2 = await bot.wait_for("message", check=check, timeout=None)
+        laufzeit_text = antwort2.content.strip()
+        sekunden = parse_dauer_zu_sekunden(laufzeit_text)
         try:
-            await frage_msg.delete()
-            await antwort.delete()
+            await antwort2.delete()
         except Exception:
             pass
+        if sekunden and sekunden > 0:
+            break
+        fehler = await channel.send(
+            f"{admin.mention} ❌ Zeitformat nicht erkannt. Bitte so eingeben: `2 Tage`, `12 Stunden`, `30 Minuten`",
+            delete_after=8
+        )
+    try:
+        await frage2.delete()
+    except Exception:
+        pass
 
     giveaway_channel = guild.get_channel(GIVEAWAY_CHANNEL_ID)
     if giveaway_channel is None:
         await channel.send(f"{admin.mention} ❌ Giveaway-Channel nicht gefunden.", delete_after=10)
         return
 
+    end_timestamp = int((datetime.now(timezone.utc).timestamp()) + sekunden)
+
     embed = discord.Embed(
         title="🎉 Giveaway!",
         color=0xF1C40F,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.add_field(name="🎁 Gewinn",        value=antworten["gewinn"],       inline=False)
-    embed.add_field(name="⏱️ Laufzeit",       value=antworten["laufzeit"],     inline=True)
-    embed.add_field(name="🏆 Gewinner",       value=antworten["gewinner"],     inline=True)
-    embed.add_field(name="📋 Bedingungen",    value=antworten["bedingungen"],  inline=False)
-    embed.add_field(name="📝 Beschreibung",   value=antworten["beschreibung"], inline=False)
+    embed.add_field(name="🎁 Gewinn",       value=gewinn,                              inline=False)
+    embed.add_field(name="⏱️ Endet",        value=f"<t:{end_timestamp}:R>",            inline=False)
     embed.set_footer(text=f"Giveaway erstellt von {admin.display_name}")
 
     await giveaway_channel.send(embed=embed)
-    await channel.send(f"{admin.mention} ✅ **Giveaway wurde erfolgreich gepostet** in {giveaway_channel.mention}!", delete_after=10)
+    await channel.send(
+        f"{admin.mention} ✅ **Giveaway gepostet** in {giveaway_channel.mention}! Endet <t:{end_timestamp}:R>.",
+        delete_after=15
+    )
+
+    # Warten bis Giveaway endet
+    await asyncio.sleep(sekunden)
+
+    # Zufälligen Gewinner auswählen (kein Bot)
+    mitglieder = [m for m in guild.members if not m.bot]
+    if not mitglieder:
+        await giveaway_channel.send("❌ Kein Gewinner gefunden — keine Mitglieder auf dem Server.")
+        return
+
+    gewinner = random.choice(mitglieder)
+    ticket_channel = guild.get_channel(TICKET_CHANNEL_ID)
+    ticket_mention = ticket_channel.mention if ticket_channel else "#tickets"
+
+    end_embed = discord.Embed(
+        title="🎊 Giveaway beendet!",
+        color=0xF1C40F,
+        timestamp=datetime.now(timezone.utc)
+    )
+    end_embed.add_field(name="🎁 Gewinn",    value=gewinn,              inline=False)
+    end_embed.add_field(name="🏆 Gewinner",  value=gewinner.mention,    inline=False)
+    end_embed.set_footer(text="Herzlichen Glückwunsch!")
+
+    await giveaway_channel.send(
+        content=(
+            f"🎊 {gewinner.mention} du hast das Giveaway gewonnen!\n"
+            f"Bitte melde dich in {ticket_mention} um deinen Gewinn abzuholen!"
+        ),
+        embed=end_embed
+    )
 
 
 @bot.tree.command(name="create-giveaway", description="[TEAM] Erstellt ein neues Giveaway", guild=discord.Object(id=GUILD_ID))
