@@ -136,9 +136,9 @@ HANDY_FILE        = DATA_DIR / "handy_numbers.json"
 WARN_LOG_CHANNEL_ID      = 1491113577258684466
 TEAM_WARN_LOG_CHANNEL_ID = 1490878144146833450
 MONEY_LOG_CHANNEL_ID    = 1490878138429997087
-RUCKSACK_CHANNEL_ID     = 1490882592445304972
-UEBERGEBEN_CHANNEL_ID   = 1490882589014364250
-VERSTECKEN_CHANNEL_ID   = 1490882591023173682
+RUCKSACK_CHANNEL_ID     = 1490882591023173682
+UEBERGEBEN_CHANNEL_ID   = 1490882592445304972
+VERSTECKEN_CHANNEL_ID   = 1490882589014364250
 TEAM_CITIZEN_CHANNEL_ID = 1490882591023173682
 
 WELCOME_CHANNEL_ID  = 1490878151897911557
@@ -3253,8 +3253,8 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     role_ids = [r.id for r in interaction.user.roles]
     is_adm   = ADMIN_ROLE_ID in role_ids
 
-    if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
+    if not is_adm and interaction.channel.id != UEBERGEBEN_CHANNEL_ID:
+        await interaction.response.send_message(channel_error(UEBERGEBEN_CHANNEL_ID), ephemeral=True)
         return
 
     if nutzer.id == interaction.user.id:
