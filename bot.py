@@ -3362,9 +3362,9 @@ EVENT_ANNOUNCEMENT_CHANNEL_ID = 1490882564561567864
 EVENT_PING_ROLE_ID             = 1490855737130221598
 
 
-async def create_event_dm_flow(admin: discord.Member, guild: discord.Guild, original_channel: discord.TextChannel):
-    def dm_check(m):
-        return m.author.id == admin.id and isinstance(m.channel, discord.DMChannel)
+async def create_event_channel_flow(admin: discord.Member, guild: discord.Guild, channel: discord.TextChannel):
+    def check(m):
+        return m.author.id == admin.id and m.channel.id == channel.id
 
     felder = [
         ("was",        "📋 **Was ist das Event?** (z.B. Fahrzeugrennen, Bankraub, Stadtfest):"),
@@ -3376,32 +3376,19 @@ async def create_event_dm_flow(admin: discord.Member, guild: discord.Guild, orig
 
     antworten = {}
 
-    try:
-        dm = await admin.create_dm()
-        await dm.send(
-            "🎉 **Event-Erstellung gestartet!**\n"
-            f"Beantworte bitte die folgenden **{len(felder)} Fragen**. "
-            "Du hast jeweils **3 Minuten** pro Antwort."
-        )
-    except Exception:
-        await original_channel.send(
-            f"{admin.mention} ❌ Ich kann dir keine DM senden. Bitte aktiviere DMs von Servermitgliedern.",
-            delete_after=15
-        )
-        return
-
     for key, frage in felder:
-        await dm.send(frage)
+        frage_msg = await channel.send(f"{admin.mention} {frage}")
+        antwort = await bot.wait_for("message", check=check, timeout=None)
+        antworten[key] = antwort.content.strip()
         try:
-            antwort = await bot.wait_for("message", check=dm_check, timeout=180.0)
-            antworten[key] = antwort.content.strip()
-        except asyncio.TimeoutError:
-            await dm.send("❌ Zeit abgelaufen! Bitte starte `/create-event` erneut.")
-            return
+            await frage_msg.delete()
+            await antwort.delete()
+        except Exception:
+            pass
 
     event_channel = guild.get_channel(EVENT_ANNOUNCEMENT_CHANNEL_ID)
     if event_channel is None:
-        await dm.send("❌ Event-Channel nicht gefunden. Bitte einen Admin kontaktieren.")
+        await channel.send(f"{admin.mention} ❌ Event-Channel nicht gefunden.", delete_after=10)
         return
 
     ping_role = guild.get_role(EVENT_PING_ROLE_ID)
@@ -3412,15 +3399,15 @@ async def create_event_dm_flow(admin: discord.Member, guild: discord.Guild, orig
         color=0x00B4D8,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.add_field(name="📋 Event",       value=antworten["was"],        inline=False)
-    embed.add_field(name="📍 Startpunkt",  value=antworten["startpunkt"], inline=True)
-    embed.add_field(name="⏱️ Dauer",       value=antworten["dauer"],      inline=True)
-    embed.add_field(name="💰 Preis",       value=antworten["preis"],      inline=True)
+    embed.add_field(name="📋 Event",        value=antworten["was"],        inline=False)
+    embed.add_field(name="📍 Startpunkt",   value=antworten["startpunkt"], inline=True)
+    embed.add_field(name="⏱️ Dauer",        value=antworten["dauer"],      inline=True)
+    embed.add_field(name="💰 Preis",        value=antworten["preis"],      inline=True)
     embed.add_field(name="📝 Beschreibung", value=antworten["erklaerung"], inline=False)
     embed.set_footer(text=f"Event erstellt von {admin.display_name}")
 
     await event_channel.send(content=role_mention, embed=embed)
-    await dm.send(f"✅ **Event wurde erfolgreich gepostet** in {event_channel.mention}!")
+    await channel.send(f"{admin.mention} ✅ **Event wurde erfolgreich gepostet** in {event_channel.mention}!", delete_after=10)
 
 
 @bot.tree.command(name="create-event", description="[TEAM] Erstellt ein neues Event", guild=discord.Object(id=GUILD_ID))
@@ -3431,10 +3418,10 @@ async def create_event(interaction: discord.Interaction):
         return
 
     await interaction.response.send_message(
-        "🎉 Event-Erstellung gestartet! Ich schicke dir die Fragen per **DM** — nur du siehst sie.",
+        "🎉 **Event-Erstellung gestartet!** Beantworte die Fragen hier im Channel.",
         ephemeral=True
     )
-    asyncio.create_task(create_event_dm_flow(interaction.user, interaction.guild, interaction.channel))
+    asyncio.create_task(create_event_channel_flow(interaction.user, interaction.guild, interaction.channel))
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -3444,9 +3431,9 @@ async def create_event(interaction: discord.Interaction):
 GIVEAWAY_CHANNEL_ID = 1490882565618536551
 
 
-async def create_giveaway_dm_flow(admin: discord.Member, guild: discord.Guild, original_channel: discord.TextChannel):
-    def dm_check(m):
-        return m.author.id == admin.id and isinstance(m.channel, discord.DMChannel)
+async def create_giveaway_channel_flow(admin: discord.Member, guild: discord.Guild, channel: discord.TextChannel):
+    def check(m):
+        return m.author.id == admin.id and m.channel.id == channel.id
 
     felder = [
         ("gewinn",      "🎁 **Was wird verlost?** (z.B. 500.000$, Fahrzeug, Item):"),
@@ -3458,32 +3445,19 @@ async def create_giveaway_dm_flow(admin: discord.Member, guild: discord.Guild, o
 
     antworten = {}
 
-    try:
-        dm = await admin.create_dm()
-        await dm.send(
-            "🎉 **Giveaway-Erstellung gestartet!**\n"
-            f"Beantworte bitte die folgenden **{len(felder)} Fragen**. "
-            "Du hast jeweils **3 Minuten** pro Antwort."
-        )
-    except Exception:
-        await original_channel.send(
-            f"{admin.mention} ❌ Ich kann dir keine DM senden. Bitte aktiviere DMs von Servermitgliedern.",
-            delete_after=15
-        )
-        return
-
     for key, frage in felder:
-        await dm.send(frage)
+        frage_msg = await channel.send(f"{admin.mention} {frage}")
+        antwort = await bot.wait_for("message", check=check, timeout=None)
+        antworten[key] = antwort.content.strip()
         try:
-            antwort = await bot.wait_for("message", check=dm_check, timeout=180.0)
-            antworten[key] = antwort.content.strip()
-        except asyncio.TimeoutError:
-            await dm.send("❌ Zeit abgelaufen! Bitte starte `/create-giveaway` erneut.")
-            return
+            await frage_msg.delete()
+            await antwort.delete()
+        except Exception:
+            pass
 
     giveaway_channel = guild.get_channel(GIVEAWAY_CHANNEL_ID)
     if giveaway_channel is None:
-        await dm.send("❌ Giveaway-Channel nicht gefunden. Bitte einen Admin kontaktieren.")
+        await channel.send(f"{admin.mention} ❌ Giveaway-Channel nicht gefunden.", delete_after=10)
         return
 
     embed = discord.Embed(
@@ -3491,15 +3465,15 @@ async def create_giveaway_dm_flow(admin: discord.Member, guild: discord.Guild, o
         color=0xF1C40F,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.add_field(name="🎁 Gewinn",             value=antworten["gewinn"],      inline=False)
-    embed.add_field(name="⏱️ Laufzeit",            value=antworten["laufzeit"],    inline=True)
-    embed.add_field(name="🏆 Gewinner",            value=antworten["gewinner"],    inline=True)
-    embed.add_field(name="📋 Bedingungen",         value=antworten["bedingungen"], inline=False)
-    embed.add_field(name="📝 Beschreibung",        value=antworten["beschreibung"],inline=False)
+    embed.add_field(name="🎁 Gewinn",        value=antworten["gewinn"],       inline=False)
+    embed.add_field(name="⏱️ Laufzeit",       value=antworten["laufzeit"],     inline=True)
+    embed.add_field(name="🏆 Gewinner",       value=antworten["gewinner"],     inline=True)
+    embed.add_field(name="📋 Bedingungen",    value=antworten["bedingungen"],  inline=False)
+    embed.add_field(name="📝 Beschreibung",   value=antworten["beschreibung"], inline=False)
     embed.set_footer(text=f"Giveaway erstellt von {admin.display_name}")
 
     await giveaway_channel.send(embed=embed)
-    await dm.send(f"✅ **Giveaway wurde erfolgreich gepostet** in {giveaway_channel.mention}!")
+    await channel.send(f"{admin.mention} ✅ **Giveaway wurde erfolgreich gepostet** in {giveaway_channel.mention}!", delete_after=10)
 
 
 @bot.tree.command(name="create-giveaway", description="[TEAM] Erstellt ein neues Giveaway", guild=discord.Object(id=GUILD_ID))
@@ -3510,10 +3484,10 @@ async def create_giveaway(interaction: discord.Interaction):
         return
 
     await interaction.response.send_message(
-        "🎉 Giveaway-Erstellung gestartet! Ich schicke dir die Fragen per **DM** — nur du siehst sie.",
+        "🎉 **Giveaway-Erstellung gestartet!** Beantworte die Fragen hier im Channel.",
         ephemeral=True
     )
-    asyncio.create_task(create_giveaway_dm_flow(interaction.user, interaction.guild, interaction.channel))
+    asyncio.create_task(create_giveaway_channel_flow(interaction.user, interaction.guild, interaction.channel))
 
 
 token = os.environ.get("DISCORD_TOKEN")
