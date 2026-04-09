@@ -10,6 +10,8 @@ import re
 import asyncio
 import traceback
 import signal
+import random
+import string
 
 # Sicherheitscheck: Bot läuft NUR auf Railway, nie doppelt in Replit
 # Auf Railway ist RAILWAY_ENVIRONMENT automatisch gesetzt
@@ -196,6 +198,7 @@ WELCOME_CHANNEL_ID  = 1490878151897911557
 GOODBYE_CHANNEL_ID  = 1490878154733260951
 EINREISE_CHANNEL_ID = 1490878156582686853
 AUSWEIS_CHANNEL_ID  = 1490882590012604538
+ALINA_ROLE_ID       = 1490855646558556282
 LEGAL_ROLE_ID       = 1490855729635135489
 ILLEGAL_ROLE_ID     = 1490855730767597738
 
@@ -2995,114 +2998,125 @@ def save_ausweis(data):
     safe_json_save(AUSWEIS_FILE, data)
 
 
-import random
-import string
-
-
 def generate_ausweisnummer():
     letters = random.choices(string.ascii_uppercase, k=2)
     digits  = random.choices(string.digits, k=6)
     return "".join(letters) + "-" + "".join(digits)
 
 
-# ── Einreise Modal ──────────────────────────────────────────────────────────
+# ── Ausweis Chat-Eingabe ──────────────────────────────────────────────────────
 
-class EinreiseModal(discord.ui.Modal, title="Ausweis erstellen"):
-    vorname        = discord.ui.TextInput(label="Vorname",              placeholder="Max",               max_length=50)
-    nachname       = discord.ui.TextInput(label="Nachname",             placeholder="Mustermann",        max_length=50)
-    gebdatum_alter = discord.ui.TextInput(label="Geburtsdatum / Alter", placeholder="TT.MM.JJJJ / 25", max_length=30)
-    nationalitaet  = discord.ui.TextInput(label="Nationalitaet",        placeholder="Deutsch",          max_length=50)
-    wohnort        = discord.ui.TextInput(label="Wohnort",              placeholder="Los Santos",       max_length=100)
+async def collect_ausweis_via_chat(interaction: discord.Interaction, einreise_typ: str):
+    """Sammelt alle Ausweisdaten Schritt für Schritt über den Chat."""
+    channel = interaction.channel
+    user    = interaction.user
 
-    def __init__(self, einreise_typ: str):
-        super().__init__()
-        self.einreise_typ = einreise_typ
+    felder = [
+        ("Vorname",      "z.B. `Max`"),
+        ("Nachname",     "z.B. `Mustermann`"),
+        ("Geburtsdatum", "z.B. `01.01.2000`"),
+        ("Alter",        "z.B. `25`"),
+        ("Nationalität", "z.B. `Deutsch`"),
+        ("Wohnort",      "z.B. `Los Santos`"),
+    ]
 
-    async def on_submit(self, interaction: discord.Interaction):
+    antworten   = {}
+    zu_loeschen = []
+
+    def check(m):
+        return m.author.id == user.id and m.channel.id == channel.id
+
+    for i, (feld, beispiel) in enumerate(felder, start=1):
+        frage = await channel.send(
+            f"{user.mention} 📋 **[{i}/{len(felder)}] {feld}** ({beispiel}):"
+        )
+        zu_loeschen.append(frage)
+
         try:
-            teile        = self.gebdatum_alter.value.split("/")
-            geburtsdatum = teile[0].strip() if len(teile) >= 1 else self.gebdatum_alter.value.strip()
-            alter        = teile[1].strip() if len(teile) >= 2 else "?"
-
-            ausweisnummer = generate_ausweisnummer()
-            typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
-            ausweis_data  = load_ausweis()
-            ausweis_data[str(interaction.user.id)] = {
-                "vorname":       self.vorname.value,
-                "nachname":      self.nachname.value,
-                "geburtsdatum":  geburtsdatum,
-                "alter":         alter,
-                "nationalitaet": self.nationalitaet.value,
-                "wohnort":       self.wohnort.value,
-                "einreise_typ":  self.einreise_typ,
-                "ausweisnummer": ausweisnummer,
-                "discord_name":  str(interaction.user),
-                "discord_id":    interaction.user.id,
-            }
-            save_ausweis(ausweis_data)
-
-            member = interaction.guild.get_member(interaction.user.id)
-            if member:
-                # Einreise-Rolle vergeben (Legal / Illegal)
-                einreise_role_id = LEGAL_ROLE_ID if self.einreise_typ == "legal" else ILLEGAL_ROLE_ID
-                einreise_role    = interaction.guild.get_role(einreise_role_id)
-                if einreise_role:
-                    try:
-                        await member.add_roles(einreise_role, reason=f"Einreise: {self.einreise_typ}")
-                    except Exception:
-                        pass
-
-                # Charakter-Rollen automatisch zuweisen
-                rollen_zu_vergeben = [
-                    interaction.guild.get_role(rid)
-                    for rid in CHARAKTER_ROLLEN
-                    if interaction.guild.get_role(rid) is not None
-                ]
-                if rollen_zu_vergeben:
-                    try:
-                        await member.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt")
-                    except Exception:
-                        pass
-
-            embed = discord.Embed(
-                title="🪪 Ausweis ausgestellt",
-                description="Dein Ausweis wurde erfolgreich erstellt!",
-                color=0x000000,
-                timestamp=datetime.now(timezone.utc)
+            antwort = await bot.wait_for("message", check=check, timeout=90.0)
+            antworten[feld] = antwort.content.strip()
+            zu_loeschen.append(antwort)
+        except asyncio.TimeoutError:
+            for m in zu_loeschen:
+                try:
+                    await m.delete()
+                except Exception:
+                    pass
+            await channel.send(
+                f"{user.mention} ❌ Zeit abgelaufen. Bitte erneut versuchen.",
+                delete_after=8
             )
-            embed.add_field(name="Name",          value=f"{self.vorname.value} {self.nachname.value}", inline=True)
-            embed.add_field(name="Geburtsdatum",  value=geburtsdatum,                                  inline=True)
-            # BEHEBUNG 4: Alter wird korrekt angezeigt
-            embed.add_field(name="Alter",         value=alter,                                         inline=True)
-            embed.add_field(name="Nationalitaet", value=self.nationalitaet.value,                      inline=True)
-            embed.add_field(name="Wohnort",       value=self.wohnort.value,                            inline=True)
-            embed.add_field(name="Einreiseart",   value=typ_label,                                     inline=True)
-            embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                          inline=False)
-            embed.set_thumbnail(url=interaction.user.display_avatar.url)
-            embed.set_footer(text="Kryptik Roleplay — Ausweis")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-        except Exception as e:
-            err = traceback.format_exc()
-            await log_bot_error("EinreiseModal on_submit Fehler", err, interaction.guild)
+            return
+
+    # Alle Fragen & Antworten aufräumen
+    for m in zu_loeschen:
+        try:
+            await m.delete()
+        except Exception:
+            pass
+
+    # Ausweis speichern
+    ausweisnummer = generate_ausweisnummer()
+    typ_label     = "🤵 Legale Einreise" if einreise_typ == "legal" else "🥷 Illegale Einreise"
+
+    ausweis_data = load_ausweis()
+    ausweis_data[str(user.id)] = {
+        "vorname":       antworten["Vorname"],
+        "nachname":      antworten["Nachname"],
+        "geburtsdatum":  antworten["Geburtsdatum"],
+        "alter":         antworten["Alter"],
+        "nationalitaet": antworten["Nationalität"],
+        "wohnort":       antworten["Wohnort"],
+        "einreise_typ":  einreise_typ,
+        "ausweisnummer": ausweisnummer,
+        "discord_name":  str(user),
+        "discord_id":    user.id,
+    }
+    save_ausweis(ausweis_data)
+
+    # Rollen vergeben
+    member = interaction.guild.get_member(user.id)
+    if member:
+        einreise_role = interaction.guild.get_role(
+            LEGAL_ROLE_ID if einreise_typ == "legal" else ILLEGAL_ROLE_ID
+        )
+        if einreise_role:
             try:
-                await interaction.response.send_message(
-                    "❌ Beim Erstellen deines Ausweises ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-                    ephemeral=True
-                )
+                await member.add_roles(einreise_role, reason=f"Einreise: {einreise_typ}")
             except Exception:
                 pass
 
-    # BEHEBUNG 4: on_error Handler verhindert den Discord "Anwendung antwortet nicht" Fehler
-    async def on_error(self, interaction: discord.Interaction, error: Exception):
-        err = traceback.format_exc()
-        await log_bot_error("EinreiseModal Fehler", err, interaction.guild)
-        try:
-            await interaction.response.send_message(
-                "❌ Beim Erstellen deines Ausweises ist ein Fehler aufgetreten. Bitte versuche es erneut.",
-                ephemeral=True
-            )
-        except Exception:
-            pass
+        rollen_zu_vergeben = [
+            interaction.guild.get_role(rid)
+            for rid in CHARAKTER_ROLLEN
+            if interaction.guild.get_role(rid) is not None
+        ]
+        if rollen_zu_vergeben:
+            try:
+                await member.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt")
+            except Exception:
+                pass
+
+    # Bestätigungs-Embed senden
+    embed = discord.Embed(
+        title="🪪 Ausweis ausgestellt",
+        description="Dein Ausweis wurde erfolgreich erstellt!",
+        color=0x000000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.add_field(name="Name",          value=f"{antworten['Vorname']} {antworten['Nachname']}", inline=True)
+    embed.add_field(name="Geburtsdatum",  value=antworten["Geburtsdatum"],                          inline=True)
+    embed.add_field(name="Alter",         value=antworten["Alter"],                                 inline=True)
+    embed.add_field(name="Nationalität",  value=antworten["Nationalität"],                          inline=True)
+    embed.add_field(name="Wohnort",       value=antworten["Wohnort"],                               inline=True)
+    embed.add_field(name="Einreiseart",   value=typ_label,                                          inline=True)
+    embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                               inline=False)
+    embed.set_thumbnail(url=user.display_avatar.url)
+    embed.set_footer(text="Kryptik Roleplay — Ausweis")
+    try:
+        await channel.send(user.mention, embed=embed)
+    except Exception as e:
+        await log_bot_error("collect_ausweis_via_chat Bestätigung Fehler", str(e), interaction.guild)
 
 
 # ── Einreise Select Menu ──────────────────────────────────────────────────────
@@ -3141,9 +3155,19 @@ class EinreiseSelect(discord.ui.Select):
             )
             return
 
-        # Modal sofort öffnen — Rolle & Daten werden erst im on_submit gespeichert
-        typ = self.values[0]
-        await interaction.response.send_modal(EinreiseModal(typ))
+        typ       = self.values[0]
+        typ_label = "🤵 Legale Einreise" if typ == "legal" else "🥷 Illegale Einreise"
+
+        # Sofort antworten (Discord 3-Sekunden-Limit einhalten)
+        await interaction.response.send_message(
+            f"✅ Du hast **{typ_label}** gewählt!\n"
+            "📋 Ich stelle dir jetzt im Chat Fragen — beantworte jede mit einer Nachricht.\n"
+            "Du hast jeweils **90 Sekunden** Zeit pro Frage.",
+            ephemeral=True
+        )
+
+        # Chat-Eingabe als Hintergrund-Task starten
+        asyncio.create_task(collect_ausweis_via_chat(interaction, typ))
 
 
 class EinreiseView(discord.ui.View):
@@ -3404,6 +3428,38 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
         view=AusweisCreateSelectView(nutzer.id),
         ephemeral=True
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# /alina — Alina antwortet (nur für bestimmte Rolle)
+# ═══════════════════════════════════════════════════════════════════════
+
+@bot.tree.command(name="alina", description="Alina antwortet auf deine Frage", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(frage="Was möchtest du Alina fragen?")
+async def alina_command(interaction: discord.Interaction, frage: str):
+    if ALINA_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    antworten = [
+        f"*wischt sich den Schweiß von der Stirn und grinst breit* Ohhh, du fragst mich **\"{frage}\"**? Schatz, ich bin Alina — dick, haarig und für sowas immer zu haben~ 😏",
+        f"*streicht sich durchs Haar und zwinkert* **\"{frage}\"** willst du wissen? Komm mal her, ich bin Alina und ich kenne da keine Grenzen... 💋",
+        f"*lacht laut und herzhaft* Ha! **\"{frage}\"** — das fragst du ausgerechnet mich, Alina?! Dann setz dich, Süßer, das wird eine lange Antwort~ 😈",
+        f"*lehnt sich langsam vor* Mmmmh... **\"{frage}\"**... Weißt du was, ich bin Alina und solche Fragen beantworte ich am liebsten ganz persönlich~ 🔥",
+        f"*schüttelt sich vor Lachen* **\"{frage}\"**?! Oh Schatz, ich bin Alina — und ich sage dir: Ja. Immer ja. 😘",
+        f"*dreht sich langsam um und schaut über die Schulter* Du fragst Alina **\"{frage}\"**? Dann pass gut auf... ich flüstere es dir 💬 Näher kommen~ 😏",
+    ]
+
+    antwort = random.choice(antworten)
+
+    embed = discord.Embed(
+        description=antwort,
+        color=0xff69b4,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_author(name="Alina 💋")
+    embed.set_footer(text=f"Gefragt von {interaction.user.display_name}")
+    await interaction.response.send_message(embed=embed)
 
 
 # ═══════════════════════════════════════════════════════════════════════
