@@ -34,6 +34,9 @@ invite_cache = {}
 ADMIN_ROLE_ID     = 1490855702225485936
 MOD_ROLE_ID       = 1490855703370534965
 WHITELIST_ROLE_ID = 1490855725516460234
+LOBBY_ROLE_ID     = 1490855714162475259
+
+LOBBY_CHANNEL_ID  = 1490882583909765190
 
 MOD_LOG_CHANNEL_ID     = 1490878132230819840
 MESSAGE_LOG_CHANNEL_ID = 1490878135837917234
@@ -4082,6 +4085,42 @@ async def create_giveaway(interaction: discord.Interaction):
         ephemeral=True
     )
     asyncio.create_task(create_giveaway_channel_flow(interaction.user, interaction.guild, interaction.channel))
+
+
+@bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+async def lobby_abstimmung(interaction: discord.Interaction):
+    if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Lobby-Team verf\u00FCgbar.", ephemeral=True)
+        return
+
+    kanal = interaction.guild.get_channel(LOBBY_CHANNEL_ID)
+    if not kanal:
+        await interaction.response.send_message("\u274C Lobby-Kanal nicht gefunden.", ephemeral=True)
+        return
+
+    datum = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+
+    embed = discord.Embed(
+        title="Lobby Abstimmung",
+        description=(
+            "\u2705 **Ich komme**\n\n"
+            "\U0001F551 **Ich komme sp\u00E4ter**\n\n"
+            "\u274C **Ich komme nicht**\n\n"
+            f"**Datum:** {datum}\n"
+            "**Uhrzeit:** 18:00"
+        ),
+        color=0x00BFFF,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_image(url="https://share.creavite.co/69d7a4bca828deb1587385dd.gif")
+
+    await interaction.response.send_message("\u2705 Abstimmung gesendet!", ephemeral=True)
+    msg = await kanal.send(embed=embed)
+
+    await msg.add_reaction("\u2705")
+    await msg.add_reaction("\U0001F551")
+    await msg.add_reaction("\u274C")
 
 
 # \u2500\u2500 Bot starten \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
