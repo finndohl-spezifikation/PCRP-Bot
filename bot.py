@@ -4739,15 +4739,7 @@ def _build_wheel_embed(highlight_id: str | None, title: str, color: int) -> disc
     wheel_body = "\n".join(lines)
     embed = discord.Embed(
         title=title,
-        description=(
-            "```\n"
-            "  \u256C\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256C\n"
-            "  \u2551   Cryptik Roleplay   \u2551\n"
-            "  \u2551  \U0001F3A1  CASINO  \U0001F3A1  \u2551\n"
-            "  \u256C\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256C\n"
-            "```\n"
-            f"{wheel_body}"
-        ),
+        description=wheel_body,
         color=color,
         timestamp=datetime.now(timezone.utc),
     )
@@ -4916,12 +4908,6 @@ async def auto_casino_setup():
         embed = discord.Embed(
             title="\U0001F3B0 Cryptik Roleplay \u2014 Gl\u00FCcksrad",
             description=(
-                "```\n"
-                "  \u256C\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256C\n"
-                "  \u2551   Cryptik Roleplay   \u2551\n"
-                "  \u2551  \U0001F3A1  CASINO  \U0001F3A1  \u2551\n"
-                "  \u256C\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256C\n"
-                "```\n"
                 f"{wheel_lines}\n\n"
                 "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
                 "\U0001F3AF **Dr\u00FCcke den Button um das Rad zu drehen!**\n"
@@ -4964,12 +4950,6 @@ async def casinosetup(ctx):
     embed = discord.Embed(
         title="\U0001F3B0 Cryptik Roleplay \u2014 Gl\u00FCcksrad",
         description=(
-            "```\n"
-            "  \u256C\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256C\n"
-            "  \u2551   Cryptik Roleplay   \u2551\n"
-            "  \u2551  \U0001F3A1  CASINO  \U0001F3A1  \u2551\n"
-            "  \u256C\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256C\n"
-            "```\n"
             f"{wheel_lines}\n\n"
             "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
             "\U0001F3AF **Dr\u00FCcke den Button um das Rad zu drehen!**\n"
