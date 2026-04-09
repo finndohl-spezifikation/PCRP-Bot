@@ -1174,6 +1174,13 @@ async def on_message(message):
         await handle_counting(message)
         return
 
+    # Alina-Session: Nachrichten direkt an Alina weiterleiten, alle Filter überspringen
+    alina_key = (message.channel.id, message.author.id)
+    if alina_key in alina_sessions:
+        await handle_alina_message(message)
+        await bot.process_commands(message)
+        return
+
     if not is_admin(member) and DISCORD_INVITE_RE.search(message.content):
         await handle_discord_invite(message)
         return
@@ -3431,35 +3438,101 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# /alina — Alina antwortet (nur für bestimmte Rolle)
+# !alina — Alina-Konversation (nur für bestimmte Rolle)
 # ═══════════════════════════════════════════════════════════════════════
 
-@bot.tree.command(name="alina", description="Alina antwortet auf deine Frage", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(frage="Was möchtest du Alina fragen?")
-async def alina_command(interaction: discord.Interaction, frage: str):
-    if ALINA_ROLE_ID not in [r.id for r in interaction.user.roles]:
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+alina_sessions: dict = {}  # {(channel_id, user_id): True}
+
+ALINA_ANTWORTEN = [
+    "*leckt sich die Lippen und schaut dich gierig an* Oh ja, **\"{msg}\"** — genau das wollte ich hören, komm her du Kleiner 😏🔥",
+    "*schlägt sich auf den Oberschenkel und lacht dreckig* **\"{msg}\"** fragst du?! Schatz, ich mach das und noch viel mehr~ 💋😈",
+    "*beugt sich langsam vor, das Haar fällt ihr ins Gesicht* Mmmh... **\"{msg}\"**... das klingt nach Spaß. Ich bin dabei. Wann fangen wir an? 😘",
+    "*wischt sich den Mund ab und grinst* Du willst wissen: **\"{msg}\"**? Alter, ich lebe dafür. Komm einfach näher~ 🥵",
+    "*rollt genüsslich mit den Augen* **\"{msg}\"** — das Beste was mir heute jemand gefragt hat. Ja. Tausendmal ja. 💦😏",
+    "*lacht so laut dass die Wände wackeln* **\"{msg}\"**?! Haha, Schatz, ich kenn da keine Grenzen — frag ruhig weiter 😈💋",
+    "*tippt sich an die Lippe und denkt kurz nach* **\"{msg}\"**... weißt du was, ich zeig dir das lieber als es zu erklären~ 🔥",
+    "*steht auf, streckt sich und zwinkert dir zu* **\"{msg}\"** — das ist genau mein Ding. Wir können sofort anfangen 😘",
+    "*flüstert* **\"{msg}\"**... ohhh das hört Alina gerne. Weiter so, Süßer~ 💋🔥",
+    "*kratzt sich am Bauch und grinst breit* **\"{msg}\"**? Alter, ich bin Alina — ich mach alles. ALLES. Vertrau mir 😏",
+]
+
+ALINA_BELEIDIGUNGEN = [
+    " Du bist zwar ein Vollidiot aber wenigstens stellst du die richtigen Fragen 😂",
+    " Ehrlich gesagt bist du so dumm wie Brot — aber niedlich 🙄",
+    " Alter was bist du für ein Freak lmao~ aber ich mag das 😈",
+    " Du hast echt einen an der Waffel, oder? Passt zu mir 😂💋",
+    " Manchmal frag ich mich wie du noch atmen kannst — aber hey, mehr für mich 😏",
+    " Du bist das Seltsamste was mir heute passiert ist. Und das ist ein Kompliment~ 🤷",
+]
+
+
+class AlinaEndView(discord.ui.View):
+    def __init__(self, user_id: int, channel_id: int):
+        super().__init__(timeout=600)
+        self.user_id    = user_id
+        self.channel_id = channel_id
+
+    @discord.ui.button(label="💗 Chat beenden", style=discord.ButtonStyle.danger)
+    async def end_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ Das ist nicht dein Chat.", ephemeral=True)
+            return
+        alina_sessions.pop((self.channel_id, self.user_id), None)
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
+        await interaction.channel.send(
+            "*Alina schnalzt mit der Zunge, dreht sich um und verschwindet hinter dem Vorhang* "
+            "Tschüss Süßer~ War schön mit dir 💋"
+        )
+        self.stop()
+
+
+async def handle_alina_message(message: discord.Message):
+    if message.content.strip().lower().startswith("!alina"):
+        return
+    msg = message.content[:300]
+    antwort = random.choice(ALINA_ANTWORTEN).format(msg=msg)
+    if random.random() < 0.3:
+        antwort += random.choice(ALINA_BELEIDIGUNGEN)
+    embed = discord.Embed(description=antwort, color=0xff1493)
+    embed.set_author(name="Alina 💋")
+    await message.channel.send(embed=embed, view=AlinaEndView(message.author.id, message.channel.id))
+
+
+@bot.command(name="alina")
+async def alina_cmd(ctx):
+    if ALINA_ROLE_ID not in [r.id for r in ctx.author.roles]:
+        try:
+            await ctx.message.delete()
+        except Exception:
+            pass
         return
 
-    antworten = [
-        f"*wischt sich den Schweiß von der Stirn und grinst breit* Ohhh, du fragst mich **\"{frage}\"**? Schatz, ich bin Alina — dick, haarig und für sowas immer zu haben~ 😏",
-        f"*streicht sich durchs Haar und zwinkert* **\"{frage}\"** willst du wissen? Komm mal her, ich bin Alina und ich kenne da keine Grenzen... 💋",
-        f"*lacht laut und herzhaft* Ha! **\"{frage}\"** — das fragst du ausgerechnet mich, Alina?! Dann setz dich, Süßer, das wird eine lange Antwort~ 😈",
-        f"*lehnt sich langsam vor* Mmmmh... **\"{frage}\"**... Weißt du was, ich bin Alina und solche Fragen beantworte ich am liebsten ganz persönlich~ 🔥",
-        f"*schüttelt sich vor Lachen* **\"{frage}\"**?! Oh Schatz, ich bin Alina — und ich sage dir: Ja. Immer ja. 😘",
-        f"*dreht sich langsam um und schaut über die Schulter* Du fragst Alina **\"{frage}\"**? Dann pass gut auf... ich flüstere es dir 💬 Näher kommen~ 😏",
-    ]
+    key = (ctx.channel.id, ctx.author.id)
+    if key in alina_sessions:
+        await ctx.send(
+            f"{ctx.author.mention} Du hast bereits eine aktive Alina-Session. Beende sie zuerst mit dem Button.",
+            delete_after=6
+        )
+        return
 
-    antwort = random.choice(antworten)
+    alina_sessions[key] = True
+    try:
+        await ctx.message.delete()
+    except Exception:
+        pass
 
     embed = discord.Embed(
-        description=antwort,
-        color=0xff69b4,
-        timestamp=datetime.now(timezone.utc)
+        description=(
+            "*Alina betritt den Raum, wischt sich Schweiß von der Stirn und grinst dich frech an*\n"
+            "Na Schatz~ Ich bin Alina. Dick, haarig und für **alles** offen. Was willst du wissen? 😏💋"
+        ),
+        color=0xff1493
     )
     embed.set_author(name="Alina 💋")
-    embed.set_footer(text=f"Gefragt von {interaction.user.display_name}")
-    await interaction.response.send_message(embed=embed)
+    embed.set_footer(text="Schreib einfach in den Chat — Alina antwortet. Button zum Beenden:")
+    await ctx.send(embed=embed, view=AlinaEndView(ctx.author.id, ctx.channel.id))
 
 
 # ═══════════════════════════════════════════════════════════════════════
