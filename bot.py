@@ -564,7 +564,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Dispatch MD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="\U0001F6A8 | Dispatch MD",
+        label="ðŸš¨ | Dispatch MD",
         style=discord.ButtonStyle.red,
         custom_id="handy_dispatch_md",
         row=0
@@ -574,7 +574,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Dispatch PD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="\U0001F6A8 | Dispatch PD",
+        label="ðŸš¨ | Dispatch PD",
         style=discord.ButtonStyle.red,
         custom_id="handy_dispatch_pd",
         row=0
@@ -584,7 +584,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Dispatch ADAC \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="\U0001F6A8 | Dispatch ADAC",
+        label="ðŸš¨ | Dispatch ADAC",
         style=discord.ButtonStyle.red,
         custom_id="handy_dispatch_adac",
         row=0
@@ -594,7 +594,7 @@ class HandyView(discord.ui.View):
 
     # \u2500\u2500 Handy Nummer Einsehen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     @discord.ui.button(
-        label="\U0001F4F1 | Handy Nummer Einsehen",
+        label="ðŸ“± | Handy Nummer Einsehen",
         style=discord.ButtonStyle.blurple,
         custom_id="handy_nummer",
         row=1
@@ -763,36 +763,35 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
 
 
 async def auto_handy_setup():
-    """Postet das Handy-Embed mit den Buttons im Handy-Kanal, falls noch nicht vorhanden."""
+    """LÃ¶scht das alte Handy-Embed und postet ein frisches mit korrekten Emojis."""
     for guild in bot.guilds:
         channel = guild.get_channel(HANDY_CHANNEL_ID)
         if not channel:
             continue
-        already_posted = False
+        # Altes Handy-Embed des Bots lÃ¶schen
         try:
             async for msg in channel.history(limit=20):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Handy" in emb.title:
-                            already_posted = True
+                            try:
+                                await msg.delete()
+                            except Exception:
+                                pass
                             break
-                if already_posted:
-                    break
         except Exception:
             pass
-        if already_posted:
-            print(f"Handy-Embed bereits vorhanden in #{channel.name} \u2014 kein erneutes Posten.")
-            continue
+        # Frisches Embed mit korrekten Emojis posten
         embed = discord.Embed(
-            title="\U0001F4F1 Handy \u2014 Einstellungen",
+            title="ðŸ“± Handy \u2014 Einstellungen",
             description=(
                 "Willkommen in deinen Handy-Einstellungen!\n\n"
                 "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
                 "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-                "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zust\u00E4ndige Einheit\n"
-                "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine pers\u00F6nliche LA-Nummer\n"
-                "**\U0001F4F1 Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
-                "\u26A0\uFE0F *Du ben\u00F6tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+                "**ðŸš¨ Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
+                "**ðŸ“± Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
+                "**ðŸ“± Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
+                "âš ï¸ *Du benÃ¶tigst das Item* `ðŸ“±| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
             ),
             color=0x00BFFF,
             timestamp=datetime.now(timezone.utc)
@@ -2005,23 +2004,36 @@ async def ticketsetup(ctx):
 
 @bot.command(name="handysetup")
 async def handysetup(ctx):
-    """Postet das Handy-Embed erneut im Handy-Kanal. Nur f\u00FCr Admins."""
+    """Postet das Handy-Embed erneut im Handy-Kanal. Nur fÃ¼r Admins."""
     if not is_admin(ctx.author):
         return
     channel = ctx.guild.get_channel(HANDY_CHANNEL_ID)
     if not channel:
         await ctx.send("\u274C Handy-Kanal nicht gefunden!")
         return
+    # Altes Embed lÃ¶schen
+    try:
+        async for msg in channel.history(limit=20):
+            if msg.author.id == ctx.bot.user.id and msg.embeds:
+                for emb in msg.embeds:
+                    if emb.title and "Handy" in emb.title:
+                        try:
+                            await msg.delete()
+                        except Exception:
+                            pass
+                        break
+    except Exception:
+        pass
     embed = discord.Embed(
-        title="\U0001F4F1 Handy \u2014 Einstellungen",
+        title="ðŸ“± Handy \u2014 Einstellungen",
         description=(
             "Willkommen in deinen Handy-Einstellungen!\n\n"
             "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
             "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-            "**\U0001F6A8 Dispatch-Buttons** \u2014 Sende einen Notruf an die zust\u00E4ndige Einheit\n"
-            "**\U0001F4F1 Handy Nummer** \u2014 Zeigt deine pers\u00F6nliche LA-Nummer\n"
-            "**\U0001F4F1 Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
-            "\u26A0\uFE0F *Du ben\u00F6tigst das Item* `\U0001F4F1| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+            "**ðŸš¨ Dispatch-Buttons** \u2014 Sende einen Notruf an die zustÃ¤ndige Einheit\n"
+            "**ðŸ“± Handy Nummer** \u2014 Zeigt deine persÃ¶nliche LA-Nummer\n"
+            "**ðŸ“± Instagram / Parship** \u2014 Apps installieren & deinstallieren\n\n"
+            "âš ï¸ *Du benÃ¶tigst das Item* `ðŸ“±| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
         ),
         color=0x00BFFF,
         timestamp=datetime.now(timezone.utc)
