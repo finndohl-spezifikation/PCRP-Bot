@@ -128,7 +128,8 @@ ECONOMY_FILE      = DATA_DIR / "economy_data.json"
 SHOP_FILE         = DATA_DIR / "shop_data.json"
 WARNS_FILE        = DATA_DIR / "warns_data.json"
 TEAM_WARNS_FILE   = DATA_DIR / "team_warns_data.json"
-HIDDEN_ITEMS_FILE = DATA_DIR / "hidden_items.json"
+HIDDEN_ITEMS_FILE  = DATA_DIR / "hidden_items.json"
+COUNTING_FILE      = DATA_DIR / "counting_state.json"
 AUSWEIS_FILE      = DATA_DIR / "ausweis_data.json"
 HANDY_FILE        = DATA_DIR / "handy_numbers.json"
 
@@ -184,7 +185,6 @@ VULGAR_WORDS = [
 spam_tracker     = {}
 spam_warned      = set()
 ticket_data      = {}
-counting_state   = {"count": 0, "last_user_id": None}
 counting_handled = set()
 
 FEATURES = {
@@ -409,6 +409,25 @@ def load_hidden_items():
 def save_hidden_items(data):
     with open(HIDDEN_ITEMS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+# \u2500\u2500 Counting Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+def load_counting_state():
+    if COUNTING_FILE.exists():
+        with open(COUNTING_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data
+    return {"count": 0, "last_user_id": None}
+
+
+def save_counting_state(state):
+    with open(COUNTING_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+
+# Globaler Zust\u00E4nde wird beim Start aus Datei geladen
+counting_state = load_counting_state()
 
 
 # \u2500\u2500 Handy Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1543,10 +1562,25 @@ async def handle_counting(message):
     if number == expected:
         counting_state["count"] = number
         counting_state["last_user_id"] = message.author.id
-        await message.add_reaction("\u2705")
+        save_counting_state(counting_state)
+        if number == 1000:
+            await message.add_reaction("\U0001F3C6")
+            try:
+                await message.channel.send(
+                    f"\U0001F389 **1000 erreicht!** Unglaublich! {message.author.mention} hat die **1000** geschafft!\n"
+                    f"Der Z\u00E4hler wird zur\u00FCckgesetzt. Fangt wieder bei **1** an!"
+                )
+            except Exception:
+                pass
+            counting_state["count"] = 0
+            counting_state["last_user_id"] = None
+            save_counting_state(counting_state)
+        else:
+            await message.add_reaction("\u2705")
     else:
         counting_state["count"] = 0
         counting_state["last_user_id"] = None
+        save_counting_state(counting_state)
         try:
             await message.delete()
         except Exception:
