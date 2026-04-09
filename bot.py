@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import asyncio
 import traceback
+import aiohttp
 
 # Sicherheitscheck: Bot l\u00E4uft NUR auf Railway, nie doppelt in Replit
 if not os.environ.get("RAILWAY_ENVIRONMENT") and not os.environ.get("FORCE_LOCAL_RUN"):
@@ -4107,16 +4108,31 @@ async def lobby_abstimmung(interaction: discord.Interaction):
             "\u2705 **Ich komme**\n\n"
             "\U0001F551 **Ich komme sp\u00E4ter**\n\n"
             "\u274C **Ich komme nicht**\n\n"
-            f"**Datum:** {datum}\n"
+            f"**Datum:** {datum}\n\n"
             "**Uhrzeit:** 18:00"
         ),
         color=0x00BFFF,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_image(url="https://share.creavite.co/69d7a4bca828deb1587385dd.gif")
+
+    GIF_URL = "https://share.creavite.co/69d7a4bca828deb1587385dd.gif"
+    ping_text = "<@&1490855734517174376>"
 
     await interaction.response.send_message("\u2705 Abstimmung gesendet!", ephemeral=True)
-    msg = await kanal.send(embed=embed)
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(GIF_URL) as resp:
+                if resp.status == 200:
+                    gif_bytes = await resp.read()
+                    gif_file = discord.File(io.BytesIO(gif_bytes), filename="lobby.gif")
+                    embed.set_image(url="attachment://lobby.gif")
+                    msg = await kanal.send(content=ping_text, file=gif_file, embed=embed)
+                else:
+                    raise ValueError(f"HTTP {resp.status}")
+    except Exception:
+        embed.set_image(url=GIF_URL)
+        msg = await kanal.send(content=ping_text, embed=embed)
 
     await msg.add_reaction("\u2705")
     await msg.add_reaction("\U0001F551")
