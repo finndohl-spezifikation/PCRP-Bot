@@ -4848,7 +4848,7 @@ class CasinoView(discord.ui.View):
         result_embed = _build_wheel_embed(gewinn["id"], "\U0001F3B0 Gl\u00FCcksrad \u2014 Ergebnis", result_color)
         result_embed.description = (
             result_embed.description
-            + f"\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+            + f"\n\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
             f"\U0001F3AF **Dein Gewinn:**\n{gewinn['beschreibung']}"
         )
         result_embed.set_thumbnail(url=member.display_avatar.url)
@@ -4909,7 +4909,7 @@ async def auto_casino_setup():
             title="\U0001F3B0 Cryptik Roleplay \u2014 Gl\u00FCcksrad",
             description=(
                 f"{wheel_lines}\n\n"
-                "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+                "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
                 "\U0001F3AF **Dr\u00FCcke den Button um das Rad zu drehen!**\n"
                 "\u23F0 Jeder **Bewohner** kann **1\u00D7 alle 24 Stunden** drehen.\n\n"
                 "\U0001F4A1 *Gewinne landen automatisch in deinem Inventar oder auf deinem Bankkonto.*\n"
@@ -4924,48 +4924,6 @@ async def auto_casino_setup():
             print(f"Casino-Embed automatisch gepostet in #{channel.name}")
         except Exception as e:
             await log_bot_error("auto_casino_setup fehlgeschlagen", str(e), guild)
-
-
-@bot.command(name="casinosetup")
-async def casinosetup(ctx):
-    if not is_admin(ctx.author):
-        return
-    channel = ctx.guild.get_channel(CASINO_CHANNEL_ID)
-    if not channel:
-        await ctx.send("\u274C Casino-Kanal nicht gefunden!")
-        return
-    try:
-        async for msg in channel.history(limit=30):
-            if msg.author.id == ctx.bot.user.id and msg.embeds:
-                for emb in msg.embeds:
-                    if emb.title and "Gl\u00FCcksrad" in emb.title:
-                        try:
-                            await msg.delete()
-                        except Exception:
-                            pass
-                        break
-    except Exception:
-        pass
-    wheel_lines = "\n".join(f"\u3000 {p['label']}" for p in CASINO_PRIZES)
-    embed = discord.Embed(
-        title="\U0001F3B0 Cryptik Roleplay \u2014 Gl\u00FCcksrad",
-        description=(
-            f"{wheel_lines}\n\n"
-            "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-            "\U0001F3AF **Dr\u00FCcke den Button um das Rad zu drehen!**\n"
-            "\u23F0 Jeder **Bewohner** kann **1\u00D7 alle 24 Stunden** drehen.\n\n"
-            "\U0001F4A1 *Gewinne landen automatisch in deinem Inventar oder auf deinem Bankkonto.*\n"
-            "\U0001F3C6 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
-        ),
-        color=0x87CEEB,
-        timestamp=datetime.now(timezone.utc),
-    )
-    embed.set_footer(text="Kryptik Roleplay \u2014 Casino \u2022 Viel Gl\u00FCck! \U0001F340")
-    await channel.send(embed=embed, view=CasinoView())
-    try:
-        await ctx.message.delete()
-    except Exception:
-        pass
 
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
