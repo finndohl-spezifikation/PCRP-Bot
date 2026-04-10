@@ -55,15 +55,11 @@ class HandyView(discord.ui.View):
     )
     async def handy_nummer(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not has_handy(interaction.user):
-            await interaction.response.send_message(
-                "❌ Du besitzt kein Handy. Kaufe es im Shop!",
-                ephemeral=True
-            )
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
             return
 
         numbers = load_handy_numbers()
-        uid = str(interaction.user.id)
-
+        uid     = str(interaction.user.id)
         if uid not in numbers:
             numbers[uid] = generate_la_phone_number()
             save_handy_numbers(numbers)
@@ -74,11 +70,128 @@ class HandyView(discord.ui.View):
             description=(
                 f"**Nummer:** `{phone}`\n"
                 f"**Vorwahl:** Los Angeles (LA)\n\n"
-                f"*Diese Nummer bleibt dauerhaft dieselbe.*"
+                f"*Du kannst deine Nummer per SIM-Wechsel ändern.*"
             ),
             color=0x00BFFF,
             timestamp=datetime.now(timezone.utc)
         )
+        embed.set_footer(text="Nur du siehst diese Nachricht")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ── SIM Karte Wechseln ───────────────────────────────────
+    @discord.ui.button(
+        label="📱 | SIM Karte Wechseln",
+        style=discord.ButtonStyle.blurple,
+        custom_id="handy_sim_wechsel",
+        row=1
+    )
+    async def sim_wechsel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not has_handy(interaction.user):
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
+            return
+
+        member  = interaction.user
+        numbers = load_handy_numbers()
+        uid     = str(member.id)
+
+        alte_nummer = numbers.get(uid, None)
+        neue_nummer = generate_la_phone_number()
+        while neue_nummer == alte_nummer:
+            neue_nummer = generate_la_phone_number()
+
+        numbers[uid] = neue_nummer
+        save_handy_numbers(numbers)
+
+        embed = discord.Embed(
+            title="📱 SIM-Karte gewechselt",
+            description=(
+                f"Deine neue Handynummer lautet:\n**`{neue_nummer}`**\n\n"
+                f"Du bist unter der alten Nummer nicht mehr erreichbar."
+            ),
+            color=0x00BFFF,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.set_footer(text="Nur du siehst diese Nachricht")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        sim_channel = interaction.guild.get_channel(SIM_WECHSEL_CHANNEL_ID)
+        if sim_channel:
+            public_embed = discord.Embed(
+                title="📱 Nummer gewechselt",
+                description=(
+                    f"{member.mention} hat seine SIM-Karte gewechselt.\n\n"
+                    f"Er/Sie ist unter der alten Nummer **nicht mehr erreichbar**.\n"
+                    f"Neue Nummer: **`{neue_nummer}`**"
+                ),
+                color=0x00BFFF,
+                timestamp=datetime.now(timezone.utc)
+            )
+            public_embed.set_thumbnail(url=member.display_avatar.url)
+            public_embed.set_footer(text="Kryptik Roleplay — SIM-System")
+            try:
+                await sim_channel.send(embed=public_embed)
+            except Exception:
+                pass
+
+    # ── Handy Einschalten ────────────────────────────────────
+    @discord.ui.button(
+        label="📱 | Handy Einschalten",
+        style=discord.ButtonStyle.blurple,
+        custom_id="handy_an",
+        row=1
+    )
+    async def handy_an(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not has_handy(interaction.user):
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
+            return
+
+        guild  = interaction.guild
+        member = interaction.user
+        role   = guild.get_role(HANDY_AN_ROLE_ID)
+        if not role:
+            await interaction.response.send_message("❌ Rolle nicht gefunden.", ephemeral=True)
+            return
+
+        if role in member.roles:
+            embed = discord.Embed(description="📱 Dein Handy ist bereits **eingeschaltet**.", color=LOG_COLOR)
+        else:
+            aus_role = guild.get_role(HANDY_AUS_ROLE_ID)
+            if aus_role and aus_role in member.roles:
+                await member.remove_roles(aus_role, reason="Handy eingeschaltet")
+            await member.add_roles(role, reason="Handy eingeschaltet")
+            embed = discord.Embed(description="📱 **Handy eingeschaltet!**\nDu bist jetzt erreichbar.", color=LOG_COLOR)
+
+        embed.set_footer(text="Nur du siehst diese Nachricht")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ── Handy Ausschalten ────────────────────────────────────
+    @discord.ui.button(
+        label="📱 | Handy Aus",
+        style=discord.ButtonStyle.blurple,
+        custom_id="handy_aus",
+        row=1
+    )
+    async def handy_aus(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not has_handy(interaction.user):
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
+            return
+
+        guild  = interaction.guild
+        member = interaction.user
+        role   = guild.get_role(HANDY_AUS_ROLE_ID)
+        if not role:
+            await interaction.response.send_message("❌ Rolle nicht gefunden.", ephemeral=True)
+            return
+
+        if role in member.roles:
+            embed = discord.Embed(description="📱 Dein Handy ist bereits **ausgeschaltet**.", color=MOD_COLOR)
+        else:
+            an_role = guild.get_role(HANDY_AN_ROLE_ID)
+            if an_role and an_role in member.roles:
+                await member.remove_roles(an_role, reason="Handy ausgeschaltet")
+            await member.add_roles(role, reason="Handy ausgeschaltet")
+            embed = discord.Embed(description="📱 **Handy ausgeschaltet!**\nDu bist nicht mehr erreichbar.", color=MOD_COLOR)
+
         embed.set_footer(text="Nur du siehst diese Nachricht")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -87,74 +200,66 @@ class HandyView(discord.ui.View):
         label="📱 | Instagram",
         style=discord.ButtonStyle.blurple,
         custom_id="handy_instagram",
-        row=1
+        row=2
     )
     async def instagram(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not has_handy(interaction.user):
-            await interaction.response.send_message(
-                "❌ Du besitzt kein Handy. Kaufe es im Shop!",
-                ephemeral=True
-            )
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
             return
 
-        guild = interaction.guild
-        role  = guild.get_role(INSTAGRAM_ROLE_ID)
-        if not role:
-            await interaction.response.send_message("❌ Instagram-Rolle nicht gefunden.", ephemeral=True)
-            return
-
-        member = interaction.user
-        if role in member.roles:
-            await member.remove_roles(role, reason="Handy: Instagram deinstalliert")
-            embed = discord.Embed(
-                description="📱 **App Erfolgreich Deinstalliert**\nInstagram wurde von deinem Handy entfernt.",
-                color=MOD_COLOR
-            )
-        else:
-            await member.add_roles(role, reason="Handy: Instagram installiert")
-            embed = discord.Embed(
-                description="📱 **App Erfolgreich Installiert**\nInstagram wurde auf deinem Handy installiert.",
-                color=LOG_COLOR
-            )
-        embed.set_footer(text="Nur du siehst diese Nachricht")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await handle_app_toggle(interaction, INSTAGRAM_ROLE_ID, "Instagram")
 
     # ── Parship ──────────────────────────────────────────────
     @discord.ui.button(
         label="📱 | Parship",
         style=discord.ButtonStyle.blurple,
         custom_id="handy_parship",
-        row=1
+        row=2
     )
     async def parship(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not has_handy(interaction.user):
-            await interaction.response.send_message(
-                "❌ Du besitzt kein Handy. Kaufe es im Shop!",
-                ephemeral=True
-            )
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
             return
 
-        guild = interaction.guild
-        role  = guild.get_role(PARSHIP_ROLE_ID)
-        if not role:
-            await interaction.response.send_message("❌ Parship-Rolle nicht gefunden.", ephemeral=True)
+        await handle_app_toggle(interaction, PARSHIP_ROLE_ID, "Parship")
+
+    # ── Ebay ─────────────────────────────────────────────────
+    @discord.ui.button(
+        label="📱 | Ebay",
+        style=discord.ButtonStyle.blurple,
+        custom_id="handy_ebay",
+        row=2
+    )
+    async def ebay(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not has_handy(interaction.user):
+            await interaction.response.send_message("❌ Du besitzt kein Handy. Kaufe es im Shop!", ephemeral=True)
             return
 
-        member = interaction.user
-        if role in member.roles:
-            await member.remove_roles(role, reason="Handy: Parship deinstalliert")
-            embed = discord.Embed(
-                description="📱 **App Erfolgreich Deinstalliert**\nParship wurde von deinem Handy entfernt.",
-                color=MOD_COLOR
-            )
-        else:
-            await member.add_roles(role, reason="Handy: Parship installiert")
-            embed = discord.Embed(
-                description="📱 **App Erfolgreich Installiert**\nParship wurde auf deinem Handy installiert.",
-                color=LOG_COLOR
-            )
-        embed.set_footer(text="Nur du siehst diese Nachricht")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await handle_app_toggle(interaction, EBAY_ROLE_ID, "Ebay")
+
+
+async def handle_app_toggle(interaction: discord.Interaction, role_id: int, app_name: str):
+    guild  = interaction.guild
+    member = interaction.user
+    role   = guild.get_role(role_id)
+    if not role:
+        await interaction.response.send_message(f"❌ {app_name}-Rolle nicht gefunden.", ephemeral=True)
+        return
+
+    if role in member.roles:
+        await member.remove_roles(role, reason=f"Handy: {app_name} deinstalliert")
+        embed = discord.Embed(
+            description=f"📱 **App Erfolgreich Deinstalliert**\n{app_name} wurde von deinem Handy entfernt.",
+            color=MOD_COLOR
+        )
+    else:
+        await member.add_roles(role, reason=f"Handy: {app_name} installiert")
+        embed = discord.Embed(
+            description=f"📱 **App Erfolgreich Installiert**\n{app_name} wurde auf deinem Handy installiert.",
+            color=LOG_COLOR
+        )
+    embed.set_footer(text="Nur du siehst diese Nachricht")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispatch_type: str):
@@ -215,44 +320,52 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
     await interaction.followup.send(embed=confirm_embed, ephemeral=True)
 
 
+def _build_handy_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="📱 Handy — Einstellungen",
+        description=(
+            "Willkommen in deinen Handy-Einstellungen!\n\n"
+            "**🚨 Dispatch-Buttons** — Sende einen Notruf an die zuständige Einheit\n"
+            "**📱 Handy Nummer** — Zeigt deine persönliche LA-Nummer\n"
+            "**📱 SIM Karte Wechseln** — Neue Nummer generieren & öffentlich ankündigen\n"
+            "**📱 Handy Einschalten / Aus** — Erreichbarkeit steuern\n"
+            "**📱 Instagram / Parship / Ebay** — Apps installieren & deinstallieren\n\n"
+            "⚠️ *Du benötigst das Item* `📱| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+        ),
+        color=0x00BFFF,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Kryptik Roleplay — Handy System")
+    return embed
+
+
 async def auto_handy_setup():
     for guild in bot.guilds:
         channel = guild.get_channel(HANDY_CHANNEL_ID)
         if not channel:
             continue
-        embed_exists = False
+
+        existing_msg = None
         try:
             async for msg in channel.history(limit=30):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Handy" in emb.title:
-                            embed_exists = True
+                            existing_msg = msg
                             break
-                if embed_exists:
+                if existing_msg:
                     break
         except Exception:
             pass
-        if embed_exists:
-            print(f"Handy-Embed bereits vorhanden in #{channel.name}, überspringe.")
-            continue
-        embed = discord.Embed(
-            title="📱 Handy — Einstellungen",
-            description=(
-                "Willkommen in deinen Handy-Einstellungen!\n\n"
-                "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
-                "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-                "**🚨 Dispatch-Buttons** — Sende einen Notruf an die zuständige Einheit\n"
-                "**📱 Handy Nummer** — Zeigt deine persönliche LA-Nummer\n"
-                "**📱 Instagram / Parship** — Apps installieren & deinstallieren\n\n"
-                "⚠️ *Du benötigst das Item* `📱| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
-            ),
-            color=0x00BFFF,
-            timestamp=datetime.now(timezone.utc)
-        )
-        embed.set_footer(text="Kryptik Roleplay — Handy System")
+
+        embed = _build_handy_embed()
         try:
-            await channel.send(embed=embed, view=HandyView())
-            print(f"Handy-Embed automatisch gepostet in #{channel.name}")
+            if existing_msg:
+                await existing_msg.edit(embed=embed, view=HandyView())
+                print(f"Handy-Embed aktualisiert in #{channel.name}")
+            else:
+                await channel.send(embed=embed, view=HandyView())
+                print(f"Handy-Embed gepostet in #{channel.name}")
         except Exception as e:
             await log_bot_error("auto_handy_setup fehlgeschlagen", str(e), guild)
 
