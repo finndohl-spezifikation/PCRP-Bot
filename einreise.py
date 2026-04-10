@@ -272,6 +272,7 @@ async def ausweisen(interaction: discord.Interaction):
 
 # /ausweis-remove (Admin only)
 @bot.tree.command(name="ausweis-remove", description="[Admin] Löscht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler dessen Ausweis geloescht werden soll")
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
     if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
@@ -406,6 +407,7 @@ async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, ta
 
 # /ausweis-create (Team only)
 @bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis für einen Spieler", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
