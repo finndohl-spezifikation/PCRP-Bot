@@ -5244,5 +5244,75 @@ async def auto_casino_setup():
 
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# KATEGORIEN SETUP
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+@bot.tree.command(
+    name="kategorien-setup",
+    description="[Admin] Alle Kategorien in GROSSSCHRIFT umbenennen und ab Einreise nummerieren",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.default_permissions(administrator=True)
+async def kategorien_setup(interaction: discord.Interaction):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True, thinking=True)
+
+    guild = interaction.guild
+    categories = sorted(guild.categories, key=lambda c: c.position)
+
+    # Finde den Index der Einreise-Kategorie (Suche case-insensitiv nach "einreise")
+    einreise_idx = None
+    for i, cat in enumerate(categories):
+        name_clean = re.sub(r'^\[\d+\.\d+\]\s*', '', cat.name).strip().lower()
+        if "einreise" in name_clean:
+            einreise_idx = i
+            break
+
+    if einreise_idx is None:
+        await interaction.followup.send(
+            "\u26A0\uFE0F Keine Kategorie mit dem Namen **Einreise** gefunden. "
+            "Alle Kategorien werden trotzdem in Gro\u00DFschrift umbenannt.",
+            ephemeral=True
+        )
+
+    renamed = []
+    errors  = []
+    nummer  = 1
+
+    for i, cat in enumerate(categories):
+        # Aktuellen Namen bereinigen: vorhandene [X.0]-Pr\u00E4fixe entfernen, dann UPPERCASE
+        base_name = re.sub(r'^\[\d+\.\d+\]\s*', '', cat.name).strip().upper()
+
+        if einreise_idx is not None and i >= einreise_idx:
+            new_name = f"[{nummer}.0] {base_name}"
+            nummer += 1
+        else:
+            new_name = base_name
+
+        if new_name == cat.name:
+            renamed.append(f"\u2194\uFE0F `{cat.name}` \u2014 unver\u00E4ndert")
+            continue
+
+        try:
+            await cat.edit(name=new_name, reason="Admin: Kategorien-Setup")
+            renamed.append(f"\u2705 `{cat.name}` \u2192 `{new_name}`")
+        except Exception as e:
+            errors.append(f"\u274C `{cat.name}` \u2014 Fehler: {e}")
+
+    lines = "\n".join(renamed + errors)
+    embed = discord.Embed(
+        title="\U0001F4C2 Kategorien-Setup abgeschlossen",
+        description=lines[:4000] if lines else "Keine \u00C4nderungen.",
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text=f"Durchgef\u00FChrt von {interaction.user}")
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 bot.run(TOKEN)
