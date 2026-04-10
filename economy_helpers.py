@@ -218,13 +218,38 @@ def consume_sim_karte(member) -> bool:
     return False
 
 
+def has_item(member, item_query: str) -> bool:
+    """Prüft ob member ein Item mit dem Namen item_query im Inventar hat."""
+    eco = load_economy()
+    user_data = get_user(eco, member.id)
+    inventory = user_data.get("inventory", [])
+    norm_q = normalize_item_name(item_query)
+    return any(norm_q in normalize_item_name(i) for i in inventory)
+
+
+def consume_item(member, item_query: str) -> bool:
+    """Entfernt genau eine Kopie von item_query aus dem Inventar. True = erfolgreich."""
+    eco = load_economy()
+    user_data = get_user(eco, member.id)
+    inventory = user_data.get("inventory", [])
+    norm_q = normalize_item_name(item_query)
+    for idx, item in enumerate(inventory):
+        if norm_q in normalize_item_name(item):
+            inventory.pop(idx)
+            user_data["inventory"] = inventory
+            eco[str(member.id)] = user_data
+            save_economy(eco)
+            return True
+    return False
+
+
 # ── Money Log Helper ─────────────────────────────────────────
 
 async def log_money_action(guild: discord.Guild, title: str, description: str):
     ch = guild.get_channel(MONEY_LOG_CHANNEL_ID)
     if ch:
         embed = discord.Embed(
-            title=f"💵 {title}",
+            title=f"💲 {title}",
             description=description,
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -251,7 +276,7 @@ async def betrag_autocomplete(
     choices = []
     clean = current.replace(".", "").replace(",", "").strip()
     for val in BETRAG_SUGGESTIONS:
-        label = f"{val:,} 💵".replace(",", ".")
+        label = f"{val:,} 💲".replace(",", ".")
         if clean == "" or clean in str(val) or clean.lower() in label.lower():
             choices.append(app_commands.Choice(name=label, value=val))
     return choices[:25]
@@ -460,4 +485,3 @@ def find_shop_item(items, query: str):
 
 def channel_error(channel_id: int) -> str:
     return f"❌ Du kannst diesen Command nur hier ausführen: <#{channel_id}>"
-    
