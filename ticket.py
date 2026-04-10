@@ -507,16 +507,16 @@ async def auto_lohnliste_setup():
             print(f"Lohnliste bereits vorhanden in #{channel.name} — kein erneutes Posten.")
             continue
         desc = (
-            f"<@&1490855796932739093>\n**1.500 💵 Stündlich**\n\n"
-            f"<@&1490855789844234310>\n**2.500 💵 Stündlich**\n\n"
-            f"<@&1490855790913785886>\n**3.500 💵 Stündlich**\n\n"
-            f"<@&1490855791953973421>\n**4.500 💵 Stündlich**\n\n"
-            f"<@&1490855792671461478>\n**5.500 💵 Stündlich**\n\n"
-            f"<@&1490855793694871595>\n**6.500 💵 Stündlich**\n\n"
-            f"<@&1490855795360006246>\n**1.200 💵 Stündlich** *(Zusatzlohn)*"
+            f"<@&1490855796932739093>\n**1.500 💲 Stündlich**\n\n"
+            f"<@&1490855789844234310>\n**2.500 💲 Stündlich**\n\n"
+            f"<@&1490855790913785886>\n**3.500 💲 Stündlich**\n\n"
+            f"<@&1490855791953973421>\n**4.500 💲 Stündlich**\n\n"
+            f"<@&1490855792671461478>\n**5.500 💲 Stündlich**\n\n"
+            f"<@&1490855793694871595>\n**6.500 💲 Stündlich**\n\n"
+            f"<@&1490855795360006246>\n**1.200 💲 Stündlich** *(Zusatzlohn)*"
         )
         embed = discord.Embed(
-            title="💵 Lohnliste 💵",
+            title="💲 Lohnliste 💲",
             description=desc,
             color=LOG_COLOR
         )
