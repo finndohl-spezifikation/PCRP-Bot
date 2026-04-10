@@ -228,26 +228,33 @@ async def auto_einreise_setup():
 
 # /ausweisen
 @bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
-async def ausweisen(interaction: discord.Interaction):
+@app_commands.describe(nutzer="(Nur Team) Ausweis eines anderen Spielers abrufen")
+async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids = [r.id for r in interaction.user.roles]
-    if CITIZEN_ROLE_ID not in role_ids and ADMIN_ROLE_ID not in role_ids:
+    is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
+
+    if CITIZEN_ROLE_ID not in role_ids and not is_team:
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
-    if interaction.channel.id != AUSWEIS_CHANNEL_ID and ADMIN_ROLE_ID not in role_ids:
+    if interaction.channel.id != AUSWEIS_CHANNEL_ID and not is_team:
         await interaction.response.send_message(
             f"❌ Diesen Command kannst du nur in <#{AUSWEIS_CHANNEL_ID}> benutzen.", ephemeral=True
         )
         return
 
+    target = nutzer if (is_team and nutzer) else interaction.user
+
     ausweis_data = load_ausweis()
-    entry = ausweis_data.get(str(interaction.user.id))
+    entry = ausweis_data.get(str(target.id))
 
     if not entry:
-        await interaction.response.send_message(
-            "❌ Du hast noch keinen Ausweis. Wähle zuerst deine Einreiseart und erstelle deinen Ausweis.",
-            ephemeral=True
+        msg = (
+            f"❌ **{target.display_name}** hat noch keinen Ausweis."
+            if target != interaction.user else
+            "❌ Du hast noch keinen Ausweis. Wähle zuerst deine Einreiseart und erstelle deinen Ausweis."
         )
+        await interaction.response.send_message(msg, ephemeral=True)
         return
 
     typ_label = "🤵 Legale Einreise" if entry.get("einreise_typ") == "legal" else "🥷 Illegale Einreise"
@@ -257,17 +264,17 @@ async def ausweisen(interaction: discord.Interaction):
         color=0x000000,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=interaction.user.display_avatar.url)
-    embed.add_field(name="Name",         value=f"{entry['vorname']} {entry['nachname']}",  inline=True)
-    embed.add_field(name="Geburtsdatum", value=entry["geburtsdatum"],                       inline=True)
-    embed.add_field(name="Alter",        value=entry.get("alter", "?"),                     inline=True)
-    embed.add_field(name="Nationalität", value=entry["nationalitaet"],                     inline=True)
-    embed.add_field(name="Wohnort",      value=entry["wohnort"],                            inline=True)
-    embed.add_field(name="Einreiseart",  value=typ_label,                                   inline=True)
-    embed.add_field(name="Ausweisnummer",value=f"`{entry['ausweisnummer']}`",              inline=False)
+    embed.set_thumbnail(url=target.display_avatar.url)
+    embed.add_field(name="Name",          value=f"{entry['vorname']} {entry['nachname']}", inline=True)
+    embed.add_field(name="Geburtsdatum",  value=entry["geburtsdatum"],                     inline=True)
+    embed.add_field(name="Alter",         value=entry.get("alter", "?"),                   inline=True)
+    embed.add_field(name="Nationalität",  value=entry["nationalitaet"],                   inline=True)
+    embed.add_field(name="Wohnort",       value=entry["wohnort"],                          inline=True)
+    embed.add_field(name="Einreiseart",   value=typ_label,                                 inline=True)
+    embed.add_field(name="Ausweisnummer", value=f"`{entry['ausweisnummer']}`",            inline=False)
     embed.set_footer(text="Kryptik Roleplay — Personalausweis")
 
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
 
 
 # /ausweis-remove (Admin only)
