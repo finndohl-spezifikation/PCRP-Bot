@@ -8,6 +8,36 @@
 from config import *
 from helpers import is_admin, is_team
 
+# ── Kursive Schrift Hilfsfunktionen ──────────────────────────
+
+_ITALIC_UPPER = 0x1D608
+_ITALIC_LOWER = 0x1D622
+
+def _to_italic(text: str) -> str:
+    result = ""
+    for ch in text:
+        if 'A' <= ch <= 'Z':
+            result += chr(_ITALIC_UPPER + ord(ch) - ord('A'))
+        elif 'a' <= ch <= 'z':
+            result += chr(_ITALIC_LOWER + ord(ch) - ord('a'))
+        else:
+            result += ch
+    return result
+
+def _italic_channel_name(raw: str) -> str:
+    cleaned = ""
+    for ch in raw:
+        cp = ord(ch)
+        if _ITALIC_UPPER <= cp <= _ITALIC_UPPER + 25:
+            cleaned += chr(ord('A') + cp - _ITALIC_UPPER)
+        elif _ITALIC_LOWER <= cp <= _ITALIC_LOWER + 25:
+            cleaned += chr(ord('a') + cp - _ITALIC_LOWER)
+        else:
+            cleaned += ch
+    words  = re.sub(r'[-_]+', ' ', cleaned).strip().split()
+    titled = ' '.join(w.capitalize() for w in words if w)
+    return _to_italic(titled)
+
 
 # ── /kartenkontrolle ─────────────────────────────────────────
 
@@ -265,4 +295,47 @@ async def kategorien_setup(interaction: discord.Interaction):
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(text=f"Durchgeführt von {interaction.user}")
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+# ── /kanal-kursiv ────────────────────────────────────────────
+
+@bot.tree.command(
+    name="kanal-kursiv",
+    description="[Admin] Alle Kanal-Namen in kursive Unicode-Schrift umbenennen",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.default_permissions(administrator=True)
+async def kanal_kursiv(interaction: discord.Interaction):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True, thinking=True)
+
+    guild    = interaction.guild
+    channels = sorted(guild.channels, key=lambda c: c.position)
+    renamed  = []
+    errors   = []
+
+    for ch in channels:
+        try:
+            new_name = _italic_channel_name(ch.name)
+            if new_name == ch.name:
+                continue
+            old_name = ch.name
+            await ch.edit(name=new_name, reason="Admin: Kanal-Kursiv-Setup")
+            renamed.append(f"✅ `{old_name}` → `{new_name}`")
+            await asyncio.sleep(0.5)
+        except Exception as e:
+            errors.append(f"❌ `{ch.name}` — {e}")
+
+    lines = "\n".join(renamed + errors)
+    embed = discord.Embed(
+        title="✏️ Kanal-Namen aktualisiert",
+        description=lines[:4000] if lines else "Keine Änderungen nötig.",
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text=f"{len(renamed)} umbenannt · {len(errors)} Fehler")
     await interaction.followup.send(embed=embed, ephemeral=True)
