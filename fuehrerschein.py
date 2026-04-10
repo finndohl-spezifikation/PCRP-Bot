@@ -21,11 +21,11 @@ def save_fuehrerschein(data):
 
 
 def has_fuehrerschein_erstellen_perm(member: discord.Member) -> bool:
-    return any(r.id in (FUEHRERSCHEIN_ERSTELLEN_ROLE_ID, ADMIN_ROLE_ID) for r in member.roles)
+    return any(r.id in (FUEHRERSCHEIN_ERSTELLEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID) for r in member.roles)
 
 
 def has_fuehrerschein_entziehen_perm(member: discord.Member) -> bool:
-    return any(r.id in (FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID, ADMIN_ROLE_ID) for r in member.roles)
+    return any(r.id in (FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID) for r in member.roles)
 
 
 # ── Modal für Führerschein-Erstellung ────────────────────────
@@ -186,7 +186,6 @@ class FuehrerscheinEntzugModal(discord.ui.Modal, title="🚫 Führerschein entzi
     description="[Behörde] Erstelle einen Führerschein für einen Spieler",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler für den der Führerschein ausgestellt wird")
 async def create_fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_erstellen_perm(interaction.user):
@@ -246,7 +245,6 @@ async def fuehrerschein(interaction: discord.Interaction):
     description="[Behörde] Entziehe einem Spieler den Führerschein",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler dem der Führerschein entzogen werden soll")
 async def remove_fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_entziehen_perm(interaction.user):
@@ -263,7 +261,6 @@ async def remove_fuehrerschein(interaction: discord.Interaction, nutzer: discord
     description="[Behörde] Gib einem Spieler den entzogenen Führerschein zurück",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler dem der Führerschein zurückgegeben werden soll")
 async def fuehrerschein_geben(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_entziehen_perm(interaction.user):
@@ -402,7 +399,6 @@ class FuehrerscheinEditModal(discord.ui.Modal, title="✏️ Führerschein bearb
     description="[Behörde] Bearbeite den Führerschein eines Spielers",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler dessen Führerschein bearbeitet werden soll")
 async def fuehrerschein_edit(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_erstellen_perm(interaction.user):
