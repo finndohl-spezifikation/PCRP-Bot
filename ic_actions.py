@@ -5,7 +5,7 @@
 # ══════════════════════════════════════════════════════════════
 
 from config import *
-from economy_helpers import has_item, consume_item
+from economy_helpers import has_item, consume_item, load_economy, save_economy, get_user
 
 IC_ACTIONS_CHANNEL_ID = 1490882589014364250
 
@@ -109,6 +109,50 @@ async def ortung(interaction: discord.Interaction, ziel: discord.Member):
     await interaction.response.send_message(embed=embed)
 
 
+# ── Entfesseln View ──────────────────────────────────────────
+
+class EntfesselnView(discord.ui.View):
+    def __init__(self, fesseler_id: int, target_id: int):
+        super().__init__(timeout=7200)
+        self.fesseler_id = fesseler_id
+        self.target_id   = target_id
+
+    @discord.ui.button(label="🔓 Entfesseln", style=discord.ButtonStyle.green)
+    async def entfesseln(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.fesseler_id:
+            await interaction.response.send_message(
+                "❌ Nur derjenige der gefesselt hat kann auch entfesseln!", ephemeral=True
+            )
+            return
+
+        eco       = load_economy()
+        user_data = get_user(eco, self.fesseler_id)
+        user_data.setdefault("inventory", []).append("⛓️| Handfesseln")
+        eco[str(self.fesseler_id)] = user_data
+        save_economy(eco)
+
+        button.disabled = True
+        button.label    = "🔓 Entfesselt"
+
+        target  = interaction.guild.get_member(self.target_id)
+        fesseler = interaction.guild.get_member(self.fesseler_id)
+        embed = discord.Embed(
+            title="🔓 Entfesselt",
+            description=(
+                f"{interaction.user.mention} hat "
+                f"**{target.mention if target else 'den Spieler'}** entfesselt!\n\n"
+                f"Die Handfesseln wurden zurück ins Inventar von "
+                f"{fesseler.mention if fesseler else 'dem Fesseler'} gelegt."
+            ),
+            color=0x2ECC71,
+            timestamp=datetime.now(timezone.utc)
+        )
+        if target:
+            embed.set_thumbnail(url=target.display_avatar.url)
+        embed.set_footer(text="Kryptik Roleplay — IC Aktion")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+
 # ── /fesseln ─────────────────────────────────────────────────
 
 @bot.tree.command(
@@ -149,4 +193,5 @@ async def fesseln(interaction: discord.Interaction, ziel: discord.Member):
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
     embed.set_footer(text="Kryptik Roleplay — IC Aktion")
-    await interaction.response.send_message(embed=embed)
+    view = EntfesselnView(fesseler_id=interaction.user.id, target_id=ziel.id)
+    await interaction.response.send_message(embed=embed, view=view)
