@@ -202,6 +202,22 @@ def has_sim_karte(member):
     return any(norm_sim in normalize_item_name(i) for i in inventory)
 
 
+def consume_sim_karte(member) -> bool:
+    """Entfernt genau eine SIM-Karte aus dem Inventar. Gibt True zurück wenn erfolgreich."""
+    eco = load_economy()
+    user_data = get_user(eco, member.id)
+    inventory = user_data.get("inventory", [])
+    norm_sim  = normalize_item_name("Sim Karte")
+    for idx, item in enumerate(inventory):
+        if norm_sim in normalize_item_name(item):
+            inventory.pop(idx)
+            user_data["inventory"] = inventory
+            eco[str(member.id)] = user_data
+            save_economy(eco)
+            return True
+    return False
+
+
 # ── Money Log Helper ─────────────────────────────────────────
 
 async def log_money_action(guild: discord.Guild, title: str, description: str):
@@ -444,3 +460,4 @@ def find_shop_item(items, query: str):
 
 def channel_error(channel_id: int) -> str:
     return f"❌ Du kannst diesen Command nur hier ausführen: <#{channel_id}>"
+    
