@@ -78,6 +78,12 @@ async def on_ready():
     except Exception as e:
         print(f"Slash Command sync fehlgeschlagen: {e}")
 
+    try:
+        from help_embed import update_help_embed
+        await update_help_embed()
+    except Exception as e:
+        print(f"[help_embed] Fehler beim Aktualisieren: {e}")
+
 
 @bot.event
 async def on_error(event, *args, **kwargs):
@@ -537,4 +543,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-  )
+    )
