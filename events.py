@@ -22,51 +22,6 @@ from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_auswe
 from casino import CasinoView, auto_casino_setup
 
 
-# ── Kategorie-Namen → Normale Großschrift (einmalig) ─────────
-
-_KATEGORIE_RENAME_FLAG = DATA_DIR / "kategorie_rename_done.flag"
-
-_ITALIC_UPPER = 0x1D608
-_ITALIC_LOWER = 0x1D622
-
-def _strip_italic(text: str) -> str:
-    result = ""
-    for ch in text:
-        cp = ord(ch)
-        if _ITALIC_UPPER <= cp <= _ITALIC_UPPER + 25:
-            result += chr(ord('A') + cp - _ITALIC_UPPER)
-        elif _ITALIC_LOWER <= cp <= _ITALIC_LOWER + 25:
-            result += chr(ord('a') + cp - _ITALIC_LOWER)
-        else:
-            result += ch
-    return result
-
-def _uppercase_category_name(raw: str) -> str:
-    cleaned = _strip_italic(raw)
-    words   = re.sub(r'[-_]+', ' ', cleaned).strip().split()
-    return ' '.join(w.upper() for w in words if w)
-
-async def _rename_channels_italic(guild: discord.Guild):
-    if _KATEGORIE_RENAME_FLAG.exists():
-        print("[rename] Einmalige Umbenennung bereits erledigt — übersprungen.")
-        return
-
-    categories = [ch for ch in guild.channels if isinstance(ch, discord.CategoryChannel)]
-    count = 0
-    for cat in sorted(categories, key=lambda c: c.position):
-        try:
-            new_name = _uppercase_category_name(cat.name)
-            if new_name != cat.name:
-                await cat.edit(name=new_name, reason="Bot-Start: Kategorien → Großschrift (einmalig)")
-                print(f"[rename] {cat.name!r} → {new_name!r}")
-                count += 1
-                await asyncio.sleep(0.5)
-        except Exception as e:
-            print(f"[rename] Fehler bei {cat.name!r}: {e}")
-
-    _KATEGORIE_RENAME_FLAG.touch()
-    print(f"[rename] Fertig — {count} Kategorien umbenannt (wird nicht wiederholt)")
-
 
 @bot.event
 async def on_ready():
@@ -130,8 +85,6 @@ async def on_ready():
     except Exception as e:
         print(f"[help_embed] Fehler beim Aktualisieren: {e}")
 
-    for guild in bot.guilds:
-        asyncio.ensure_future(_rename_channels_italic(guild))
 
 
 @bot.event
