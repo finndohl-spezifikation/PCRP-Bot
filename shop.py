@@ -184,6 +184,7 @@ class ShopAddConfirmView(discord.ui.View):
 
 
 @bot.tree.command(name="shop-add", description="[Shop] Füge ein neues Item zum Shop hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     itemname="Name des Items",
     preis="Preis in $",
@@ -218,6 +219,7 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, 
 
 # /delete-item (Team only)
 @bot.tree.command(name="delete-item", description="[Shop] Entfernt ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(itemname="Name des Items das aus dem Shop entfernt werden soll")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
 async def delete_item(interaction: discord.Interaction, itemname: str):
