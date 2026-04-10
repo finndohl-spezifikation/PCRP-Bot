@@ -565,5 +565,5 @@ async def on_member_join(member):
         await log_money_action(
             guild,
             "Startguthaben vergeben",
-            f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
+            f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💲 (Willkommensbonus)"
     )
