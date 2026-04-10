@@ -181,6 +181,11 @@ def generate_la_phone_number():
     return f"+1 ({area}) {num1}-{num2}"
 
 
+def has_citizen_or_wage(member: discord.Member) -> bool:
+    role_ids = [r.id for r in member.roles]
+    return CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
+
+
 def has_handy(member):
     eco = load_economy()
     user_data = get_user(eco, member.id)
