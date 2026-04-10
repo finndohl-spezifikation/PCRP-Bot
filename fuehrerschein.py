@@ -300,3 +300,121 @@ async def fuehrerschein_geben(interaction: discord.Interaction, nutzer: discord.
     embed.add_field(name="Name",              value=f"{entry['vorname']} {entry['nachname']}", inline=False)
     embed.set_footer(text="Kryptik Roleplay — Führerschein")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── Modal für Führerschein-Bearbeitung ───────────────────────
+
+class FuehrerscheinEditModal(discord.ui.Modal, title="✏️ Führerschein bearbeiten"):
+    vorname = discord.ui.TextInput(
+        label="Vorname",
+        max_length=50,
+    )
+    nachname = discord.ui.TextInput(
+        label="Nachname",
+        max_length=50,
+    )
+    geburtsdatum = discord.ui.TextInput(
+        label="Geburtsdatum",
+        placeholder="TT.MM.JJJJ",
+        max_length=10,
+    )
+    ausweisnummer = discord.ui.TextInput(
+        label="Ausweisnummer",
+        max_length=20,
+    )
+    fuehrerschein_klasse = discord.ui.TextInput(
+        label="Führerschein-Klasse(n)",
+        placeholder="z.B. B, BE, C",
+        max_length=50,
+    )
+
+    def __init__(self, zielperson: discord.Member, entry: dict):
+        super().__init__()
+        self.zielperson = zielperson
+        self.vorname.default             = entry.get("vorname", "")
+        self.nachname.default            = entry.get("nachname", "")
+        self.geburtsdatum.default        = entry.get("geburtsdatum", "")
+        self.ausweisnummer.default       = entry.get("ausweisnummer", "")
+        self.fuehrerschein_klasse.default = entry.get("fuehrerschein_klasse", "")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        data  = load_fuehrerschein()
+        uid   = str(self.zielperson.id)
+        entry = data.get(uid)
+
+        if not entry:
+            await interaction.response.send_message(
+                f"❌ **{self.zielperson.display_name}** hat keinen Führerschein mehr.", ephemeral=True
+            )
+            return
+
+        entry["vorname"]              = self.vorname.value.strip()
+        entry["nachname"]             = self.nachname.value.strip()
+        entry["geburtsdatum"]         = self.geburtsdatum.value.strip()
+        entry["ausweisnummer"]        = self.ausweisnummer.value.strip()
+        entry["fuehrerschein_klasse"] = self.fuehrerschein_klasse.value.strip()
+        entry["bearbeitet_von_id"]    = interaction.user.id
+        entry["bearbeitet_von_name"]  = str(interaction.user)
+        entry["bearbeitet_am"]        = datetime.now(timezone.utc).isoformat()
+        save_fuehrerschein(data)
+
+        now = datetime.now(timezone.utc)
+        embed = discord.Embed(
+            title="✏️ Führerschein bearbeitet",
+            color=0xFFA500,
+            timestamp=now,
+        )
+        embed.set_author(name="Cryptik Roleplay — Führerschein")
+        embed.set_thumbnail(url=self.zielperson.display_avatar.url)
+        embed.add_field(name="Inhaber",             value=self.zielperson.mention,                                              inline=True)
+        embed.add_field(name="Bearbeitet von",      value=interaction.user.mention,                                            inline=True)
+        embed.add_field(name="Name",                value=f"{entry['vorname']} {entry['nachname']}",                           inline=False)
+        embed.add_field(name="Geburtsdatum",        value=entry["geburtsdatum"],                                               inline=True)
+        embed.add_field(name="Ausweisnummer",       value=f"`{entry['ausweisnummer']}`",                                      inline=True)
+        embed.add_field(name="Führerschein-Klasse", value=entry["fuehrerschein_klasse"],                                      inline=True)
+        embed.set_footer(text="Kryptik Roleplay — Führerschein")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        try:
+            dm_embed = discord.Embed(
+                title="✏️ Dein Führerschein wurde aktualisiert",
+                color=0xFFA500,
+                timestamp=now,
+            )
+            dm_embed.add_field(name="Name",                value=f"{entry['vorname']} {entry['nachname']}", inline=True)
+            dm_embed.add_field(name="Klasse(n)",           value=entry["fuehrerschein_klasse"],             inline=True)
+            dm_embed.add_field(name="Ausweisnummer",       value=f"`{entry['ausweisnummer']}`",            inline=True)
+            dm_embed.add_field(name="Bearbeitet von",      value=interaction.user.display_name,             inline=False)
+            dm_embed.set_footer(text="Kryptik Roleplay — Führerschein")
+            await self.zielperson.send(embed=dm_embed)
+        except Exception:
+            pass
+
+
+# /führerschein-edit
+@bot.tree.command(
+    name="führerschein-edit",
+    description="[Behörde] Bearbeite den Führerschein eines Spielers",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(nutzer="Spieler dessen Führerschein bearbeitet werden soll")
+@app_commands.default_permissions(manage_messages=True)
+async def fuehrerschein_edit(interaction: discord.Interaction, nutzer: discord.Member):
+    if not has_fuehrerschein_erstellen_perm(interaction.user):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    data  = load_fuehrerschein()
+    uid   = str(nutzer.id)
+    entry = data.get(uid)
+
+    if not entry:
+        await interaction.response.send_message(
+            f"❌ **{nutzer.display_name}** hat keinen Führerschein.\n"
+            f"Erstelle zuerst einen mit `/create-führerschein`.",
+            ephemeral=True
+        )
+        return
+
+    modal = FuehrerscheinEditModal(zielperson=nutzer, entry=entry)
+    await interaction.response.send_modal(modal)
