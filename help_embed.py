@@ -137,6 +137,7 @@ async def update_help_embed():
     description="[Admin] Aktualisiert das Command-Übersicht Embed manuell",
     guild=discord.Object(id=GUILD_ID),
 )
+@app_commands.default_permissions(administrator=True)
 async def help_update(interaction: discord.Interaction):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
