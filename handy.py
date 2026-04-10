@@ -7,7 +7,8 @@
 from config import *
 from helpers import log_bot_error
 from economy_helpers import (
-    has_handy, has_sim_karte, load_handy_numbers, save_handy_numbers,
+    has_handy, has_sim_karte, consume_sim_karte,
+    load_handy_numbers, save_handy_numbers,
     generate_la_phone_number
 )
 
@@ -127,6 +128,7 @@ class EinstellungenSelect(discord.ui.Select):
                 neue_nummer = generate_la_phone_number()
             numbers[uid] = neue_nummer
             save_handy_numbers(numbers)
+            consume_sim_karte(member)
 
             embed = discord.Embed(
                 title="📱 SIM-Karte gewechselt",
