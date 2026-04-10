@@ -365,6 +365,7 @@ async def on_member_remove(member):
             g_embed.add_field(name="Mitglied", value=str(member), inline=True)
             g_embed.add_field(name="ID",       value=str(member.id), inline=True)
             g_embed.set_footer(text=f"Noch {guild.member_count} Mitglieder")
+            g_embed.set_image(url="https://a457f842-f550-4b03-850d-68292f4acbb5-00-1syh7hg70wqb4.picard.replit.dev/api/files/banner.png")
             await goodbye_ch.send(embed=g_embed)
         except Exception:
             pass
@@ -525,6 +526,7 @@ async def on_member_join(member):
             w_embed.add_field(name="Mitglied", value=str(member), inline=True)
             w_embed.add_field(name="ID", value=str(member.id), inline=True)
             w_embed.set_footer(text=f"Mitglied #{guild.member_count}")
+            w_embed.set_image(url="https://a457f842-f550-4b03-850d-68292f4acbb5-00-1syh7hg70wqb4.picard.replit.dev/api/files/banner.png")
             await welcome_ch.send(embed=w_embed)
         except Exception:
             pass
