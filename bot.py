@@ -36,6 +36,7 @@ import giveaway                 # /create-giveaway
 import event_system             # /create-event
 import abstimmung               # /abstimmung, reaction polls
 import misc_commands            # /kartenkontrolle, /delete, /commands, /kategorien-setup
+import rechnungen               # /rechnung-schreiben, /rechnungen, /mahnung
 import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 
