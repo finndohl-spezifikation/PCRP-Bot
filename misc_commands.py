@@ -227,18 +227,25 @@ async def kategorien_setup(interaction: discord.Interaction):
             ephemeral=True
         )
 
+    AUSGESCHLOSSEN = {"tickets", "fraktions tickets", "highteam tickets"}
+
     renamed = []
     errors  = []
     nummer  = 1
 
     for i, cat in enumerate(categories):
-        base_name = re.sub(r'^\[\d+\.\d+\]\s*', '', cat.name).strip().upper()
+        base_name  = re.sub(r'^\[\d+\.\d+\]\s*', '', cat.name).strip()
+        name_check = base_name.lower()
+        base_upper = base_name.upper()
 
         if einreise_idx is not None and i >= einreise_idx:
-            new_name = f"[{nummer}.0] {base_name}"
-            nummer  += 1
+            if name_check in AUSGESCHLOSSEN:
+                new_name = base_upper
+            else:
+                new_name = f"[{nummer}.0] {base_upper}"
+                nummer  += 1
         else:
-            new_name = base_name
+            new_name = base_upper
 
         if new_name == cat.name:
             renamed.append(f"↔️ `{cat.name}` — unverändert")
