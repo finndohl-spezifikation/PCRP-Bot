@@ -189,9 +189,8 @@ class ShopAddConfirmView(discord.ui.View):
     preis="Preis in $",
     rolle="(Optional) Nur diese Rolle kann das Item kaufen"
 )
-@app_commands.default_permissions(manage_messages=True)
 async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, rolle: discord.Role = None):
-    if not any(r.id == 1490855717354213388 for r in interaction.user.roles):
+    if not any(r.id in (SHOP_ADMIN_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
@@ -219,11 +218,10 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, 
 
 # /delete-item (Team only)
 @bot.tree.command(name="delete-item", description="[Shop] Entfernt ein Item aus dem Shop", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(itemname="Name des Items das aus dem Shop entfernt werden soll")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
 async def delete_item(interaction: discord.Interaction, itemname: str):
-    if not any(r.id == 1490855717354213388 for r in interaction.user.roles):
+    if not any(r.id in (SHOP_ADMIN_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
