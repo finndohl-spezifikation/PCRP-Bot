@@ -101,10 +101,7 @@ def _build_embed(commands: list) -> discord.Embed:
     return embed
 
 
-@bot.listen("on_ready")
-async def post_help_embed():
-    await bot.wait_until_ready()
-
+async def update_help_embed():
     guild   = bot.get_guild(GUILD_ID)
     channel = guild and guild.get_channel(HELP_CHANNEL_ID)
     if not channel:
@@ -113,7 +110,7 @@ async def post_help_embed():
 
     commands = bot.tree.get_commands(guild=discord.Object(id=GUILD_ID))
     if not commands:
-        print("[help_embed] ⚠️ Keine Commands im Tree gefunden — warte auf Sync.")
+        print("[help_embed] ⚠️ Keine Commands im Tree gefunden.")
         return
 
     embed      = _build_embed(commands)
@@ -146,26 +143,5 @@ async def help_update(interaction: discord.Interaction):
         return
 
     await interaction.response.defer(ephemeral=True)
-
-    guild   = interaction.guild
-    channel = guild.get_channel(HELP_CHANNEL_ID)
-    if not channel:
-        await interaction.followup.send("❌ Help-Kanal nicht gefunden.", ephemeral=True)
-        return
-
-    commands = bot.tree.get_commands(guild=discord.Object(id=GUILD_ID))
-    embed    = _build_embed(commands)
-    message_id = _load_message_id()
-
-    if message_id:
-        try:
-            msg = await channel.fetch_message(message_id)
-            await msg.edit(embed=embed)
-            await interaction.followup.send("✅ Embed erfolgreich aktualisiert!", ephemeral=True)
-            return
-        except discord.NotFound:
-            pass
-
-    msg = await channel.send(embed=embed)
-    _save_message_id(msg.id)
-    await interaction.followup.send("✅ Neues Embed gesendet!", ephemeral=True)
+    await update_help_embed()
+    await interaction.followup.send("✅ Embed erfolgreich aktualisiert!", ephemeral=True)
