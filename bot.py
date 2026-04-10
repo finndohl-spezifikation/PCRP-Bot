@@ -36,6 +36,7 @@ import giveaway                 # /create-giveaway
 import event_system             # /create-event
 import abstimmung               # /abstimmung, reaction polls
 import misc_commands            # /kartenkontrolle, /delete, /commands, /kategorien-setup
+import help_embed               # Automatisches Command-Übersicht Embed
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
