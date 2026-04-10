@@ -18,7 +18,7 @@ from ticket import (
     TicketSelectView, TicketActionView, auto_ticket_setup, auto_lohnliste_setup
 )
 from handy import HandyView, auto_handy_setup
-from einreise import EinreiseView, auto_einreise_setup, load_ausweis
+from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_ausweis
 from casino import CasinoView, auto_casino_setup
 
 
@@ -492,8 +492,8 @@ async def on_member_join(member):
     hat_ausweis  = str(member.id) in ausweis_data
 
     if hat_ausweis:
-        eintrag       = ausweis_data[str(member.id)]
-        einreise_typ  = eintrag.get("einreise_typ", "legal")
+        eintrag      = ausweis_data[str(member.id)]
+        einreise_typ = eintrag.get("einreise_typ", "legal")
         wiederherstellen = []
         for rid in CHARAKTER_ROLLEN:
             r = guild.get_role(rid)
@@ -566,4 +566,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-            )
+    )
