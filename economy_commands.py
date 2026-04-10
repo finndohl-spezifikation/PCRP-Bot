@@ -314,12 +314,11 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
     await interaction.response.send_message(embed=embed)
 
 
-# /money-add (Admin only)
-@bot.tree.command(name="money-add", description="[Admin] Füge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+# /money-add
+@bot.tree.command(name="money-add", description="[Team] Füge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
-@app_commands.default_permissions(administrator=True)
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not is_admin(interaction.user):
+    if not any(r.id in (MONEY_ADD_ROLE_1_ID, MONEY_ADD_ROLE_2_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
@@ -351,12 +350,11 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# /remove-money (Admin only)
+# /remove-money
 @bot.tree.command(name="remove-money", description="[Admin] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
-@app_commands.default_permissions(administrator=True)
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not is_admin(interaction.user):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
