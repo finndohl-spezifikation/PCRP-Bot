@@ -194,6 +194,14 @@ def has_handy(member):
     return any(norm_handy in normalize_item_name(i) for i in inventory)
 
 
+def has_sim_karte(member):
+    eco = load_economy()
+    user_data = get_user(eco, member.id)
+    inventory = user_data.get("inventory", [])
+    norm_sim = normalize_item_name("Sim Karte")
+    return any(norm_sim in normalize_item_name(i) for i in inventory)
+
+
 # ── Money Log Helper ─────────────────────────────────────────
 
 async def log_money_action(guild: discord.Guild, title: str, description: str):
