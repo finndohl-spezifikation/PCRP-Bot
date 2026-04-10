@@ -102,28 +102,28 @@ ADDITIONAL_WAGE_ROLE_WAGE = 1200
 DAILY_LIMIT = 1_000_000
 
 BETRAG_CHOICES = [
-    app_commands.Choice(name="1.000 💲",       value=1_000),
-    app_commands.Choice(name="5.000 💲",       value=5_000),
-    app_commands.Choice(name="10.000 💲",      value=10_000),
-    app_commands.Choice(name="25.000 💲",      value=25_000),
-    app_commands.Choice(name="50.000 💲",      value=50_000),
-    app_commands.Choice(name="100.000 💲",     value=100_000),
-    app_commands.Choice(name="250.000 💲",     value=250_000),
-    app_commands.Choice(name="500.000 💲",     value=500_000),
-    app_commands.Choice(name="1.000.000 💲",   value=1_000_000),
+    app_commands.Choice(name="1.000 💵",       value=1_000),
+    app_commands.Choice(name="5.000 💵",       value=5_000),
+    app_commands.Choice(name="10.000 💵",      value=10_000),
+    app_commands.Choice(name="25.000 💵",      value=25_000),
+    app_commands.Choice(name="50.000 💵",      value=50_000),
+    app_commands.Choice(name="100.000 💵",     value=100_000),
+    app_commands.Choice(name="250.000 💵",     value=250_000),
+    app_commands.Choice(name="500.000 💵",     value=500_000),
+    app_commands.Choice(name="1.000.000 💵",   value=1_000_000),
 ]
 
 LIMIT_CHOICES = [
-    app_commands.Choice(name="1.000.000 💲",   value=1_000_000),
-    app_commands.Choice(name="2.000.000 💲",   value=2_000_000),
-    app_commands.Choice(name="3.000.000 💲",   value=3_000_000),
-    app_commands.Choice(name="4.000.000 💲",   value=4_000_000),
-    app_commands.Choice(name="5.000.000 💲",   value=5_000_000),
-    app_commands.Choice(name="6.000.000 💲",   value=6_000_000),
-    app_commands.Choice(name="7.000.000 💲",   value=7_000_000),
-    app_commands.Choice(name="8.000.000 💲",   value=8_000_000),
-    app_commands.Choice(name="9.000.000 💲",   value=9_000_000),
-    app_commands.Choice(name="10.000.000 💲",  value=10_000_000),
+    app_commands.Choice(name="1.000.000 💵",   value=1_000_000),
+    app_commands.Choice(name="2.000.000 💵",   value=2_000_000),
+    app_commands.Choice(name="3.000.000 💵",   value=3_000_000),
+    app_commands.Choice(name="4.000.000 💵",   value=4_000_000),
+    app_commands.Choice(name="5.000.000 💵",   value=5_000_000),
+    app_commands.Choice(name="6.000.000 💵",   value=6_000_000),
+    app_commands.Choice(name="7.000.000 💵",   value=7_000_000),
+    app_commands.Choice(name="8.000.000 💵",   value=8_000_000),
+    app_commands.Choice(name="9.000.000 💵",   value=9_000_000),
+    app_commands.Choice(name="10.000.000 💵",  value=10_000_000),
 ]
 
 # Persistenter Datenspeicher
