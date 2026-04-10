@@ -222,7 +222,12 @@ async def auto_einreise_setup():
 # /ausweisen
 @bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
 async def ausweisen(interaction: discord.Interaction):
-    if interaction.channel.id != AUSWEIS_CHANNEL_ID and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+    role_ids = [r.id for r in interaction.user.roles]
+    if CITIZEN_ROLE_ID not in role_ids and ADMIN_ROLE_ID not in role_ids:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
+    if interaction.channel.id != AUSWEIS_CHANNEL_ID and ADMIN_ROLE_ID not in role_ids:
         await interaction.response.send_message(
             f"❌ Diesen Command kannst du nur in <#{AUSWEIS_CHANNEL_ID}> benutzen.", ephemeral=True
         )
@@ -261,7 +266,6 @@ async def ausweisen(interaction: discord.Interaction):
 # /ausweis-remove (Admin only)
 @bot.tree.command(name="ausweis-remove", description="[Admin] Löscht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler dessen Ausweis geloescht werden soll")
-@app_commands.default_permissions(administrator=True)
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
     if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
@@ -389,7 +393,6 @@ async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, ta
 # /ausweis-create (Team only)
 @bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis für einen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler fuer den der Ausweis erstellt wird")
-@app_commands.default_permissions(manage_messages=True)
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
