@@ -22,7 +22,7 @@ from economy_helpers import (
     option_nein="Name für den roten Balken (❌) — Standard: Ablehnung"
 )
 async def abstimmung_cmd(interaction: discord.Interaction, frage: str, option_ja: str = "Zustimmung", option_nein: str = "Ablehnung"):
-    if not any(r.id == MOD_ROLE_ID for r in interaction.user.roles):
+    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Dieser Befehl ist nur für das Serverteam verfügbar.", ephemeral=True)
         return
 
