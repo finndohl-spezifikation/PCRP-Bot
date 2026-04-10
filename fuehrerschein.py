@@ -202,6 +202,11 @@ async def create_fuehrerschein(interaction: discord.Interaction, nutzer: discord
     guild=discord.Object(id=GUILD_ID),
 )
 async def fuehrerschein(interaction: discord.Interaction):
+    role_ids = [r.id for r in interaction.user.roles]
+    if CITIZEN_ROLE_ID not in role_ids and ADMIN_ROLE_ID not in role_ids:
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        return
+
     data  = load_fuehrerschein()
     uid   = str(interaction.user.id)
     entry = data.get(uid)
