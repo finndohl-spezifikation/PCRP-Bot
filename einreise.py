@@ -97,6 +97,13 @@ async def einreise_chat_flow(channel: discord.TextChannel, member: discord.Membe
         except Exception:
             pass
 
+    bewerber = guild.get_role(BEWERBER_ROLE_ID)
+    if bewerber and bewerber in member.roles:
+        try:
+            await member.remove_roles(bewerber, reason="Ausweis erstellt — Bewerber-Rolle entfernt")
+        except Exception:
+            pass
+
     embed = discord.Embed(
         title="🪪 Ausweis ausgestellt",
         description="Dein Ausweis wurde erfolgreich erstellt!",
@@ -369,6 +376,13 @@ async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, ta
     if rollen_zu_vergeben:
         try:
             await target.add_roles(*rollen_zu_vergeben, reason="Charakter erstellt (Team)")
+        except Exception:
+            pass
+
+    bewerber = guild.get_role(BEWERBER_ROLE_ID)
+    if bewerber and bewerber in target.roles:
+        try:
+            await target.remove_roles(bewerber, reason="Ausweis erstellt — Bewerber-Rolle entfernt")
         except Exception:
             pass
 
