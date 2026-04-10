@@ -232,6 +232,7 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
 
 # /item-add (Admin only)
 @bot.tree.command(name="item-add", description="[Admin] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", itemname="Itemname (muss im Shop vorhanden sein)")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
@@ -274,6 +275,7 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 
 # /remove-item (Admin only)
 @bot.tree.command(name="remove-item", description="[Admin] Entferne ein Item aus dem Inventar eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
