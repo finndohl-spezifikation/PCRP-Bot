@@ -201,20 +201,27 @@ async def create_fuehrerschein(interaction: discord.Interaction, nutzer: discord
     description="[Ausweis] Zeige deinen Führerschein vor",
     guild=discord.Object(id=GUILD_ID),
 )
-async def fuehrerschein(interaction: discord.Interaction):
+@app_commands.describe(nutzer="(Nur Team) Führerschein eines anderen Spielers abrufen")
+async def fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids = [r.id for r in interaction.user.roles]
-    if CITIZEN_ROLE_ID not in role_ids and ADMIN_ROLE_ID not in role_ids:
+    is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
+
+    if CITIZEN_ROLE_ID not in role_ids and not is_team:
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
+    target = nutzer if (is_team and nutzer) else interaction.user
+
     data  = load_fuehrerschein()
-    uid   = str(interaction.user.id)
-    entry = data.get(uid)
+    entry = data.get(str(target.id))
 
     if not entry:
-        await interaction.response.send_message(
-            "❌ Du besitzt keinen Führerschein.", ephemeral=True
+        msg = (
+            f"❌ **{target.display_name}** besitzt keinen Führerschein."
+            if target != interaction.user else
+            "❌ Du besitzt keinen Führerschein."
         )
+        await interaction.response.send_message(msg, ephemeral=True)
         return
 
     status_emoji = "🚫 **ENTZOGEN**" if entry.get("entzogen") else "✅ Gültig"
@@ -224,19 +231,19 @@ async def fuehrerschein(interaction: discord.Interaction):
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_author(name="Cryptik Roleplay — Führerschein")
-    embed.set_thumbnail(url=interaction.user.display_avatar.url)
-    embed.add_field(name="Inhaber",             value=interaction.user.mention,                             inline=True)
-    embed.add_field(name="Name",                value=f"{entry['vorname']} {entry['nachname']}",            inline=True)
+    embed.set_thumbnail(url=target.display_avatar.url)
+    embed.add_field(name="Inhaber",             value=target.mention,                                      inline=True)
+    embed.add_field(name="Name",                value=f"{entry['vorname']} {entry['nachname']}",           inline=True)
     embed.add_field(name="Geburtsdatum",        value=entry["geburtsdatum"],                               inline=True)
-    embed.add_field(name="Ausweisnummer",       value=f"`{entry['ausweisnummer']}`",                       inline=True)
-    embed.add_field(name="Führerschein-Klasse", value=entry["fuehrerschein_klasse"],                       inline=True)
-    embed.add_field(name="Status",              value=status_emoji,                                        inline=True)
+    embed.add_field(name="Ausweisnummer",       value=f"`{entry['ausweisnummer']}`",                      inline=True)
+    embed.add_field(name="Führerschein-Klasse", value=entry["fuehrerschein_klasse"],                      inline=True)
+    embed.add_field(name="Status",              value=status_emoji,                                       inline=True)
 
     if entry.get("entzogen"):
-        embed.add_field(name="Entzugsgrund",    value=entry.get("entzug_grund", "—"),                    inline=False)
+        embed.add_field(name="Entzugsgrund", value=entry.get("entzug_grund", "—"), inline=False)
 
     embed.set_footer(text="Kryptik Roleplay — Führerschein")
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
 
 
 # /remove-führerschein
@@ -419,3 +426,223 @@ async def fuehrerschein_edit(interaction: discord.Interaction, nutzer: discord.M
 
     modal = FuehrerscheinEditModal(zielperson=nutzer, entry=entry)
     await interaction.response.send_modal(modal)
+
+
+# ══════════════════════════════════════════════════════════════
+# Fahrlehrer-Lizenz System
+# ══════════════════════════════════════════════════════════════
+
+def load_fahrlehrer_lizenz():
+    if FAHRLEHRER_LIZENZ_FILE.exists():
+        with open(FAHRLEHRER_LIZENZ_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_fahrlehrer_lizenz(data):
+    with open(FAHRLEHRER_LIZENZ_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+class FahrlehrerLizenzModal(discord.ui.Modal, title="📋 Fahrlehrer-Lizenz ausstellen"):
+    vorname = discord.ui.TextInput(
+        label="Vorname",
+        placeholder="z.B. Max",
+        max_length=50,
+    )
+    nachname = discord.ui.TextInput(
+        label="Nachname",
+        placeholder="z.B. Mustermann",
+        max_length=50,
+    )
+    geburtsdatum = discord.ui.TextInput(
+        label="Geburtsdatum",
+        placeholder="TT.MM.JJJJ",
+        max_length=10,
+    )
+    lizenznummer = discord.ui.TextInput(
+        label="Lizenznummer",
+        placeholder="z.B. FL-2024-001",
+        max_length=20,
+    )
+
+    def __init__(self, zielperson: discord.Member):
+        super().__init__()
+        self.zielperson = zielperson
+
+    async def on_submit(self, interaction: discord.Interaction):
+        data = load_fahrlehrer_lizenz()
+        uid  = str(self.zielperson.id)
+        now  = datetime.now(timezone.utc)
+
+        data[uid] = {
+            "vorname":             self.vorname.value.strip(),
+            "nachname":            self.nachname.value.strip(),
+            "geburtsdatum":        self.geburtsdatum.value.strip(),
+            "lizenznummer":        self.lizenznummer.value.strip(),
+            "ausgestellt_am":      now.isoformat(),
+            "ausgestellt_von_id":  interaction.user.id,
+            "ausgestellt_von_name":str(interaction.user),
+            "discord_id":          self.zielperson.id,
+            "discord_name":        str(self.zielperson),
+            "entzogen":            False,
+            "entzug_grund":        None,
+            "entzug_von_id":       None,
+            "entzug_von_name":     None,
+            "entzug_zeit":         None,
+        }
+        save_fahrlehrer_lizenz(data)
+
+        embed = discord.Embed(
+            title="📋 Fahrlehrer-Lizenz ausgestellt",
+            color=0x00AA00,
+            timestamp=now,
+        )
+        embed.set_author(name="Cryptik Roleplay — Fahrlehrer-Lizenz")
+        embed.set_thumbnail(url=self.zielperson.display_avatar.url)
+        embed.add_field(name="Inhaber",          value=self.zielperson.mention,                                       inline=True)
+        embed.add_field(name="Name",             value=f"{self.vorname.value.strip()} {self.nachname.value.strip()}", inline=True)
+        embed.add_field(name="Geburtsdatum",     value=self.geburtsdatum.value.strip(),                              inline=True)
+        embed.add_field(name="Lizenznummer",     value=f"`{self.lizenznummer.value.strip()}`",                       inline=True)
+        embed.add_field(name="Ausgestellt von",  value=interaction.user.mention,                                     inline=True)
+        embed.set_footer(text="Kryptik Roleplay — Fahrlehrer-Lizenz")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        try:
+            dm_embed = discord.Embed(
+                title="📋 Deine Fahrlehrer-Lizenz wurde ausgestellt!",
+                color=0x00AA00,
+                timestamp=now,
+            )
+            dm_embed.add_field(name="Name",             value=f"{self.vorname.value.strip()} {self.nachname.value.strip()}", inline=True)
+            dm_embed.add_field(name="Lizenznummer",     value=f"`{self.lizenznummer.value.strip()}`",                       inline=True)
+            dm_embed.add_field(name="Ausgestellt am",   value=now.strftime("%d.%m.%Y"),                                     inline=True)
+            dm_embed.add_field(name="Ausgestellt von",  value=interaction.user.display_name,                                inline=False)
+            dm_embed.set_footer(text="Kryptik Roleplay — Fahrlehrer-Lizenz")
+            await self.zielperson.send(embed=dm_embed)
+        except Exception:
+            pass
+
+
+class FahrlehrerLizenzEntzugModal(discord.ui.Modal, title="🚫 Fahrlehrer-Lizenz entziehen"):
+    grund = discord.ui.TextInput(
+        label="Grund des Entzugs",
+        style=discord.TextStyle.paragraph,
+        placeholder="z.B. Verstoß gegen Fahrschulregeln...",
+        required=True,
+        max_length=500,
+    )
+
+    def __init__(self, zielperson: discord.Member):
+        super().__init__()
+        self.zielperson = zielperson
+
+    async def on_submit(self, interaction: discord.Interaction):
+        data  = load_fahrlehrer_lizenz()
+        uid   = str(self.zielperson.id)
+        entry = data.get(uid)
+
+        if not entry:
+            await interaction.response.send_message(
+                f"❌ **{self.zielperson.display_name}** besitzt keine Fahrlehrer-Lizenz.", ephemeral=True
+            )
+            return
+
+        if entry.get("entzogen"):
+            await interaction.response.send_message(
+                f"❌ Die Lizenz von **{self.zielperson.display_name}** ist bereits entzogen.", ephemeral=True
+            )
+            return
+
+        now        = datetime.now(timezone.utc)
+        grund_text = self.grund.value.strip() or "Kein Grund angegeben"
+
+        entry["entzogen"]         = True
+        entry["entzug_grund"]     = grund_text
+        entry["entzug_von_id"]    = interaction.user.id
+        entry["entzug_von_name"]  = str(interaction.user)
+        entry["entzug_zeit"]      = now.isoformat()
+        save_fahrlehrer_lizenz(data)
+
+        embed = discord.Embed(
+            title="🚫 Fahrlehrer-Lizenz entzogen",
+            color=0xFF0000,
+            timestamp=now,
+        )
+        embed.set_author(name="Cryptik Roleplay — Fahrlehrer-Lizenz")
+        embed.set_thumbnail(url=self.zielperson.display_avatar.url)
+        embed.add_field(name="Inhaber",      value=self.zielperson.mention,  inline=True)
+        embed.add_field(name="Entzogen von", value=interaction.user.mention, inline=True)
+        embed.add_field(name="Grund",        value=grund_text,               inline=False)
+        embed.set_footer(text="Kryptik Roleplay — Fahrlehrer-Lizenz")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# /create-fahrlehrer (Admin + Mod only)
+@bot.tree.command(
+    name="create-fahrlehrer",
+    description="[Admin] Erstelle eine Fahrlehrer-Lizenz für einen Spieler",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.default_permissions(manage_messages=True)
+@app_commands.describe(nutzer="Spieler für den die Fahrlehrer-Lizenz ausgestellt wird")
+async def create_fahrlehrer(interaction: discord.Interaction, nutzer: discord.Member):
+    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+    await interaction.response.send_modal(FahrlehrerLizenzModal(zielperson=nutzer))
+
+
+# /fahrlehrer-lizenz (Fahrlehrer + Admin + Mod)
+@bot.tree.command(
+    name="fahrlehrer-lizenz",
+    description="[Fahrlehrer] Zeige deine Fahrlehrer-Lizenz vor",
+    guild=discord.Object(id=GUILD_ID),
+)
+async def fahrlehrer_lizenz(interaction: discord.Interaction):
+    role_ids = [r.id for r in interaction.user.roles]
+    if not any(r in role_ids for r in (FUEHRERSCHEIN_ERSTELLEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID)):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    data  = load_fahrlehrer_lizenz()
+    entry = data.get(str(interaction.user.id))
+
+    if not entry:
+        await interaction.response.send_message(
+            "❌ Du besitzt keine Fahrlehrer-Lizenz.", ephemeral=True
+        )
+        return
+
+    status_emoji = "🚫 **ENTZOGEN**" if entry.get("entzogen") else "✅ Gültig"
+    embed = discord.Embed(
+        title="📋 Fahrlehrer-Lizenz",
+        color=0xFF0000 if entry.get("entzogen") else 0x00AA00,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_author(name="Cryptik Roleplay — Fahrlehrer-Lizenz")
+    embed.set_thumbnail(url=interaction.user.display_avatar.url)
+    embed.add_field(name="Inhaber",      value=interaction.user.mention,                        inline=True)
+    embed.add_field(name="Name",         value=f"{entry['vorname']} {entry['nachname']}",       inline=True)
+    embed.add_field(name="Geburtsdatum", value=entry["geburtsdatum"],                           inline=True)
+    embed.add_field(name="Lizenznummer", value=f"`{entry['lizenznummer']}`",                    inline=True)
+    embed.add_field(name="Status",       value=status_emoji,                                    inline=True)
+
+    if entry.get("entzogen"):
+        embed.add_field(name="Entzugsgrund", value=entry.get("entzug_grund", "—"), inline=False)
+
+    embed.set_footer(text="Kryptik Roleplay — Fahrlehrer-Lizenz")
+    await interaction.response.send_message(embed=embed)
+
+
+# /remove-lizenz (LAPD + Mod + Admin)
+@bot.tree.command(
+    name="remove-lizenz",
+    description="[Behörde] Entziehe einem Spieler die Fahrlehrer-Lizenz",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(nutzer="Spieler dem die Fahrlehrer-Lizenz entzogen werden soll")
+async def remove_lizenz(interaction: discord.Interaction, nutzer: discord.Member):
+    if not any(r.id in (FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+    await interaction.response.send_modal(FahrlehrerLizenzEntzugModal(zielperson=nutzer))
