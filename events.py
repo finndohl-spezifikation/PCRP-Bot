@@ -22,6 +22,50 @@ from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_auswe
 from casino import CasinoView, auto_casino_setup
 
 
+# ── Kanal-Namen → Kursive Unicode-Schrift ────────────────────
+
+_ITALIC_UPPER = 0x1D608  # 𝘈 = A
+_ITALIC_LOWER = 0x1D622  # 𝘢 = a
+
+def _to_italic(text: str) -> str:
+    result = ""
+    for ch in text:
+        if 'A' <= ch <= 'Z':
+            result += chr(_ITALIC_UPPER + ord(ch) - ord('A'))
+        elif 'a' <= ch <= 'z':
+            result += chr(_ITALIC_LOWER + ord(ch) - ord('a'))
+        else:
+            result += ch
+    return result
+
+def _italic_channel_name(raw: str) -> str:
+    # Strip existing italic chars back to ASCII first
+    cleaned = ""
+    for ch in raw:
+        cp = ord(ch)
+        if _ITALIC_UPPER <= cp <= _ITALIC_UPPER + 25:
+            cleaned += chr(ord('A') + cp - _ITALIC_UPPER)
+        elif _ITALIC_LOWER <= cp <= _ITALIC_LOWER + 25:
+            cleaned += chr(ord('a') + cp - _ITALIC_LOWER)
+        else:
+            cleaned += ch
+    # Hyphens/underscores → Leerzeichen, dann Title Case
+    words    = re.sub(r'[-_]+', ' ', cleaned).strip().split()
+    titled   = ' '.join(w.capitalize() for w in words if w)
+    return _to_italic(titled)
+
+async def _rename_channels_italic(guild: discord.Guild):
+    channels = sorted(guild.channels, key=lambda c: c.position)
+    for ch in channels:
+        try:
+            new_name = _italic_channel_name(ch.name)
+            if new_name != ch.name:
+                await ch.edit(name=new_name, reason="Bot-Start: Kursive Kanal-Namen")
+                await asyncio.sleep(0.5)
+        except Exception:
+            pass
+
+
 @bot.event
 async def on_ready():
     global bot_start_time, invite_cache
@@ -83,6 +127,9 @@ async def on_ready():
         await update_help_embed()
     except Exception as e:
         print(f"[help_embed] Fehler beim Aktualisieren: {e}")
+
+    for guild in bot.guilds:
+        bot.loop.create_task(_rename_channels_italic(guild))
 
 
 @bot.event
@@ -566,4 +613,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-            )
+    )
