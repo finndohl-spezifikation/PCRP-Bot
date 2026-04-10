@@ -16,6 +16,7 @@ from economy_helpers import (
     description="[Allgemein] Erstelle eine Abstimmung mit Balken",
     guild=discord.Object(id=GUILD_ID)
 )
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     frage="Die Frage oder das Thema der Abstimmung",
     option_ja="Name für den grünen Balken (✅) — Standard: Zustimmung",
