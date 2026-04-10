@@ -101,7 +101,7 @@ class RechnungModal(discord.ui.Modal, title="📄 Rechnung schreiben"):
 class BezahltButton(discord.ui.Button):
     def __init__(self, rechnung_id: str, von_id: int, an_id: int):
         super().__init__(
-            label=f"✅ [{rechnung_id}] Bezahlt",
+            label="✅️| Offene Beträge Bezahlen",
             style=discord.ButtonStyle.green,
             custom_id=f"bezahlt:{rechnung_id}:{an_id}",
         )
@@ -352,4 +352,4 @@ async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
             f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
             view=view,
             ephemeral=True,
-  )
+        )
