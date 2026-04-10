@@ -148,6 +148,7 @@ async def commands_list(interaction: discord.Interaction):
             "`/ausweis-create` — Ausweis erstellen\n"
             "`/create-führerschein` — Führerschein ausstellen\n"
             "`/führerschein` — Führerschein anzeigen\n"
+            "`/führerschein-edit` — Führerschein bearbeiten\n"
             "`/remove-führerschein` — Führerschein entziehen\n"
             "`/führerschein-geben` — Führerschein zurückgeben"
         ),
