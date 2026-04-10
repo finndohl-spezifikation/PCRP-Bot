@@ -26,7 +26,8 @@ def _in_ic_channel(interaction: discord.Interaction) -> bool:
 
 @bot.tree.command(
     name="erste-hilfe",
-    description="Erste Hilfe leisten — benötigt ⚕️| Erste Hilfe Koffer im Inventar"
+    description="Erste Hilfe leisten — benötigt ⚕️| Erste Hilfe Koffer im Inventar",
+    guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
     ziel="Spieler dem du erste Hilfe leistest"
@@ -69,7 +70,8 @@ async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
 
 @bot.tree.command(
     name="ortung",
-    description="Spieler orten — benötigt 💻| Ortungsgerät im Inventar"
+    description="Spieler orten — benötigt 💻| Ortungsgerät im Inventar",
+    guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
     ziel="Spieler den du ortest"
@@ -111,7 +113,8 @@ async def ortung(interaction: discord.Interaction, ziel: discord.Member):
 
 @bot.tree.command(
     name="fesseln",
-    description="Spieler fesseln — benötigt ⛓️| Handfesseln im Inventar"
+    description="Spieler fesseln — benötigt ⛓️| Handfesseln im Inventar",
+    guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
     ziel="Spieler den du fesselst"
