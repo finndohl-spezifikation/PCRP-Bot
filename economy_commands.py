@@ -316,6 +316,7 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
 
 # /money-add
 @bot.tree.command(name="money-add", description="[Team] Füge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     if not any(r.id in (MONEY_ADD_ROLE_1_ID, MONEY_ADD_ROLE_2_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
@@ -352,6 +353,7 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 
 # /remove-money
 @bot.tree.command(name="remove-money", description="[Admin] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
