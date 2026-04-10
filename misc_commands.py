@@ -257,7 +257,7 @@ async def kategorien_setup(interaction: discord.Interaction):
             ephemeral=True
         )
 
-    AUSGESCHLOSSEN = {"tickets", "fraktions tickets", "highteam tickets"}
+    AUSGESCHLOSSEN = {"tickets", "fraktions tickets", "highteam tickets", "fraktions bewerbung"}
 
     renamed = []
     errors  = []
