@@ -56,14 +56,18 @@ def _italic_channel_name(raw: str) -> str:
 
 async def _rename_channels_italic(guild: discord.Guild):
     channels = sorted(guild.channels, key=lambda c: c.position)
+    count = 0
     for ch in channels:
         try:
             new_name = _italic_channel_name(ch.name)
             if new_name != ch.name:
                 await ch.edit(name=new_name, reason="Bot-Start: Kursive Kanal-Namen")
+                print(f"[italic] {ch.name!r} → {new_name!r}")
+                count += 1
                 await asyncio.sleep(0.5)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[italic] Fehler bei {ch.name!r}: {e}")
+    print(f"[italic] Fertig — {count} Kanäle umbenannt")
 
 
 @bot.event
@@ -129,7 +133,7 @@ async def on_ready():
         print(f"[help_embed] Fehler beim Aktualisieren: {e}")
 
     for guild in bot.guilds:
-        bot.loop.create_task(_rename_channels_italic(guild))
+        asyncio.ensure_future(_rename_channels_italic(guild))
 
 
 @bot.event
