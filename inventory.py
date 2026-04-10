@@ -234,9 +234,8 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
 @bot.tree.command(name="item-add", description="[Admin] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname (muss im Shop vorhanden sein)")
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
-@app_commands.default_permissions(manage_messages=True)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
-    if not any(r.id == 1490855718658510908 for r in interaction.user.roles):
+    if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
@@ -276,9 +275,8 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 # /remove-item (Admin only)
 @bot.tree.command(name="remove-item", description="[Admin] Entferne ein Item aus dem Inventar eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
-@app_commands.default_permissions(manage_messages=True)
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
-    if not any(r.id == 1490855718658510908 for r in interaction.user.roles):
+    if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
@@ -305,4 +303,4 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
             timestamp=datetime.now(timezone.utc)
         ),
         ephemeral=True
-  )
+    )
