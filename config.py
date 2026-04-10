@@ -165,6 +165,13 @@ ILLEGAL_ROLE_ID     = 1490855730767597738
 FUEHRERSCHEIN_ERSTELLEN_ROLE_ID = 1490855755296014446
 FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID = 1490855751797969039
 
+# ── Command-Berechtigungs-Rollen ─────────────────────────────
+WARN_ROLE_ID        = 1490855711674994688  # /warn, /warn-list, /remove-warn
+SHOP_ADMIN_ROLE_ID  = 1490855717354213388  # /shop-add, /delete-item
+ITEM_MANAGE_ROLE_ID = 1490855718658510908  # /item-add, /remove-item
+MONEY_ADD_ROLE_1_ID = 1490855647259136053  # /money-add
+MONEY_ADD_ROLE_2_ID = 1490855648978669599  # /money-add
+
 # ── Handy System ─────────────────────────────────────────────
 HANDY_CHANNEL_ID      = 1490890317199708160
 HANDY_ITEM_NAME       = "📱| Handy"
