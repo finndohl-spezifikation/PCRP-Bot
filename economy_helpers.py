@@ -249,7 +249,7 @@ async def log_money_action(guild: discord.Guild, title: str, description: str):
     ch = guild.get_channel(MONEY_LOG_CHANNEL_ID)
     if ch:
         embed = discord.Embed(
-            title=f"💲 {title}",
+            title=f"💵 {title}",
             description=description,
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -276,7 +276,7 @@ async def betrag_autocomplete(
     choices = []
     clean = current.replace(".", "").replace(",", "").strip()
     for val in BETRAG_SUGGESTIONS:
-        label = f"{val:,} 💲".replace(",", ".")
+        label = f"{val:,} 💵".replace(",", ".")
         if clean == "" or clean in str(val) or clean.lower() in label.lower():
             choices.append(app_commands.Choice(name=label, value=val))
     return choices[:25]
