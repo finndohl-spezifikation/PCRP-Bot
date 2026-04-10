@@ -38,7 +38,7 @@ async def shop(interaction: discord.Interaction):
 
     lines = []
     for item in items:
-        line = f"**{item['name']}** — {item['price']:,} 💵"
+        line = f"**{item['name']}** — {item['price']:,} 💲"
         ar = item.get("allowed_role")
         if ar:
             r = interaction.guild.get_role(ar)
@@ -109,7 +109,7 @@ async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
     if user_data["cash"] < gesamtpreis:
         await interaction.response.send_message(
             f"❌ Du hast nicht genug **Bargeld**.\n"
-            f"Preis: **{item['price']:,} 💵** × {menge} = **{gesamtpreis:,} 💵** | Dein Bargeld: **{user_data['cash']:,} 💵**\n"
+            f"Preis: **{item['price']:,} 💲** × {menge} = **{gesamtpreis:,} 💲** | Dein Bargeld: **{user_data['cash']:,} 💲**\n"
             f"ℹ️ Käufe sind nur mit Bargeld möglich. Hebe Geld mit `/auszahlen` ab.",
             ephemeral=True
         )
@@ -129,8 +129,8 @@ async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
     embed = discord.Embed(
         title="✅ Gekauft!",
         description=(
-            f"Du hast **{item['name']}**{menge_text} für **{gesamtpreis:,} 💵** gekauft.\n"
-            f"**Verbleibendes Bargeld:** {user_data['cash']:,} 💵"
+            f"Du hast **{item['name']}**{menge_text} für **{gesamtpreis:,} 💲** gekauft.\n"
+            f"**Verbleibendes Bargeld:** {user_data['cash']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -163,7 +163,7 @@ class ShopAddConfirmView(discord.ui.View):
         await interaction.response.edit_message(
             embed=discord.Embed(
                 title="✅ Item hinzugefügt",
-                description=f"**{self.name}** für **{self.price:,} 💵** wurde zum Shop hinzugefügt.{rolle_info}",
+                description=f"**{self.name}** für **{self.price:,} 💲** wurde zum Shop hinzugefügt.{rolle_info}",
                 color=LOG_COLOR
             ),
             view=self
@@ -203,7 +203,7 @@ async def shop_add(interaction: discord.Interaction, itemname: str, preis: int, 
         title="🛒 Neues Item hinzufügen?",
         description=(
             f"**Name:** {itemname}\n"
-            f"**Preis:** {preis:,} 💵"
+            f"**Preis:** {preis:,} 💲"
             f"{rolle_info}\n\n"
             f"Bitte bestätige das Hinzufügen."
         ),
@@ -257,7 +257,7 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         title="🗑️ Item aus Shop entfernt",
         description=(
             f"**Item:** {item_name}\n"
-            f"**Preis war:** {shop_item['price']:,} 💵\n"
+            f"**Preis war:** {shop_item['price']:,} 💲\n"
             f"**Entfernt von:** {interaction.user.mention}\n\n"
             f"**Inventare bereinigt:** {players_cleaned} Spieler\n"
             f"**Items entfernt:** {total_removed}x"
