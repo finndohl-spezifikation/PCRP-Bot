@@ -22,52 +22,50 @@ from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_auswe
 from casino import CasinoView, auto_casino_setup
 
 
-# ── Kanal-Namen → Kursive Unicode-Schrift ────────────────────
+# ── Kategorie-Namen → Normale Großschrift (einmalig) ─────────
 
-_ITALIC_UPPER = 0x1D608  # 𝘈 = A
-_ITALIC_LOWER = 0x1D622  # 𝘢 = a
+_KATEGORIE_RENAME_FLAG = DATA_DIR / "kategorie_rename_done.flag"
 
-def _to_italic(text: str) -> str:
+_ITALIC_UPPER = 0x1D608
+_ITALIC_LOWER = 0x1D622
+
+def _strip_italic(text: str) -> str:
     result = ""
     for ch in text:
-        if 'A' <= ch <= 'Z':
-            result += chr(_ITALIC_UPPER + ord(ch) - ord('A'))
-        elif 'a' <= ch <= 'z':
-            result += chr(_ITALIC_LOWER + ord(ch) - ord('a'))
+        cp = ord(ch)
+        if _ITALIC_UPPER <= cp <= _ITALIC_UPPER + 25:
+            result += chr(ord('A') + cp - _ITALIC_UPPER)
+        elif _ITALIC_LOWER <= cp <= _ITALIC_LOWER + 25:
+            result += chr(ord('a') + cp - _ITALIC_LOWER)
         else:
             result += ch
     return result
 
-def _italic_channel_name(raw: str) -> str:
-    # Strip existing italic chars back to ASCII first
-    cleaned = ""
-    for ch in raw:
-        cp = ord(ch)
-        if _ITALIC_UPPER <= cp <= _ITALIC_UPPER + 25:
-            cleaned += chr(ord('A') + cp - _ITALIC_UPPER)
-        elif _ITALIC_LOWER <= cp <= _ITALIC_LOWER + 25:
-            cleaned += chr(ord('a') + cp - _ITALIC_LOWER)
-        else:
-            cleaned += ch
-    # Hyphens/underscores → Leerzeichen, dann Title Case
-    words    = re.sub(r'[-_]+', ' ', cleaned).strip().split()
-    titled   = ' '.join(w.capitalize() for w in words if w)
-    return _to_italic(titled)
+def _uppercase_category_name(raw: str) -> str:
+    cleaned = _strip_italic(raw)
+    words   = re.sub(r'[-_]+', ' ', cleaned).strip().split()
+    return ' '.join(w.upper() for w in words if w)
 
 async def _rename_channels_italic(guild: discord.Guild):
-    channels = sorted(guild.channels, key=lambda c: c.position)
+    if _KATEGORIE_RENAME_FLAG.exists():
+        print("[rename] Einmalige Umbenennung bereits erledigt — übersprungen.")
+        return
+
+    categories = [ch for ch in guild.channels if isinstance(ch, discord.CategoryChannel)]
     count = 0
-    for ch in channels:
+    for cat in sorted(categories, key=lambda c: c.position):
         try:
-            new_name = _italic_channel_name(ch.name)
-            if new_name != ch.name:
-                await ch.edit(name=new_name, reason="Bot-Start: Kursive Kanal-Namen")
-                print(f"[italic] {ch.name!r} → {new_name!r}")
+            new_name = _uppercase_category_name(cat.name)
+            if new_name != cat.name:
+                await cat.edit(name=new_name, reason="Bot-Start: Kategorien → Großschrift (einmalig)")
+                print(f"[rename] {cat.name!r} → {new_name!r}")
                 count += 1
                 await asyncio.sleep(0.5)
         except Exception as e:
-            print(f"[italic] Fehler bei {ch.name!r}: {e}")
-    print(f"[italic] Fertig — {count} Kanäle umbenannt")
+            print(f"[rename] Fehler bei {cat.name!r}: {e}")
+
+    _KATEGORIE_RENAME_FLAG.touch()
+    print(f"[rename] Fertig — {count} Kategorien umbenannt (wird nicht wiederholt)")
 
 
 @bot.event
