@@ -8,6 +8,7 @@ from config import *
 
 
 @bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 async def lobby_abstimmung(interaction: discord.Interaction):
     if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Dieser Befehl ist nur für das Lobby-Team verfügbar.", ephemeral=True)
@@ -58,6 +59,7 @@ async def lobby_abstimmung(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="lobby-open", description="[LOBBY] Öffnet die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 async def lobby_open(interaction: discord.Interaction):
     if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Dieser Befehl ist nur für das Lobby-Team verfügbar.", ephemeral=True)
@@ -102,6 +104,7 @@ async def lobby_open(interaction: discord.Interaction):
 
 
 @bot.tree.command(name="lobby-close", description="[LOBBY] Schließt die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 async def lobby_close(interaction: discord.Interaction):
     if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Dieser Befehl ist nur für das Lobby-Team verfügbar.", ephemeral=True)
