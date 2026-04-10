@@ -12,6 +12,7 @@ from economy_helpers import (
 
 
 @bot.tree.command(name="warn", description="[Warn] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
     if not any(r.id == WARN_ROLE_ID for r in interaction.user.roles):
@@ -95,6 +96,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
 
 
 @bot.tree.command(name="warn-list", description="[Warn] Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler")
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == WARN_ROLE_ID for r in interaction.user.roles):
@@ -126,6 +128,7 @@ async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
 
 
 @bot.tree.command(name="remove-warn", description="[Warn] Letzte Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler")
 async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == WARN_ROLE_ID for r in interaction.user.roles):
@@ -158,6 +161,7 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
 
 
 @bot.tree.command(name="team-warn", description="[Admin] Team-Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
@@ -216,6 +220,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
 
 
 @bot.tree.command(name="teamwarn-list", description="[Admin] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler")
 async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
@@ -247,6 +252,7 @@ async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member
 
 
 @bot.tree.command(name="remove-teamwarn", description="[Admin] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler")
 async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Member):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
