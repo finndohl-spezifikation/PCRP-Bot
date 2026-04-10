@@ -187,7 +187,6 @@ class FuehrerscheinEntzugModal(discord.ui.Modal, title="🚫 Führerschein entzi
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.describe(nutzer="Spieler für den der Führerschein ausgestellt wird")
-@app_commands.default_permissions(manage_messages=True)
 async def create_fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_erstellen_perm(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
@@ -242,7 +241,6 @@ async def fuehrerschein(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.describe(nutzer="Spieler dem der Führerschein entzogen werden soll")
-@app_commands.default_permissions(manage_messages=True)
 async def remove_fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_entziehen_perm(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
@@ -259,7 +257,6 @@ async def remove_fuehrerschein(interaction: discord.Interaction, nutzer: discord
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.describe(nutzer="Spieler dem der Führerschein zurückgegeben werden soll")
-@app_commands.default_permissions(manage_messages=True)
 async def fuehrerschein_geben(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_entziehen_perm(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
@@ -398,7 +395,6 @@ class FuehrerscheinEditModal(discord.ui.Modal, title="✏️ Führerschein bearb
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.describe(nutzer="Spieler dessen Führerschein bearbeitet werden soll")
-@app_commands.default_permissions(manage_messages=True)
 async def fuehrerschein_edit(interaction: discord.Interaction, nutzer: discord.Member):
     if not has_fuehrerschein_erstellen_perm(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
