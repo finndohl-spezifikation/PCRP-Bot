@@ -18,7 +18,7 @@ from ticket import (
     TicketSelectView, TicketActionView, auto_ticket_setup, auto_lohnliste_setup
 )
 from handy import HandyView, auto_handy_setup
-from einreise import EinreiseView, auto_einreise_setup
+from einreise import EinreiseView, auto_einreise_setup, load_ausweis
 from casino import CasinoView, auto_casino_setup
 
 
@@ -488,12 +488,33 @@ async def on_member_join(member):
         ping_content = inviter.mention if inviter else None
         await join_log_ch.send(content=ping_content, embed=embed)
 
-    rolle = guild.get_role(WHITELIST_ROLE_ID)
-    if rolle:
-        try:
-            await member.add_roles(rolle)
-        except Exception:
-            pass
+    ausweis_data = load_ausweis()
+    hat_ausweis  = str(member.id) in ausweis_data
+
+    if hat_ausweis:
+        eintrag       = ausweis_data[str(member.id)]
+        einreise_typ  = eintrag.get("einreise_typ", "legal")
+        wiederherstellen = []
+        for rid in CHARAKTER_ROLLEN:
+            r = guild.get_role(rid)
+            if r:
+                wiederherstellen.append(r)
+        einreise_role_id = LEGAL_ROLE_ID if einreise_typ == "legal" else ILLEGAL_ROLE_ID
+        einreise_role    = guild.get_role(einreise_role_id)
+        if einreise_role:
+            wiederherstellen.append(einreise_role)
+        if wiederherstellen:
+            try:
+                await member.add_roles(*wiederherstellen, reason="Wiederbeitritt — Rollen wiederhergestellt")
+            except Exception:
+                pass
+    else:
+        rolle = guild.get_role(WHITELIST_ROLE_ID)
+        if rolle:
+            try:
+                await member.add_roles(rolle, reason="Autorole — Bewerber")
+            except Exception:
+                pass
 
     try:
         embed = discord.Embed(
@@ -545,4 +566,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-    )
+            )
