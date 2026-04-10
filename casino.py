@@ -27,7 +27,7 @@ CASINO_PRIZES = [
     },
     {
         "id":           "geld5k",
-        "label":        "💵  5.000 $",
+        "label":        "💲  5.000 $",
         "weight":       35,
         "typ":          "geld",
         "betrag":       5_000,
