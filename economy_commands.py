@@ -60,10 +60,10 @@ async def lohn_abholen(interaction: discord.Interaction):
     save_economy(eco)
 
     embed = discord.Embed(
-        title="💵 Lohn abgeholt!",
+        title="💲 Lohn abgeholt!",
         description=(
-            f"Du hast **{total_wage:,} 💵** auf dein Konto erhalten.\n"
-            f"**Kontostand:** {user_data['bank']:,} 💵"
+            f"Du hast **{total_wage:,} 💲** auf dein Konto erhalten.\n"
+            f"**Kontostand:** {user_data['bank']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=now
@@ -103,9 +103,9 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
     embed = discord.Embed(
         title=titel,
         description=(
-            f"**Bargeld:** {user_data['cash']:,} 💵\n"
-            f"**Bank:** {user_data['bank']:,} 💵\n"
-            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} 💵"
+            f"**Bargeld:** {user_data['cash']:,} 💲\n"
+            f"**Bank:** {user_data['bank']:,} 💲\n"
+            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -116,7 +116,7 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
 
 # /einzahlen
 @bot.tree.command(name="einzahlen", description="[Konto] Zahle Bargeld auf dein Bankkonto ein", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💵)")
+@app_commands.describe(betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💲)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def einzahlen(interaction: discord.Interaction, betrag: int):
     role_ids = [r.id for r in interaction.user.roles]
@@ -140,7 +140,7 @@ async def einzahlen(interaction: discord.Interaction, betrag: int):
 
     if user_data["cash"] < betrag:
         await interaction.response.send_message(
-            f"❌ Nicht genug Bargeld. Dein Bargeld: **{user_data['cash']:,} 💵**", ephemeral=True
+            f"❌ Nicht genug Bargeld. Dein Bargeld: **{user_data['cash']:,} 💲**", ephemeral=True
         )
         return
 
@@ -149,8 +149,8 @@ async def einzahlen(interaction: discord.Interaction, betrag: int):
         remaining  = user_limit - user_data["daily_deposit"]
         if betrag > remaining:
             await interaction.response.send_message(
-                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💵** einzahlen. "
-                f"(Limit: **{user_limit:,} 💵**)",
+                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💲** einzahlen. "
+                f"(Limit: **{user_limit:,} 💲**)",
                 ephemeral=True
             )
             return
@@ -162,16 +162,16 @@ async def einzahlen(interaction: discord.Interaction, betrag: int):
     await log_money_action(
         interaction.guild,
         "Einzahlung",
-        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} 💵\n"
-        f"**Bargeld danach:** {user_data['cash']:,} 💵 | **Bank danach:** {user_data['bank']:,} 💵"
+        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} 💲\n"
+        f"**Bargeld danach:** {user_data['cash']:,} 💲 | **Bank danach:** {user_data['bank']:,} 💲"
     )
 
     embed = discord.Embed(
         title="🏦 Eingezahlt",
         description=(
-            f"**Eingezahlt:** {betrag:,} 💵\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵\n"
-            f"**Bank:** {user_data['bank']:,} 💵"
+            f"**Eingezahlt:** {betrag:,} 💲\n"
+            f"**Bargeld:** {user_data['cash']:,} 💲\n"
+            f"**Bank:** {user_data['bank']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -181,7 +181,7 @@ async def einzahlen(interaction: discord.Interaction, betrag: int):
 
 # /auszahlen
 @bot.tree.command(name="auszahlen", description="[Konto] Hebe Geld von deinem Bankkonto ab", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💵)")
+@app_commands.describe(betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💲)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def auszahlen(interaction: discord.Interaction, betrag: int):
     role_ids = [r.id for r in interaction.user.roles]
@@ -205,7 +205,7 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
 
     if user_data["bank"] < betrag:
         await interaction.response.send_message(
-            f"❌ Nicht genug Guthaben. Dein Kontostand: **{user_data['bank']:,} 💵**", ephemeral=True
+            f"❌ Nicht genug Guthaben. Dein Kontostand: **{user_data['bank']:,} 💲**", ephemeral=True
         )
         return
 
@@ -214,8 +214,8 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
         remaining  = user_limit - user_data["daily_withdraw"]
         if betrag > remaining:
             await interaction.response.send_message(
-                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💵** auszahlen. "
-                f"(Limit: **{user_limit:,} 💵**)",
+                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💲** auszahlen. "
+                f"(Limit: **{user_limit:,} 💲**)",
                 ephemeral=True
             )
             return
@@ -227,16 +227,16 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
     await log_money_action(
         interaction.guild,
         "Auszahlung",
-        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} 💵\n"
-        f"**Bargeld danach:** {user_data['cash']:,} 💵 | **Bank danach:** {user_data['bank']:,} 💵"
+        f"**Spieler:** {interaction.user.mention}\n**Betrag:** {betrag:,} 💲\n"
+        f"**Bargeld danach:** {user_data['cash']:,} 💲 | **Bank danach:** {user_data['bank']:,} 💲"
     )
 
     embed = discord.Embed(
         title="💸 Ausgezahlt",
         description=(
-            f"**Ausgezahlt:** {betrag:,} 💵\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵\n"
-            f"**Bank:** {user_data['bank']:,} 💵"
+            f"**Ausgezahlt:** {betrag:,} 💲\n"
+            f"**Bargeld:** {user_data['cash']:,} 💲\n"
+            f"**Bank:** {user_data['bank']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -246,7 +246,7 @@ async def auszahlen(interaction: discord.Interaction, betrag: int):
 
 # /ueberweisen
 @bot.tree.command(name="ueberweisen", description="[Konto] Überweise Geld an einen anderen Spieler", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="Empfänger", betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💵)")
+@app_commands.describe(nutzer="Empfänger", betrag="Betrag wählen oder eingeben (1.000 – 10.000.000 💲)")
 @app_commands.autocomplete(betrag=betrag_autocomplete)
 async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
     role_ids = [r.id for r in interaction.user.roles]
@@ -275,7 +275,7 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
 
     if sender["bank"] < betrag:
         await interaction.response.send_message(
-            f"❌ Nicht genug Guthaben. Dein Kontostand: **{sender['bank']:,} 💵**", ephemeral=True
+            f"❌ Nicht genug Guthaben. Dein Kontostand: **{sender['bank']:,} 💲**", ephemeral=True
         )
         return
 
@@ -284,8 +284,8 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
         remaining  = user_limit - sender["daily_transfer"]
         if betrag > remaining:
             await interaction.response.send_message(
-                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💵** überweisen. "
-                f"(Limit: **{user_limit:,} 💵**)",
+                f"❌ Tageslimit erreicht. Du kannst heute noch **{remaining:,} 💲** überweisen. "
+                f"(Limit: **{user_limit:,} 💲**)",
                 ephemeral=True
             )
             return
@@ -298,15 +298,15 @@ async def ueberweisen(interaction: discord.Interaction, nutzer: discord.Member, 
         interaction.guild,
         "Überweisung",
         f"**Von:** {interaction.user.mention} → **An:** {nutzer.mention}\n"
-        f"**Betrag:** {betrag:,} 💵 | **Sender-Bank danach:** {sender['bank']:,} 💵"
+        f"**Betrag:** {betrag:,} 💲 | **Sender-Bank danach:** {sender['bank']:,} 💲"
     )
 
     embed = discord.Embed(
         title="💳 Überweisung",
         description=(
             f"**An:** {nutzer.mention}\n"
-            f"**Betrag:** {betrag:,} 💵\n"
-            f"**Dein Kontostand:** {sender['bank']:,} 💵"
+            f"**Betrag:** {betrag:,} 💲\n"
+            f"**Dein Kontostand:** {sender['bank']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -333,16 +333,16 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
     await log_money_action(
         interaction.guild,
         "Admin: Geld hinzugefügt",
-        f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} 💵\n"
-        f"**Bargeld danach:** {user_data['cash']:,} 💵\n**Admin:** {interaction.user.mention}"
+        f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} 💲\n"
+        f"**Bargeld danach:** {user_data['cash']:,} 💲\n**Admin:** {interaction.user.mention}"
     )
 
     embed = discord.Embed(
         title="💰 Geld hinzugefügt",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Hinzugefügt:** {betrag:,} 💵\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵"
+            f"**Hinzugefügt:** {betrag:,} 💲\n"
+            f"**Bargeld:** {user_data['cash']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -369,16 +369,16 @@ async def remove_money(interaction: discord.Interaction, nutzer: discord.Member,
     await log_money_action(
         interaction.guild,
         "Admin: Geld entfernt",
-        f"**Spieler:** {nutzer.mention}\n**Betrag:** -{betrag:,} 💵\n"
-        f"**Bargeld danach:** {user_data['cash']:,} 💵\n**Admin:** {interaction.user.mention}"
+        f"**Spieler:** {nutzer.mention}\n**Betrag:** -{betrag:,} 💲\n"
+        f"**Bargeld danach:** {user_data['cash']:,} 💲\n**Admin:** {interaction.user.mention}"
     )
 
     embed = discord.Embed(
         title="💸 Geld entfernt",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Entfernt:** {betrag:,} 💵\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵"
+            f"**Entfernt:** {betrag:,} 💲\n"
+            f"**Bargeld:** {user_data['cash']:,} 💲"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -406,7 +406,7 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
         title="⚙️ Limit gesetzt",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Neues Tageslimit:** {limit:,} 💵\n"
+            f"**Neues Tageslimit:** {limit:,} 💲\n"
             f"*(gilt für Einzahlen, Auszahlen & Überweisen)*"
         ),
         color=LOG_COLOR,
