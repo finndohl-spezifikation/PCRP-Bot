@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # events.py — Discord Events (on_ready, on_message, Logs, etc.)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -568,7 +568,7 @@ async def on_member_join(member):
     try:
         embed = discord.Embed(
             description=(
-                "> Willkommen auf Cryptik Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
+                "> Willkommen auf Paradise City Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
                 "> Wir wünschen dir viel Spaß auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
                 "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
                 f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
@@ -585,7 +585,7 @@ async def on_member_join(member):
             w_embed = discord.Embed(
                 title="📥 Willkommen auf dem Server!",
                 description=(
-                    f"Herzlich Willkommen {member.mention} auf **Cryptik Roleplay**!\n\n"
+                    f"Herzlich Willkommen {member.mention} auf **Paradise City Roleplay**!\n\n"
                     f"Wir freuen uns dich hier zu haben.\n"
                     f"Bitte wähle deine Einreiseart und erstelle deinen Ausweis."
                 ),
@@ -615,4 +615,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-            )
+        )
