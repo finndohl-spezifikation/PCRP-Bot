@@ -3,6 +3,17 @@
 # Kryptik / Cryptik Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
+import os, sys
+
+# Sicherstellen dass bot_split/ im Pfad ist egal wo diese Datei liegt
+_HERE = os.path.dirname(os.path.abspath(__file__))
+for _p in [
+    os.path.join(_HERE, "bot_split"),   # liegt im Repo-Root → bot_split/ daneben
+    _HERE,                               # liegt bereits in bot_split/
+]:
+    if os.path.isdir(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
+
 from config import *
 from economy_helpers import load_economy, save_economy, get_user, find_inventory_item
 import uuid
