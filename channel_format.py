@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # channel_format.py — Automatische Kursiv-Formatierung von Channel-Namen
@@ -5,10 +6,8 @@
 # ══════════════════════════════════════════════════════════════
 #
 # Funktionen:
-#   • to_italic_unicode(text)       — ASCII → kursiv Unicode (erster Buchstabe + nach "-" groß)
-#   • capitalize_italic_name(name)  — bestehende kursive Namen korrigieren (ersten Buchstaben großschreiben)
-#   • /channel-format               — Alle Channel im Server einmalig formatieren (Admin only)
-#   • on_guild_channel_create       — Neue Channel werden automatisch formatiert
+#   • /channel-format   — Alle Channel kursiv + Anfangsbuchstabe groß (Admin only)
+#   • on_guild_channel_create — Neue Channel automatisch formatieren
 #
 # In bot.py eintragen:
 #   import channel_format
@@ -18,72 +17,53 @@ import discord
 from config import bot, GUILD_ID, ADMIN_ROLE_ID
 
 # ── Unicode-Bereiche ──────────────────────────────────────────
-_ITALIC_LOWER_START = 0x1D622   # 𝘢
-_ITALIC_LOWER_END   = 0x1D63B   # 𝘻
-_ITALIC_UPPER_START = 0x1D608   # 𝘈
-_LOWER_TO_UPPER_OFFSET = 26     # Differenz zwischen kursiv-Groß und kursiv-Klein
+_IL = 0x1D622   # kursiv-klein a
+_IU = 0x1D608   # kursiv-groß  A
 
 
-def to_italic_unicode(text: str) -> str:
-    """
-    Wandelt einen normalen ASCII-Text in kursive Unicode-Zeichen um.
-    Der erste Buchstabe und jeder Buchstabe nach einem '-' wird großgeschrieben.
-
-    Beispiel: "beispiel-channel" → "𝘉𝘦𝘪𝘴𝘱𝘪𝘦𝘭-𝘊𝘩𝘢𝘯𝘯𝘦𝘭"
-    """
-    result = []
-    capitalize_next = True
-
-    for char in text:
-        if char == '-':
-            result.append('-')
-            capitalize_next = True
-        elif 'a' <= char <= 'z':
-            if capitalize_next:
-                result.append(chr(_ITALIC_UPPER_START + ord(char) - ord('a')))
-            else:
-                result.append(chr(_ITALIC_LOWER_START + ord(char) - ord('a')))
-            capitalize_next = False
-        elif 'A' <= char <= 'Z':
-            result.append(chr(_ITALIC_UPPER_START + ord(char) - ord('A')))
-            capitalize_next = False
+def _italic_to_ascii(name: str) -> str:
+    """Wandelt kursive Unicode-Zeichen zurück in normales ASCII (Kleinbuchstaben)."""
+    out = []
+    for ch in name:
+        cp = ord(ch)
+        if _IL <= cp <= _IL + 25:           # kursiv-klein a–z
+            out.append(chr(cp - _IL + ord('a')))
+        elif _IU <= cp <= _IU + 25:         # kursiv-groß A–Z
+            out.append(chr(cp - _IU + ord('a')))
         else:
-            result.append(char)
-            if char not in (' ',):
-                capitalize_next = False
-
-    return ''.join(result)
+            out.append(ch)
+    return ''.join(out)
 
 
-def capitalize_italic_name(name: str) -> str:
+def _ascii_to_italic(name: str) -> str:
     """
-    Korrigiert einen bereits kursiven Channel-Namen:
-    Macht den ersten Buchstaben und jeden Buchstaben nach '-' großgeschrieben.
-
-    Beispiel: "𝘣𝘦𝘪𝘴𝘱𝘪𝘦𝘭-𝘊𝘩𝘢𝘯𝘯𝘦𝘭" → "𝘉𝘦𝘪𝘴𝘱𝘪𝘦𝘭-𝘊𝘩𝘢𝘯𝘯𝘦𝘭"
+    Wandelt normalen ASCII-Text in kursive Unicode-Zeichen um.
+    Erster Buchstabe und jeder Buchstabe nach '-' wird GROßGESCHRIEBEN.
     """
-    result = []
-    capitalize_next = True
-
-    for char in name:
-        cp = ord(char)
-        if char == '-':
-            result.append('-')
-            capitalize_next = True
-        elif _ITALIC_LOWER_START <= cp <= _ITALIC_LOWER_END and capitalize_next:
-            result.append(chr(cp - _LOWER_TO_UPPER_OFFSET))
-            capitalize_next = False
+    out = []
+    cap = True
+    for ch in name:
+        if ch == '-':
+            out.append('-')
+            cap = True
+        elif 'a' <= ch <= 'z':
+            out.append(chr((_IU if cap else _IL) + ord(ch) - ord('a')))
+            cap = False
+        elif 'A' <= ch <= 'Z':
+            out.append(chr(_IU + ord(ch) - ord('A')))
+            cap = False
         else:
-            result.append(char)
-            if char not in (' ',):
-                capitalize_next = False
-
-    return ''.join(result)
+            out.append(ch)
+            cap = False
+    return ''.join(out)
 
 
-def _needs_fix(name: str) -> bool:
-    """Gibt True zurück wenn der Name korrigiert werden muss."""
-    return capitalize_italic_name(name) != name
+def format_channel_name(name: str) -> str:
+    """
+    Egal ob der Name schon kursiv ist oder normales ASCII:
+    Immer korrekt kursiv + Anfangsbuchstabe groß zurückgeben.
+    """
+    return _ascii_to_italic(_italic_to_ascii(name))
 
 
 # ── Slash Command: /channel-format ───────────────────────────
@@ -107,12 +87,12 @@ async def channel_format_cmd(interaction: discord.Interaction):
     errors = 0
 
     for channel in interaction.guild.channels:
-        new_name = to_italic_unicode(channel.name)
+        new_name = format_channel_name(channel.name)
         if new_name == channel.name:
             skipped += 1
             continue
         try:
-            await channel.edit(name=new_name, reason="channel-format: Kursiv-Großschreibung korrigiert")
+            await channel.edit(name=new_name, reason="channel-format: Kursiv-Formatierung")
             renamed += 1
         except Exception as e:
             print(f"[channel_format] ❌ Fehler bei #{channel.name}: {e}")
@@ -131,9 +111,9 @@ async def channel_format_cmd(interaction: discord.Interaction):
 
 @bot.event
 async def on_guild_channel_create(channel):
-    new_name = to_italic_unicode(channel.name)
+    new_name = format_channel_name(channel.name)
     if new_name != channel.name:
         try:
-            await channel.edit(name=new_name, reason="channel-format: Automatische Kursiv-Formatierung")
+            await channel.edit(name=new_name, reason="channel-format: Automatische Formatierung")
         except Exception as e:
             print(f"[channel_format] ❌ Auto-Format Fehler bei #{channel.name}: {e}")
