@@ -15,8 +15,18 @@
 
 import os
 
+# Bot-Instanz laden
+from config import bot
+
+# Doppelte Command-Registrierung erlauben (Railway hat alte Ordnerstruktur)
+# Falls ein Command bereits registriert ist, wird er einfach überschrieben statt zu crashen.
+_orig_add_command = bot.tree.add_command
+def _safe_add_command(command, /, **kwargs):
+    kwargs["override"] = True
+    return _orig_add_command(command, **kwargs)
+bot.tree.add_command = _safe_add_command
+
 # Alle Module importieren — Reihenfolge ist wichtig!
-from config import bot          # bot-Instanz, alle IDs
 import helpers                  # Hilfsfunktionen
 import economy_helpers          # Economy-Datenschicht
 import handy                    # Handy-System
