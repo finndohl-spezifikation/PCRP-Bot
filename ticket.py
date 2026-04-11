@@ -478,6 +478,7 @@ async def auto_ticket_setup():
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        embed.set_image(url="https://a457f842-f550-4b03-850d-68292f4acbb5-00-1syh7hg70wqb4.picard.replit.dev/api/files/ticket_banner.jpg")
         embed.set_footer(text="Cryptik Roleplay — Support System")
         try:
             await channel.send(embed=embed, view=TicketSelectView())
