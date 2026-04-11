@@ -11,6 +11,14 @@ from economy_helpers import (
     load_handy_numbers, save_handy_numbers,
     generate_la_phone_number
 )
+from dienst import get_on_duty
+
+# Dispatch-Typ → Dienst-Fraktion
+DISPATCH_FACTION_MAP = {
+    "pd":   "lapd",
+    "md":   "lamd",
+    "adac": "lacs",
+}
 
 
 # ── Dispatch Auswahlmenü ─────────────────────────────────────
@@ -237,47 +245,61 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
 
     guild  = interaction.guild
     member = interaction.user
-    role   = guild.get_role(role_id)
-
-    if not role:
-        await interaction.response.send_message(
-            f"❌ Dispatch-Rolle nicht gefunden.", ephemeral=True
-        )
-        return
 
     await interaction.response.defer(ephemeral=True)
+
+    # Wer ist aktuell im Dienst?
+    faction    = DISPATCH_FACTION_MAP.get(dispatch_type.lower(), None)
+    on_duty    = get_on_duty(faction) if faction else {}
+    now_ts     = int(datetime.now(timezone.utc).timestamp())
 
     dispatch_embed = discord.Embed(
         title="🚨 Dispatch 🚨",
         description=(
             f"**Ein Bewohner hat einen Dispatch abgesendet!**\n\n"
-            f"🗺️ **Standort:** {member.mention}\n"
+            f"🗺️ **Von:** {member.mention}\n"
             f"📋 **Dispatch-Typ:** {dispatch_type}\n"
-            f"⏰ **Zeit:** <t:{int(datetime.now(timezone.utc).timestamp())}:T>"
+            f"⏰ **Zeit:** <t:{now_ts}:T>\n"
+            f"👮 **Einheiten im Dienst:** {len(on_duty)}"
         ),
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    dispatch_embed.set_footer(text=f"Cryptik Roleplay — Dispatch System")
+    dispatch_embed.set_footer(text="Cryptik Roleplay — Dispatch System")
 
     sent   = 0
     failed = 0
-    for target in guild.members:
-        if target.bot:
-            continue
-        if role not in target.roles:
-            continue
-        try:
-            await target.send(embed=dispatch_embed)
-            sent += 1
-        except Exception:
-            failed += 1
+
+    if on_duty:
+        # Nur aktiv im Dienst befindliche Mitglieder benachrichtigen
+        for uid in on_duty:
+            target = guild.get_member(int(uid))
+            if not target or target.bot:
+                continue
+            try:
+                await target.send(embed=dispatch_embed)
+                sent += 1
+            except Exception:
+                failed += 1
+    else:
+        # Fallback: alle Rollenmitglieder (falls niemand im Dienst eingetragen)
+        role = guild.get_role(role_id)
+        if role:
+            for target in guild.members:
+                if target.bot or role not in target.roles:
+                    continue
+                try:
+                    await target.send(embed=dispatch_embed)
+                    sent += 1
+                except Exception:
+                    failed += 1
 
     confirm_embed = discord.Embed(
         title="✅ Dispatch gesendet!",
         description=(
             f"Dein **{dispatch_type}-Dispatch** wurde erfolgreich abgesendet.\n"
-            f"**Benachrichtigt:** {sent} Einheiten"
+            f"**Einheiten im Dienst:** {len(on_duty)}\n"
+            f"**Benachrichtigt:** {sent} Einheit{'en' if sent != 1 else ''}"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
