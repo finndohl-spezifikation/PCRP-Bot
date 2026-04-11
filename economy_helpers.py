@@ -272,7 +272,7 @@ BETRAG_SUGGESTIONS = [
 async def betrag_autocomplete(
     interaction: discord.Interaction,
     current: str
-) -> list[app_commands.Choice[int]]:
+):
     choices = []
     clean = current.replace(".", "").replace(",", "").strip()
     for val in BETRAG_SUGGESTIONS:
@@ -287,7 +287,7 @@ async def betrag_autocomplete(
 async def shop_item_autocomplete(
     interaction: discord.Interaction,
     current: str
-) -> list[app_commands.Choice[str]]:
+):
     items = load_shop()
     current_lower = current.lower()
     choices = []
@@ -303,7 +303,7 @@ async def shop_item_autocomplete(
 async def inventory_item_autocomplete(
     interaction: discord.Interaction,
     current: str
-) -> list[app_commands.Choice[str]]:
+):
     from collections import Counter
     eco       = load_economy()
     user_data = get_user(eco, interaction.user.id)
