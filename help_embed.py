@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # help_embed.py — Automatisches Command-Übersicht Embed
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 #
 # Liest alle registrierten Slash-Commands aus dem Bot-Tree,
 # gruppiert sie nach Kategorie-Präfix ([Kategorie]) und
@@ -18,7 +18,7 @@ from config import *
 
 HELP_CHANNEL_ID  = 1491624319598460958
 MESSAGE_ID_FILE  = str(DATA_DIR / "help_message_id.json")
-EMBED_COLOR      = 0x00BFFF   # Hellblau
+EMBED_COLOR      = 0xE67E22   # Hellblau
 
 # ── Kategorie-Konfiguration ────────────────────────────────────
 # Schlüssel = Präfix in der Command-Beschreibung ([Präfix])
@@ -70,7 +70,7 @@ def _build_embed(commands: list) -> discord.Embed:
     total = sum(len(v) for v in grouped.values())
 
     embed = discord.Embed(
-        title="📋 Kryptik / Cryptik Roleplay — Bot Commands",
+        title="📋 Paradise City Roleplay — Bot Commands",
         description=(
             "Hier findest du alle verfügbaren Slash-Commands des Servers,\n"
             "sortiert nach Kategorie. Tippe `/` um sie zu nutzen.\n\u200b"
