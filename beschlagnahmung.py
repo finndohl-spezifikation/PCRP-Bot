@@ -18,7 +18,14 @@ from config import *
 from economy_helpers import load_economy, save_economy, get_user, find_inventory_item
 import uuid
 
-BESCHLAGNAHMUNG_CHANNEL = BESCHLAGNAHMUNG_CHANNEL_ID
+# Direkt definiert — funktioniert auch wenn config.py noch nicht aktualisiert wurde
+BESCHLAGNAHMUNG_CHANNEL_ID = 1492316049922592990
+BESCHLAGNAHMUNG_CHANNEL    = 1492316049922592990
+
+if "BESCHLAGNAHMUNG_FILE" not in dir():
+    from pathlib import Path as _Path
+    BESCHLAGNAHMUNG_FILE = _Path(os.environ.get("DATA_DIR", _Path(__file__).parent / "data")) / "beschlagnahmung_data.json"
+    BESCHLAGNAHMUNG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
 # ── JSON Helpers ─────────────────────────────────────────────
