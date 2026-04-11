@@ -97,25 +97,25 @@ class RechnungModal(discord.ui.Modal, title="📄 Rechnung schreiben"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# ── Button: Als bezahlt markieren ───────────────────────────
+# ── Button: Einzelne Rechnung bezahlen ───────────────────────
 
-class BezahltButton(discord.ui.Button):
-    def __init__(self, rechnung_id: str, von_id: int, an_id: int, summe: int):
+class EinzelBezahlenButton(discord.ui.Button):
+    def __init__(self, rechnung: dict, row: int = 0):
         super().__init__(
-            label="✅️| Offene Beträge Bezahlen",
+            label=f"[{rechnung['id']}] {rechnung['summe']:,}$ bezahlen",
             style=discord.ButtonStyle.green,
-            custom_id=f"bezahlt:{rechnung_id}:{an_id}",
+            custom_id=f"einzel_bezahlen:{rechnung['id']}:{rechnung['an_id']}",
+            row=row,
         )
-        self.rechnung_id = rechnung_id
-        self.von_id      = von_id
-        self.an_id       = an_id
-        self.summe       = summe
+        self.rechnung_id = rechnung["id"]
+        self.von_id      = rechnung["von_id"]
+        self.an_id       = rechnung["an_id"]
+        self.summe       = rechnung["summe"]
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.an_id:
             await interaction.response.send_message(
-                "❌ Nur der Schuldner kann diese Rechnung bezahlen.",
-                ephemeral=True,
+                "❌ Nur der Schuldner kann diese Rechnung bezahlen.", ephemeral=True
             )
             return
 
@@ -124,20 +124,17 @@ class BezahltButton(discord.ui.Button):
 
         if zahler["bank"] < self.summe:
             await interaction.response.send_message(
-                f"❌ Nicht genug Guthaben auf deinem Konto. Du benötigst **{self.summe:,}$** "
+                f"❌ Nicht genug Guthaben. Du benötigst **{self.summe:,}$** "
                 f"(Kontostand: {zahler['bank']:,}$).",
                 ephemeral=True,
             )
             return
 
         zahler["bank"] -= self.summe
-
-        # Betrag auf das Bank-Konto des Ausstellers gutschreiben
         empfaenger = get_user(eco, self.von_id)
         empfaenger["bank"] += self.summe
         save_economy(eco)
 
-        # Rechnung entfernen
         rdata = load_rechnungen()
         uid   = str(self.an_id)
         rdata[uid] = [r for r in rdata.get(uid, []) if r["id"] != self.rechnung_id]
@@ -148,22 +145,87 @@ class BezahltButton(discord.ui.Button):
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
-        embed.add_field(name="Rechnungs-ID",  value=f"`{self.rechnung_id}`", inline=True)
-        embed.add_field(name="Betrag",        value=f"💵 {self.summe:,}$",   inline=True)
-        embed.add_field(name="Neuer Kontostand", value=f"{zahler['bank']:,}$", inline=True)
+        embed.add_field(name="Rechnungs-ID",     value=f"`{self.rechnung_id}`",  inline=True)
+        embed.add_field(name="Betrag",           value=f"💵 {self.summe:,}$",    inline=True)
+        embed.add_field(name="Neuer Kontostand", value=f"💳 {zahler['bank']:,}$", inline=True)
         embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
-        await interaction.message.delete()
+        try:
+            await interaction.message.delete()
+        except Exception:
+            pass
+
+
+# ── Button: Alle Rechnungen auf einmal bezahlen ──────────────
+
+class AlleBezahlenButton(discord.ui.Button):
+    def __init__(self, an_id: int, rechnungen: list, row: int = 4):
+        gesamt = sum(r["summe"] for r in rechnungen)
+        super().__init__(
+            label=f"💳 Alle auf einmal bezahlen ({gesamt:,}$)",
+            style=discord.ButtonStyle.blurple,
+            custom_id=f"alle_bezahlen:{an_id}",
+            row=row,
+        )
+        self.an_id      = an_id
+        self.rechnungen = rechnungen
+        self.gesamt     = gesamt
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.an_id:
+            await interaction.response.send_message(
+                "❌ Nur der Schuldner kann seine Rechnungen bezahlen.", ephemeral=True
+            )
+            return
+
+        eco    = load_economy()
+        zahler = get_user(eco, self.an_id)
+
+        if zahler["bank"] < self.gesamt:
+            await interaction.response.send_message(
+                f"❌ Nicht genug Guthaben. Du benötigst **{self.gesamt:,}$** "
+                f"(Kontostand: {zahler['bank']:,}$).",
+                ephemeral=True,
+            )
+            return
+
+        zahler["bank"] -= self.gesamt
+        for r in self.rechnungen:
+            empfaenger = get_user(eco, r["von_id"])
+            empfaenger["bank"] += r["summe"]
+        save_economy(eco)
+
+        rdata = load_rechnungen()
+        uid   = str(self.an_id)
+        ids   = {r["id"] for r in self.rechnungen}
+        rdata[uid] = [r for r in rdata.get(uid, []) if r["id"] not in ids]
+        save_rechnungen(rdata)
+
+        embed = discord.Embed(
+            title="✅ Alle Rechnungen bezahlt",
+            color=0x2ECC71,
+            timestamp=datetime.now(timezone.utc),
+        )
+        embed.add_field(name="Anzahl",           value=str(len(self.rechnungen)), inline=True)
+        embed.add_field(name="Gesamtbetrag",     value=f"💵 {self.gesamt:,}$",    inline=True)
+        embed.add_field(name="Neuer Kontostand", value=f"💳 {zahler['bank']:,}$", inline=True)
+        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        try:
+            await interaction.message.delete()
+        except Exception:
+            pass
 
 
 # ── View: Rechnungen anzeigen ────────────────────────────────
 
 class RechnungenView(discord.ui.View):
-    def __init__(self, rechnungen: list, requester_id: int):
-        super().__init__(timeout=180)
-        for r in rechnungen:
-            if r["an_id"] == requester_id:
-                self.add_item(BezahltButton(r["id"], r["von_id"], r["an_id"], r["summe"]))
+    def __init__(self, rechnungen: list, an_id: int):
+        super().__init__(timeout=300)
+        for i, r in enumerate(rechnungen[:4]):
+            self.add_item(EinzelBezahlenButton(r, row=i))
+        if rechnungen:
+            self.add_item(AlleBezahlenButton(an_id, rechnungen, row=4))
 
 
 # ── Modal: Mahnung schreiben ─────────────────────────────────
@@ -275,77 +337,50 @@ async def rechnungen_cmd(interaction: discord.Interaction):
         )
         return
 
-    data = load_rechnungen()
-
-    # Rechnungen die der Nutzer bezahlen soll
+    data   = load_rechnungen()
     eigene = data.get(str(interaction.user.id), [])
 
-    # Rechnungen die der Nutzer ausgestellt hat (damit er "Bezahlt" klicken kann)
-    ausgestellt = [
-        r
-        for uid_list in data.values()
-        for r in uid_list
-        if r["von_id"] == interaction.user.id
-    ]
-
-    alle = eigene + [r for r in ausgestellt if r not in eigene]
-
-    if not alle:
+    if not eigene:
         await interaction.response.send_message(
             "✅ Du hast keine offenen Rechnungen.", ephemeral=True
         )
         return
 
     embeds = []
-
-    if eigene:
-        for r in eigene[:5]:
-            color = 0xFF0000 if r.get("mahnung") else 0xE67E22
-            embed = discord.Embed(
-                title=f"📄 Rechnung `{r['id']}`",
-                color=color,
-                timestamp=datetime.fromisoformat(r["erstellt_am"]),
+    for r in eigene[:10]:
+        color = 0xFF0000 if r.get("mahnung") else 0xE67E22
+        embed = discord.Embed(
+            title=f"📄 Rechnung `{r['id']}`",
+            color=color,
+            timestamp=datetime.fromisoformat(r["erstellt_am"]),
+        )
+        embed.add_field(name="Von",   value=r["von_display"], inline=True)
+        embed.add_field(name="Summe", value=f"💵 {r['summe']:,}$", inline=True)
+        embed.add_field(
+            name="Ausgestellt am",
+            value=datetime.fromisoformat(r["erstellt_am"]).strftime("%d.%m.%Y"),
+            inline=True,
+        )
+        embed.add_field(name="Grund", value=r["grund"], inline=False)
+        if r.get("mahnung"):
+            m = r["mahnung"]
+            embed.add_field(
+                name="⚠️ MAHNUNG",
+                value=f"**Frist:** {m['frist']}\n**Konsequenz:** {m['konsequenz']}",
+                inline=False,
             )
-            embed.add_field(name="Von",           value=r["von_display"],              inline=True)
-            embed.add_field(name="Summe",         value=f"💵 {r['summe']:,}$",          inline=True)
-            embed.add_field(name="Ausgestellt am",
-                            value=datetime.fromisoformat(r["erstellt_am"]).strftime("%d.%m.%Y"),
-                            inline=True)
-            embed.add_field(name="Grund",         value=r["grund"],                    inline=False)
-            if r.get("mahnung"):
-                m = r["mahnung"]
-                embed.add_field(
-                    name="⚠️ MAHNUNG",
-                    value=f"**Frist:** {m['frist']}\n**Konsequenz:** {m['konsequenz']}",
-                    inline=False,
-                )
-            embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
-            embeds.append(embed)
+        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
+        embeds.append(embed)
 
-    if ausgestellt:
-        for r in ausgestellt[:5]:
-            an_member = interaction.guild.get_member(r["an_id"])
-            an_display = an_member.display_name if an_member else r["an_name"]
-            embed = discord.Embed(
-                title=f"📤 Ausgestellt `{r['id']}`",
-                color=0x3498DB,
-                timestamp=datetime.fromisoformat(r["erstellt_am"]),
-            )
-            embed.add_field(name="An",    value=an_display,          inline=True)
-            embed.add_field(name="Summe", value=f"💵 {r['summe']:,}$", inline=True)
-            embed.add_field(name="Grund", value=r["grund"],           inline=False)
-            if r.get("mahnung"):
-                m = r["mahnung"]
-                embed.add_field(
-                    name="⚠️ Mahnung",
-                    value=f"**Frist:** {m['frist']}\n**Konsequenz:** {m['konsequenz']}",
-                    inline=False,
-                )
-            embed.set_footer(text="Zum Abschließen: ✅-Button klicken wenn bezahlt wurde")
-            embeds.append(embed)
+    hinweis = ""
+    if len(eigene) > 4:
+        hinweis = f"\n\n⚠️ Du hast {len(eigene)} offene Rechnungen. Nur die ersten 4 können einzeln bezahlt werden — nutze **Alle auf einmal bezahlen** für alle."
 
-    view = RechnungenView(alle, interaction.user.id)
-    await interaction.response.send_message(embeds=embeds[:10], view=view, ephemeral=True)
+    if hinweis:
+        embeds[0].description = hinweis
+
+    view = RechnungenView(eigene, interaction.user.id)
+    await interaction.response.send_message(embeds=embeds, view=view, ephemeral=True)
 
 
 @bot.tree.command(
