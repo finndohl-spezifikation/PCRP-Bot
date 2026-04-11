@@ -60,7 +60,7 @@ def _get_prefix(description: str) -> str:
 
 
 def _build_embed(commands: list) -> discord.Embed:
-    grouped: dict[str, list[str]] = {}
+    grouped = {}
     for cmd in commands:
         prefix = _get_prefix(cmd.description)
         if prefix in HIDDEN_CATEGORIES:
