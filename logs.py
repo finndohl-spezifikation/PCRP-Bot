@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # logs.py — Erweiterte Server-Logs
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 #
 # Ergänzt events.py um:
@@ -274,7 +274,7 @@ async def log_server_change(guild: discord.Guild, title: str, description: str):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Cryptik Roleplay — Server-Log")
+    embed.set_footer(text="Paradise City Roleplay — Server-Log")
     try:
         await log_ch.send(embed=embed)
     except Exception:
