@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # ticket.py — Ticket System (Support, Highteam, Fraktion, etc.)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -315,7 +315,7 @@ class TicketActionView(discord.ui.View):
                 dm_embed = discord.Embed(
                     title="🎟 Dein Ticket wurde geschlossen",
                     description=(
-                        f"Dein **{data['type_name']}** auf **Cryptik Roleplay** wurde geschlossen.\n\n"
+                        f"Dein **{data['type_name']}** auf **Paradise City Roleplay** wurde geschlossen.\n\n"
                         f"**Bearbeitet von:** {interaction.user.display_name}\n\n"
                         f"Wie zufrieden warst du mit der Bearbeitung?\n"
                         f"Bitte bewerte unseren Support:"
@@ -479,7 +479,7 @@ def _build_ticket_embed() -> discord.Embed:
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/ticket_banner.jpg")
-    embed.set_footer(text="Cryptik Roleplay — Support System")
+    embed.set_footer(text="Paradise City Roleplay — Support System")
     return embed
 
 
