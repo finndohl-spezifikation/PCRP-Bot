@@ -269,29 +269,15 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
     sent   = 0
     failed = 0
 
-    if on_duty:
-        # Nur aktiv im Dienst befindliche Mitglieder benachrichtigen
-        for uid in on_duty:
-            target = guild.get_member(int(uid))
-            if not target or target.bot:
-                continue
-            try:
-                await target.send(embed=dispatch_embed)
-                sent += 1
-            except Exception:
-                failed += 1
-    else:
-        # Fallback: alle Rollenmitglieder (falls niemand im Dienst eingetragen)
-        role = guild.get_role(role_id)
-        if role:
-            for target in guild.members:
-                if target.bot or role not in target.roles:
-                    continue
-                try:
-                    await target.send(embed=dispatch_embed)
-                    sent += 1
-                except Exception:
-                    failed += 1
+    for uid in on_duty:
+        target = guild.get_member(int(uid))
+        if not target or target.bot:
+            continue
+        try:
+            await target.send(embed=dispatch_embed)
+            sent += 1
+        except Exception:
+            failed += 1
 
     confirm_embed = discord.Embed(
         title="✅ Dispatch gesendet!",
