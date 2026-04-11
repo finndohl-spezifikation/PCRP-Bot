@@ -222,21 +222,19 @@ async def auto_casino_setup():
         channel = guild.get_channel(CASINO_CHANNEL_ID)
         if not channel:
             continue
-        already = False
+        # Alte Casino-Embeds löschen (Rebranding / Glücksrad → Rubbellose)
         try:
             async for msg in channel.history(limit=30):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
-                        if emb.title and "Rubbellos" in emb.title:
-                            already = True
+                        if emb.title and ("Rubbellos" in emb.title or "Glücksrad" in emb.title or "Casino" in emb.title):
+                            try:
+                                await msg.delete()
+                            except Exception:
+                                pass
                             break
-                if already:
-                    break
         except Exception:
             pass
-        if already:
-            print(f"Rubbellos-Embed bereits vorhanden in #{channel.name}, überspringe.")
-            continue
 
         prize_lines = "\n".join(f"　 {p['label']}" for p in CASINO_PRIZES)
         embed = discord.Embed(
