@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+# ══════════════════════════════════════════════════════════════
+# ping_roles.py — Ping-Rollen Auswahl (Hinzufügen / Entfernen)
+# Kryptik / Cryptik Roleplay Discord Bot
+# ══════════════════════════════════════════════════════════════
+#
+# In bot.py eintragen:
+#   import ping_roles
+# ══════════════════════════════════════════════════════════════
+
+import discord
+from config import bot
+
+PING_ROLES_CHANNEL_ID = 1490882567690518579
+
+PING_ROLE_IDS = [
+    1490855734517174376,
+    1490855737130221598,
+    1490855739495813150,
+    1490855738644365603,
+    1490855733124923486,
+    1490855740435468320,
+]
+
+PING_ROLES_COLOR = 0x00BFFF
+
+
+class PingRoleButton(discord.ui.Button):
+    def __init__(self, role_id: int, role_name: str):
+        super().__init__(
+            label=role_name,
+            style=discord.ButtonStyle.blurple,
+            custom_id=f"ping_role_{role_id}"
+        )
+        self.role_id = role_id
+
+    async def callback(self, interaction: discord.Interaction):
+        role = interaction.guild.get_role(self.role_id)
+        if not role:
+            await interaction.response.send_message(
+                "❌ Rolle nicht gefunden.", ephemeral=True
+            )
+            return
+
+        if role in interaction.user.roles:
+            await interaction.user.remove_roles(role, reason="Ping-Rolle selbst entfernt")
+            await interaction.response.send_message(
+                f"✅ {role.mention} wurde entfernt.", ephemeral=True
+            )
+        else:
+            await interaction.user.add_roles(role, reason="Ping-Rolle selbst hinzugefügt")
+            await interaction.response.send_message(
+                f"✅ {role.mention} wurde hinzugefügt.", ephemeral=True
+            )
+
+
+class PingRolesView(discord.ui.View):
+    def __init__(self, guild: discord.Guild):
+        super().__init__(timeout=None)
+        for role_id in PING_ROLE_IDS:
+            role = guild.get_role(role_id)
+            if role:
+                self.add_item(PingRoleButton(role_id=role_id, role_name=role.name))
+
+
+class PingRolesViewPersistent(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        for role_id in PING_ROLE_IDS:
+            btn = discord.ui.Button(
+                label="...",
+                style=discord.ButtonStyle.blurple,
+                custom_id=f"ping_role_{role_id}"
+            )
+
+            async def make_callback(rid: int):
+                async def callback(interaction: discord.Interaction):
+                    role = interaction.guild.get_role(rid)
+                    if not role:
+                        await interaction.response.send_message(
+                            "❌ Rolle nicht gefunden.", ephemeral=True
+                        )
+                        return
+                    if role in interaction.user.roles:
+                        await interaction.user.remove_roles(role, reason="Ping-Rolle selbst entfernt")
+                        await interaction.response.send_message(
+                            f"✅ {role.mention} wurde **entfernt**.", ephemeral=True
+                        )
+                    else:
+                        await interaction.user.add_roles(role, reason="Ping-Rolle selbst hinzugefügt")
+                        await interaction.response.send_message(
+                            f"✅ {role.mention} wurde **hinzugefügt**.", ephemeral=True
+                        )
+                return callback
+
+            btn.callback = make_callback(role_id)
+            self.add_item(btn)
+
+
+async def auto_ping_roles_setup():
+    for guild in bot.guilds:
+        channel = guild.get_channel(PING_ROLES_CHANNEL_ID)
+        if not channel:
+            continue
+
+        already_posted = False
+        try:
+            async for msg in channel.history(limit=20):
+                if msg.author.id == bot.user.id and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Ping" in emb.title:
+                            already_posted = True
+                            break
+                if already_posted:
+                    break
+        except Exception:
+            pass
+
+        if already_posted:
+            print(f"[ping_roles] Ping-Rollen Embed bereits vorhanden in #{channel.name}")
+            continue
+
+        role_list = ""
+        for role_id in PING_ROLE_IDS:
+            role = guild.get_role(role_id)
+            if role:
+                role_list += f"• {role.mention}\n"
+
+        embed = discord.Embed(
+            title="🔔 Ping-Rollen",
+            description=(
+                "Hier kannst du deine Ping-Rollen selbst auswählen.\n"
+                "Klicke auf einen Button um eine Rolle **hinzuzufügen** oder zu **entfernen**.\n\n"
+                f"{role_list}"
+            ),
+            color=PING_ROLES_COLOR,
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_footer(text="Cryptik Roleplay — Ping-Rollen System")
+
+        view = PingRolesView(guild)
+        try:
+            await channel.send(embed=embed, view=view)
+            print(f"[ping_roles] ✅ Ping-Rollen Embed gepostet in #{channel.name}")
+        except Exception as e:
+            print(f"[ping_roles] ❌ Fehler: {e}")
+
+
+@bot.listen('on_ready')
+async def ping_roles_on_ready():
+    await auto_ping_roles_setup()
