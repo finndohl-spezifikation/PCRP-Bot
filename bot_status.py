@@ -4,14 +4,14 @@
 # Kryptik / Cryptik Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
+from __future__ import annotations
 import discord
-from config import bot, BOT_LOG_CHANNEL_ID, GUILD_ID, FEATURES
+from typing import Optional
+from config import bot, BOT_LOG_CHANNEL_ID, FEATURES
 from datetime import datetime, timezone
 
-_status: dict[str, tuple[bool, str]] = {
-    name: (True, "") for name in FEATURES
-}
-_status_message: discord.Message | None = None
+_status = {name: (True, "") for name in FEATURES}
+_status_message: Optional[discord.Message] = None
 
 
 def _build_status_embed() -> discord.Embed:
@@ -49,14 +49,12 @@ async def _update_status_message():
 
 
 async def feature_error(name: str, error: str):
-    global _status
     if name in _status:
         _status[name] = (False, error)
         await _update_status_message()
 
 
 async def feature_ok(name: str):
-    global _status
     if name in _status:
         _status[name] = (True, "")
         await _update_status_message()
