@@ -94,21 +94,16 @@ async def on_ready():
         print(f"[help_embed] Fehler beim Aktualisieren: {e}")
 
 
-
 @bot.event
 async def on_error(event, *args, **kwargs):
-    err = traceback.format_exc()
-    await log_bot_error(f"Event: {event}", err)
+    import traceback
+    traceback.print_exc()
 
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        return
-    if isinstance(error, (commands.MissingRole, commands.CheckFailure)):
-        return
-    err = "".join(traceback.format_exception(type(error), error, error.__traceback__))
-    await log_bot_error(f"Command: {ctx.command}", err, ctx.guild)
+    if isinstance(error, Exception):
+        pass
 
 
 @bot.event
@@ -123,6 +118,11 @@ async def on_message(message):
         await handle_counting(message)
         return
 
+    # Server-Inhaber hat volle Rechte — kein Mod-Filter
+    if message.guild and member.id == message.guild.owner_id:
+        await bot.process_commands(message)
+        return
+
     if not is_admin(member) and DISCORD_INVITE_RE.search(message.content):
         await handle_discord_invite(message)
         return
@@ -134,7 +134,10 @@ async def on_message(message):
         await handle_vulgar_message(message)
         return
 
-    await check_spam(message)
+    # Mods und Admins sind vom Spamschutz ausgenommen
+    if not is_mod_or_admin(member):
+        await check_spam(message)
+
     await bot.process_commands(message)
 
 
@@ -417,24 +420,35 @@ async def on_member_join(member):
             except Exception:
                 pass
             return
+
+        # Prüfen wer den Bot hinzugefügt hat
+        adder = None
+        try:
+            async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
+                if entry.target.id == member.id:
+                    adder = entry.user
+                    break
+        except Exception:
+            pass
+
+        # Server-Inhaber darf Bots hinzufügen
+        if adder and adder.id == guild.owner_id:
+            return
+
+        # Alle anderen: Bot wird gekickt
         try:
             await member.kick(reason="Bots sind auf diesem Server nicht erlaubt")
         except Exception:
             pass
-        try:
-            async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
-                if entry.target.id == member.id:
-                    embed = discord.Embed(
-                        description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
-                        color=MOD_COLOR
-                    )
-                    try:
-                        await entry.user.send(content=entry.user.mention, embed=embed)
-                    except Exception:
-                        pass
-                    break
-        except Exception:
-            pass
+        if adder:
+            try:
+                embed = discord.Embed(
+                    description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                    color=MOD_COLOR
+                )
+                await adder.send(content=adder.mention, embed=embed)
+            except Exception:
+                pass
         return
 
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
@@ -576,4 +590,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-    )
+            )
