@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # config.py — Imports, Konstanten, IDs, Regex, Feature-Flags
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 import os
@@ -202,7 +202,7 @@ IC_CHAT_CHANNEL_ID    = 0
 WARN_AUTO_TIMEOUT_COUNT = 3
 START_CASH              = 5_000
 
-LOG_COLOR = 0x00BFFF
+LOG_COLOR = 0xE67E22
 MOD_COLOR = 0xFF0000
 
 DISCORD_INVITE_RE = re.compile(
