@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # ping_roles.py — Ping-Rollen Auswahl (Hinzufügen / Entfernen)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 import discord
@@ -18,7 +18,7 @@ PING_ROLE_IDS = [
     1490855740435468320,
 ]
 
-PING_ROLES_COLOR = 0x00BFFF
+PING_ROLES_COLOR = 0xE67E22
 
 
 class PingRoleButton(discord.ui.Button):
@@ -101,7 +101,7 @@ async def auto_ping_roles_setup():
             color=PING_ROLES_COLOR,
             timestamp=discord.utils.utcnow()
         )
-        embed.set_footer(text="Cryptik Roleplay — Ping-Rollen System")
+        embed.set_footer(text="Paradise City Roleplay — Ping-Rollen System")
 
         view = PingRolesView(guild)
         try:
