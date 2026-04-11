@@ -329,13 +329,13 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 
     eco       = load_economy()
     user_data = get_user(eco, nutzer.id)
-    user_data["cash"] += betrag
+    user_data["bank"] += betrag
     save_economy(eco)
     await log_money_action(
         interaction.guild,
         "Admin: Geld hinzugefügt",
         f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} 💵\n"
-        f"**Bargeld danach:** {user_data['cash']:,} 💵\n**Admin:** {interaction.user.mention}"
+        f"**Bank danach:** {user_data['bank']:,} 💵\n**Admin:** {interaction.user.mention}"
     )
 
     embed = discord.Embed(
@@ -343,7 +343,7 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
         description=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Hinzugefügt:** {betrag:,} 💵\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵"
+            f"**Kontostand:** {user_data['bank']:,} 💵"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
