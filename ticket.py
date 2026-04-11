@@ -483,6 +483,9 @@ def _build_ticket_embed() -> discord.Embed:
     return embed
 
 
+TICKET_INFO_CHANNEL_ID = 1490885002030874775
+
+
 @bot.tree.command(
     name="setup-ticket",
     description="[Admin] Ticket-Embed neu posten (löscht altes und postet aktuelles)",
@@ -496,37 +499,44 @@ async def cmd_setup_ticket(interaction: discord.Interaction):
 
     await interaction.response.defer(ephemeral=True)
 
-    channel = interaction.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
-    if not channel:
-        await interaction.followup.send("❌ Ticket-Channel nicht gefunden.", ephemeral=True)
+    guild    = interaction.guild
+    posted   = 0
+    channels = []
+
+    for ch_id in [TICKET_SETUP_CHANNEL_ID, TICKET_INFO_CHANNEL_ID]:
+        ch = guild.get_channel(ch_id)
+        if ch:
+            channels.append(ch)
+
+    if not channels:
+        await interaction.followup.send("❌ Kein Ticket-Channel gefunden.", ephemeral=True)
         return
 
-    deleted = 0
-    try:
-        async for msg in channel.history(limit=100):
-            if msg.author.id == bot.user.id and msg.embeds:
-                for emb in msg.embeds:
-                    if emb.title and "Ticket erstellen" in emb.title:
-                        await msg.delete()
-                        deleted += 1
-                        break
-    except Exception as e:
-        await log_bot_error("setup-ticket: Löschen fehlgeschlagen", str(e), interaction.guild)
+    for ch in channels:
+        try:
+            async for msg in ch.history(limit=100):
+                if msg.author.id == bot.user.id and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Ticket erstellen" in emb.title:
+                            await msg.delete()
+                            break
+        except Exception as e:
+            await log_bot_error("setup-ticket: Löschen fehlgeschlagen", str(e), guild)
 
-    try:
-        await channel.send(embed=_build_ticket_embed(), view=TicketSelectView())
-    except Exception as e:
-        await log_bot_error("setup-ticket: Senden fehlgeschlagen", str(e), interaction.guild)
+        try:
+            await ch.send(embed=_build_ticket_embed(), view=TicketSelectView())
+            posted += 1
+        except Exception as e:
+            await log_bot_error("setup-ticket: Senden fehlgeschlagen", str(e), guild)
+
+    if posted == 0:
         await interaction.followup.send("❌ Embed konnte nicht gesendet werden.", ephemeral=True)
         return
 
     await interaction.followup.send(
-        f"✅ Ticket-Embed neu gepostet.{f' ({deleted} altes gelöscht)' if deleted else ''}",
+        f"✅ Ticket-Embed in {posted} Kanal{'ä' if posted != 1 else 'a'}len neu gepostet.",
         ephemeral=True
     )
-
-
-TICKET_INFO_CHANNEL_ID = 1490885002030874775
 
 
 async def _post_ticket_to_channel(guild: discord.Guild, channel_id: int, with_view: bool = True):
