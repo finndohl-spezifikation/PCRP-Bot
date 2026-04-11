@@ -463,32 +463,40 @@ async def on_member_join(member):
 
     inviter      = None
     inviter_uses = 0
+    via_vanity   = False
     try:
         new_invites    = await guild.fetch_invites()
         new_invite_map = {inv.code: inv for inv in new_invites}
         old_invite_map = invite_cache.get(guild.id, {})
-        for code, new_inv in new_invite_map.items():
-            old_inv = old_invite_map.get(code)
-            if old_inv and new_inv.uses > old_inv.uses:
-                inviter      = new_inv.inviter
-                inviter_uses = new_inv.uses
-                break
-        if not inviter:
-            for code, old_inv in old_invite_map.items():
-                if code not in new_invite_map:
-                    inviter      = old_inv.inviter
-                    inviter_uses = (old_inv.uses or 0) + 1
+
+        # Falls Cache leer war (z.B. nach Neustart): Cache befüllen, Zuordnung nicht möglich
+        if old_invite_map:
+            for code, new_inv in new_invite_map.items():
+                old_inv = old_invite_map.get(code)
+                if old_inv and new_inv.uses > old_inv.uses:
+                    inviter      = new_inv.inviter
+                    inviter_uses = new_inv.uses
                     break
+            if not inviter:
+                for code, old_inv in old_invite_map.items():
+                    if code not in new_invite_map:
+                        inviter      = old_inv.inviter
+                        inviter_uses = (old_inv.uses or 0) + 1
+                        break
+
+        # Vanity-URL prüfen
         if not inviter:
             try:
                 vanity = await guild.vanity_invite()
-                if vanity and old_invite_map.get("vanity"):
-                    old_vanity = old_invite_map["vanity"]
-                    if vanity.uses > getattr(old_vanity, "uses", 0):
+                if vanity:
+                    old_vanity_uses = getattr(old_invite_map.get("vanity"), "uses", 0) or 0
+                    if vanity.uses > old_vanity_uses:
+                        via_vanity   = True
                         inviter_uses = vanity.uses
-                new_invite_map["vanity"] = vanity
+                    new_invite_map["vanity"] = vanity
             except Exception:
                 pass
+
         invite_cache[guild.id] = new_invite_map
     except Exception as e:
         await log_bot_error("Invite-Tracking fehlgeschlagen", str(e), guild)
@@ -498,11 +506,11 @@ async def on_member_join(member):
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
         if inviter:
             description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
-            description += f"**Einladungen von {inviter.display_name}:** {inviter_uses} 🎟"
-        elif inviter_uses > 0:
+            description += f"**Gesamte Einladungen von {inviter.display_name}:** {inviter_uses} 🎟"
+        elif via_vanity:
             description += "**Eingeladen von:** Vanity-URL (Server-Link)"
         else:
-            description += "**Eingeladen von:** Unbekannt *(Bot fehlt 'Server verwalten' Berechtigung?)*"
+            description += "**Eingeladen von:** Unbekannt"
         embed = discord.Embed(
             title="📥 Neues Mitglied",
             description=description,
@@ -590,4 +598,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-            )
+    )
