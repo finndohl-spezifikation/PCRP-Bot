@@ -1,423 +1,284 @@
-# -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
-# rechnungen.py — Rechnungs- & Mahnungs-System
-# Kryptik / Cryptik Roleplay Discord Bot
+# beschlagnahmung.py — Fahrzeug-Beschlagnahmung & Inventar-Konfiszierung
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
+
+import os, sys
+
+# Sicherstellen dass bot_split/ im Pfad ist egal wo diese Datei liegt
+_HERE = os.path.dirname(os.path.abspath(__file__))
+for _p in [
+    os.path.join(_HERE, "bot_split"),   # liegt im Repo-Root → bot_split/ daneben
+    _HERE,                               # liegt bereits in bot_split/
+]:
+    if os.path.isdir(_p) and _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from config import *
-from economy_helpers import load_economy, save_economy, get_user
+from economy_helpers import load_economy, save_economy, get_user, find_inventory_item
 import uuid
 
-RECHNUNG_ROLLEN = (LAMD_ROLE_ID, LAPD_ROLE_ID, LACS_ROLE_ID, LSPD_ROLE_ID)
+# Direkt definiert — funktioniert auch wenn config.py noch nicht aktualisiert wurde
+BESCHLAGNAHMUNG_CHANNEL_ID = 1492316049922592990
+BESCHLAGNAHMUNG_CHANNEL    = 1492316049922592990
+
+if "BESCHLAGNAHMUNG_FILE" not in dir():
+    from pathlib import Path as _Path
+    BESCHLAGNAHMUNG_FILE = _Path(os.environ.get("DATA_DIR", _Path(__file__).parent / "data")) / "beschlagnahmung_data.json"
+    BESCHLAGNAHMUNG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 
-# ── Helpers ──────────────────────────────────────────────────
+# ── JSON Helpers ─────────────────────────────────────────────
 
-def load_rechnungen():
-    if RECHNUNGEN_FILE.exists():
-        with open(RECHNUNGEN_FILE, "r", encoding="utf-8") as f:
+def load_beschlagnahmung():
+    if BESCHLAGNAHMUNG_FILE.exists():
+        with open(BESCHLAGNAHMUNG_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
 
-def save_rechnungen(data):
-    with open(RECHNUNGEN_FILE, "w", encoding="utf-8") as f:
+
+def save_beschlagnahmung(data):
+    with open(BESCHLAGNAHMUNG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-def hat_rechnung_rolle(member: discord.Member) -> bool:
-    return any(r.id in RECHNUNG_ROLLEN for r in member.roles)
+
+# ── Berechtigungs-Check ──────────────────────────────────────
+
+def ist_lapd(member: discord.Member) -> bool:
+    return any(r.id == LAPD_ROLE_ID for r in member.roles)
 
 
-# ── Modal: Rechnung schreiben ────────────────────────────────
+def channel_check(interaction: discord.Interaction) -> bool:
+    return interaction.channel.id == BESCHLAGNAHMUNG_CHANNEL
 
-class RechnungModal(discord.ui.Modal, title="📄 Rechnung schreiben"):
-    summe = discord.ui.TextInput(
-        label="Summe ($)",
-        placeholder="z.B. 5000",
-        max_length=12,
-    )
-    grund = discord.ui.TextInput(
-        label="Grund der Rechnung",
-        style=discord.TextStyle.paragraph,
-        placeholder="z.B. Schadensersatz für beschädigtes Fahrzeug",
-        max_length=300,
-    )
 
-    def __init__(self, an_member: discord.Member):
-        super().__init__()
-        self.an_member = an_member
+# ── Autocomplete: Beschlagnahmte Fahrzeuge eines Spielers ────
 
-    async def on_submit(self, interaction: discord.Interaction):
-        try:
-            summe_int = int(
-                self.summe.value.strip()
-                .replace("$", "").replace(".", "")
-                .replace(",", "").replace(" ", "")
-            )
-            if summe_int <= 0:
-                raise ValueError
-        except ValueError:
-            await interaction.response.send_message(
-                "❌ Ungültige Summe — bitte eine positive Zahl eingeben.", ephemeral=True
-            )
-            return
+async def fahrzeug_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    nutzer = interaction.namespace.nutzer
+    if nutzer is None:
+        return []
+    data    = load_beschlagnahmung()
+    einträge = data.get(str(nutzer.id), [])
+    choices = [
+        app_commands.Choice(name=e["fahrzeug"][:100], value=e["id"])
+        for e in einträge
+        if current.lower() in e["fahrzeug"].lower()
+    ]
+    return choices[:25]
 
-        data = load_rechnungen()
-        uid  = str(self.an_member.id)
-        if uid not in data:
-            data[uid] = []
 
-        rechnung_id = str(uuid.uuid4())[:8].upper()
-        now = datetime.now(timezone.utc)
+# ══════════════════════════════════════════════════════════════
+# /beschlagnahmen
+# ══════════════════════════════════════════════════════════════
 
-        data[uid].append({
-            "id":           rechnung_id,
-            "von_id":       interaction.user.id,
-            "von_name":     str(interaction.user),
-            "von_display":  interaction.user.display_name,
-            "an_id":        self.an_member.id,
-            "an_name":      str(self.an_member),
-            "summe":        summe_int,
-            "grund":        self.grund.value.strip(),
-            "erstellt_am":  now.isoformat(),
-            "mahnung":      None,
-        })
-        save_rechnungen(data)
-
-        embed = discord.Embed(
-            title="📄 Rechnung ausgestellt",
-            color=0xE67E22,
-            timestamp=now,
+@bot.tree.command(
+    name="beschlagnahmen",
+    description="[LAPD] Fahrzeug eines Spielers beschlagnahmen",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(
+    nutzer="Spieler dessen Fahrzeug beschlagnahmt wird",
+    fahrzeug="Fahrzeugbezeichnung (z.B. BMW M3, Kennzeichen XY-123)",
+    grund="Grund der Beschlagnahmung (optional)",
+)
+async def beschlagnahmen_cmd(
+    interaction: discord.Interaction,
+    nutzer: discord.Member,
+    fahrzeug: str,
+    grund: str = "Kein Grund angegeben",
+):
+    if not channel_check(interaction):
+        await interaction.response.send_message(
+            f"❌ Diesen Command kannst du nur in <#{BESCHLAGNAHMUNG_CHANNEL}> benutzen.",
+            ephemeral=True,
         )
-        embed.set_thumbnail(url=self.an_member.display_avatar.url)
-        embed.add_field(name="An",            value=self.an_member.mention,    inline=True)
-        embed.add_field(name="Summe",         value=f"💵 {summe_int:,}$",       inline=True)
-        embed.add_field(name="Rechnungs-ID",  value=f"`{rechnung_id}`",         inline=True)
-        embed.add_field(name="Grund",         value=self.grund.value.strip(),   inline=False)
-        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    if not ist_lapd(interaction.user):
+        await interaction.response.send_message("❌ Nur LAPD darf Fahrzeuge beschlagnahmen.", ephemeral=True)
+        return
 
+    eintrag = {
+        "id":          str(uuid.uuid4())[:8],
+        "fahrzeug":    fahrzeug,
+        "grund":       grund,
+        "von_id":      interaction.user.id,
+        "von_display": interaction.user.display_name,
+        "datum":       datetime.now(timezone.utc).isoformat(),
+    }
 
-# ── Button: Einzelne Rechnung bezahlen ───────────────────────
+    data = load_beschlagnahmung()
+    uid  = str(nutzer.id)
+    data.setdefault(uid, []).append(eintrag)
+    save_beschlagnahmung(data)
 
-class EinzelBezahlenButton(discord.ui.Button):
-    def __init__(self, rechnung: dict, row: int = 0):
-        super().__init__(
-            label=f"[{rechnung['id']}] {rechnung['summe']:,}$ bezahlen",
-            style=discord.ButtonStyle.green,
-            custom_id=f"einzel_bezahlen:{rechnung['id']}:{rechnung['an_id']}",
-            row=row,
+    embed = discord.Embed(
+        title="🚔 Fahrzeug beschlagnahmt",
+        color=0xE74C3C,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.add_field(name="Spieler",     value=nutzer.mention,              inline=True)
+    embed.add_field(name="Fahrzeug",    value=fahrzeug,                    inline=True)
+    embed.add_field(name="Beamter",     value=interaction.user.mention,    inline=True)
+    embed.add_field(name="Grund",       value=grund,                       inline=False)
+    embed.add_field(name="Eintrags-ID", value=f"`{eintrag['id']}`",        inline=True)
+    embed.set_footer(text="Paradise City Roleplay — LAPD Beschlagnahmung")
+    await interaction.response.send_message(content=nutzer.mention, embed=embed)
+
+    # DM an den Spieler
+    try:
+        dm_embed = discord.Embed(
+            title="🚔 Dein Fahrzeug wurde beschlagnahmt",
+            description=f"**{fahrzeug}** wurde von der LAPD beschlagnahmt.",
+            color=0xE74C3C,
+            timestamp=datetime.now(timezone.utc),
         )
-        self.rechnung_id = rechnung["id"]
-        self.von_id      = rechnung["von_id"]
-        self.an_id       = rechnung["an_id"]
-        self.summe       = rechnung["summe"]
+        dm_embed.add_field(name="Grund",    value=grund,                       inline=False)
+        dm_embed.add_field(name="Beamter",  value=interaction.user.display_name, inline=True)
+        dm_embed.set_footer(text="Paradise City Roleplay — LAPD")
+        await nutzer.send(embed=dm_embed)
+    except discord.Forbidden:
+        pass
 
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.an_id:
-            await interaction.response.send_message(
-                "❌ Nur der Schuldner kann diese Rechnung bezahlen.", ephemeral=True
-            )
-            return
 
-        eco    = load_economy()
-        zahler = get_user(eco, self.an_id)
+# ══════════════════════════════════════════════════════════════
+# /remove-beschlagnahmung
+# ══════════════════════════════════════════════════════════════
 
-        if zahler["bank"] < self.summe:
-            await interaction.response.send_message(
-                f"❌ Nicht genug Guthaben. Du benötigst **{self.summe:,}$** "
-                f"(Kontostand: {zahler['bank']:,}$).",
-                ephemeral=True,
-            )
-            return
+@bot.tree.command(
+    name="remove-beschlagnahmung",
+    description="[LAPD] Fahrzeugbeschlagnahmung rückgängig machen",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(
+    nutzer="Spieler dessen Beschlagnahmung aufgehoben wird",
+    fahrzeug="Fahrzeug (aus der Liste auswählen)",
+)
+@app_commands.autocomplete(fahrzeug=fahrzeug_autocomplete)
+async def remove_beschlagnahmung_cmd(
+    interaction: discord.Interaction,
+    nutzer: discord.Member,
+    fahrzeug: str,
+):
+    if not channel_check(interaction):
+        await interaction.response.send_message(
+            f"❌ Diesen Command kannst du nur in <#{BESCHLAGNAHMUNG_CHANNEL}> benutzen.",
+            ephemeral=True,
+        )
+        return
+    if not ist_lapd(interaction.user):
+        await interaction.response.send_message("❌ Nur LAPD darf Beschlagnahmungen aufheben.", ephemeral=True)
+        return
 
-        zahler["bank"] -= self.summe
-        empfaenger = get_user(eco, self.von_id)
-        empfaenger["bank"] += self.summe
-        save_economy(eco)
+    data  = load_beschlagnahmung()
+    uid   = str(nutzer.id)
+    liste = data.get(uid, [])
 
-        rdata = load_rechnungen()
-        uid   = str(self.an_id)
-        rdata[uid] = [r for r in rdata.get(uid, []) if r["id"] != self.rechnung_id]
-        save_rechnungen(rdata)
+    # Suche per ID (Autocomplete) oder Fahrzeugname
+    treffer = next((e for e in liste if e["id"] == fahrzeug or e["fahrzeug"].lower() == fahrzeug.lower()), None)
 
-        embed = discord.Embed(
-            title="✅ Rechnung bezahlt",
+    if not treffer:
+        await interaction.response.send_message(
+            f"❌ Keine Beschlagnahmung für **{nutzer.display_name}** mit diesem Fahrzeug gefunden.",
+            ephemeral=True,
+        )
+        return
+
+    data[uid] = [e for e in liste if e["id"] != treffer["id"]]
+    save_beschlagnahmung(data)
+
+    embed = discord.Embed(
+        title="✅ Beschlagnahmung aufgehoben",
+        color=0x2ECC71,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.add_field(name="Spieler",  value=nutzer.mention,           inline=True)
+    embed.add_field(name="Fahrzeug", value=treffer["fahrzeug"],      inline=True)
+    embed.add_field(name="Beamter",  value=interaction.user.mention, inline=True)
+    embed.set_footer(text="Paradise City Roleplay — LAPD Beschlagnahmung")
+    await interaction.response.send_message(content=nutzer.mention, embed=embed)
+
+    # DM an den Spieler
+    try:
+        dm_embed = discord.Embed(
+            title="✅ Dein Fahrzeug wurde freigegeben",
+            description=f"**{treffer['fahrzeug']}** wurde von der LAPD freigegeben.",
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
-        embed.add_field(name="Rechnungs-ID",     value=f"`{self.rechnung_id}`",  inline=True)
-        embed.add_field(name="Betrag",           value=f"💵 {self.summe:,}$",    inline=True)
-        embed.add_field(name="Neuer Kontostand", value=f"💳 {zahler['bank']:,}$", inline=True)
-        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        try:
-            await interaction.message.delete()
-        except Exception:
-            pass
+        dm_embed.add_field(name="Freigegeben von", value=interaction.user.display_name, inline=True)
+        dm_embed.set_footer(text="Paradise City Roleplay — LAPD")
+        await nutzer.send(embed=dm_embed)
+    except discord.Forbidden:
+        pass
 
 
-# ── Button: Alle Rechnungen auf einmal bezahlen ──────────────
+# ══════════════════════════════════════════════════════════════
+# /konfiszieren — Item aus Inventar entfernen (LAPD)
+# ══════════════════════════════════════════════════════════════
 
-class AlleBezahlenButton(discord.ui.Button):
-    def __init__(self, an_id: int, rechnungen: list, row: int = 4):
-        gesamt = sum(r["summe"] for r in rechnungen)
-        super().__init__(
-            label=f"💳 Alle auf einmal bezahlen ({gesamt:,}$)",
-            style=discord.ButtonStyle.blurple,
-            custom_id=f"alle_bezahlen:{an_id}",
-            row=row,
+@bot.tree.command(
+    name="konfiszieren",
+    description="[LAPD] Item aus dem Inventar eines Spielers entfernen",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(
+    nutzer="Spieler dem das Item entnommen wird",
+    item="Name des Items",
+    menge="Anzahl (Standard: 1)",
+)
+async def konfiszieren_cmd(
+    interaction: discord.Interaction,
+    nutzer: discord.Member,
+    item: str,
+    menge: int = 1,
+):
+    if not channel_check(interaction):
+        await interaction.response.send_message(
+            f"❌ Diesen Command kannst du nur in <#{BESCHLAGNAHMUNG_CHANNEL}> benutzen.",
+            ephemeral=True,
         )
-        self.an_id      = an_id
-        self.rechnungen = rechnungen
-        self.gesamt     = gesamt
+        return
+    if not ist_lapd(interaction.user):
+        await interaction.response.send_message("❌ Nur LAPD darf Items konfiszieren.", ephemeral=True)
+        return
+    if menge < 1:
+        await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
+        return
 
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.an_id:
-            await interaction.response.send_message(
-                "❌ Nur der Schuldner kann seine Rechnungen bezahlen.", ephemeral=True
-            )
-            return
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    inventar  = user_data.get("inventory", [])
 
-        eco    = load_economy()
-        zahler = get_user(eco, self.an_id)
+    entfernt = []
+    for _ in range(menge):
+        match = find_inventory_item(inventar, item)
+        if not match:
+            break
+        inventar.remove(match)
+        entfernt.append(match)
 
-        if zahler["bank"] < self.gesamt:
-            await interaction.response.send_message(
-                f"❌ Nicht genug Guthaben. Du benötigst **{self.gesamt:,}$** "
-                f"(Kontostand: {zahler['bank']:,}$).",
-                ephemeral=True,
-            )
-            return
-
-        zahler["bank"] -= self.gesamt
-        for r in self.rechnungen:
-            empfaenger = get_user(eco, r["von_id"])
-            empfaenger["bank"] += r["summe"]
-        save_economy(eco)
-
-        rdata = load_rechnungen()
-        uid   = str(self.an_id)
-        ids   = {r["id"] for r in self.rechnungen}
-        rdata[uid] = [r for r in rdata.get(uid, []) if r["id"] not in ids]
-        save_rechnungen(rdata)
-
-        embed = discord.Embed(
-            title="✅ Alle Rechnungen bezahlt",
-            color=0x2ECC71,
-            timestamp=datetime.now(timezone.utc),
+    if not entfernt:
+        await interaction.response.send_message(
+            f"❌ **{nutzer.display_name}** besitzt kein Item namens **{item}**.",
+            ephemeral=True,
         )
-        embed.add_field(name="Anzahl",           value=str(len(self.rechnungen)), inline=True)
-        embed.add_field(name="Gesamtbetrag",     value=f"💵 {self.gesamt:,}$",    inline=True)
-        embed.add_field(name="Neuer Kontostand", value=f"💳 {zahler['bank']:,}$", inline=True)
-        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        try:
-            await interaction.message.delete()
-        except Exception:
-            pass
+        return
 
+    user_data["inventory"] = inventar
+    save_economy(eco)
 
-# ── View: Rechnungen anzeigen ────────────────────────────────
-
-class RechnungenView(discord.ui.View):
-    def __init__(self, rechnungen: list, an_id: int):
-        super().__init__(timeout=300)
-        for i, r in enumerate(rechnungen[:4]):
-            self.add_item(EinzelBezahlenButton(r, row=i))
-        if rechnungen:
-            self.add_item(AlleBezahlenButton(an_id, rechnungen, row=4))
-
-
-# ── Modal: Mahnung schreiben ─────────────────────────────────
-
-class MahnungModal(discord.ui.Modal, title="⚠️ Mahnung schreiben"):
-    frist = discord.ui.TextInput(
-        label="Zahlungsfrist",
-        placeholder="z.B. 15.04.2025",
-        max_length=20,
+    embed = discord.Embed(
+        title="📦 Item konfisziert",
+        color=0xE74C3C,
+        timestamp=datetime.now(timezone.utc),
     )
-    konsequenz = discord.ui.TextInput(
-        label="Konsequenz bei Nichtzahlung",
-        style=discord.TextStyle.paragraph,
-        placeholder="z.B. Festnahme, Fahrzeugbeschlagnahmung...",
-        max_length=300,
-    )
-
-    def __init__(self, an_id: int, rechnung_id: str):
-        super().__init__()
-        self.an_id       = an_id
-        self.rechnung_id = rechnung_id
-
-    async def on_submit(self, interaction: discord.Interaction):
-        data      = load_rechnungen()
-        rechnungen = data.get(str(self.an_id), [])
-        found     = False
-
-        for r in rechnungen:
-            if r["id"] == self.rechnung_id:
-                r["mahnung"] = {
-                    "frist":       self.frist.value.strip(),
-                    "konsequenz":  self.konsequenz.value.strip(),
-                    "von_id":      interaction.user.id,
-                    "von_name":    str(interaction.user),
-                    "erstellt_am": datetime.now(timezone.utc).isoformat(),
-                }
-                found = True
-                break
-
-        if not found:
-            await interaction.response.send_message("❌ Rechnung nicht gefunden.", ephemeral=True)
-            return
-
-        save_rechnungen(data)
-        await interaction.response.send_message(
-            f"⚠️ Mahnung für Rechnung `{self.rechnung_id}` erfolgreich hinzugefügt.", ephemeral=True
-        )
-
-
-# ── Select: Rechnung für Mahnung wählen ─────────────────────
-
-class MahnungSelect(discord.ui.Select):
-    def __init__(self, an_id: int, rechnungen: list):
-        self.an_id = an_id
-        options = [
-            discord.SelectOption(
-                label=f"[{r['id']}] {r['summe']:,}$",
-                value=r["id"],
-                description=r["grund"][:50],
-            )
-            for r in rechnungen[:25]
-        ]
-        super().__init__(placeholder="Rechnung auswählen...", options=options)
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(
-            MahnungModal(an_id=self.an_id, rechnung_id=self.values[0])
-        )
-
-
-class MahnungView(discord.ui.View):
-    def __init__(self, an_id: int, rechnungen: list):
-        super().__init__(timeout=60)
-        self.add_item(MahnungSelect(an_id, rechnungen))
-
-
-# ── Commands ─────────────────────────────────────────────────
-
-@bot.tree.command(
-    name="rechnung-schreiben",
-    description="[Behörde] Stelle eine Rechnung an einen Spieler aus",
-    guild=discord.Object(id=GUILD_ID),
-)
-@app_commands.default_permissions(manage_messages=True)
-@app_commands.describe(nutzer="Spieler dem die Rechnung gestellt wird")
-async def rechnung_schreiben(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
-        await interaction.response.send_message(
-            f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
-            ephemeral=True,
-        )
-        return
-    if not hat_rechnung_rolle(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
-    await interaction.response.send_modal(RechnungModal(an_member=nutzer))
-
-
-@bot.tree.command(
-    name="rechnungen",
-    description="[Konto] Zeige deine offenen Rechnungen an",
-    guild=discord.Object(id=GUILD_ID),
-)
-async def rechnungen_cmd(interaction: discord.Interaction):
-    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
-        await interaction.response.send_message(
-            f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
-            ephemeral=True,
-        )
-        return
-
-    data   = load_rechnungen()
-    eigene = data.get(str(interaction.user.id), [])
-
-    if not eigene:
-        await interaction.response.send_message(
-            "✅ Du hast keine offenen Rechnungen.", ephemeral=True
-        )
-        return
-
-    embeds = []
-    for r in eigene[:10]:
-        color = 0xFF0000 if r.get("mahnung") else 0xE67E22
-        embed = discord.Embed(
-            title=f"📄 Rechnung `{r['id']}`",
-            color=color,
-            timestamp=datetime.fromisoformat(r["erstellt_am"]),
-        )
-        embed.add_field(name="Von",   value=r["von_display"], inline=True)
-        embed.add_field(name="Summe", value=f"💵 {r['summe']:,}$", inline=True)
-        embed.add_field(
-            name="Ausgestellt am",
-            value=datetime.fromisoformat(r["erstellt_am"]).strftime("%d.%m.%Y"),
-            inline=True,
-        )
-        embed.add_field(name="Grund", value=r["grund"], inline=False)
-        if r.get("mahnung"):
-            m = r["mahnung"]
-            embed.add_field(
-                name="⚠️ MAHNUNG",
-                value=f"**Frist:** {m['frist']}\n**Konsequenz:** {m['konsequenz']}",
-                inline=False,
-            )
-        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
-        embeds.append(embed)
-
-    hinweis = ""
-    if len(eigene) > 4:
-        hinweis = f"\n\n⚠️ Du hast {len(eigene)} offene Rechnungen. Nur die ersten 4 können einzeln bezahlt werden — nutze **Alle auf einmal bezahlen** für alle."
-
-    if hinweis:
-        embeds[0].description = hinweis
-
-    view = RechnungenView(eigene, interaction.user.id)
-    await interaction.response.send_message(embeds=embeds, view=view, ephemeral=True)
-
-
-@bot.tree.command(
-    name="mahnung",
-    description="[Behörde] Füge einer Rechnung eine Mahnung hinzu",
-    guild=discord.Object(id=GUILD_ID),
-)
-@app_commands.default_permissions(manage_messages=True)
-@app_commands.describe(nutzer="Spieler dessen Rechnung eine Mahnung erhält")
-async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
-        await interaction.response.send_message(
-            f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
-            ephemeral=True,
-        )
-        return
-    if not hat_rechnung_rolle(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
-
-    data       = load_rechnungen()
-    rechnungen = data.get(str(nutzer.id), [])
-
-    if not rechnungen:
-        await interaction.response.send_message(
-            f"❌ **{nutzer.display_name}** hat keine offenen Rechnungen.", ephemeral=True
-        )
-        return
-
-    if len(rechnungen) == 1:
-        await interaction.response.send_modal(
-            MahnungModal(an_id=nutzer.id, rechnung_id=rechnungen[0]["id"])
-        )
-    else:
-        view = MahnungView(an_id=nutzer.id, rechnungen=rechnungen)
-        await interaction.response.send_message(
-            f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
-            view=view,
-            ephemeral=True,
-)
+    embed.add_field(name="Spieler",  value=nutzer.mention,              inline=True)
+    embed.add_field(name="Item",     value=entfernt[0],                 inline=True)
+    embed.add_field(name="Menge",    value=str(len(entfernt)),          inline=True)
+    embed.add_field(name="Beamter",  value=interaction.user.mention,    inline=True)
+    embed.set_footer(text="Paradise City Roleplay — LAPD Konfiszierung")
+    await interaction.response.send_message(content=nutzer.mention, embed=embed)
