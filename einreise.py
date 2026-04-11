@@ -28,9 +28,52 @@ def generate_ausweisnummer():
     return "".join(letters) + "-" + "".join(digits)
 
 
+# ── Retry View (bei gesperrten DMs) ──────────────────────────
+
+class AusweisRetryView(discord.ui.View):
+    def __init__(self, member_id: int, einreise_typ: str,
+                 channel: discord.TextChannel, guild: discord.Guild):
+        super().__init__(timeout=600)
+        self.member_id    = member_id
+        self.einreise_typ = einreise_typ
+        self.channel      = channel
+        self.guild        = guild
+        self.used         = False
+
+    @discord.ui.button(label="🔄 Erneut versuchen", style=discord.ButtonStyle.green)
+    async def retry(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.member_id:
+            await interaction.response.send_message(
+                "❌ Nur der betroffene Spieler kann diesen Button nutzen.", ephemeral=True
+            )
+            return
+        if self.used:
+            await interaction.response.send_message(
+                "❌ Du hast diesen Button bereits verwendet.", ephemeral=True
+            )
+            return
+        self.used = True
+        button.disabled = True
+        try:
+            await interaction.message.edit(view=self)
+        except Exception:
+            pass
+        await interaction.response.send_message(
+            "✅ Ausweis-Erstellung wird erneut gestartet — check deine DMs!", ephemeral=True
+        )
+        asyncio.create_task(
+            einreise_chat_flow(self.channel, interaction.user, self.guild, self.einreise_typ)
+        )
+
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True
+
+
 # ── Einreise DM Flow ─────────────────────────────────────────
 
-async def einreise_chat_flow(channel: discord.TextChannel, member: discord.Member, guild: discord.Guild, einreise_typ: str):
+async def einreise_chat_flow(channel: discord.TextChannel, member: discord.Member,
+                              guild: discord.Guild, einreise_typ: str):
     def dm_check(m):
         return m.author.id == member.id and isinstance(m.channel, discord.DMChannel)
 
@@ -54,10 +97,22 @@ async def einreise_chat_flow(channel: discord.TextChannel, member: discord.Membe
             f"Du hast jeweils **2 Minuten** pro Antwort."
         )
     except Exception:
-        await channel.send(
-            f"{member.mention} ❌ Ich kann dir keine DM senden. Bitte aktiviere DMs von Servermitgliedern.",
-            delete_after=15
+        retry_view = AusweisRetryView(
+            member_id=member.id,
+            einreise_typ=einreise_typ,
+            channel=channel,
+            guild=guild
         )
+        embed = discord.Embed(
+            description=(
+                f"{member.mention} ❌ Ich kann dir keine DM senden.\n\n"
+                "**So aktivierst du DMs:**\n"
+                "Einstellungen → Datenschutz → *Direktnachrichten von Servermitgliedern* aktivieren\n\n"
+                "Sobald DMs aktiviert sind, klicke den Button unten um es erneut zu versuchen."
+            ),
+            color=0xFF0000
+        )
+        await channel.send(member.mention, embed=embed, view=retry_view)
         return
 
     for key, frage in felder:
@@ -312,7 +367,8 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 
 # ── Admin Ausweis-Erstellen (DM-basiert) ─────────────────────
 
-async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild, target: discord.Member, original_channel: discord.TextChannel):
+async def ausweis_create_dm_flow(admin: discord.Member, guild: discord.Guild,
+                                  target: discord.Member, original_channel: discord.TextChannel):
     def dm_check(m):
         return m.author.id == admin.id and isinstance(m.channel, discord.DMChannel)
 
