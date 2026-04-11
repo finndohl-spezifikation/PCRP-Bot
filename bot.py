@@ -55,6 +55,12 @@ import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 import ping_roles               # Ping-Rollen Auswahl-Embed
 
+try:
+    import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
+    import bot_status           # Auto-aktualisierendes Status-Dashboard
+except Exception as _import_err:
+    print(f"[WARNING] logs/bot_status konnten nicht geladen werden: {_import_err}")
+
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
     print("❌ DISCORD_TOKEN ist nicht gesetzt!")
