@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # ic_actions.py — IC Aktionen (/erste-hilfe, /ortung, /fesseln)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -62,7 +62,7 @@ async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Cryptik Roleplay — IC Aktion")
+    embed.set_footer(text="Paradise City Roleplay — IC Aktion")
     await interaction.response.send_message(embed=embed)
 
 
@@ -101,11 +101,11 @@ async def ortung(interaction: discord.Interaction, ziel: discord.Member):
             f"{interaction.user.mention} hat **{ziel.mention}** geortet!\n\n"
             f"📍 Der Standort von **{ziel.display_name}** ist bekannt."
         ),
-        color=0x3498DB,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Cryptik Roleplay — IC Aktion")
+    embed.set_footer(text="Paradise City Roleplay — IC Aktion")
     await interaction.response.send_message(embed=embed)
 
 
@@ -149,7 +149,7 @@ class EntfesselnView(discord.ui.View):
         )
         if target:
             embed.set_thumbnail(url=target.display_avatar.url)
-        embed.set_footer(text="Cryptik Roleplay — IC Aktion")
+        embed.set_footer(text="Paradise City Roleplay — IC Aktion")
         await interaction.response.edit_message(embed=embed, view=self)
 
 
@@ -192,6 +192,6 @@ async def fesseln(interaction: discord.Interaction, ziel: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Cryptik Roleplay — IC Aktion")
+    embed.set_footer(text="Paradise City Roleplay — IC Aktion")
     view = EntfesselnView(fesseler_id=interaction.user.id, target_id=ziel.id)
     await interaction.response.send_message(embed=embed, view=view)
