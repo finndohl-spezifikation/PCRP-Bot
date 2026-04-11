@@ -609,10 +609,10 @@ async def on_member_join(member):
     eco       = load_economy()
     user_data = get_user(eco, member.id)
     if user_data["cash"] == 0 and user_data["bank"] == 0:
-        user_data["cash"] = START_CASH
+        user_data["bank"] = START_CASH
         save_economy(eco)
         await log_money_action(
             guild,
             "Startguthaben vergeben",
-            f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
+            f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
             )
