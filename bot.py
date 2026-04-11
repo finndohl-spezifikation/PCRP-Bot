@@ -14,6 +14,11 @@
 # ══════════════════════════════════════════════════════════════
 
 import os
+import sys
+
+# Unterordner zum Python-Pfad hinzufügen damit Module in Unterordnern gefunden werden
+_BASE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_BASE, "beschlagnahmung"))
 
 # Alle Module importieren — Reihenfolge ist wichtig!
 from config import bot          # bot-Instanz, alle IDs
@@ -37,6 +42,7 @@ import event_system             # /create-event
 import abstimmung               # /abstimmung, reaction polls
 import misc_commands            # /kartenkontrolle, /delete, /commands, /kategorien-setup
 import rechnungen               # /rechnung-schreiben, /rechnungen, /mahnung
+import beschlagnahmung          # /beschlagnahmen, /remove-beschlagnahmung, /konfiszieren
 import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 
