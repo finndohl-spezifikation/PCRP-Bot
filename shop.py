@@ -140,7 +140,7 @@ async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
 
 # /shop-add (Team only)
 class ShopAddConfirmView(discord.ui.View):
-    def __init__(self, name: str, price: int, allowed_role_id: int | None = None):
+    def __init__(self, name: str, price: int, allowed_role_id=None):
         super().__init__(timeout=60)
         self.name            = name
         self.price           = price
