@@ -243,21 +243,19 @@ async def auto_einreise_setup():
         channel = guild.get_channel(EINREISE_CHANNEL_ID)
         if not channel:
             continue
-        already_posted = False
+        # Alte Einreise-Embeds löschen und neu posten (Rebranding)
         try:
             async for msg in channel.history(limit=20):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Einreise" in emb.title:
-                            already_posted = True
+                            try:
+                                await msg.delete()
+                            except Exception:
+                                pass
                             break
-                if already_posted:
-                    break
         except Exception:
             pass
-        if already_posted:
-            print(f"Einreise-Embed bereits vorhanden in #{channel.name}")
-            continue
         embed = discord.Embed(
             title="✈️ Einreise — Paradise City Roleplay",
             description=(
