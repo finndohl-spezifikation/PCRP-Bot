@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # main.py — Bot-Einstiegspunkt
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 #
 # Importiert alle Module, startet den Bot mit dem TOKEN.
