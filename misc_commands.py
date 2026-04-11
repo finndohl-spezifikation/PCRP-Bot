@@ -2,7 +2,7 @@
 # ══════════════════════════════════════════════════════════════
 # misc_commands.py — Verschiedene Slash Commands
 #   /kartenkontrolle, /delete, /commands
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -90,7 +90,7 @@ async def commands_list(interaction: discord.Interaction):
 
     embed = discord.Embed(
         title="🤖 Bot Commands — Übersicht",
-        color=0x00BFFF,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
@@ -190,5 +190,5 @@ async def commands_list(interaction: discord.Interaction):
         value="`/casino` (Button) — Glücksrad drehen (1× täglich)",
         inline=False
     )
-    embed.set_footer(text="Cryptik Roleplay — Bot Commands")
+    embed.set_footer(text="Paradise City Roleplay — Bot Commands")
     await interaction.response.send_message(embed=embed, ephemeral=True)
