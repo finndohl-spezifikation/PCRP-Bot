@@ -53,6 +53,7 @@ import beschlagnahmung          # /beschlagnahmen, /remove-beschlagnahmung, /kon
 import dienst                   # Dienst-System (Anmelden/Abmelden, Embed-Boards)
 import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
+import channel_format           # Automatische Kursiv-Formatierung von Channel-Namen
 
 TOKEN = os.environ.get("DISCORD_TOKEN")
 if not TOKEN:
