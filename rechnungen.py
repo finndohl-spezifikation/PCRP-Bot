@@ -8,7 +8,7 @@ from config import *
 from economy_helpers import load_economy, save_economy, get_user
 import uuid
 
-RECHNUNG_ROLLEN = (LAMD_ROLE_ID, LAPD_ROLE_ID, LACS_ROLE_ID)
+RECHNUNG_ROLLEN = (LAMD_ROLE_ID, LAPD_ROLE_ID, LACS_ROLE_ID, LSPD_ROLE_ID)
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -250,6 +250,12 @@ class MahnungView(discord.ui.View):
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler dem die Rechnung gestellt wird")
 async def rechnung_schreiben(interaction: discord.Interaction, nutzer: discord.Member):
+    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
+            ephemeral=True,
+        )
+        return
     if not hat_rechnung_rolle(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
@@ -350,6 +356,12 @@ async def rechnungen_cmd(interaction: discord.Interaction):
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler dessen Rechnung eine Mahnung erhält")
 async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
+    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
+        await interaction.response.send_message(
+            f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
+            ephemeral=True,
+        )
+        return
     if not hat_rechnung_rolle(interaction.user):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
@@ -373,4 +385,4 @@ async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
             f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
             view=view,
             ephemeral=True,
-                                               )
+        )
