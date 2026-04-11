@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # lobby.py — Lobby System (Abstimmung, Öffnen, Schließen)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -30,7 +30,7 @@ async def lobby_abstimmung(interaction: discord.Interaction):
             f"**Datum:** {datum}\n\n"
             "**Uhrzeit:** 18:00"
         ),
-        color=0x00BFFF,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
 
@@ -77,9 +77,9 @@ async def lobby_open(interaction: discord.Interaction):
         description=(
             "Jetzt Geöffnet\n\n"
             f"**Lobby Host**\n{host_name}\n\n"
-            "Das Team von Cryptik Roleplay wünscht euch Viel spaß beim RP"
+            "Das Team von Paradise City Roleplay wünscht euch Viel spaß beim RP"
         ),
-        color=0x00BFFF,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
 
@@ -124,7 +124,7 @@ async def lobby_close(interaction: discord.Interaction):
             "Wenn du heute Probleme im RP hattest melde dich gerne jederzeit über ein "
             "Ticket im kanal <#1490885002030874775>"
         ),
-        color=0x00BFFF,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
 
