@@ -62,7 +62,6 @@ async def fahrzeug_autocomplete(
     description="[LAPD] Fahrzeug eines Spielers beschlagnahmen",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     nutzer="Spieler dessen Fahrzeug beschlagnahmt wird",
     fahrzeug="Fahrzeugbezeichnung (z.B. BMW M3, Kennzeichen XY-123)",
@@ -136,7 +135,6 @@ async def beschlagnahmen_cmd(
     description="[LAPD] Fahrzeugbeschlagnahmung rückgängig machen",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     nutzer="Spieler dessen Beschlagnahmung aufgehoben wird",
     fahrzeug="Fahrzeug (aus der Liste auswählen)",
@@ -209,7 +207,6 @@ async def remove_beschlagnahmung_cmd(
     description="[LAPD] Item aus dem Inventar eines Spielers entfernen",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     nutzer="Spieler dem das Item entnommen wird",
     item="Name des Items",
