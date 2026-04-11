@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # handy.py — Handy System (Dispatch, Nummer, Apps)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -114,7 +114,7 @@ class EinstellungenSelect(discord.ui.Select):
                     f"**Vorwahl:** Los Angeles (LA)\n\n"
                     f"*Du kannst deine Nummer per SIM-Wechsel ändern.*"
                 ),
-                color=0x00BFFF,
+                color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             embed.set_footer(text="Nur du siehst diese Nachricht")
@@ -142,7 +142,7 @@ class EinstellungenSelect(discord.ui.Select):
                     f"Deine neue Handynummer lautet:\n**`{neue_nummer}`**\n\n"
                     f"Du bist unter der alten Nummer nicht mehr erreichbar."
                 ),
-                color=0x00BFFF,
+                color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             embed.set_footer(text="Nur du siehst diese Nachricht")
@@ -156,11 +156,11 @@ class EinstellungenSelect(discord.ui.Select):
                         f"{member.mention} hat seine SIM-Karte gewechselt.\n\n"
                         f"Er/Sie ist unter der **alten Nummer nicht mehr erreichbar**."
                     ),
-                    color=0x00BFFF,
+                    color=0xE67E22,
                     timestamp=datetime.now(timezone.utc)
                 )
                 public_embed.set_thumbnail(url=member.display_avatar.url)
-                public_embed.set_footer(text="Cryptik Roleplay — SIM-System")
+                public_embed.set_footer(text="Paradise City Roleplay — SIM-System")
                 try:
                     await sim_channel.send(embed=public_embed)
                 except Exception:
@@ -264,7 +264,7 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    dispatch_embed.set_footer(text="Cryptik Roleplay — Dispatch System")
+    dispatch_embed.set_footer(text="Paradise City Roleplay — Dispatch System")
 
     sent   = 0
     failed = 0
@@ -304,10 +304,10 @@ def _build_handy_embed() -> discord.Embed:
             "**📱 Instagram / Parship / Ebay** — Apps installieren & deinstallieren\n\n"
             "⚠️ *Du benötigst das Item* `📱| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
         ),
-        color=0x00BFFF,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Cryptik Roleplay — Handy System")
+    embed.set_footer(text="Paradise City Roleplay — Handy System")
     return embed
 
 
