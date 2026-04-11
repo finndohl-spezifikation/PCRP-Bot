@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # fuehrerschein.py — Führerschein System
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -90,7 +90,7 @@ class FuehrerscheinModal(discord.ui.Modal, title="🪪 Führerschein ausstellen"
             color=0x00AA00,
             timestamp=now,
         )
-        embed.set_author(name="Cryptik Roleplay — Führerschein")
+        embed.set_author(name="Paradise City Roleplay — Führerschein")
         embed.set_thumbnail(url=self.zielperson.display_avatar.url)
         embed.add_field(name="Inhaber",              value=self.zielperson.mention,                                      inline=True)
         embed.add_field(name="Name",                 value=f"{self.vorname.value.strip()} {self.nachname.value.strip()}", inline=True)
@@ -98,7 +98,7 @@ class FuehrerscheinModal(discord.ui.Modal, title="🪪 Führerschein ausstellen"
         embed.add_field(name="Ausweisnummer",        value=f"`{self.ausweisnummer.value.strip()}`",                     inline=True)
         embed.add_field(name="Führerschein-Klasse",  value=self.fuehrerschein_klasse.value.strip(),                     inline=True)
         embed.add_field(name="Ausgestellt von",      value=interaction.user.mention,                                    inline=True)
-        embed.set_footer(text="Cryptik Roleplay — Führerschein")
+        embed.set_footer(text="Paradise City Roleplay — Führerschein")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
         try:
@@ -111,7 +111,7 @@ class FuehrerscheinModal(discord.ui.Modal, title="🪪 Führerschein ausstellen"
             player_embed.add_field(name="Klasse(n)",           value=self.fuehrerschein_klasse.value.strip(),                       inline=True)
             player_embed.add_field(name="Ausgestellt am",      value=now.strftime("%d.%m.%Y"),                                      inline=True)
             player_embed.add_field(name="Ausgestellt von",     value=interaction.user.display_name,                                 inline=False)
-            player_embed.set_footer(text="Cryptik Roleplay — Führerschein")
+            player_embed.set_footer(text="Paradise City Roleplay — Führerschein")
             await self.zielperson.send(embed=player_embed)
         except Exception:
             pass
@@ -171,12 +171,12 @@ class FuehrerscheinEntzugModal(discord.ui.Modal, title="🚫 Führerschein entzi
             color=0xFF0000,
             timestamp=now,
         )
-        embed.set_author(name="Cryptik Roleplay — Führerschein")
+        embed.set_author(name="Paradise City Roleplay — Führerschein")
         embed.set_thumbnail(url=self.zielperson.display_avatar.url)
         embed.add_field(name="Inhaber",      value=self.zielperson.mention,  inline=True)
         embed.add_field(name="Entzogen von", value=interaction.user.mention, inline=True)
         embed.add_field(name="Grund",        value=grund_text,               inline=False)
-        embed.set_footer(text="Cryptik Roleplay — Führerschein")
+        embed.set_footer(text="Paradise City Roleplay — Führerschein")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -230,7 +230,7 @@ async def fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member
         color=0xFF0000 if entry.get("entzogen") else 0x00AA00,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_author(name="Cryptik Roleplay — Führerschein")
+    embed.set_author(name="Paradise City Roleplay — Führerschein")
     embed.set_thumbnail(url=target.display_avatar.url)
     embed.add_field(name="Inhaber",             value=target.mention,                                      inline=True)
     embed.add_field(name="Name",                value=f"{entry['vorname']} {entry['nachname']}",           inline=True)
@@ -242,7 +242,7 @@ async def fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member
     if entry.get("entzogen"):
         embed.add_field(name="Entzugsgrund", value=entry.get("entzug_grund", "—"), inline=False)
 
-    embed.set_footer(text="Cryptik Roleplay — Führerschein")
+    embed.set_footer(text="Paradise City Roleplay — Führerschein")
     await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
 
 
@@ -302,12 +302,12 @@ async def fuehrerschein_geben(interaction: discord.Interaction, nutzer: discord.
         color=0x00AA00,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_author(name="Cryptik Roleplay — Führerschein")
+    embed.set_author(name="Paradise City Roleplay — Führerschein")
     embed.set_thumbnail(url=nutzer.display_avatar.url)
     embed.add_field(name="Inhaber",           value=nutzer.mention,          inline=True)
     embed.add_field(name="Zurückgegeben von", value=interaction.user.mention,inline=True)
     embed.add_field(name="Name",              value=f"{entry['vorname']} {entry['nachname']}", inline=False)
-    embed.set_footer(text="Cryptik Roleplay — Führerschein")
+    embed.set_footer(text="Paradise City Roleplay — Führerschein")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -373,7 +373,7 @@ class FuehrerscheinEditModal(discord.ui.Modal, title="✏️ Führerschein bearb
             color=0xFFA500,
             timestamp=now,
         )
-        embed.set_author(name="Cryptik Roleplay — Führerschein")
+        embed.set_author(name="Paradise City Roleplay — Führerschein")
         embed.set_thumbnail(url=self.zielperson.display_avatar.url)
         embed.add_field(name="Inhaber",             value=self.zielperson.mention,                                              inline=True)
         embed.add_field(name="Bearbeitet von",      value=interaction.user.mention,                                            inline=True)
@@ -381,7 +381,7 @@ class FuehrerscheinEditModal(discord.ui.Modal, title="✏️ Führerschein bearb
         embed.add_field(name="Geburtsdatum",        value=entry["geburtsdatum"],                                               inline=True)
         embed.add_field(name="Ausweisnummer",       value=f"`{entry['ausweisnummer']}`",                                      inline=True)
         embed.add_field(name="Führerschein-Klasse", value=entry["fuehrerschein_klasse"],                                      inline=True)
-        embed.set_footer(text="Cryptik Roleplay — Führerschein")
+        embed.set_footer(text="Paradise City Roleplay — Führerschein")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
         try:
@@ -394,7 +394,7 @@ class FuehrerscheinEditModal(discord.ui.Modal, title="✏️ Führerschein bearb
             dm_embed.add_field(name="Klasse(n)",           value=entry["fuehrerschein_klasse"],             inline=True)
             dm_embed.add_field(name="Ausweisnummer",       value=f"`{entry['ausweisnummer']}`",            inline=True)
             dm_embed.add_field(name="Bearbeitet von",      value=interaction.user.display_name,             inline=False)
-            dm_embed.set_footer(text="Cryptik Roleplay — Führerschein")
+            dm_embed.set_footer(text="Paradise City Roleplay — Führerschein")
             await self.zielperson.send(embed=dm_embed)
         except Exception:
             pass
@@ -497,14 +497,14 @@ class FahrlehrerLizenzModal(discord.ui.Modal, title="📋 Fahrlehrer-Lizenz auss
             color=0x00AA00,
             timestamp=now,
         )
-        embed.set_author(name="Cryptik Roleplay — Fahrlehrer-Lizenz")
+        embed.set_author(name="Paradise City Roleplay — Fahrlehrer-Lizenz")
         embed.set_thumbnail(url=self.zielperson.display_avatar.url)
         embed.add_field(name="Inhaber",          value=self.zielperson.mention,                                       inline=True)
         embed.add_field(name="Name",             value=f"{self.vorname.value.strip()} {self.nachname.value.strip()}", inline=True)
         embed.add_field(name="Geburtsdatum",     value=self.geburtsdatum.value.strip(),                              inline=True)
         embed.add_field(name="Lizenznummer",     value=f"`{self.lizenznummer.value.strip()}`",                       inline=True)
         embed.add_field(name="Ausgestellt von",  value=interaction.user.mention,                                     inline=True)
-        embed.set_footer(text="Cryptik Roleplay — Fahrlehrer-Lizenz")
+        embed.set_footer(text="Paradise City Roleplay — Fahrlehrer-Lizenz")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
         try:
@@ -517,7 +517,7 @@ class FahrlehrerLizenzModal(discord.ui.Modal, title="📋 Fahrlehrer-Lizenz auss
             dm_embed.add_field(name="Lizenznummer",     value=f"`{self.lizenznummer.value.strip()}`",                       inline=True)
             dm_embed.add_field(name="Ausgestellt am",   value=now.strftime("%d.%m.%Y"),                                     inline=True)
             dm_embed.add_field(name="Ausgestellt von",  value=interaction.user.display_name,                                inline=False)
-            dm_embed.set_footer(text="Cryptik Roleplay — Fahrlehrer-Lizenz")
+            dm_embed.set_footer(text="Paradise City Roleplay — Fahrlehrer-Lizenz")
             await self.zielperson.send(embed=dm_embed)
         except Exception:
             pass
@@ -568,12 +568,12 @@ class FahrlehrerLizenzEntzugModal(discord.ui.Modal, title="🚫 Fahrlehrer-Lizen
             color=0xFF0000,
             timestamp=now,
         )
-        embed.set_author(name="Cryptik Roleplay — Fahrlehrer-Lizenz")
+        embed.set_author(name="Paradise City Roleplay — Fahrlehrer-Lizenz")
         embed.set_thumbnail(url=self.zielperson.display_avatar.url)
         embed.add_field(name="Inhaber",      value=self.zielperson.mention,  inline=True)
         embed.add_field(name="Entzogen von", value=interaction.user.mention, inline=True)
         embed.add_field(name="Grund",        value=grund_text,               inline=False)
-        embed.set_footer(text="Cryptik Roleplay — Fahrlehrer-Lizenz")
+        embed.set_footer(text="Paradise City Roleplay — Fahrlehrer-Lizenz")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -627,7 +627,7 @@ async def fahrlehrer_lizenz(interaction: discord.Interaction, nutzer: discord.Me
         color=0xFF0000 if entry.get("entzogen") else 0x00AA00,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_author(name="Cryptik Roleplay — Fahrlehrer-Lizenz")
+    embed.set_author(name="Paradise City Roleplay — Fahrlehrer-Lizenz")
     embed.set_thumbnail(url=target.display_avatar.url)
     embed.add_field(name="Inhaber",      value=target.mention,                            inline=True)
     embed.add_field(name="Name",         value=f"{entry['vorname']} {entry['nachname']}", inline=True)
@@ -638,7 +638,7 @@ async def fahrlehrer_lizenz(interaction: discord.Interaction, nutzer: discord.Me
     if entry.get("entzogen"):
         embed.add_field(name="Entzugsgrund", value=entry.get("entzug_grund", "—"), inline=False)
 
-    embed.set_footer(text="Cryptik Roleplay — Fahrlehrer-Lizenz")
+    embed.set_footer(text="Paradise City Roleplay — Fahrlehrer-Lizenz")
     await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
 
 
