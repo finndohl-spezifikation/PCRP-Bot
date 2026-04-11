@@ -465,21 +465,31 @@ async def auto_ticket_setup():
         channel = guild.get_channel(TICKET_SETUP_CHANNEL_ID)
         if not channel:
             continue
-        already_posted = False
+        old_msg = None
+        already_up_to_date = False
         try:
             async for msg in channel.history(limit=50):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Ticket erstellen" in emb.title:
-                            already_posted = True
+                            if emb.description and "Crew Anfrage" in emb.description:
+                                already_up_to_date = True
+                            else:
+                                old_msg = msg
                             break
-                if already_posted:
+                if already_up_to_date or old_msg:
                     break
         except Exception:
             pass
-        if already_posted:
-            print(f"Ticket-Embed bereits vorhanden in #{channel.name} — kein erneutes Posten.")
+        if already_up_to_date:
+            print(f"Ticket-Embed bereits aktuell in #{channel.name} — kein erneutes Posten.")
             continue
+        if old_msg:
+            try:
+                await old_msg.delete()
+                print(f"Altes Ticket-Embed gelöscht in #{channel.name} — wird neu gepostet.")
+            except Exception:
+                pass
         embed = discord.Embed(
             title="🎟 Support — Ticket erstellen",
             description=(
