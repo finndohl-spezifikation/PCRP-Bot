@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # commands.py — Prefix Commands (!hallo, !testping, !botstatus, etc.)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -64,7 +64,7 @@ async def ticketsetup(ctx):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Cryptik Roleplay — Support System")
+    embed.set_footer(text="Paradise City Roleplay — Support System")
     await channel.send(embed=embed, view=TicketSelectView())
     try:
         await ctx.message.delete()
@@ -104,10 +104,10 @@ async def handysetup(ctx):
             "**📱 Instagram / Parship** — Apps installieren & deinstallieren\n\n"
             "⚠️ *Du benötigst das Item* `📱| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
         ),
-        color=0x00BFFF,
+        color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Kryptik Roleplay — Handy System")
+    embed.set_footer(text="Paradise City Roleplay — Handy System")
     await channel.send(embed=embed, view=HandyView())
     try:
         await ctx.message.delete()
