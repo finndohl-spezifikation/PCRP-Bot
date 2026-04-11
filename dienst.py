@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
 # dienst.py — Dienst-System (Anmelden / Abmelden)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
@@ -8,7 +8,7 @@ from config import *
 DIENST_FILE    = DATA_DIR / "dienst_data.json"
 DIENST_MSG_FILE = DATA_DIR / "dienst_message_ids.json"
 
-EMBED_COLOR = 0x00BFFF  # Hellblau
+EMBED_COLOR = 0xE67E22  # Hellblau
 
 # ── Fraktions-Konfiguration ──────────────────────────────────
 DIENST_CONFIG = [
@@ -109,7 +109,7 @@ def _build_dienst_embed(guild: discord.Guild, cfg: dict) -> discord.Embed:
             inline=False,
         )
 
-    embed.set_footer(text="Cryptik Roleplay — Dienst-System")
+    embed.set_footer(text="Paradise City Roleplay — Dienst-System")
     return embed
 
 
@@ -159,7 +159,7 @@ class AnmeldenButton(discord.ui.Button):
             timestamp=start_time,
         )
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.set_footer(text="Cryptik Roleplay — Dienst-System")
+        embed.set_footer(text="Paradise City Roleplay — Dienst-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
         await _update_dienst_embed(interaction.guild, self.cfg)
@@ -219,7 +219,7 @@ class AbmeldenButton(discord.ui.Button):
             timestamp=end_time,
         )
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.set_footer(text="Cryptik Roleplay — Dienst-System")
+        embed.set_footer(text="Paradise City Roleplay — Dienst-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
         await _update_dienst_embed(interaction.guild, self.cfg)
