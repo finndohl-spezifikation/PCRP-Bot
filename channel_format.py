@@ -107,7 +107,7 @@ async def channel_format_cmd(interaction: discord.Interaction):
     errors = 0
 
     for channel in interaction.guild.channels:
-        new_name = capitalize_italic_name(channel.name)
+        new_name = to_italic_unicode(channel.name)
         if new_name == channel.name:
             skipped += 1
             continue
@@ -131,7 +131,7 @@ async def channel_format_cmd(interaction: discord.Interaction):
 
 @bot.event
 async def on_guild_channel_create(channel):
-    new_name = capitalize_italic_name(channel.name)
+    new_name = to_italic_unicode(channel.name)
     if new_name != channel.name:
         try:
             await channel.edit(name=new_name, reason="channel-format: Automatische Kursiv-Formatierung")
