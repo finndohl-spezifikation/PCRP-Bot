@@ -15,7 +15,7 @@
 # ══════════════════════════════════════════════════════════════
 
 import discord
-from config import bot, ADMIN_ROLE_ID
+from config import bot, GUILD_ID, ADMIN_ROLE_ID
 
 # ── Unicode-Bereiche ──────────────────────────────────────────
 _ITALIC_LOWER_START = 0x1D622   # 𝘢
