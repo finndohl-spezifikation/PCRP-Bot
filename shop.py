@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # shop.py — Shop System (Anzeigen, Kaufen, Hinzufügen, Löschen)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
