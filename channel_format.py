@@ -90,7 +90,8 @@ def _needs_fix(name: str) -> bool:
 
 @bot.tree.command(
     name="channel-format",
-    description="Formatiert alle Channel-Namen kursiv mit großem Anfangsbuchstaben."
+    description="Formatiert alle Channel-Namen kursiv mit großem Anfangsbuchstaben.",
+    guild=discord.Object(id=GUILD_ID)
 )
 async def channel_format_cmd(interaction: discord.Interaction):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
