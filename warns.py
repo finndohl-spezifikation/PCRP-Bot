@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # warns.py — Warn System (Spieler-Warns & Team-Warns)
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
