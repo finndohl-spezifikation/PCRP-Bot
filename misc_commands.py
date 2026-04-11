@@ -187,7 +187,7 @@ async def commands_list(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🎰 Casino",
-        value="`/casino` (Button) — Glücksrad drehen (1× täglich)",
+        value="`/casino` (Button) — Rubbellos kaufen & rubbeln",
         inline=False
     )
     embed.set_footer(text="Paradise City Roleplay — Bot Commands")
