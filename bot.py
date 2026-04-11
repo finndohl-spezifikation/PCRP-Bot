@@ -14,18 +14,6 @@
 # ══════════════════════════════════════════════════════════════
 
 import os
-import sys
-
-# Unterordner zum Python-Pfad hinzufügen — sucht in allen möglichen Positionen
-_BASE = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT = os.path.dirname(_BASE)
-for _candidate in [
-    os.path.join(_BASE, "beschlagnahmung"),        # bot_split/beschlagnahmung/
-    os.path.join(_REPO_ROOT, "beschlagnahmung"),   # repo_root/beschlagnahmung/
-    _BASE,                                          # bot_split/ direkt
-]:
-    if os.path.isdir(_candidate) and _candidate not in sys.path:
-        sys.path.insert(0, _candidate)
 
 # Alle Module importieren — Reihenfolge ist wichtig!
 from config import bot          # bot-Instanz, alle IDs
