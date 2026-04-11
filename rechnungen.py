@@ -5,6 +5,7 @@
 # ══════════════════════════════════════════════════════════════
 
 from config import *
+from economy_helpers import load_economy, save_economy, get_user
 import uuid
 
 RECHNUNG_ROLLEN = (LAMD_ROLE_ID, LAPD_ROLE_ID, LACS_ROLE_ID)
@@ -99,7 +100,7 @@ class RechnungModal(discord.ui.Modal, title="📄 Rechnung schreiben"):
 # ── Button: Als bezahlt markieren ───────────────────────────
 
 class BezahltButton(discord.ui.Button):
-    def __init__(self, rechnung_id: str, von_id: int, an_id: int):
+    def __init__(self, rechnung_id: str, von_id: int, an_id: int, summe: int):
         super().__init__(
             label="✅️| Offene Beträge Bezahlen",
             style=discord.ButtonStyle.green,
@@ -108,31 +109,51 @@ class BezahltButton(discord.ui.Button):
         self.rechnung_id = rechnung_id
         self.von_id      = von_id
         self.an_id       = an_id
+        self.summe       = summe
 
     async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.von_id:
+        if interaction.user.id != self.an_id:
             await interaction.response.send_message(
-                "❌ Nur der Aussteller der Rechnung kann sie als bezahlt markieren.",
+                "❌ Nur der Schuldner kann diese Rechnung bezahlen.",
                 ephemeral=True,
             )
             return
 
-        data = load_rechnungen()
-        uid  = str(self.an_id)
-        vorher = len(data.get(uid, []))
-        data[uid] = [r for r in data.get(uid, []) if r["id"] != self.rechnung_id]
-        save_rechnungen(data)
+        eco    = load_economy()
+        zahler = get_user(eco, self.an_id)
 
-        if len(data.get(uid, [])) < vorher:
+        if zahler["bank"] < self.summe:
             await interaction.response.send_message(
-                f"✅ Rechnung `{self.rechnung_id}` wurde als bezahlt markiert und entfernt.",
+                f"❌ Nicht genug Guthaben auf deinem Konto. Du benötigst **{self.summe:,}$** "
+                f"(Kontostand: {zahler['bank']:,}$).",
                 ephemeral=True,
             )
-            await interaction.message.delete()
-        else:
-            await interaction.response.send_message(
-                "❌ Rechnung nicht gefunden.", ephemeral=True
-            )
+            return
+
+        zahler["bank"] -= self.summe
+
+        # Betrag auf das Bank-Konto des Ausstellers gutschreiben
+        empfaenger = get_user(eco, self.von_id)
+        empfaenger["bank"] += self.summe
+        save_economy(eco)
+
+        # Rechnung entfernen
+        rdata = load_rechnungen()
+        uid   = str(self.an_id)
+        rdata[uid] = [r for r in rdata.get(uid, []) if r["id"] != self.rechnung_id]
+        save_rechnungen(rdata)
+
+        embed = discord.Embed(
+            title="✅ Rechnung bezahlt",
+            color=0x2ECC71,
+            timestamp=datetime.now(timezone.utc),
+        )
+        embed.add_field(name="Rechnungs-ID",  value=f"`{self.rechnung_id}`", inline=True)
+        embed.add_field(name="Betrag",        value=f"💵 {self.summe:,}$",   inline=True)
+        embed.add_field(name="Neuer Kontostand", value=f"{zahler['bank']:,}$", inline=True)
+        embed.set_footer(text="Kryptik Roleplay — Rechnungs-System")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.message.delete()
 
 
 # ── View: Rechnungen anzeigen ────────────────────────────────
@@ -141,8 +162,8 @@ class RechnungenView(discord.ui.View):
     def __init__(self, rechnungen: list, requester_id: int):
         super().__init__(timeout=180)
         for r in rechnungen:
-            if r["von_id"] == requester_id:
-                self.add_item(BezahltButton(r["id"], r["von_id"], r["an_id"]))
+            if r["an_id"] == requester_id:
+                self.add_item(BezahltButton(r["id"], r["von_id"], r["an_id"], r["summe"]))
 
 
 # ── Modal: Mahnung schreiben ─────────────────────────────────
@@ -352,4 +373,4 @@ async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
             f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
             view=view,
             ephemeral=True,
-        )
+                                               )
