@@ -261,30 +261,41 @@ async def _update_dienst_embed(guild: discord.Guild, cfg: dict):
 # ── Auto-Setup beim Start ────────────────────────────────────
 
 async def auto_dienst_setup():
+    print(f"[dienst] Setup startet für {len(bot.guilds)} Server...")
     for guild in bot.guilds:
         for cfg in DIENST_CONFIG:
-            channel = guild.get_channel(cfg["channel_id"])
-            if not channel:
-                continue
-
-            msg_ids = load_msg_ids()
-            msg_id  = msg_ids.get(cfg["faction"])
-
-            # Schon vorhanden → nur View neu registrieren + Embed aktualisieren
-            if msg_id:
-                try:
-                    msg = await channel.fetch_message(int(msg_id))
-                    embed = _build_dienst_embed(guild, cfg)
-                    view  = DienstView(cfg["faction"], cfg)
-                    await msg.edit(embed=embed, view=view)
-                    print(f"[dienst] {cfg['name']} Embed aktualisiert (ID {msg_id})")
+            try:
+                channel = guild.get_channel(cfg["channel_id"])
+                if not channel:
+                    print(f"[dienst] ❌ Channel {cfg['channel_id']} ({cfg['name']}) nicht gefunden!")
                     continue
-                except discord.NotFound:
-                    pass
 
-            embed = _build_dienst_embed(guild, cfg)
-            view  = DienstView(cfg["faction"], cfg)
-            msg   = await channel.send(embed=embed, view=view)
-            msg_ids[cfg["faction"]] = str(msg.id)
-            save_msg_ids(msg_ids)
-            print(f"[dienst] {cfg['name']} Embed gepostet (ID {msg.id})")
+                msg_ids = load_msg_ids()
+                msg_id  = msg_ids.get(cfg["faction"])
+
+                # Schon vorhanden → nur View neu registrieren + Embed aktualisieren
+                if msg_id:
+                    try:
+                        msg = await channel.fetch_message(int(msg_id))
+                        embed = _build_dienst_embed(guild, cfg)
+                        view  = DienstView(cfg["faction"], cfg)
+                        await msg.edit(embed=embed, view=view)
+                        print(f"[dienst] ✅ {cfg['name']} Embed aktualisiert (ID {msg_id})")
+                        continue
+                    except discord.NotFound:
+                        print(f"[dienst] ⚠️ {cfg['name']} Embed (ID {msg_id}) nicht mehr vorhanden — sende neu.")
+                        msg_ids.pop(cfg["faction"], None)
+                        save_msg_ids(msg_ids)
+                    except Exception as e:
+                        print(f"[dienst] ⚠️ {cfg['name']} Edit-Fehler: {e}")
+
+                embed = _build_dienst_embed(guild, cfg)
+                view  = DienstView(cfg["faction"], cfg)
+                msg   = await channel.send(embed=embed, view=view)
+                msg_ids = load_msg_ids()
+                msg_ids[cfg["faction"]] = str(msg.id)
+                save_msg_ids(msg_ids)
+                print(f"[dienst] ✅ {cfg['name']} Embed gepostet in #{channel.name} (ID {msg.id})")
+
+            except Exception as e:
+                print(f"[dienst] ❌ Fehler bei {cfg['name']}: {e}")
