@@ -521,7 +521,7 @@ async def on_member_join(member):
     try:
         embed = discord.Embed(
             description=(
-                "> Willkommen auf Kryptik Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
+                "> Willkommen auf Cryptik Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
                 "> Wir wünschen dir viel Spaß auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
                 "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
                 f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
@@ -538,7 +538,7 @@ async def on_member_join(member):
             w_embed = discord.Embed(
                 title="📥 Willkommen auf dem Server!",
                 description=(
-                    f"Herzlich Willkommen {member.mention} auf **Kryptik Roleplay**!\n\n"
+                    f"Herzlich Willkommen {member.mention} auf **Cryptik Roleplay**!\n\n"
                     f"Wir freuen uns dich hier zu haben.\n"
                     f"Bitte wähle deine Einreiseart und erstelle deinen Ausweis."
                 ),
