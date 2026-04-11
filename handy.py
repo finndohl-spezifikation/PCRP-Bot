@@ -154,7 +154,7 @@ class EinstellungenSelect(discord.ui.Select):
                     timestamp=datetime.now(timezone.utc)
                 )
                 public_embed.set_thumbnail(url=member.display_avatar.url)
-                public_embed.set_footer(text="Kryptik Roleplay — SIM-System")
+                public_embed.set_footer(text="Cryptik Roleplay — SIM-System")
                 try:
                     await sim_channel.send(embed=public_embed)
                 except Exception:
@@ -258,7 +258,7 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    dispatch_embed.set_footer(text=f"Kryptik Roleplay — Dispatch System")
+    dispatch_embed.set_footer(text=f"Cryptik Roleplay — Dispatch System")
 
     sent   = 0
     failed = 0
@@ -300,7 +300,7 @@ def _build_handy_embed() -> discord.Embed:
         color=0x00BFFF,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Kryptik Roleplay — Handy System")
+    embed.set_footer(text="Cryptik Roleplay — Handy System")
     return embed
 
 
