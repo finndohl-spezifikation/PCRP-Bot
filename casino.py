@@ -126,7 +126,7 @@ def _build_wheel_embed(highlight_id: str | None, title: str, color: int) -> disc
         color=color,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Kryptik Roleplay — Casino Glücksrad")
+    embed.set_footer(text="Cryptik Roleplay — Casino Glücksrad")
     return embed
 
 
@@ -305,7 +305,7 @@ async def auto_casino_setup():
             name="🎰 Cryptik Roleplay Casino",
             icon_url=bot.user.display_avatar.url,
         )
-        embed.set_footer(text="Kryptik Roleplay — Casino • Viel Glück! 🍀")
+        embed.set_footer(text="Cryptik Roleplay — Casino • Viel Glück! 🍀")
         try:
             await channel.send(embed=embed, view=CasinoView())
             print(f"Casino-Embed automatisch gepostet in #{channel.name}")
