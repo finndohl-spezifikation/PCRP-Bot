@@ -460,60 +460,144 @@ class RatingView(discord.ui.View):
         await interaction.response.send_modal(CommentModal(stars=5, rating_view=self))
 
 
+def _build_ticket_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="🎟 Support — Ticket erstellen",
+        description=(
+            "Benötigst du Hilfe oder möchtest ein Anliegen melden?\n\n"
+            "Wähle unten im Menü die passende Ticket-Art aus.\n"
+            "Unser Team wird sich schnellstmöglich um dich kümmern.\n\n"
+            "**Verfügbare Ticket-Arten:**\n"
+            "🎟 **Support** — Allgemeiner Support\n"
+            "🎟 **Highteam Ticket** — Direkter Kontakt zum Highteam\n"
+            "🎟 **Fraktions Bewerbung** — Bewirb dich für eine Fraktion\n"
+            "🎟 **Beschwerde Ticket** — Beschwerde einreichen\n"
+            "🎟 **Bug Report** — Fehler oder Bug melden\n"
+            "🎮 **Crew Anfrage** — Crew-Anfrage über Rockstar Social Club"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/ticket_banner.jpg")
+    embed.set_footer(text="Cryptik Roleplay — Support System")
+    return embed
+
+
+@bot.tree.command(
+    name="setup-ticket",
+    description="[Admin] Ticket-Embed neu posten (löscht altes und postet aktuelles)",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.default_permissions(administrator=True)
+async def cmd_setup_ticket(interaction: discord.Interaction):
+    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    channel = interaction.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
+    if not channel:
+        await interaction.followup.send("❌ Ticket-Channel nicht gefunden.", ephemeral=True)
+        return
+
+    deleted = 0
+    try:
+        async for msg in channel.history(limit=100):
+            if msg.author.id == bot.user.id and msg.embeds:
+                for emb in msg.embeds:
+                    if emb.title and "Ticket erstellen" in emb.title:
+                        await msg.delete()
+                        deleted += 1
+                        break
+    except Exception as e:
+        await log_bot_error("setup-ticket: Löschen fehlgeschlagen", str(e), interaction.guild)
+
+    try:
+        await channel.send(embed=_build_ticket_embed(), view=TicketSelectView())
+    except Exception as e:
+        await log_bot_error("setup-ticket: Senden fehlgeschlagen", str(e), interaction.guild)
+        await interaction.followup.send("❌ Embed konnte nicht gesendet werden.", ephemeral=True)
+        return
+
+    await interaction.followup.send(
+        f"✅ Ticket-Embed neu gepostet.{f' ({deleted} altes gelöscht)' if deleted else ''}",
+        ephemeral=True
+    )
+
+
+TICKET_INFO_CHANNEL_ID = 1490885002030874775
+
+
+async def _post_ticket_to_channel(guild: discord.Guild, channel_id: int, with_view: bool = True):
+    channel = guild.get_channel(channel_id)
+    if not channel:
+        return
+    existing = None
+    try:
+        async for msg in channel.history(limit=100):
+            if msg.author.id == bot.user.id and msg.embeds:
+                for emb in msg.embeds:
+                    if emb.title and "Ticket erstellen" in emb.title:
+                        existing = msg
+                        break
+            if existing:
+                break
+    except Exception:
+        pass
+    try:
+        if existing:
+            if with_view:
+                await existing.edit(embed=_build_ticket_embed(), view=TicketSelectView())
+            else:
+                await existing.edit(embed=_build_ticket_embed())
+        else:
+            if with_view:
+                await channel.send(embed=_build_ticket_embed(), view=TicketSelectView())
+            else:
+                await channel.send(embed=_build_ticket_embed())
+    except Exception as e:
+        await log_bot_error(f"Ticket-Embed in #{channel.name} fehlgeschlagen", str(e), guild)
+
+
 async def auto_ticket_setup():
     for guild in bot.guilds:
         channel = guild.get_channel(TICKET_SETUP_CHANNEL_ID)
         if not channel:
             continue
-        old_msg = None
         already_up_to_date = False
         try:
-            async for msg in channel.history(limit=50):
+            async for msg in channel.history(limit=100):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Ticket erstellen" in emb.title:
                             if emb.description and "Crew Anfrage" in emb.description:
                                 already_up_to_date = True
-                            else:
-                                old_msg = msg
                             break
-                if already_up_to_date or old_msg:
+                if already_up_to_date:
                     break
         except Exception:
             pass
         if already_up_to_date:
             print(f"Ticket-Embed bereits aktuell in #{channel.name} — kein erneutes Posten.")
-            continue
-        if old_msg:
+        else:
             try:
-                await old_msg.delete()
-                print(f"Altes Ticket-Embed gelöscht in #{channel.name} — wird neu gepostet.")
+                async for msg in channel.history(limit=100):
+                    if msg.author.id == bot.user.id and msg.embeds:
+                        for emb in msg.embeds:
+                            if emb.title and "Ticket erstellen" in emb.title:
+                                await msg.delete()
+                                break
             except Exception:
                 pass
-        embed = discord.Embed(
-            title="🎟 Support — Ticket erstellen",
-            description=(
-                "Benötigst du Hilfe oder möchtest ein Anliegen melden?\n\n"
-                "Wähle unten im Menü die passende Ticket-Art aus.\n"
-                "Unser Team wird sich schnellstmöglich um dich kümmern.\n\n"
-                "**Verfügbare Ticket-Arten:**\n"
-                "🎟 **Support** — Allgemeiner Support\n"
-                "🎟 **Highteam Ticket** — Direkter Kontakt zum Highteam\n"
-                "🎟 **Fraktions Bewerbung** — Bewirb dich für eine Fraktion\n"
-                "🎟 **Beschwerde Ticket** — Beschwerde einreichen\n"
-                "🎟 **Bug Report** — Fehler oder Bug melden\n"
-                "🎮 **Crew Anfrage** — Crew-Anfrage über Rockstar Social Club"
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
-        embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/ticket_banner.jpg")
-        embed.set_footer(text="Cryptik Roleplay — Support System")
-        try:
-            await channel.send(embed=embed, view=TicketSelectView())
-            print(f"Ticket-Embed automatisch gepostet in #{channel.name}")
-        except Exception as e:
-            await log_bot_error("auto_ticket_setup fehlgeschlagen", str(e), guild)
+            try:
+                await channel.send(embed=_build_ticket_embed(), view=TicketSelectView())
+                print(f"Ticket-Embed gepostet in #{channel.name}")
+            except Exception as e:
+                await log_bot_error("auto_ticket_setup fehlgeschlagen", str(e), guild)
+
+        await _post_ticket_to_channel(guild, TICKET_INFO_CHANNEL_ID, with_view=True)
+
 
 
 async def auto_lohnliste_setup():
