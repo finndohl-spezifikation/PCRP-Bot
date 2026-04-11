@@ -14,6 +14,7 @@ TICKET_TYPE_NAMES = {
     "fraktion":   "Fraktions Bewerbung",
     "beschwerde": "Beschwerde Ticket",
     "bug":        "Bug Report",
+    "crew":       "Crew Anfrage",
 }
 
 TICKET_TYPE_CATEGORIES = {
@@ -22,6 +23,7 @@ TICKET_TYPE_CATEGORIES = {
     "fraktion":   TICKET_CATEGORY_FRAKTION,
     "beschwerde": TICKET_CATEGORY_DEFAULT,
     "bug":        TICKET_CATEGORY_DEFAULT,
+    "crew":       TICKET_CATEGORY_FRAKTION,
 }
 
 
@@ -114,6 +116,21 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     action_view = TicketActionView()
     await channel.send(content=team_mentions, embed=welcome_embed, view=action_view)
 
+    # ── Crew Anfrage: Vorlage automatisch ins Ticket senden ───
+    if ticket_type == "crew":
+        crew_embed = discord.Embed(
+            title="📋 Crew Anfrage — Vorlage",
+            description=(
+                "Bitte gib Folgendes an:\n\n"
+                "**PSN Name:**\n\n"
+                "**Social Club Name:**"
+            ),
+            color=LOG_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        crew_embed.set_footer(text="Bitte fülle alle Felder aus, damit wir deine Anfrage bearbeiten können.")
+        await channel.send(embed=crew_embed)
+
     await interaction.response.send_message(
         f"✅ Dein Ticket wurde erstellt: {channel.mention}", ephemeral=True
     )
@@ -141,6 +158,7 @@ class TicketSelect(discord.ui.Select):
             discord.SelectOption(label="Fraktions Bewerbung",emoji="🎟", value="fraktion",   description="Bewerbung für eine Fraktion"),
             discord.SelectOption(label="Beschwerde Ticket",  emoji="🎟", value="beschwerde", description="Beschwerde einreichen"),
             discord.SelectOption(label="Bug Report",          emoji="🎟", value="bug",        description="Fehler oder Bug melden"),
+            discord.SelectOption(label="Crew Anfrage",        emoji="🎮", value="crew",       description="Crew-Anfrage über Rockstar Social Club"),
         ]
         super().__init__(
             placeholder="🎟 Wähle eine Ticket-Art aus...",
@@ -473,7 +491,8 @@ async def auto_ticket_setup():
                 "🎟 **Highteam Ticket** — Direkter Kontakt zum Highteam\n"
                 "🎟 **Fraktions Bewerbung** — Bewirb dich für eine Fraktion\n"
                 "🎟 **Beschwerde Ticket** — Beschwerde einreichen\n"
-                "🎟 **Bug Report** — Fehler oder Bug melden"
+                "🎟 **Bug Report** — Fehler oder Bug melden\n"
+                "🎮 **Crew Anfrage** — Crew-Anfrage über Rockstar Social Club"
             ),
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
