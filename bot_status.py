@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
 # bot_status.py — Automatisches Bot-Status Dashboard
-# Kryptik / Cryptik Roleplay Discord Bot
+# Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ def _build_status_embed() -> discord.Embed:
         color=color,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Cryptik Roleplay — Status System | Letzte Aktualisierung")
+    embed.set_footer(text="Paradise City Roleplay — Status System | Letzte Aktualisierung")
     return embed
 
 
