@@ -11,8 +11,6 @@ from economy_helpers import (
     load_handy_numbers, save_handy_numbers,
     generate_la_phone_number
 )
-from dienst import get_on_duty
-
 # Dispatch-Typ → Dienst-Fraktion
 DISPATCH_FACTION_MAP = {
     "pd":   "lapd",
@@ -248,7 +246,8 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
 
     await interaction.response.defer(ephemeral=True)
 
-    # Wer ist aktuell im Dienst?
+    # Wer ist aktuell im Dienst? (Lazy import vermeidet zirkulären Import)
+    from dienst import get_on_duty
     faction    = DISPATCH_FACTION_MAP.get(dispatch_type.lower(), None)
     on_duty    = get_on_duty(faction) if faction else {}
     now_ts     = int(datetime.now(timezone.utc).timestamp())
