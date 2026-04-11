@@ -93,7 +93,7 @@ class RechnungModal(discord.ui.Modal, title="📄 Rechnung schreiben"):
         embed.add_field(name="Summe",         value=f"💵 {summe_int:,}$",       inline=True)
         embed.add_field(name="Rechnungs-ID",  value=f"`{rechnung_id}`",         inline=True)
         embed.add_field(name="Grund",         value=self.grund.value.strip(),   inline=False)
-        embed.set_footer(text="Kryptik Roleplay — Rechnungs-System")
+        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -151,7 +151,7 @@ class BezahltButton(discord.ui.Button):
         embed.add_field(name="Rechnungs-ID",  value=f"`{self.rechnung_id}`", inline=True)
         embed.add_field(name="Betrag",        value=f"💵 {self.summe:,}$",   inline=True)
         embed.add_field(name="Neuer Kontostand", value=f"{zahler['bank']:,}$", inline=True)
-        embed.set_footer(text="Kryptik Roleplay — Rechnungs-System")
+        embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         await interaction.message.delete()
 
@@ -319,7 +319,7 @@ async def rechnungen_cmd(interaction: discord.Interaction):
                     value=f"**Frist:** {m['frist']}\n**Konsequenz:** {m['konsequenz']}",
                     inline=False,
                 )
-            embed.set_footer(text="Kryptik Roleplay — Rechnungs-System")
+            embed.set_footer(text="Cryptik Roleplay — Rechnungs-System")
             embeds.append(embed)
 
     if ausgestellt:
@@ -385,4 +385,4 @@ async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
             f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
             view=view,
             ephemeral=True,
-        )
+)
