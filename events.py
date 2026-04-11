@@ -97,12 +97,25 @@ async def on_ready():
 @bot.event
 async def on_error(event, *args, **kwargs):
     import traceback
-    traceback.print_exc()
+    err = traceback.format_exc()
+    try:
+        await log_bot_error(f"Event: {event}", err)
+    except Exception:
+        traceback.print_exc()
 
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, Exception):
+    import traceback
+    from discord.ext import commands
+    if isinstance(error, commands.CommandNotFound):
+        return
+    if isinstance(error, (commands.MissingRole, commands.CheckFailure)):
+        return
+    err = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+    try:
+        await log_bot_error(f"Command: {ctx.command}", err, ctx.guild)
+    except Exception:
         pass
 
 
@@ -520,8 +533,12 @@ async def on_member_join(member):
         ping_content = inviter.mention if inviter else None
         await join_log_ch.send(content=ping_content, embed=embed)
 
-    ausweis_data = load_ausweis()
-    hat_ausweis  = str(member.id) in ausweis_data
+    try:
+        ausweis_data = load_ausweis()
+        hat_ausweis  = str(member.id) in ausweis_data
+    except Exception:
+        ausweis_data = {}
+        hat_ausweis  = False
 
     if hat_ausweis:
         eintrag      = ausweis_data[str(member.id)]
@@ -598,4 +615,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bargeld:** {START_CASH:,} 💵 (Willkommensbonus)"
-                )
+            )
