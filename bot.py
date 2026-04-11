@@ -1,69 +1,148 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
-# main.py — Bot-Einstiegspunkt
+# lobby.py — Lobby System (Abstimmung, Öffnen, Schließen)
 # Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
-#
-# Importiert alle Module, startet den Bot mit dem TOKEN.
-# Alle DISCORD_TOKEN müssen als Umgebungsvariable gesetzt sein.
-#
-# Startreihenfolge:
-#   python main.py
-#
-# Deployment: Railway (RAILWAY_ENVIRONMENT muss gesetzt sein)
-# ══════════════════════════════════════════════════════════════
 
-import os
-import sys
+from config import *
 
-# Unterordner zum Python-Pfad hinzufügen — sucht in allen möglichen Positionen
-_BASE = os.path.dirname(os.path.abspath(__file__))
-_REPO_ROOT = os.path.dirname(_BASE)
-for _candidate in [
-    os.path.join(_BASE, "beschlagnahmung"),        # bot_split/beschlagnahmung/
-    os.path.join(_REPO_ROOT, "beschlagnahmung"),   # repo_root/beschlagnahmung/
-    _BASE,                                          # bot_split/ direkt
-]:
-    if os.path.isdir(_candidate) and _candidate not in sys.path:
-        sys.path.insert(0, _candidate)
 
-# Alle Module importieren — Reihenfolge ist wichtig!
-from config import bot          # bot-Instanz, alle IDs
-import helpers                  # Hilfsfunktionen
-import economy_helpers          # Economy-Datenschicht
-import handy                    # Handy-System
-import ticket                   # Ticket-System
-import moderation               # Auto-Mod
-import events                   # on_ready, on_message, Logs
-import commands                 # Prefix Commands (!hallo etc.)
-import economy_commands         # /lohn-abholen, /kontostand, etc.
-import shop                     # /shop, /buy, /shop-add, /delete-item
-import inventory                # /rucksack, /uebergeben, /verstecken, /use-item
-import warns                    # /warn, /warn-list, /remove-warn, etc.
-import einreise                 # Einreise-System, /ausweisen, /ausweis-*
-import fuehrerschein            # Führerschein-System
-import casino                   # Casino Glücksrad
-import lobby                    # /lobby-abstimmung, /lobby-open, /lobby-close
-import giveaway                 # /create-giveaway
-import event_system             # /create-event
-import abstimmung               # /abstimmung, reaction polls
-import misc_commands            # /kartenkontrolle, /delete, /commands, /kategorien-setup
-import rechnungen               # /rechnung-schreiben, /rechnungen, /mahnung
-import beschlagnahmung          # /beschlagnahmen, /remove-beschlagnahmung, /konfiszieren
-import dienst                   # Dienst-System (Anmelden/Abmelden, Embed-Boards)
-import help_embed               # Automatisches Command-Übersicht Embed
-import ic_actions               # /erste-hilfe, /ortung, /fesseln
-import ping_roles               # Ping-Rollen Auswahl-Embed
+@bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+async def lobby_abstimmung(interaction: discord.Interaction):
+    if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Dieser Befehl ist nur für das Lobby-Team verfügbar.", ephemeral=True)
+        return
 
-try:
-    import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
-    import bot_status           # Auto-aktualisierendes Status-Dashboard
-except Exception as _import_err:
-    print(f"[WARNING] logs/bot_status konnten nicht geladen werden: {_import_err}")
+    kanal = interaction.guild.get_channel(LOBBY_CHANNEL_ID)
+    if not kanal:
+        await interaction.response.send_message("❌ Lobby-Kanal nicht gefunden.", ephemeral=True)
+        return
 
-TOKEN = os.environ.get("DISCORD_TOKEN")
-if not TOKEN:
-    print("❌ DISCORD_TOKEN ist nicht gesetzt!")
-    exit(1)
+    datum = datetime.now(timezone.utc).strftime("%d.%m.%Y")
 
-bot.run(TOKEN)
+    embed = discord.Embed(
+        title="Lobby Abstimmung",
+        description=(
+            "✅ **Ich komme**\n\n"
+            "🕑 **Ich komme später**\n\n"
+            "❌ **Ich komme nicht**\n\n"
+            f"**Datum:** {datum}\n\n"
+            "**Uhrzeit:** 18:00"
+        ),
+        color=0xE67E22,
+        timestamp=datetime.now(timezone.utc)
+    )
+
+    GIF_URL   = "https://share.creavite.co/69d7a4bca828deb1587385dd.gif"
+    ping_text = "<@&1490855734517174376>"
+
+    await interaction.response.send_message("✅ Abstimmung gesendet!", ephemeral=True)
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(GIF_URL) as resp:
+                if resp.status == 200:
+                    gif_bytes = await resp.read()
+                    gif_file  = discord.File(io.BytesIO(gif_bytes), filename="lobby.gif")
+                    embed.set_image(url="attachment://lobby.gif")
+                    msg = await kanal.send(content=ping_text, file=gif_file, embed=embed)
+                else:
+                    raise ValueError(f"HTTP {resp.status}")
+    except Exception:
+        embed.set_image(url=GIF_URL)
+        msg = await kanal.send(content=ping_text, embed=embed)
+
+    await msg.add_reaction("✅")
+    await msg.add_reaction("🕑")
+    await msg.add_reaction("❌")
+
+
+@bot.tree.command(name="lobby-open", description="[LOBBY] Öffnet die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+async def lobby_open(interaction: discord.Interaction):
+    if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Dieser Befehl ist nur für das Lobby-Team verfügbar.", ephemeral=True)
+        return
+
+    kanal = interaction.guild.get_channel(1490882585046290542)
+    if not kanal:
+        await interaction.response.send_message("❌ Lobby-Kanal nicht gefunden.", ephemeral=True)
+        return
+
+    host_name = interaction.user.display_name
+
+    embed = discord.Embed(
+        title="Lobby Status",
+        description=(
+            "Jetzt Geöffnet\n\n"
+            f"**Lobby Host**\n{host_name}\n\n"
+            "Das Team von Paradise City Roleplay wünscht euch Viel spaß beim RP"
+        ),
+        color=0xE67E22,
+        timestamp=datetime.now(timezone.utc)
+    )
+
+    GIF_URL   = "https://share.creavite.co/69d7bee5a828deb1587385f2.gif"
+    ping_text = "<@&1490855734517174376>"
+
+    await interaction.response.send_message("✅ Lobby geöffnet!", ephemeral=True)
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(GIF_URL) as resp:
+                if resp.status == 200:
+                    gif_bytes = await resp.read()
+                    gif_file  = discord.File(io.BytesIO(gif_bytes), filename="lobby_open.gif")
+                    embed.set_image(url="attachment://lobby_open.gif")
+                    await kanal.send(content=ping_text, file=gif_file, embed=embed)
+                else:
+                    raise ValueError(f"HTTP {resp.status}")
+    except Exception:
+        embed.set_image(url=GIF_URL)
+        await kanal.send(content=ping_text, embed=embed)
+
+
+@bot.tree.command(name="lobby-close", description="[LOBBY] Schließt die Lobby", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+async def lobby_close(interaction: discord.Interaction):
+    if not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Dieser Befehl ist nur für das Lobby-Team verfügbar.", ephemeral=True)
+        return
+
+    kanal = interaction.guild.get_channel(1490882585046290542)
+    if not kanal:
+        await interaction.response.send_message("❌ Lobby-Kanal nicht gefunden.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="Lobby Status",
+        description=(
+            "Jetzt Geschlossen\n\n"
+            "Wir bedanken uns für Jeden spieler der heute am RP teilgenommen hat und "
+            "Wünschen euch einen schönen Rest abend\n\n"
+            "Wenn du heute Probleme im RP hattest melde dich gerne jederzeit über ein "
+            "Ticket im kanal <#1490885002030874775>"
+        ),
+        color=0xE67E22,
+        timestamp=datetime.now(timezone.utc)
+    )
+
+    GIF_URL   = "https://share.creavite.co/69d7c321a828deb1587385f6.gif"
+    ping_text = "<@&1490855734517174376>"
+
+    await interaction.response.send_message("✅ Lobby geschlossen!", ephemeral=True)
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(GIF_URL) as resp:
+                if resp.status == 200:
+                    gif_bytes = await resp.read()
+                    gif_file  = discord.File(io.BytesIO(gif_bytes), filename="lobby_close.gif")
+                    embed.set_image(url="attachment://lobby_close.gif")
+                    await kanal.send(content=ping_text, file=gif_file, embed=embed)
+                else:
+                    raise ValueError(f"HTTP {resp.status}")
+    except Exception:
+        embed.set_image(url=GIF_URL)
+        await kanal.send(content=ping_text, embed=embed)
