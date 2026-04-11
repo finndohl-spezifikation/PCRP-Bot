@@ -62,7 +62,7 @@ async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Kryptik Roleplay — IC Aktion")
+    embed.set_footer(text="Cryptik Roleplay — IC Aktion")
     await interaction.response.send_message(embed=embed)
 
 
@@ -105,7 +105,7 @@ async def ortung(interaction: discord.Interaction, ziel: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Kryptik Roleplay — IC Aktion")
+    embed.set_footer(text="Cryptik Roleplay — IC Aktion")
     await interaction.response.send_message(embed=embed)
 
 
@@ -149,7 +149,7 @@ class EntfesselnView(discord.ui.View):
         )
         if target:
             embed.set_thumbnail(url=target.display_avatar.url)
-        embed.set_footer(text="Kryptik Roleplay — IC Aktion")
+        embed.set_footer(text="Cryptik Roleplay — IC Aktion")
         await interaction.response.edit_message(embed=embed, view=self)
 
 
@@ -192,6 +192,6 @@ async def fesseln(interaction: discord.Interaction, ziel: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Kryptik Roleplay — IC Aktion")
+    embed.set_footer(text="Cryptik Roleplay — IC Aktion")
     view = EntfesselnView(fesseler_id=interaction.user.id, target_id=ziel.id)
     await interaction.response.send_message(embed=embed, view=view)
