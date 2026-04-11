@@ -118,7 +118,7 @@ async def einreise_chat_flow(channel: discord.TextChannel, member: discord.Membe
     embed.add_field(name="Einreiseart",  value=typ_label,                                         inline=True)
     embed.add_field(name="Ausweisnummer",value=f"`{ausweisnummer}`",                              inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
-    embed.set_footer(text="Kryptik Roleplay — Ausweis")
+    embed.set_footer(text="Cryptik Roleplay — Ausweis")
 
     await dm.send("✅ **Dein Ausweis wurde erfolgreich erstellt!**", embed=embed)
 
@@ -204,7 +204,7 @@ async def auto_einreise_setup():
             print(f"Einreise-Embed bereits vorhanden in #{channel.name}")
             continue
         embed = discord.Embed(
-            title="✈️ Einreise — Kryptik Roleplay",
+            title="✈️ Einreise — Cryptik Roleplay",
             description=(
                 "🤵‍♂️ **Legale Einreise** 🤵‍♂️\n"
                 "Du wirst auf unserem Server als Legale Person einreisen. "
@@ -218,7 +218,7 @@ async def auto_einreise_setup():
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.set_footer(text="Kryptik Roleplay — Einreisesystem")
+        embed.set_footer(text="Cryptik Roleplay — Einreisesystem")
         try:
             await channel.send(embed=embed, view=EinreiseView())
             print(f"Einreise-Embed automatisch gepostet in #{channel.name}")
@@ -272,7 +272,7 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
     embed.add_field(name="Wohnort",       value=entry["wohnort"],                          inline=True)
     embed.add_field(name="Einreiseart",   value=typ_label,                                 inline=True)
     embed.add_field(name="Ausweisnummer", value=f"`{entry['ausweisnummer']}`",            inline=False)
-    embed.set_footer(text="Kryptik Roleplay — Personalausweis")
+    embed.set_footer(text="Cryptik Roleplay — Personalausweis")
 
     await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
 
