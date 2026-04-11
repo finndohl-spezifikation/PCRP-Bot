@@ -50,6 +50,7 @@ import abstimmung               # /abstimmung, reaction polls
 import misc_commands            # /kartenkontrolle, /delete, /commands, /kategorien-setup
 import rechnungen               # /rechnung-schreiben, /rechnungen, /mahnung
 import beschlagnahmung          # /beschlagnahmen, /remove-beschlagnahmung, /konfiszieren
+import dienst                   # Dienst-System (Anmelden/Abmelden, Embed-Boards)
 import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 
