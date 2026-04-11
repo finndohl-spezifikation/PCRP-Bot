@@ -125,7 +125,7 @@ async def beschlagnahmen_cmd(
     embed.add_field(name="Beamter",     value=interaction.user.mention,    inline=True)
     embed.add_field(name="Grund",       value=grund,                       inline=False)
     embed.add_field(name="Eintrags-ID", value=f"`{eintrag['id']}`",        inline=True)
-    embed.set_footer(text="Kryptik Roleplay — LAPD Beschlagnahmung")
+    embed.set_footer(text="Cryptik Roleplay — LAPD Beschlagnahmung")
     await interaction.response.send_message(content=nutzer.mention, embed=embed)
 
     # DM an den Spieler
@@ -138,7 +138,7 @@ async def beschlagnahmen_cmd(
         )
         dm_embed.add_field(name="Grund",    value=grund,                       inline=False)
         dm_embed.add_field(name="Beamter",  value=interaction.user.display_name, inline=True)
-        dm_embed.set_footer(text="Kryptik Roleplay — LAPD")
+        dm_embed.set_footer(text="Cryptik Roleplay — LAPD")
         await nutzer.send(embed=dm_embed)
     except discord.Forbidden:
         pass
@@ -198,7 +198,7 @@ async def remove_beschlagnahmung_cmd(
     embed.add_field(name="Spieler",  value=nutzer.mention,           inline=True)
     embed.add_field(name="Fahrzeug", value=treffer["fahrzeug"],      inline=True)
     embed.add_field(name="Beamter",  value=interaction.user.mention, inline=True)
-    embed.set_footer(text="Kryptik Roleplay — LAPD Beschlagnahmung")
+    embed.set_footer(text="Cryptik Roleplay — LAPD Beschlagnahmung")
     await interaction.response.send_message(content=nutzer.mention, embed=embed)
 
     # DM an den Spieler
@@ -210,7 +210,7 @@ async def remove_beschlagnahmung_cmd(
             timestamp=datetime.now(timezone.utc),
         )
         dm_embed.add_field(name="Freigegeben von", value=interaction.user.display_name, inline=True)
-        dm_embed.set_footer(text="Kryptik Roleplay — LAPD")
+        dm_embed.set_footer(text="Cryptik Roleplay — LAPD")
         await nutzer.send(embed=dm_embed)
     except discord.Forbidden:
         pass
@@ -280,5 +280,5 @@ async def konfiszieren_cmd(
     embed.add_field(name="Item",     value=entfernt[0],                 inline=True)
     embed.add_field(name="Menge",    value=str(len(entfernt)),          inline=True)
     embed.add_field(name="Beamter",  value=interaction.user.mention,    inline=True)
-    embed.set_footer(text="Kryptik Roleplay — LAPD Konfiszierung")
+    embed.set_footer(text="Cryptik Roleplay — LAPD Konfiszierung")
     await interaction.response.send_message(content=nutzer.mention, embed=embed)
