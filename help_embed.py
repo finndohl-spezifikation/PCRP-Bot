@@ -17,28 +17,25 @@ import os
 from config import *
 
 HELP_CHANNEL_ID  = 1491624319598460958
-MESSAGE_ID_FILE  = os.path.join("data", "help_message_id.json")
+MESSAGE_ID_FILE  = str(DATA_DIR / "help_message_id.json")
 EMBED_COLOR      = 0x00BFFF   # Hellblau
 
 # ── Kategorie-Konfiguration ────────────────────────────────────
 # Schlüssel = Präfix in der Command-Beschreibung ([Präfix])
 # Wert      = (Emoji, Anzeigename, Wer darf es nutzen)
 CATEGORY_MAP = {
-    "Konto":     ("💰", "Konto",                    "Alle Spieler"),
-    "Inventar":  ("🎒", "Inventar",                 "Alle Spieler"),
-    "Shop":      ("🏪", "Shop",                     "Alle Spieler / Shop-Admin"),
-    "Ausweis":   ("🪪", "Ausweis",                  "Bürger / Admin / Mod"),
-    "Behörde":   ("🚗", "Führerschein / Behörde",   "Behörden-Team"),
-    "Warn":      ("⚠️", "Warn-System",              "Warn-Team"),
-    "Admin":     ("🛡️", "Admin",                   "Admins"),
-    "Team":      ("🔧", "Team Tools",               "Team-Mitglieder"),
-    "LOBBY":     ("🏠", "Lobby",                    "Lobby-Team"),
-    "Allgemein": ("🗳️", "Abstimmungen",             "Admin / Mod"),
+    "Konto":    ("💰", "Konto",                   "Alle Spieler"),
+    "Inventar": ("🎒", "Inventar",                "Alle Spieler"),
+    "Shop":     ("🏪", "Shop",                    "Alle Spieler / Shop-Admin"),
+    "Ausweis":  ("🪪", "Ausweis",                 "Bürger / Admin / Mod"),
+    "Behörde":  ("🚗", "Führerschein / Behörde",  "Behörden-Team"),
 }
 
+# Staff-only Kategorien (Warn, Admin, Team, LOBBY, Allgemein) werden nicht angezeigt
+HIDDEN_CATEGORIES = {"Warn", "Admin", "Team", "LOBBY", "Allgemein"}
+
 CATEGORY_ORDER = [
-    "Konto", "Inventar", "Shop", "Ausweis", "Behörde",
-    "Warn", "Admin", "Team", "LOBBY", "Allgemein", "__other__",
+    "Konto", "Inventar", "Shop", "Ausweis", "Behörde", "__other__",
 ]
 
 
@@ -66,6 +63,8 @@ def _build_embed(commands: list) -> discord.Embed:
     grouped: dict[str, list[str]] = {}
     for cmd in commands:
         prefix = _get_prefix(cmd.description)
+        if prefix in HIDDEN_CATEGORIES:
+            continue
         grouped.setdefault(prefix, []).append(f"`/{cmd.name}` — {cmd.description}")
 
     total = sum(len(v) for v in grouped.values())
