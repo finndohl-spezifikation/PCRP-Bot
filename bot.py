@@ -52,6 +52,7 @@ import dienst                   # Dienst-System (Anmelden/Abmelden, Embed-Boards
 import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 import ping_roles               # Ping-Rollen Auswahl-Embed
+import team_overview           # Team Übersicht mit On/Off Duty
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
