@@ -405,7 +405,7 @@ async def auto_casino_setup():
             icon_url=bot.user.display_avatar.url,
         )
         embed.set_footer(text="Paradise City Roleplay — Rubbellose • Viel Glück! 🍀")
-        embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/rubbellos.jpg")
+        embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/rubbellos.jpg")
         view = CasinoView()
 
         mid = _load_casino_msg_id()
