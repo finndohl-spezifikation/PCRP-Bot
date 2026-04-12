@@ -51,14 +51,112 @@ def _build_lager_embed(ziel: discord.Member, lager: list) -> discord.Embed:
     return embed
 
 
+# ── Mengen-Modals ─────────────────────────────────────────────
+
+class InLagerMengeModal(discord.ui.Modal, title="Menge ins Lager legen"):
+    menge = discord.ui.TextInput(
+        label="Menge",
+        placeholder="z.B. 3",
+        min_length=1,
+        max_length=4,
+    )
+
+    def __init__(self, user_id: int, item: str, verfuegbar: int):
+        super().__init__()
+        self.user_id     = user_id
+        self.item        = item
+        self.verfuegbar  = verfuegbar
+        self.menge.label = f"Menge (max. {verfuegbar}×)"
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            anzahl = int(self.menge.value)
+        except ValueError:
+            await interaction.response.send_message("❌ Bitte eine gültige Zahl eingeben.", ephemeral=True)
+            return
+        if anzahl < 1:
+            await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
+            return
+        if anzahl > self.verfuegbar:
+            await interaction.response.send_message(
+                f"❌ Du hast nur **{self.verfuegbar}×** **{self.item}** im Rucksack.", ephemeral=True
+            )
+            return
+        eco       = load_economy()
+        user_data = get_user(eco, self.user_id)
+        inv       = user_data.get("inventory", [])
+        vorhanden = inv.count(self.item)
+        if vorhanden < anzahl:
+            await interaction.response.send_message(
+                f"❌ Nur noch **{vorhanden}×** **{self.item}** im Rucksack.", ephemeral=True
+            )
+            return
+        for _ in range(anzahl):
+            inv.remove(self.item)
+        user_data.setdefault("lager", []).extend([self.item] * anzahl)
+        save_economy(eco)
+        await interaction.response.send_message(
+            f"✅ **{anzahl}× {self.item}** wurde ins **Lager** verschoben.", ephemeral=True
+        )
+
+
+class AusLagerMengeModal(discord.ui.Modal, title="Menge in Rucksack nehmen"):
+    menge = discord.ui.TextInput(
+        label="Menge",
+        placeholder="z.B. 2",
+        min_length=1,
+        max_length=4,
+    )
+
+    def __init__(self, user_id: int, item: str, verfuegbar: int):
+        super().__init__()
+        self.user_id     = user_id
+        self.item        = item
+        self.verfuegbar  = verfuegbar
+        self.menge.label = f"Menge (max. {verfuegbar}×)"
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            anzahl = int(self.menge.value)
+        except ValueError:
+            await interaction.response.send_message("❌ Bitte eine gültige Zahl eingeben.", ephemeral=True)
+            return
+        if anzahl < 1:
+            await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
+            return
+        if anzahl > self.verfuegbar:
+            await interaction.response.send_message(
+                f"❌ Du hast nur **{self.verfuegbar}×** **{self.item}** im Lager.", ephemeral=True
+            )
+            return
+        eco       = load_economy()
+        user_data = get_user(eco, self.user_id)
+        lager     = user_data.get("lager", [])
+        vorhanden = lager.count(self.item)
+        if vorhanden < anzahl:
+            await interaction.response.send_message(
+                f"❌ Nur noch **{vorhanden}×** **{self.item}** im Lager.", ephemeral=True
+            )
+            return
+        for _ in range(anzahl):
+            lager.remove(self.item)
+        user_data.setdefault("inventory", []).extend([self.item] * anzahl)
+        save_economy(eco)
+        await interaction.response.send_message(
+            f"✅ **{anzahl}× {self.item}** wurde in den **Rucksack** verschoben.", ephemeral=True
+        )
+
+
+# ── Dropdowns ─────────────────────────────────────────────────
+
 class InLagerSelect(discord.ui.Select):
     def __init__(self, user_id: int, inventory: list):
         from collections import Counter
         self.user_id = user_id
-        counts = Counter(inventory)
-        unique = list(counts.keys())[:25]
+        self.counts  = Counter(inventory)
+        unique = list(self.counts.keys())[:25]
         options = [
-            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{counts[item]} vorhanden")
+            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{self.counts[item]} vorhanden")
             for item in unique
         ]
         super().__init__(placeholder="Item auswählen…", min_values=1, max_values=1, options=options)
@@ -67,29 +165,19 @@ class InLagerSelect(discord.ui.Select):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ Das ist nicht dein Rucksack.", ephemeral=True)
             return
-        item = self.values[0]
-        eco       = load_economy()
-        user_data = get_user(eco, self.user_id)
-        inv       = user_data.get("inventory", [])
-        if item not in inv:
-            await interaction.response.send_message(f"❌ **{item}** ist nicht mehr in deinem Rucksack.", ephemeral=True)
-            return
-        inv.remove(item)
-        user_data.setdefault("lager", []).append(item)
-        save_economy(eco)
-        await interaction.response.send_message(
-            f"✅ **{item}** wurde ins **Lager** verschoben.", ephemeral=True
-        )
+        item       = self.values[0]
+        verfuegbar = self.counts.get(item, 0)
+        await interaction.response.send_modal(InLagerMengeModal(self.user_id, item, verfuegbar))
 
 
 class AusLagerSelect(discord.ui.Select):
     def __init__(self, user_id: int, lager: list):
         from collections import Counter
         self.user_id = user_id
-        counts = Counter(lager)
-        unique = list(counts.keys())[:25]
+        self.counts  = Counter(lager)
+        unique = list(self.counts.keys())[:25]
         options = [
-            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{counts[item]} im Lager")
+            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{self.counts[item]} im Lager")
             for item in unique
         ]
         super().__init__(placeholder="Item auswählen…", min_values=1, max_values=1, options=options)
@@ -98,19 +186,9 @@ class AusLagerSelect(discord.ui.Select):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ Das ist nicht dein Lager.", ephemeral=True)
             return
-        item = self.values[0]
-        eco       = load_economy()
-        user_data = get_user(eco, self.user_id)
-        lager     = user_data.get("lager", [])
-        if item not in lager:
-            await interaction.response.send_message(f"❌ **{item}** ist nicht mehr in deinem Lager.", ephemeral=True)
-            return
-        lager.remove(item)
-        user_data.setdefault("inventory", []).append(item)
-        save_economy(eco)
-        await interaction.response.send_message(
-            f"✅ **{item}** wurde in den **Rucksack** verschoben.", ephemeral=True
-        )
+        item       = self.values[0]
+        verfuegbar = self.counts.get(item, 0)
+        await interaction.response.send_modal(AusLagerMengeModal(self.user_id, item, verfuegbar))
 
 
 class RucksackView(discord.ui.View):
@@ -467,4 +545,4 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
             timestamp=datetime.now(timezone.utc)
         ),
         ephemeral=True
-                      )
+            )
