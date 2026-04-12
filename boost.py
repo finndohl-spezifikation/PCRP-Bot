@@ -59,7 +59,7 @@ async def auto_boost_setup():
         if data.get("message_id"):
             try:
                 msg = await channel.fetch_message(data["message_id"])
-                await msg.edit(embed=_build_boost_embed(), attachments=[_make_file()])
+                await msg.edit(embed=_build_boost_embed(), attachments=[_make_file()], view=discord.ui.View())
                 print(f"[boost] Embed aktualisiert in #{channel.name}")
                 return
             except Exception:
@@ -67,7 +67,7 @@ async def auto_boost_setup():
 
         # Neu senden
         try:
-            new_msg = await channel.send(embed=_build_boost_embed(), file=_make_file())
+            new_msg = await channel.send(embed=_build_boost_embed(), file=_make_file(), view=discord.ui.View())
             data["message_id"] = new_msg.id
             _save_boost_data(data)
             print(f"[boost] Embed gepostet in #{channel.name}")
