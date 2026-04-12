@@ -53,7 +53,7 @@ import help_embed               # Automatisches Command-Übersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 import ping_roles               # Ping-Rollen Auswahl-Embed
 import team_overview           # Team Übersicht mit On/Off Duty
-import embeds                  # Statische Embeds (Boost, etc.)
+import boost                   # Boost Belohnungen Embed
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
