@@ -216,25 +216,26 @@ class CasinoView(discord.ui.View):
                 pass
 
 
+_CASINO_MSG_FILE = DATA_DIR / "casino_msg.json"
+
+def _load_casino_msg_id() -> int | None:
+    if _CASINO_MSG_FILE.exists():
+        try:
+            return json.load(open(_CASINO_MSG_FILE))["message_id"]
+        except Exception:
+            pass
+    return None
+
+def _save_casino_msg_id(mid: int):
+    with open(_CASINO_MSG_FILE, "w") as f:
+        json.dump({"message_id": mid}, f)
+
 async def auto_casino_setup():
     _ensure_casino_shop_items()
     for guild in bot.guilds:
         channel = guild.get_channel(CASINO_CHANNEL_ID)
         if not channel:
             continue
-        # Alte Casino-Embeds löschen (Rebranding / Glücksrad → Rubbellose)
-        try:
-            async for msg in channel.history(limit=30):
-                if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
-                        if emb.title and ("Rubbellos" in emb.title or "Glücksrad" in emb.title or "Casino" in emb.title):
-                            try:
-                                await msg.delete()
-                            except Exception:
-                                pass
-                            break
-        except Exception:
-            pass
 
         prize_lines = "\n".join(f"　 {p['label']}" for p in CASINO_PRIZES)
         embed = discord.Embed(
@@ -255,8 +256,23 @@ async def auto_casino_setup():
             icon_url=bot.user.display_avatar.url,
         )
         embed.set_footer(text="Paradise City Roleplay — Rubbellose • Viel Glück! 🍀")
+        view = CasinoView()
+
+        # Bestehende Nachricht bearbeiten
+        mid = _load_casino_msg_id()
+        if mid:
+            try:
+                msg = await channel.fetch_message(mid)
+                await msg.edit(embed=embed, view=view)
+                print(f"[casino] Embed aktualisiert in #{channel.name}")
+                return
+            except Exception:
+                pass
+
+        # Neu senden und ID speichern
         try:
-            await channel.send(embed=embed, view=CasinoView())
-            print(f"Rubbellos-Embed automatisch gepostet in #{channel.name}")
+            new_msg = await channel.send(embed=embed, view=view)
+            _save_casino_msg_id(new_msg.id)
+            print(f"[casino] Embed gepostet in #{channel.name}")
         except Exception as e:
             await log_bot_error("auto_casino_setup fehlgeschlagen", str(e), guild)
