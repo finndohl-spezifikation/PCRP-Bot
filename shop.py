@@ -58,17 +58,29 @@ def _item_shop(item: dict) -> str:
     return item.get("shop", "kwik")
 
 
-def _build_shop_embed(shop_key: str, member: discord.Member) -> discord.Embed:
-    shop    = SHOPS[shop_key]
-    items   = load_shop()
-    role_ids = {r.id for r in member.roles}
-    is_adm  = ADMIN_ROLE_ID in role_ids
+_PAGE_SIZE = 15
 
-    filtered = [
-        i for i in items
+
+def _get_shop_items(shop_key: str, member: discord.Member) -> list:
+    """Gibt alle für den Nutzer sichtbaren Items eines Shops zurück."""
+    role_ids = {r.id for r in member.roles}
+    is_adm   = ADMIN_ROLE_ID in role_ids
+    return [
+        i for i in load_shop()
         if _item_shop(i) == shop_key
         and (is_adm or not i.get("allowed_role") or i.get("allowed_role") in role_ids)
     ]
+
+
+def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0) -> tuple[discord.Embed, int]:
+    """Gibt (embed, total_pages) zurück."""
+    shop     = SHOPS[shop_key]
+    filtered = _get_shop_items(shop_key, member)
+
+    total_pages = max(1, -(-len(filtered) // _PAGE_SIZE))  # ceil division
+    page        = max(0, min(page, total_pages - 1))
+
+    page_items = filtered[page * _PAGE_SIZE : (page + 1) * _PAGE_SIZE]
 
     embed = discord.Embed(
         title=shop["label"],
@@ -76,17 +88,47 @@ def _build_shop_embed(shop_key: str, member: discord.Member) -> discord.Embed:
         timestamp=datetime.now(timezone.utc)
     )
 
-    if filtered:
-        lines = []
-        for item in filtered:
-            line = f"**{item['name']}** — {item['price']:,} 💵"
-            lines.append(line)
+    if page_items:
+        lines = [f"**{item['name']}** — {item['price']:,} 💵" for item in page_items]
         embed.description = "\n".join(lines)
     else:
         embed.description = "*Dieser Shop ist aktuell leer.*"
 
-    embed.set_footer(text="Kaufen mit /buy [itemname] • Nur mit Bargeld möglich")
-    return embed
+    footer = "Kaufen mit /buy [itemname] • Nur mit Bargeld möglich"
+    if total_pages > 1:
+        footer += f"  |  Seite {page + 1}/{total_pages}"
+    embed.set_footer(text=footer)
+    return embed, total_pages
+
+
+# ── Seiten-View (Blättern) ────────────────────────────────────
+
+class ShopPageView(discord.ui.View):
+    def __init__(self, shop_key: str, member: discord.Member, page: int, total_pages: int):
+        super().__init__(timeout=120)
+        self.shop_key    = shop_key
+        self.member      = member
+        self.page        = page
+        self.total_pages = total_pages
+        self._refresh_buttons()
+
+    def _refresh_buttons(self):
+        self.prev_btn.disabled = self.page <= 0
+        self.next_btn.disabled = self.page >= self.total_pages - 1
+
+    @discord.ui.button(label="◀ Zurück", style=discord.ButtonStyle.secondary)
+    async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page -= 1
+        embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+        self._refresh_buttons()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Weiter ▶", style=discord.ButtonStyle.secondary)
+    async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page += 1
+        embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+        self._refresh_buttons()
+        await interaction.response.edit_message(embed=embed, view=self)
 
 
 # ── Shop-Auswahl Select ───────────────────────────────────────
@@ -141,8 +183,9 @@ class ShopSelectView(discord.ui.View):
             )
             return
 
-        embed = _build_shop_embed(shop_key, interaction.user)
-        await interaction.response.edit_message(embed=embed, view=None)
+        embed, total_pages = _build_shop_embed(shop_key, interaction.user, page=0)
+        view = ShopPageView(shop_key, interaction.user, page=0, total_pages=total_pages)
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
 # ── /shop ─────────────────────────────────────────────────────
