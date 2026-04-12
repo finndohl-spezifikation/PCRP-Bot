@@ -23,6 +23,7 @@ from casino import CasinoView, auto_casino_setup
 from dienst import DienstView, auto_dienst_setup, DIENST_CONFIG
 from team_overview import TeamOverviewView, auto_team_setup
 from boost import auto_boost_setup
+from lotto import LottoView, auto_lotto_setup, lotto_draw_loop
 
 
 
@@ -38,6 +39,7 @@ async def on_ready():
     bot.add_view(EinreiseView())
     bot.add_view(CasinoView())
     bot.add_view(TeamOverviewView())
+    bot.add_view(LottoView())
     for _cfg in DIENST_CONFIG:
         bot.add_view(DienstView(_cfg["faction"], _cfg))
 
@@ -99,6 +101,13 @@ async def on_ready():
         await auto_boost_setup()
     except Exception as e:
         print(f"[boost] ❌ Fehler in auto_boost_setup: {e}")
+
+    try:
+        await auto_lotto_setup()
+    except Exception as e:
+        print(f"[lotto] ❌ Fehler in auto_lotto_setup: {e}")
+
+    bot.loop.create_task(lotto_draw_loop())
 
     try:
         from help_embed import update_help_embed
