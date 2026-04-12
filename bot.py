@@ -56,6 +56,7 @@ import team_overview           # Team Übersicht mit On/Off Duty
 import boost                   # Boost Belohnungen Embed
 import lotto                   # Lotto-System
 import bingo                   # Wöchentliches Bingo-System
+import startinfo               # "Wo starte ich?" Embed
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
