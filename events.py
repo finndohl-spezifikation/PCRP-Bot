@@ -18,7 +18,7 @@ from ticket       import TicketSelectView, TicketActionView
 from handy        import HandyView
 from einreise     import EinreiseView, load_ausweis, save_ausweis
 from casino       import CasinoView
-from dienst       import DienstView, DIENST_CONFIG
+from dienst       import DienstUnifiedView
 from team_overview import TeamOverviewView
 from lotto        import LottoView, lotto_draw_loop
 from embed_manager import setup_all_embeds
@@ -38,8 +38,7 @@ async def on_ready():
     bot.add_view(CasinoView())
     bot.add_view(TeamOverviewView())
     bot.add_view(LottoView())
-    for _cfg in DIENST_CONFIG:
-        bot.add_view(DienstView(_cfg["faction"], _cfg))
+    bot.add_view(DienstUnifiedView())
 
     for entry in load_hidden_items():
         bot.add_view(VersteckRetrieveView(entry["id"], entry["owner_id"]))
@@ -607,4 +606,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-        )
+                                           )
