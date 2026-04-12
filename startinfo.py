@@ -46,7 +46,7 @@ def _build_embed() -> discord.Embed:
         ),
         inline=False,
     )
-    embed.set_image(url=STARTINFO_IMG_URL)
+    embed.set_thumbnail(url=STARTINFO_IMG_URL)
     embed.set_footer(text="Paradise City Roleplay")
     return embed
 
