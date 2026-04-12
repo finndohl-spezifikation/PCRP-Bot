@@ -88,22 +88,6 @@ async def cmd_vorschlag(interaction: discord.Interaction, vorschlag: str):
     view = VorschlagView()
     msg = await channel.send(embed=embed, view=view)
 
-    # Bestätigungs-DM
-    try:
-        dm_embed = discord.Embed(
-            title="✅ Vorschlag eingereicht",
-            description=(
-                f"Dein Vorschlag wurde erfolgreich im Vorschlag-Kanal gepostet!\n\n"
-                f"**Dein Vorschlag:**\n{vorschlag}"
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
-        dm_embed.set_footer(text="Paradise City Roleplay — Vorschläge")
-        await interaction.user.send(embed=dm_embed)
-    except Exception:
-        pass
-
     await interaction.response.send_message(
         "✅ Dein Vorschlag wurde eingereicht!", ephemeral=True
     )
@@ -244,4 +228,4 @@ async def cmd_vorschlag_ablehnen(
     await msg.edit(embed=new_embed, view=None)
     await interaction.response.send_message(
         "✅ Vorschlag wurde als **abgelehnt** markiert.", ephemeral=True
-)
+    )
