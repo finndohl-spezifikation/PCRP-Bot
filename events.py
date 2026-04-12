@@ -46,8 +46,9 @@ async def on_ready():
 
     for guild in bot.guilds:
         try:
-            invites = await guild.fetch_invites()
-            invite_cache[guild.id] = {inv.code: inv for inv in invites}
+            if hasattr(guild, "fetch_invites"):
+                invites = await guild.fetch_invites()
+                invite_cache[guild.id] = {inv.code: inv for inv in invites}
         except Exception:
             pass
 
@@ -467,6 +468,8 @@ async def on_member_join(member):
     inviter_uses = 0
     via_vanity   = False
     try:
+        if not hasattr(guild, "fetch_invites"):
+            raise AttributeError("fetch_invites nicht verfügbar — Invites-Intent prüfen")
         new_invites    = await guild.fetch_invites()
         new_invite_map = {inv.code: inv for inv in new_invites}
         old_invite_map = invite_cache.get(guild.id, {})
@@ -604,4 +607,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-    )
+        )
