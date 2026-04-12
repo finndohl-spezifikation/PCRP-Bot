@@ -82,7 +82,7 @@ def _build_embed() -> discord.Embed:
         inline=True,
     )
 
-    embed.set_image(url=STARTERPAKET_IMG_URL)
+    embed.set_thumbnail(url=STARTERPAKET_IMG_URL)
     embed.set_footer(text="Paradise City Roleplay — Starter Paket")
     return embed
 
