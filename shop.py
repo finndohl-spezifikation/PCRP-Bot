@@ -13,6 +13,9 @@ from economy_helpers import (
 )
 from handy import give_handy_channel_access
 
+_RUBBELLOS_NAME      = "🎟️| Rubbellos"
+_RUBBELLOS_TAGESLIMIT = 3
+
 
 # /shop
 @bot.tree.command(name="shop", description="[Shop] Zeigt den Shop an", guild=discord.Object(id=GUILD_ID))
@@ -104,6 +107,21 @@ async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
 
     eco        = load_economy()
     user_data  = get_user(eco, interaction.user.id)
+
+    # Tageslimit für Rubbellose (max. 3 pro Tag)
+    if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME) and not is_adm:
+        today     = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        rb_daily  = user_data.get("rubbellos_daily", {"date": "", "count": 0})
+        rb_count  = rb_daily["count"] if rb_daily.get("date") == today else 0
+        if rb_count + menge > _RUBBELLOS_TAGESLIMIT:
+            verbleibend = max(0, _RUBBELLOS_TAGESLIMIT - rb_count)
+            await interaction.response.send_message(
+                f"❌ Du kannst nur **{_RUBBELLOS_TAGESLIMIT} Rubbellose pro Tag** kaufen.\n"
+                f"Heute bereits gekauft: **{rb_count}** — noch kaufbar: **{verbleibend}**.",
+                ephemeral=True
+            )
+            return
+
     gesamtpreis = item["price"] * menge
 
     if user_data["cash"] < gesamtpreis:
@@ -120,6 +138,14 @@ async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
         user_data["inventory"] = []
     for _ in range(menge):
         user_data["inventory"].append(item["name"])
+
+    # Rubbellos-Tageszähler aktualisieren
+    if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME):
+        today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
+        rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
+        user_data["rubbellos_daily"] = {"date": today, "count": rb_count + menge}
+
     save_economy(eco)
 
     if normalize_item_name(item["name"]) == normalize_item_name(HANDY_ITEM_NAME):
