@@ -262,17 +262,18 @@ async def auto_einreise_setup():
             title="✈️ Einreise — Paradise City Roleplay",
             description=(
                 "🤵‍♂️ **Legale Einreise** 🤵‍♂️\n"
-                "Du wirst auf unserem Server als Legale Person einreisen. "
-                "Du darfst als Legaler Bewohner keine Illegalen Aktivitäten ausführen.\n\n"
+                "Du wirst auf unserem Server als legale Person einreisen. "
+                "Als legaler Bewohner darfst du keine illegalen Aktivitäten ausführen.\n\n"
                 "🥷 **Illegale Einreise** 🥷\n"
-                "Du wirst auf unserem Server als Illegale Person einreisen. "
-                "Du darfst keine Staatlichen Berufe ausüben.\n\n"
+                "Du wirst auf unserem Server als illegale Person einreisen. "
+                "Du darfst keine staatlichen Berufe ausüben.\n\n"
                 "⚠️ **Hinweis** ⚠️\n"
                 "Eine Änderung der Einreiseart ist nur durch den RP-Tod deines Charakters möglich."
             ),
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg")
         embed.set_footer(text="Paradise City Roleplay — Einreisesystem")
         view = EinreiseView()
 
