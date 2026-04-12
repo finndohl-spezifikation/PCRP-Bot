@@ -10,7 +10,7 @@ from economy_helpers import load_economy, save_economy, get_user, normalize_item
 LOTTO_CHANNEL_ID    = 1492636063817138216
 LOTTO_MSG_FILE      = DATA_DIR / "lotto_msg.json"
 LOTTO_TICKETS_FILE  = DATA_DIR / "lotto_tickets.json"
-LOTTO_ITEM_NAME     = "🎰| Lottoschein"
+LOTTO_ITEM_NAME     = "🎟| Lottoschein"
 LOTTO_VIP_ROLE_ID   = 1490855646558556282
 
 # Gewinn-Preise je Anzahl richtiger Zahlen
@@ -33,6 +33,14 @@ SUPER_CHANCE_VIP    = 0.004  # 0.4 %
 # Verteilung der Gewinn-Tiers (1–6 Richtige), wenn Sieg-Roll bestanden
 WIN_TIER_WEIGHTS = [50, 25, 13, 7, 3, 2]   # gewichtet für 1,2,3,4,5,6 Richtige
 
+LOTTO_MAX_WEEKLY_WINNERS = 5  # Maximal 5 Gewinner pro Kalenderwoche
+
+
+def _week_key(dt: datetime | None = None) -> str:
+    """ISO-Kalenderwoche als String, z.B. '2025-W03'"""
+    d = dt or datetime.now(timezone.utc)
+    return f"{d.isocalendar()[0]}-W{d.isocalendar()[1]:02d}"
+
 
 # ── Datei-Helfer ──────────────────────────────────────────────
 
@@ -52,7 +60,7 @@ def _load_tickets() -> dict:
     if LOTTO_TICKETS_FILE.exists():
         with open(LOTTO_TICKETS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    return {"tickets": [], "last_draw": None}
+    return {"tickets": [], "last_draw": None, "weekly_winners": {}}
 
 
 def _save_tickets(data: dict):
@@ -121,7 +129,7 @@ def _build_lotto_embed() -> discord.Embed:
             "**Täglich um 12:00 Uhr werden die Gewinner gezogen!**\n\n"
             "**So funktioniert es:**\n"
             "Wähle **6 Zahlen** (1–100) und eine **Superzahl** (1–10).\n"
-            "Du brauchst einen **Lottoschein** aus dem Shop.\n\n"
+            "Du brauchst einen **🎟| Lottoschein** aus dem Shop (2.800 $).\n\n"
             "**Gewinntabelle:**\n"
             "🎯 1 Richtige → **50.000 $**\n"
             "🎯 2 Richtige → **100.000 $**\n"
@@ -131,6 +139,7 @@ def _build_lotto_embed() -> discord.Embed:
             "🎯 6 Richtige → **1.000.000 $**\n"
             "⭐ Superzahl  → **3.000.000 $** *(extrem selten!)*\n\n"
             "Du kannst mehrere Scheine pro Tag kaufen & abgeben.\n"
+            "⚠️ **Maximal 5 Gewinner pro Woche** — danach keine weiteren Gewinne bis nächste Woche.\n"
             "Gewinner werden per DM benachrichtigt."
         ),
         color=LOG_COLOR,
@@ -306,7 +315,15 @@ async def _run_draw(guild: discord.Guild):
 
     eco = load_economy()
 
+    # Wochenlimit prüfen
+    week         = _week_key()
+    weekly_won   = data.get("weekly_winners", {}).get(week, 0)
+
     for ticket in tickets:
+        # Wochenlimit erreicht — keine weiteren Gewinner
+        if weekly_won >= LOTTO_MAX_WEEKLY_WINNERS:
+            break
+
         member = guild.get_member(ticket["user_id"])
         if member is None:
             try:
@@ -320,12 +337,17 @@ async def _run_draw(guild: discord.Guild):
         if result["prize"] <= 0:
             continue
 
+        # Wochenlimit nochmal prüfen (könnte sich in der Schleife gefüllt haben)
+        if weekly_won >= LOTTO_MAX_WEEKLY_WINNERS:
+            break
+
         # Geld gutschreiben
         user_data = get_user(eco, ticket["user_id"])
         user_data["bank"] = user_data.get("bank", 0) + result["prize"]
+        weekly_won += 1
 
         # DM senden
-        drawn_str = ", ".join(str(n) for n in result["drawn_numbers"])
+        drawn_str  = ", ".join(str(n) for n in result["drawn_numbers"])
         player_str = ", ".join(str(n) for n in ticket["numbers"])
 
         desc_parts = [
@@ -354,11 +376,16 @@ async def _run_draw(guild: discord.Guild):
 
     save_economy(eco)
 
+    # Wochenzähler speichern
+    if "weekly_winners" not in data:
+        data["weekly_winners"] = {}
+    data["weekly_winners"][week] = weekly_won
+
     # Gezogene Scheine entfernen, last_draw setzen
     data["tickets"]   = [t for t in data["tickets"] if t.get("draw_date") != today]
     data["last_draw"] = today
     _save_tickets(data)
-    print(f"[lotto] Ziehung abgeschlossen für {today} — {len(tickets)} Schein(e) verarbeitet")
+    print(f"[lotto] Ziehung abgeschlossen für {today} — {len(tickets)} Schein(e), {weekly_won}/{LOTTO_MAX_WEEKLY_WINNERS} Wochengewinner")
 
 
 async def lotto_draw_loop():
@@ -445,3 +472,48 @@ async def lotto_test(
         timestamp=datetime.now(timezone.utc)
     )
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+@bot.tree.command(
+    name="lotto-setup",
+    description="[Admin] Lotto-Embed manuell im Lotto-Kanal posten/aktualisieren",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.default_permissions(administrator=True)
+async def lotto_setup(interaction: discord.Interaction):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    channel = interaction.guild.get_channel(LOTTO_CHANNEL_ID)
+    if not channel:
+        try:
+            channel = await interaction.guild.fetch_channel(LOTTO_CHANNEL_ID)
+        except Exception:
+            await interaction.followup.send(
+                f"❌ Kanal `{LOTTO_CHANNEL_ID}` nicht gefunden. Bitte Channel-ID prüfen.",
+                ephemeral=True
+            )
+            return
+
+    data  = _load_lotto_msg()
+    embed = _build_lotto_embed()
+
+    if data.get("message_id"):
+        try:
+            msg = await channel.fetch_message(data["message_id"])
+            await msg.edit(embed=embed, view=LottoView())
+            await interaction.followup.send("✅ Lotto-Embed wurde aktualisiert!", ephemeral=True)
+            return
+        except Exception:
+            pass
+
+    try:
+        new_msg = await channel.send(embed=embed, view=LottoView())
+        data["message_id"] = new_msg.id
+        _save_lotto_msg(data)
+        await interaction.followup.send("✅ Lotto-Embed wurde gepostet!", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Fehler beim Senden: `{e}`", ephemeral=True)
