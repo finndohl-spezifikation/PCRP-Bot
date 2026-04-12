@@ -68,23 +68,6 @@ async def auto_ping_roles_setup():
         if not channel:
             continue
 
-        already_posted = False
-        try:
-            async for msg in channel.history(limit=20):
-                if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
-                        if emb.title and "Ping" in emb.title:
-                            already_posted = True
-                            break
-                if already_posted:
-                    break
-        except Exception:
-            pass
-
-        if already_posted:
-            print(f"[ping_roles] Ping-Rollen Embed bereits vorhanden in #{channel.name}")
-            continue
-
         role_list = ""
         for role_id in PING_ROLE_IDS:
             role = guild.get_role(role_id)
@@ -102,11 +85,35 @@ async def auto_ping_roles_setup():
             timestamp=discord.utils.utcnow()
         )
         embed.set_footer(text="Paradise City Roleplay — Ping-Rollen System")
-
         view = PingRolesView(guild)
+
+        # Vorhandenes Embed suchen und aktualisieren
+        existing_msg = None
         try:
-            await channel.send(embed=embed, view=view)
-            print(f"[ping_roles] ✅ Ping-Rollen Embed gepostet in #{channel.name}")
+            async for msg in channel.history(limit=30):
+                if msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Ping" in emb.title:
+                            existing_msg = msg
+                            break
+                if existing_msg:
+                    break
+        except Exception:
+            pass
+
+        try:
+            if existing_msg and existing_msg.author.id == bot.user.id:
+                await existing_msg.edit(embed=embed, view=view)
+                print(f"[ping_roles] ✅ Ping-Rollen Embed aktualisiert in #{channel.name}")
+            else:
+                # Fremde Embeds (z.B. alter Bot) löschen falls möglich
+                if existing_msg:
+                    try:
+                        await existing_msg.delete()
+                    except Exception:
+                        pass
+                await channel.send(embed=embed, view=view)
+                print(f"[ping_roles] ✅ Ping-Rollen Embed gepostet in #{channel.name}")
         except Exception as e:
             print(f"[ping_roles] ❌ Fehler: {e}")
 
