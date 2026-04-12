@@ -81,7 +81,7 @@ async def cmd_vorschlag(interaction: discord.Interaction, vorschlag: str):
         icon_url=interaction.user.display_avatar.url
     )
     embed.set_footer(text=f"Vorschlag von {interaction.user} · Paradise City Roleplay")
-    embed.set_image(
+    embed.set_thumbnail(
         url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg"
     )
 
@@ -152,7 +152,7 @@ async def cmd_vorschlag_annehmen(
     new_embed.add_field(name="Bearbeitet von", value=interaction.user.mention, inline=True)
     new_embed.add_field(name="Begründung", value=grund, inline=False)
     new_embed.set_footer(text="Paradise City Roleplay — Vorschläge")
-    new_embed.set_image(
+    new_embed.set_thumbnail(
         url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg"
     )
 
@@ -221,7 +221,7 @@ async def cmd_vorschlag_ablehnen(
     new_embed.add_field(name="Bearbeitet von", value=interaction.user.mention, inline=True)
     new_embed.add_field(name="Begründung", value=grund, inline=False)
     new_embed.set_footer(text="Paradise City Roleplay — Vorschläge")
-    new_embed.set_image(
+    new_embed.set_thumbnail(
         url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg"
     )
 
