@@ -57,6 +57,7 @@ import boost                   # Boost Belohnungen Embed
 import lotto                   # Lotto-System
 import bingo                   # Wöchentliches Bingo-System
 import startinfo               # "Wo starte ich?" Embed
+import starterpaket            # Starter Paket Embed
 import vorschlag               # Vorschlag-System
 
 try:
