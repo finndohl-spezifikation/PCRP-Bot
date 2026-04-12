@@ -252,3 +252,13 @@ GIVEAWAY_CHANNEL_ID = 1490882565618536551
 
 # ── Kartenkontrolle ──────────────────────────────────────────
 KARTENKONTROLLE_CHANNEL_ID = 1491116234459185162
+
+# ── Team Übersicht ────────────────────────────────────────────
+TEAM_OVERVIEW_CHANNEL_ID = 1490882570899030136
+DUTY_FILE = DATA_DIR / "duty_status.json"
+
+# Rollen die im Team-Embed angezeigt werden (Label, Rollen-ID)
+TEAM_ROLES = [
+    ("👑 Administration", 1490855702225485936),
+    ("🛡️ Moderator",      1490855703370534965),
+]
