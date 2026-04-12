@@ -14,16 +14,14 @@ from moderation import (
     handle_discord_invite, handle_link_outside_memes,
     handle_vulgar_message, check_spam
 )
-from ticket import (
-    TicketSelectView, TicketActionView, auto_ticket_setup, auto_lohnliste_setup
-)
-from handy import HandyView, auto_handy_setup
-from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_ausweis
-from casino import CasinoView, auto_casino_setup
-from dienst import DienstView, auto_dienst_setup, DIENST_CONFIG
-from team_overview import TeamOverviewView, auto_team_setup
-from boost import auto_boost_setup
-from lotto import LottoView, auto_lotto_setup, lotto_draw_loop
+from ticket       import TicketSelectView, TicketActionView
+from handy        import HandyView
+from einreise     import EinreiseView, load_ausweis, save_ausweis
+from casino       import CasinoView
+from dienst       import DienstView, DIENST_CONFIG
+from team_overview import TeamOverviewView
+from lotto        import LottoView, lotto_draw_loop
+from embed_manager import setup_all_embeds
 
 
 
@@ -53,12 +51,6 @@ async def on_ready():
         except Exception:
             pass
 
-    await auto_ticket_setup()
-    await auto_lohnliste_setup()
-    await auto_einreise_setup()
-    await auto_handy_setup()
-    await auto_casino_setup()
-
     GALAXY_BOT_ID = 270904126974590976
     for guild in bot.guilds:
         galaxy = guild.get_member(GALAXY_BOT_ID)
@@ -87,33 +79,8 @@ async def on_ready():
     except Exception as e:
         print(f"Slash Command sync fehlgeschlagen: {e}")
 
-    try:
-        await auto_dienst_setup()
-    except Exception as e:
-        print(f"[dienst] ❌ Fehler in auto_dienst_setup: {e}")
-
-    try:
-        await auto_team_setup()
-    except Exception as e:
-        print(f"[team_overview] ❌ Fehler in auto_team_setup: {e}")
-
-    try:
-        await auto_boost_setup()
-    except Exception as e:
-        print(f"[boost] ❌ Fehler in auto_boost_setup: {e}")
-
-    try:
-        await auto_lotto_setup()
-    except Exception as e:
-        print(f"[lotto] ❌ Fehler in auto_lotto_setup: {e}")
-
+    await setup_all_embeds()
     bot.loop.create_task(lotto_draw_loop())
-
-    try:
-        from help_embed import update_help_embed
-        await update_help_embed()
-    except Exception as e:
-        print(f"[help_embed] Fehler beim Aktualisieren: {e}")
 
 
 @bot.event
