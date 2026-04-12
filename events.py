@@ -21,6 +21,7 @@ from handy import HandyView, auto_handy_setup
 from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_ausweis
 from casino import CasinoView, auto_casino_setup
 from dienst import DienstView, auto_dienst_setup, DIENST_CONFIG
+from team_overview import TeamOverviewView, auto_team_setup
 
 
 
@@ -35,6 +36,7 @@ async def on_ready():
     bot.add_view(HandyView())
     bot.add_view(EinreiseView())
     bot.add_view(CasinoView())
+    bot.add_view(TeamOverviewView())
     for _cfg in DIENST_CONFIG:
         bot.add_view(DienstView(_cfg["faction"], _cfg))
 
@@ -86,6 +88,11 @@ async def on_ready():
         await auto_dienst_setup()
     except Exception as e:
         print(f"[dienst] ❌ Fehler in auto_dienst_setup: {e}")
+
+    try:
+        await auto_team_setup()
+    except Exception as e:
+        print(f"[team_overview] ❌ Fehler in auto_team_setup: {e}")
 
     try:
         from help_embed import update_help_embed
