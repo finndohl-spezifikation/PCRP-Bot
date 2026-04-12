@@ -142,7 +142,7 @@ def _build_lotto_embed() -> discord.Embed:
         color=LOG_COLOR,
     )
     embed.set_footer(text="Paradise City Roleplay — Viel Glück!")
-    embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/lotto.jpg")
+    embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/lotto.jpg")
     return embed
 
 
