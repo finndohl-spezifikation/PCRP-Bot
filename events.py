@@ -380,7 +380,6 @@ async def on_member_remove(member):
             g_embed.add_field(name="Mitglied", value=str(member), inline=True)
             g_embed.add_field(name="ID",       value=str(member.id), inline=True)
             g_embed.set_footer(text=f"Noch {guild.member_count} Mitglieder")
-            g_embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/banner.png")
             await goodbye_ch.send(embed=g_embed)
         except Exception:
             pass
@@ -587,7 +586,6 @@ async def on_member_join(member):
             w_embed.add_field(name="Mitglied", value=str(member), inline=True)
             w_embed.add_field(name="ID", value=str(member.id), inline=True)
             w_embed.set_footer(text=f"Mitglied #{guild.member_count}")
-            w_embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/banner.png")
             await welcome_ch.send(embed=w_embed)
         except Exception:
             pass
@@ -606,4 +604,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-                                           )
+            )
