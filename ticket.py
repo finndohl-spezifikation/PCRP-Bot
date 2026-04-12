@@ -460,26 +460,53 @@ class RatingView(discord.ui.View):
         await interaction.response.send_modal(CommentModal(stars=5, rating_view=self))
 
 
+TICKET_IMG_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/ticket.png"
+
 def _build_ticket_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🎟 Support — Ticket erstellen",
+        title="🎟️ Paradise City — Support System",
         description=(
-            "Benötigst du Hilfe oder möchtest ein Anliegen melden?\n\n"
-            "Wähle unten im Menü die passende Ticket-Art aus.\n"
-            "Unser Team wird sich schnellstmöglich um dich kümmern.\n\n"
-            "**Verfügbare Ticket-Arten:**\n"
-            "🎟 **Support** — Allgemeiner Support\n"
-            "🎟 **Highteam Ticket** — Direkter Kontakt zum Highteam\n"
-            "🎟 **Fraktions Bewerbung** — Bewirb dich für eine Fraktion\n"
-            "🎟 **Beschwerde Ticket** — Beschwerde einreichen\n"
-            "🎟 **Bug Report** — Fehler oder Bug melden\n"
-            "🎮 **Crew Anfrage** — Crew-Anfrage über Rockstar Social Club"
+            "Benötigst du Hilfe oder hast ein Anliegen?\n"
+            "Wähle unten die passende Ticket-Art aus — unser Team meldet sich schnellstmöglich.\n"
+            "━━━━━━━━━━━━━━━━━━━━━━"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/ticket_banner.jpg")
-    embed.set_footer(text="Paradise City Roleplay — Support System")
+
+    embed.add_field(
+        name="🎟️ Support",
+        value="> Allgemeiner Support bei Fragen & Problemen",
+        inline=False,
+    )
+    embed.add_field(
+        name="👑 Highteam Ticket",
+        value="> Direkter Kontakt zum Highteam",
+        inline=False,
+    )
+    embed.add_field(
+        name="🏛️ Fraktions Bewerbung",
+        value="> Bewirb dich für eine Fraktion auf dem Server",
+        inline=False,
+    )
+    embed.add_field(
+        name="📢 Beschwerde Ticket",
+        value="> Melde eine Beschwerde gegen einen Spieler oder Mitarbeiter",
+        inline=False,
+    )
+    embed.add_field(
+        name="🐛 Bug Report",
+        value="> Melde einen Fehler oder Bug im Roleplay",
+        inline=False,
+    )
+    embed.add_field(
+        name="🎮 Crew Anfrage",
+        value="> Crew-Anfrage über den Rockstar Social Club",
+        inline=False,
+    )
+
+    embed.set_thumbnail(url=TICKET_IMG_URL)
+    embed.set_footer(text="Paradise City Roleplay — Support System • Nur eine Ticket gleichzeitig möglich")
     return embed
 
 
