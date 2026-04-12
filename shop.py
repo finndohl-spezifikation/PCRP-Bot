@@ -41,11 +41,10 @@ async def shop(interaction: discord.Interaction):
 
     lines = []
     for item in items:
-        line = f"**{item['name']}** — {item['price']:,} 💵"
         ar = item.get("allowed_role")
-        if ar:
-            r = interaction.guild.get_role(ar)
-            line += f"  🔒 *{r.name if r else ar}*"
+        if ar and not is_adm and ar not in role_ids:
+            continue
+        line = f"**{item['name']}** — {item['price']:,} 💵"
         lines.append(line)
 
     embed = discord.Embed(
