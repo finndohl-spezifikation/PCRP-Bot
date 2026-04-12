@@ -273,7 +273,7 @@ async def auto_einreise_setup():
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg")
+        embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg")
         embed.set_footer(text="Paradise City Roleplay — Einreisesystem")
         view = EinreiseView()
 
