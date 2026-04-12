@@ -1,42 +1,41 @@
 # ══════════════════════════════════════════════════════════════
-# dienst.py — Dienst-System (Anmelden / Abmelden)
+# dienst.py — Dienst-System (Anmelden / Abmelden) — Unified
 # Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
 from config import *
 
-DIENST_FILE    = DATA_DIR / "dienst_data.json"
+DIENST_FILE     = DATA_DIR / "dienst_data.json"
 DIENST_MSG_FILE = DATA_DIR / "dienst_message_ids.json"
 
-EMBED_COLOR = 0xE67E22  # Hellblau
+DIENST_CHANNEL_ID = 1492939533895860504
+EMBED_COLOR       = LOG_COLOR   # Orange
 
 # ── Fraktions-Konfiguration ──────────────────────────────────
+
 DIENST_CONFIG = [
     {
-        "faction":    "lapd",
-        "name":       "LAPD",
-        "emoji":      "🚔",
-        "channel_id": 1490890327450587288,
-        "role_id":    LAPD_ROLE_ID,
+        "faction": "lapd",
+        "name":    "LAPD",
+        "emoji":   "🚔",
+        "role_id": LAPD_ROLE_ID,
     },
     {
-        "faction":    "lamd",
-        "name":       "LAMD",
-        "emoji":      "🚑",
-        "channel_id": 1490890329027641475,
-        "role_id":    LAMD_ROLE_ID,
+        "faction": "lamd",
+        "name":    "LAMD",
+        "emoji":   "🚑",
+        "role_id": LAMD_ROLE_ID,
     },
     {
-        "faction":    "lacs",
-        "name":       "LACS",
-        "emoji":      "🚗",
-        "channel_id": 1490890329979879506,
-        "role_id":    LACS_ROLE_ID,
+        "faction": "lacs",
+        "name":    "LACS",
+        "emoji":   "🚗",
+        "role_id": LACS_ROLE_ID,
     },
 ]
 
-_FACTION_BY_CHANNEL = {c["channel_id"]: c for c in DIENST_CONFIG}
-_FACTION_BY_KEY     = {c["faction"]:    c for c in DIENST_CONFIG}
+_ALL_ROLE_IDS = {c["role_id"] for c in DIENST_CONFIG}
+_FACTION_BY_ROLE = {c["role_id"]: c for c in DIENST_CONFIG}
 
 
 # ── JSON Helpers ─────────────────────────────────────────────
@@ -65,10 +64,9 @@ def save_msg_ids(data: dict):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-# ── Public Helper: wer ist im Dienst? ───────────────────────
+# ── Public Helper ────────────────────────────────────────────
 
 def get_on_duty(faction: str) -> dict:
-    """Gibt {user_id_str: start_time_iso} für eine Fraktion zurück."""
     return load_dienst().get(faction, {})
 
 
@@ -78,34 +76,32 @@ def count_on_duty(faction: str) -> int:
 
 # ── Embed Builder ────────────────────────────────────────────
 
-def _build_dienst_embed(guild: discord.Guild, cfg: dict) -> discord.Embed:
-    data    = load_dienst()
-    on_duty = data.get(cfg["faction"], {})
+def _build_unified_embed(guild: discord.Guild) -> discord.Embed:
+    data = load_dienst()
 
     embed = discord.Embed(
-        title=f"{cfg['emoji']} {cfg['name']} — Dienst",
+        title="🛡️ Dienst — Übersicht",
+        description="Melde dich mit den Buttons unten an oder ab.",
         color=EMBED_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
 
-    if on_duty:
-        lines = []
-        for uid, start_iso in on_duty.items():
-            member = guild.get_member(int(uid))
-            name   = member.display_name if member else f"<@{uid}>"
-            start  = datetime.fromisoformat(start_iso)
-            lines.append(
-                f"• **{name}** — seit <t:{int(start.timestamp())}:R>"
-            )
+    for cfg in DIENST_CONFIG:
+        on_duty = data.get(cfg["faction"], {})
+        if on_duty:
+            lines = []
+            for uid, start_iso in on_duty.items():
+                member = guild.get_member(int(uid))
+                name   = member.display_name if member else f"<@{uid}>"
+                start  = datetime.fromisoformat(start_iso)
+                lines.append(f"• **{name}** — seit <t:{int(start.timestamp())}:R>")
+            value = "\n".join(lines)
+        else:
+            value = "*Niemand im Dienst.*"
+
         embed.add_field(
-            name=f"✅ Im Dienst ({len(on_duty)})",
-            value="\n".join(lines),
-            inline=False,
-        )
-    else:
-        embed.add_field(
-            name="✅ Im Dienst (0)",
-            value="*Niemand ist aktuell im Dienst.*",
+            name=f"{cfg['emoji']} {cfg['name']} — Im Dienst ({len(on_duty)})",
+            value=value,
             inline=False,
         )
 
@@ -113,29 +109,37 @@ def _build_dienst_embed(guild: discord.Guild, cfg: dict) -> discord.Embed:
     return embed
 
 
-# ── Buttons ──────────────────────────────────────────────────
+# ── View / Buttons ────────────────────────────────────────────
 
-class AnmeldenButton(discord.ui.Button):
-    def __init__(self, faction: str, cfg: dict):
-        super().__init__(
-            label="✅️| Anmelden",
-            style=discord.ButtonStyle.green,
-            custom_id=f"dienst_an:{faction}",
-        )
-        self.faction = faction
-        self.cfg     = cfg
+class DienstUnifiedView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
-    async def callback(self, interaction: discord.Interaction):
-        if not any(r.id == self.cfg["role_id"] for r in interaction.user.roles):
+    def _get_faction(self, member: discord.Member) -> dict | None:
+        """Gibt die passende Fraktions-Config zurück oder None."""
+        for role in member.roles:
+            if role.id in _FACTION_BY_ROLE:
+                return _FACTION_BY_ROLE[role.id]
+        return None
+
+    @discord.ui.button(
+        label="🔛| Anmelden",
+        style=discord.ButtonStyle.green,
+        custom_id="dienst_unified_an",
+    )
+    async def anmelden(self, interaction: discord.Interaction,
+                       button: discord.ui.Button):
+        cfg = self._get_faction(interaction.user)
+        if not cfg:
             await interaction.response.send_message(
-                f"❌ Nur {self.cfg['name']}-Mitglieder können sich hier anmelden.",
+                "❌ Du hast keine Berechtigung. Nur LAPD, LAMD und LACS können sich anmelden.",
                 ephemeral=True,
             )
             return
 
-        data = load_dienst()
-        uid  = str(interaction.user.id)
-        faction_data = data.setdefault(self.faction, {})
+        data         = load_dienst()
+        uid          = str(interaction.user.id)
+        faction_data = data.setdefault(cfg["faction"], {})
 
         if uid in faction_data:
             await interaction.response.send_message(
@@ -143,49 +147,45 @@ class AnmeldenButton(discord.ui.Button):
             )
             return
 
-        start_time = datetime.now(timezone.utc)
-        faction_data[uid] = start_time.isoformat()
+        start_time            = datetime.now(timezone.utc)
+        faction_data[uid]     = start_time.isoformat()
         save_dienst(data)
 
-        embed = discord.Embed(
-            title=f"{self.cfg['emoji']} Dienstbeginn",
+        confirm = discord.Embed(
+            title=f"{cfg['emoji']} Dienstbeginn",
             description=(
-                f"{interaction.user.mention} hat den **{self.cfg['name']}-Dienst** angetreten.\n\n"
+                f"{interaction.user.mention} hat den **{cfg['name']}-Dienst** angetreten.\n\n"
                 f"⏰ **Dienstbeginn:** <t:{int(start_time.timestamp())}:T>\n"
-                f"👮 **Einheit:** {self.cfg['name']}\n"
+                f"👮 **Einheit:** {cfg['name']}\n"
                 f"📋 **Status:** Im Dienst"
             ),
             color=0x2ECC71,
             timestamp=start_time,
         )
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.set_footer(text="Paradise City Roleplay — Dienst-System")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        confirm.set_thumbnail(url=interaction.user.display_avatar.url)
+        confirm.set_footer(text="Paradise City Roleplay — Dienst-System")
+        await interaction.response.send_message(embed=confirm, ephemeral=True)
 
-        await _update_dienst_embed(interaction.guild, self.cfg)
+        await _update_unified_embed(interaction.guild)
 
-
-class AbmeldenButton(discord.ui.Button):
-    def __init__(self, faction: str, cfg: dict):
-        super().__init__(
-            label="❌️| Abmelden",
-            style=discord.ButtonStyle.red,
-            custom_id=f"dienst_ab:{faction}",
-        )
-        self.faction = faction
-        self.cfg     = cfg
-
-    async def callback(self, interaction: discord.Interaction):
-        if not any(r.id == self.cfg["role_id"] for r in interaction.user.roles):
+    @discord.ui.button(
+        label="📴| Abmelden",
+        style=discord.ButtonStyle.red,
+        custom_id="dienst_unified_ab",
+    )
+    async def abmelden(self, interaction: discord.Interaction,
+                       button: discord.ui.Button):
+        cfg = self._get_faction(interaction.user)
+        if not cfg:
             await interaction.response.send_message(
-                f"❌ Nur {self.cfg['name']}-Mitglieder können sich hier abmelden.",
+                "❌ Du hast keine Berechtigung. Nur LAPD, LAMD und LACS können sich abmelden.",
                 ephemeral=True,
             )
             return
 
-        data = load_dienst()
-        uid  = str(interaction.user.id)
-        faction_data = data.get(self.faction, {})
+        data         = load_dienst()
+        uid          = str(interaction.user.id)
+        faction_data = data.get(cfg["faction"], {})
 
         if uid not in faction_data:
             await interaction.response.send_message(
@@ -193,57 +193,48 @@ class AbmeldenButton(discord.ui.Button):
             )
             return
 
-        start_iso  = faction_data.pop(uid)
-        data[self.faction] = faction_data
+        start_iso             = faction_data.pop(uid)
+        data[cfg["faction"]]  = faction_data
         save_dienst(data)
 
         start_time = datetime.fromisoformat(start_iso)
         end_time   = datetime.now(timezone.utc)
         dauer      = end_time - start_time
+        stunden    = int(dauer.total_seconds() // 3600)
+        minuten    = int((dauer.total_seconds() % 3600) // 60)
+        dauer_str  = f"{stunden}h {minuten}min" if stunden else f"{minuten}min"
 
-        stunden  = int(dauer.total_seconds() // 3600)
-        minuten  = int((dauer.total_seconds() % 3600) // 60)
-        dauer_str = f"{stunden}h {minuten}min" if stunden else f"{minuten}min"
-
-        embed = discord.Embed(
-            title=f"{self.cfg['emoji']} Dienstende",
+        confirm = discord.Embed(
+            title=f"{cfg['emoji']} Dienstende",
             description=(
-                f"{interaction.user.mention} hat den **{self.cfg['name']}-Dienst** beendet.\n\n"
+                f"{interaction.user.mention} hat den **{cfg['name']}-Dienst** beendet.\n\n"
                 f"🕐 **Dienstbeginn:** <t:{int(start_time.timestamp())}:T>\n"
                 f"🕑 **Dienstende:** <t:{int(end_time.timestamp())}:T>\n"
                 f"⏱️ **Dienstdauer:** {dauer_str}\n"
-                f"👮 **Einheit:** {self.cfg['name']}\n"
+                f"👮 **Einheit:** {cfg['name']}\n"
                 f"📋 **Status:** Abgemeldet"
             ),
             color=0xE74C3C,
             timestamp=end_time,
         )
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.set_footer(text="Paradise City Roleplay — Dienst-System")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        confirm.set_thumbnail(url=interaction.user.display_avatar.url)
+        confirm.set_footer(text="Paradise City Roleplay — Dienst-System")
+        await interaction.response.send_message(embed=confirm, ephemeral=True)
 
-        await _update_dienst_embed(interaction.guild, self.cfg)
-
-
-class DienstView(discord.ui.View):
-    def __init__(self, faction: str, cfg: dict):
-        super().__init__(timeout=None)
-        self.add_item(AnmeldenButton(faction, cfg))
-        self.add_item(AbmeldenButton(faction, cfg))
+        await _update_unified_embed(interaction.guild)
 
 
-# ── Embed im Channel aktualisieren ──────────────────────────
+# ── Embed aktualisieren ───────────────────────────────────────
 
-async def _update_dienst_embed(guild: discord.Guild, cfg: dict):
-    channel = guild.get_channel(cfg["channel_id"])
+async def _update_unified_embed(guild: discord.Guild):
+    channel = guild.get_channel(DIENST_CHANNEL_ID)
     if not channel:
         return
 
     msg_ids = load_msg_ids()
-    msg_id  = msg_ids.get(cfg["faction"])
-
-    embed = _build_dienst_embed(guild, cfg)
-    view  = DienstView(cfg["faction"], cfg)
+    msg_id  = msg_ids.get("unified")
+    embed   = _build_unified_embed(guild)
+    view    = DienstUnifiedView()
 
     if msg_id:
         try:
@@ -254,48 +245,43 @@ async def _update_dienst_embed(guild: discord.Guild, cfg: dict):
             pass
 
     msg = await channel.send(embed=embed, view=view)
-    msg_ids[cfg["faction"]] = str(msg.id)
+    msg_ids["unified"] = str(msg.id)
     save_msg_ids(msg_ids)
 
 
 # ── Auto-Setup beim Start ────────────────────────────────────
 
 async def auto_dienst_setup():
-    print(f"[dienst] Setup startet für {len(bot.guilds)} Server...")
+    print("[dienst] Setup startet...")
     for guild in bot.guilds:
-        for cfg in DIENST_CONFIG:
-            try:
-                channel = guild.get_channel(cfg["channel_id"])
-                if not channel:
-                    print(f"[dienst] ❌ Channel {cfg['channel_id']} ({cfg['name']}) nicht gefunden!")
+        try:
+            channel = guild.get_channel(DIENST_CHANNEL_ID)
+            if not channel:
+                print(f"[dienst] ❌ Channel {DIENST_CHANNEL_ID} nicht gefunden!")
+                continue
+
+            msg_ids = load_msg_ids()
+            msg_id  = msg_ids.get("unified")
+            embed   = _build_unified_embed(guild)
+            view    = DienstUnifiedView()
+
+            if msg_id:
+                try:
+                    msg = await channel.fetch_message(int(msg_id))
+                    await msg.edit(embed=embed, view=view)
+                    print(f"[dienst] ✅ Unified Embed aktualisiert (ID {msg_id})")
                     continue
+                except discord.NotFound:
+                    print("[dienst] ⚠️ Embed nicht mehr vorhanden — sende neu.")
+                    msg_ids.pop("unified", None)
+                    save_msg_ids(msg_ids)
+                except Exception as e:
+                    print(f"[dienst] ⚠️ Edit-Fehler: {e}")
 
-                msg_ids = load_msg_ids()
-                msg_id  = msg_ids.get(cfg["faction"])
+            msg = await channel.send(embed=embed, view=view)
+            msg_ids["unified"] = str(msg.id)
+            save_msg_ids(msg_ids)
+            print(f"[dienst] ✅ Unified Embed gepostet in #{channel.name} (ID {msg.id})")
 
-                # Schon vorhanden → nur View neu registrieren + Embed aktualisieren
-                if msg_id:
-                    try:
-                        msg = await channel.fetch_message(int(msg_id))
-                        embed = _build_dienst_embed(guild, cfg)
-                        view  = DienstView(cfg["faction"], cfg)
-                        await msg.edit(embed=embed, view=view)
-                        print(f"[dienst] ✅ {cfg['name']} Embed aktualisiert (ID {msg_id})")
-                        continue
-                    except discord.NotFound:
-                        print(f"[dienst] ⚠️ {cfg['name']} Embed (ID {msg_id}) nicht mehr vorhanden — sende neu.")
-                        msg_ids.pop(cfg["faction"], None)
-                        save_msg_ids(msg_ids)
-                    except Exception as e:
-                        print(f"[dienst] ⚠️ {cfg['name']} Edit-Fehler: {e}")
-
-                embed = _build_dienst_embed(guild, cfg)
-                view  = DienstView(cfg["faction"], cfg)
-                msg   = await channel.send(embed=embed, view=view)
-                msg_ids = load_msg_ids()
-                msg_ids[cfg["faction"]] = str(msg.id)
-                save_msg_ids(msg_ids)
-                print(f"[dienst] ✅ {cfg['name']} Embed gepostet in #{channel.name} (ID {msg.id})")
-
-            except Exception as e:
-                print(f"[dienst] ❌ Fehler bei {cfg['name']}: {e}")
+        except Exception as e:
+            print(f"[dienst] ❌ Fehler: {e}")
