@@ -155,13 +155,7 @@ class AuszahlenModal(discord.ui.Modal, title="💸 Auszahlen"):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-class UeberweisungsModal(discord.ui.Modal, title="💳 Überweisen"):
-    empfaenger_input = discord.ui.TextInput(
-        label="Empfänger (User-ID oder @Mention)",
-        placeholder="z. B. 123456789012345678",
-        min_length=1,
-        max_length=30,
-    )
+class UeberweisungsBetragModal(discord.ui.Modal, title="💳 Überweisen"):
     betrag_input = discord.ui.TextInput(
         label="Betrag (💵)",
         placeholder="z. B. 5000",
@@ -169,33 +163,14 @@ class UeberweisungsModal(discord.ui.Modal, title="💳 Überweisen"):
         max_length=12,
     )
 
+    def __init__(self, ziel: discord.Member):
+        super().__init__()
+        self.ziel = ziel
+
     async def on_submit(self, interaction: discord.Interaction):
         betrag = parse_betrag(self.betrag_input.value)
         if betrag is None or betrag <= 0:
             await interaction.response.send_message("❌ Ungültiger Betrag.", ephemeral=True)
-            return
-
-        # Mention oder reine ID parsen
-        raw = self.empfaenger_input.value.strip().lstrip("<@!").rstrip(">")
-        try:
-            ziel_id = int(raw)
-        except ValueError:
-            await interaction.response.send_message(
-                "❌ Ungültige User-ID. Gib eine gültige ID oder einen @Mention ein.", ephemeral=True
-            )
-            return
-
-        if ziel_id == interaction.user.id:
-            await interaction.response.send_message(
-                "❌ Du kannst nicht an dich selbst überweisen.", ephemeral=True
-            )
-            return
-
-        ziel_member = interaction.guild.get_member(ziel_id)
-        if ziel_member is None:
-            await interaction.response.send_message(
-                "❌ Mitglied nicht gefunden. Bitte prüfe die User-ID.", ephemeral=True
-            )
             return
 
         role_ids = [r.id for r in interaction.user.roles]
@@ -207,7 +182,7 @@ class UeberweisungsModal(discord.ui.Modal, title="💳 Überweisen"):
 
         eco      = load_economy()
         sender   = get_user(eco, interaction.user.id)
-        receiver = get_user(eco, ziel_id)
+        receiver = get_user(eco, self.ziel.id)
         reset_daily_if_needed(sender)
 
         if sender["bank"] < betrag:
@@ -234,14 +209,14 @@ class UeberweisungsModal(discord.ui.Modal, title="💳 Überweisen"):
         await log_money_action(
             interaction.guild,
             "Überweisung",
-            f"**Von:** {interaction.user.mention} → **An:** {ziel_member.mention}\n"
+            f"**Von:** {interaction.user.mention} → **An:** {self.ziel.mention}\n"
             f"**Betrag:** {betrag:,} 💵 | **Sender-Bank danach:** {sender['bank']:,} 💵"
         )
 
         embed = discord.Embed(
-            title="💳 Überweisung",
+            title="💳 Überweisung erfolgreich",
             description=(
-                f"**An:** {ziel_member.mention}\n"
+                f"**An:** {self.ziel.mention}\n"
                 f"**Betrag:** {betrag:,} 💵\n"
                 f"**Dein Kontostand:** {sender['bank']:,} 💵"
             ),
@@ -249,6 +224,27 @@ class UeberweisungsModal(discord.ui.Modal, title="💳 Überweisen"):
             timestamp=datetime.now(timezone.utc)
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class EmpfaengerAuswahlView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=60)
+
+    @discord.ui.select(
+        cls=discord.ui.UserSelect,
+        placeholder="Empfänger auswählen...",
+        min_values=1,
+        max_values=1,
+    )
+    async def select_empfaenger(self, interaction: discord.Interaction, select: discord.ui.UserSelect):
+        ziel = select.values[0]
+        if ziel.bot:
+            await interaction.response.send_message("❌ Du kannst nicht an einen Bot überweisen.", ephemeral=True)
+            return
+        if ziel.id == interaction.user.id:
+            await interaction.response.send_message("❌ Du kannst nicht an dich selbst überweisen.", ephemeral=True)
+            return
+        await interaction.response.send_modal(UeberweisungsBetragModal(ziel))
 
 
 # ── Kontostand View (Buttons) ─────────────────────────────────
@@ -276,7 +272,11 @@ class KontostandView(discord.ui.View):
         if not has_citizen_or_wage(interaction.user) and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
             await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
             return
-        await interaction.response.send_modal(UeberweisungsModal())
+        await interaction.response.send_message(
+            "**💳 An wen möchtest du überweisen?**\nWähle den Empfänger aus der Liste:",
+            view=EmpfaengerAuswahlView(),
+            ephemeral=True,
+        )
 
 
 # ── /lohn-abholen ─────────────────────────────────────────────
