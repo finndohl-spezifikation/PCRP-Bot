@@ -29,8 +29,8 @@ def _build_boost_embed(image_url: str | None = None) -> discord.Embed:
     embed = discord.Embed(
         title="💎 Boost Belohnungen",
         description=(
-            "*Pro Boost 5.000 $*\n\n"
-            "*Ab 5 Boosts 1 Sportwagen deiner Wahl dazu*"
+            "**Pro Boost 5.000 $**\n\n"
+            "**Ab 5 Boosts 1 Sportwagen deiner Wahl dazu**"
         ),
         color=BOOST_COLOR,
     )
