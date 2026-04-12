@@ -59,6 +59,7 @@ import bingo                   # Wöchentliches Bingo-System
 import startinfo               # "Wo starte ich?" Embed
 import starterpaket            # Starter Paket Embed
 import vorschlag               # Vorschlag-System
+import auto_geben              # Fahrzeug-Vergabe-System
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
