@@ -233,11 +233,19 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
 # /item-add (Admin only)
 @bot.tree.command(name="item-add", description="[Admin] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(administrator=True)
-@app_commands.describe(nutzer="Spieler", itemname="Itemname (muss im Shop vorhanden sein)")
+@app_commands.describe(
+    nutzer="Spieler",
+    itemname="Itemname (muss im Shop vorhanden sein)",
+    menge="Anzahl (Standard: 1)",
+)
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
-async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
+async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str, menge: int = 1):
     if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    if menge < 1:
+        await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
         return
 
     shop_items = load_shop()
@@ -254,7 +262,7 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
     user_data = get_user(eco, nutzer.id)
     if "inventory" not in user_data:
         user_data["inventory"] = []
-    user_data["inventory"].append(shop_item["name"])
+    user_data["inventory"].extend([shop_item["name"]] * menge)
     save_economy(eco)
 
     if normalize_item_name(shop_item["name"]) == normalize_item_name(HANDY_ITEM_NAME):
@@ -265,6 +273,7 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
         description=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Item:** {shop_item['name']}\n"
+            f"**Menge:** {menge}×\n"
             f"**Vergeben von:** {interaction.user.mention}"
         ),
         color=LOG_COLOR,
@@ -305,4 +314,4 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
             timestamp=datetime.now(timezone.utc)
         ),
         ephemeral=True
-    )
+        )
