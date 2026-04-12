@@ -20,6 +20,7 @@ async def setup_all_embeds():
     from team_overview import auto_team_setup
     from boost         import auto_boost_setup
     from lotto         import auto_lotto_setup
+    from startinfo     import auto_startinfo_setup
 
     _setups = [
         ("ticket",        auto_ticket_setup),
@@ -31,6 +32,7 @@ async def setup_all_embeds():
         ("team_overview", auto_team_setup),
         ("boost",         auto_boost_setup),
         ("lotto",         auto_lotto_setup),
+        ("startinfo",     auto_startinfo_setup),
     ]
 
     for name, fn in _setups:
