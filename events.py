@@ -22,7 +22,7 @@ from einreise import EinreiseView, auto_einreise_setup, load_ausweis, save_auswe
 from casino import CasinoView, auto_casino_setup
 from dienst import DienstView, auto_dienst_setup, DIENST_CONFIG
 from team_overview import TeamOverviewView, auto_team_setup
-from embeds import auto_boost_setup
+from boost import auto_boost_setup
 
 
 
@@ -628,4 +628,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-)
+    )
