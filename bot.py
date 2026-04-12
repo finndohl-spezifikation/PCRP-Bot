@@ -54,6 +54,7 @@ import ic_actions               # /erste-hilfe, /ortung, /fesseln
 import ping_roles               # Ping-Rollen Auswahl-Embed
 import team_overview           # Team Übersicht mit On/Off Duty
 import boost                   # Boost Belohnungen Embed
+import lotto                   # Lotto-System
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
