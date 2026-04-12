@@ -11,7 +11,6 @@ LOTTO_CHANNEL_ID    = 1492636063817138216
 LOTTO_MSG_FILE      = DATA_DIR / "lotto_msg.json"
 LOTTO_TICKETS_FILE  = DATA_DIR / "lotto_tickets.json"
 LOTTO_ITEM_NAME     = "🎟| Lottoschein"
-LOTTO_VIP_ROLE_ID   = 1490855646558556282
 
 # Gewinn-Preise je Anzahl richtiger Zahlen
 LOTTO_PRIZES = {
@@ -25,10 +24,8 @@ LOTTO_PRIZES = {
 LOTTO_SUPERZAHL_PRIZE = 3_000_000
 
 # Gewinn-Wahrscheinlichkeiten
-WIN_CHANCE_NORMAL = 0.06   # 6 %  — normale Spieler
-WIN_CHANCE_VIP    = 0.20   # 20 % — VIP-Spieler
-SUPER_CHANCE_NORMAL = 0.001  # 0.1 %
-SUPER_CHANCE_VIP    = 0.004  # 0.4 %
+WIN_CHANCE   = 0.015   # 1.5 %
+SUPER_CHANCE = 0.0002  # 0.02 %
 
 # Verteilung der Gewinn-Tiers (1–6 Richtige), wenn Sieg-Roll bestanden
 WIN_TIER_WEIGHTS = [50, 25, 13, 7, 3, 2]   # gewichtet für 1,2,3,4,5,6 Richtige
@@ -70,14 +67,14 @@ def _save_tickets(data: dict):
 
 # ── Gewinn-Logik ──────────────────────────────────────────────
 
-def _evaluate_ticket(numbers: list[int], superzahl: int, is_vip: bool) -> dict:
+def _evaluate_ticket(numbers: list[int], superzahl: int) -> dict:
     """
     Gibt zurück: {"correct": int, "superzahl_win": bool, "prize": int,
                   "drawn_numbers": list, "drawn_super": int}
     correct=0 und superzahl_win=False bedeutet Niete.
     """
-    win_chance   = WIN_CHANCE_VIP    if is_vip else WIN_CHANCE_NORMAL
-    super_chance = SUPER_CHANCE_VIP  if is_vip else SUPER_CHANCE_NORMAL
+    win_chance   = WIN_CHANCE
+    super_chance = SUPER_CHANCE
 
     # Superzahl-Ziehung (unabhängig)
     drawn_super    = random.randint(1, 10)
@@ -331,8 +328,7 @@ async def _run_draw(guild: discord.Guild):
             except Exception:
                 continue
 
-        is_vip = any(r.id == LOTTO_VIP_ROLE_ID for r in member.roles)
-        result = _evaluate_ticket(ticket["numbers"], ticket["superzahl"], is_vip)
+        result = _evaluate_ticket(ticket["numbers"], ticket["superzahl"])
 
         if result["prize"] <= 0:
             continue
@@ -420,13 +416,11 @@ async def lotto_draw_loop():
 @app_commands.describe(
     zahlen="6 Zahlen (1–100), durch Komma getrennt",
     superzahl="Superzahl (1–10)",
-    vip="Als VIP-Spieler testen?",
 )
 async def lotto_test(
     interaction: discord.Interaction,
     zahlen: str,
     superzahl: int,
-    vip: bool = False,
 ):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
@@ -449,13 +443,12 @@ async def lotto_test(
         await interaction.response.send_message("❌ Superzahl muss zwischen 1 und 10 liegen.", ephemeral=True)
         return
 
-    result = _evaluate_ticket(nums, superzahl, is_vip=vip)
+    result = _evaluate_ticket(nums, superzahl)
 
     drawn_str  = ", ".join(str(n) for n in result["drawn_numbers"])
     player_str = ", ".join(str(n) for n in sorted(nums))
 
     desc_parts = [
-        f"**Modus:** {'👑 VIP' if vip else '👤 Normal'}",
         f"**Deine Zahlen:** {player_str}",
         f"**Gezogene Zahlen:** {drawn_str}",
         f"**Superzahl:** {superzahl} (gezogen: {result['drawn_super']})",
