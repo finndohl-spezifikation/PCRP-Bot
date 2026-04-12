@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
-# casino.py — Rubbellos-System
+# casino.py — Rubbellos-System (interaktives Rubbeln)
 # Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════
 
@@ -18,6 +18,7 @@ CASINO_PRIZES = [
     {
         "id":           "niete",
         "label":        "❌  Niete",
+        "symbol":       "❌",
         "weight":       30,
         "typ":          "niete",
         "beschreibung": "Leider eine **Niete** — vielleicht beim nächsten Mal!",
@@ -25,6 +26,7 @@ CASINO_PRIZES = [
     {
         "id":           "geld1k",
         "label":        "💵  1.000 $",
+        "symbol":       "💵 1K",
         "weight":       10,
         "typ":          "geld",
         "betrag":       1_000,
@@ -33,6 +35,7 @@ CASINO_PRIZES = [
     {
         "id":           "geld2500",
         "label":        "💵  2.500 $",
+        "symbol":       "💵 2.5K",
         "weight":       20,
         "typ":          "geld",
         "betrag":       2_500,
@@ -41,6 +44,7 @@ CASINO_PRIZES = [
     {
         "id":           "geld5k",
         "label":        "💰  5.000 $",
+        "symbol":       "💰 5K",
         "weight":       5,
         "typ":          "geld",
         "betrag":       5_000,
@@ -49,6 +53,7 @@ CASINO_PRIZES = [
     {
         "id":           "geld10k",
         "label":        "💰  10.000 $",
+        "symbol":       "💰 10K",
         "weight":       5,
         "typ":          "geld",
         "betrag":       10_000,
@@ -57,6 +62,7 @@ CASINO_PRIZES = [
     {
         "id":           "geld25k",
         "label":        "🤑  25.000 $",
+        "symbol":       "🤑 25K",
         "weight":       2,
         "typ":          "geld",
         "betrag":       25_000,
@@ -65,6 +71,7 @@ CASINO_PRIZES = [
     {
         "id":           "marlboro",
         "label":        "🚬  10× Marlboro Rot",
+        "symbol":       "🚬",
         "weight":       8,
         "typ":          "item",
         "item":         "🚬| Marlboro Rot",
@@ -74,6 +81,7 @@ CASINO_PRIZES = [
     {
         "id":           "efahrrad",
         "label":        "🚲  Elektro Fahrrad",
+        "symbol":       "🚲",
         "weight":       3,
         "typ":          "item",
         "item":         "🚲| Elektro Fahrrad",
@@ -83,6 +91,7 @@ CASINO_PRIZES = [
     {
         "id":           "golfschlaeger",
         "label":        "🏌️  Golfschläger",
+        "symbol":       "🏌️",
         "weight":       7,
         "typ":          "item",
         "item":         "🏌️| Golfschläger",
@@ -92,6 +101,7 @@ CASINO_PRIZES = [
     {
         "id":           "lottolos",
         "label":        "🎰  Lottolos",
+        "symbol":       "🎰",
         "weight":       5,
         "typ":          "item",
         "item":         "🎰| Lottolos",
@@ -101,6 +111,7 @@ CASINO_PRIZES = [
     {
         "id":           "autohaus",
         "label":        "🚘  20% Gutschein Autohaus",
+        "symbol":       "🚘",
         "weight":       5,
         "typ":          "item",
         "item":         "🚘| 20% Autohaus Gutschein",
@@ -108,6 +119,9 @@ CASINO_PRIZES = [
         "beschreibung": "**1× 🚘| 20% Autohaus Gutschein** wurde deinem Inventar hinzugefügt!",
     },
 ]
+
+# Füller-Symbole für Felder, die nicht den Gewinn zeigen
+_FILLER_SYMBOLS = ["⭐", "🍀", "💎", "🌟", "🎲", "🃏", "🌈", "🔮", "🎯"]
 
 
 def _ensure_casino_shop_items():
@@ -123,29 +137,188 @@ def _pick_prize() -> dict:
     return random.choices(CASINO_PRIZES, weights=weights, k=1)[0]
 
 
-def _build_result_embed(gewinn: dict, member: discord.Member, color: int) -> discord.Embed:
-    lines = []
-    for p in CASINO_PRIZES:
-        if p["id"] == gewinn["id"]:
-            lines.append(f"➤ **{p['label']}** ⬅")
-        else:
-            lines.append(f"　 {p['label']}")
-    body = "\n".join(lines)
+def _generate_card_values(prize: dict) -> list[str]:
+    """
+    Erstellt 9 Feld-Symbole für das Rubbellos.
+    Gewinn-Symbol erscheint genau 3× (bei Niete 0×).
+    Restliche Felder werden mit zufälligen Füller-Symbolen befüllt.
+    """
+    if prize["typ"] == "niete":
+        # Niete: 9 verschiedene Füller, kein dreifach gleiches Symbol
+        pool  = _FILLER_SYMBOLS.copy()
+        cells = []
+        while len(cells) < 9:
+            random.shuffle(pool)
+            cells.extend(pool[:9])
+        cells = cells[:9]
+        # Sicherheit: keine 3 gleichen
+        from collections import Counter
+        for sym, cnt in Counter(cells).items():
+            while Counter(cells)[sym] >= 3:
+                for i in range(9):
+                    if cells[i] == sym:
+                        replacement = random.choice([s for s in _FILLER_SYMBOLS if s != sym])
+                        cells[i] = replacement
+                        break
+        return cells
+    else:
+        # Gewinn: Gewinn-Symbol 3× + 6 zufällige Füller
+        win_sym = prize["symbol"]
+        fillers = random.choices(
+            [s for s in _FILLER_SYMBOLS if s != win_sym], k=6
+        )
+        cells = [win_sym, win_sym, win_sym] + fillers
+        random.shuffle(cells)
+        return cells
 
-    embed = discord.Embed(
-        title="🎟️ Rubbellos — Ergebnis",
-        description=(
-            f"{body}\n\n"
-            "──────────────────────\n"
-            f"🎯 **Dein Gewinn:**\n{gewinn['beschreibung']}"
-        ),
-        color=color,
-        timestamp=datetime.now(timezone.utc),
-    )
-    embed.set_thumbnail(url=member.display_avatar.url)
-    embed.set_footer(text=f"{member.display_name} • Nur du siehst diese Nachricht")
+
+def _build_scratch_embed(
+    revealed: list[bool],
+    values: list[str],
+    done: bool = False,
+    prize: dict | None = None,
+    member: discord.Member | None = None,
+) -> discord.Embed:
+    remaining = revealed.count(False)
+
+    if done and prize:
+        if prize["typ"] == "niete":
+            color = 0xFF4444
+            title = "🎟️ Rubbellos — Leider Niete!"
+        else:
+            color = 0x2ECC71
+            title = "🎟️ Rubbellos — Gewonnen!"
+        desc = (
+            f"🎯 **Ergebnis:** {prize['beschreibung']}"
+        )
+    else:
+        color = 0xE67E22
+        title = "🎟️ Rubbellos — Rubbele alle Felder frei!"
+        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} übrig — klick die 🎫 Buttons!"
+
+    embed = discord.Embed(title=title, description=desc, color=color,
+                          timestamp=datetime.now(timezone.utc))
+    if member:
+        embed.set_thumbnail(url=member.display_avatar.url)
+        embed.set_footer(text=f"{member.display_name} • Nur du siehst diese Nachricht")
     return embed
 
+
+# ── Scratch-Button ────────────────────────────────────────────
+
+class ScratchButton(discord.ui.Button):
+    def __init__(self, index: int, row_num: int):
+        super().__init__(
+            label="🎫",
+            style=discord.ButtonStyle.secondary,
+            row=row_num,
+            custom_id=f"scratch_cell:{index}:{uuid.uuid4().hex[:8]}",
+        )
+        self.cell_index = index
+
+    async def callback(self, interaction: discord.Interaction):
+        view: ScratchCardView = self.view
+
+        if interaction.user.id != view.owner_id:
+            await interaction.response.send_message(
+                "❌ Das ist nicht dein Rubbellos!", ephemeral=True
+            )
+            return
+
+        if view.revealed[self.cell_index]:
+            await interaction.response.defer()
+            return
+
+        # Feld aufdecken
+        view.revealed[self.cell_index] = True
+        sym = view.values[self.cell_index]
+
+        self.label    = sym
+        self.disabled = True
+        self.style    = (
+            discord.ButtonStyle.success
+            if sym not in ("❌", *_FILLER_SYMBOLS)
+            else discord.ButtonStyle.secondary
+        )
+
+        all_done = all(view.revealed)
+        embed = _build_scratch_embed(
+            view.revealed,
+            view.values,
+            done=all_done,
+            prize=view.prize if all_done else None,
+            member=interaction.user,
+        )
+
+        if all_done:
+            # Alle Buttons deaktivieren
+            for item in view.children:
+                item.disabled = True
+            view.stop()
+
+            # Gewinn auszahlen & loggen
+            await _payout_and_log(interaction, view.prize)
+
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class ScratchCardView(discord.ui.View):
+    def __init__(self, values: list[str], prize: dict, owner_id: int):
+        super().__init__(timeout=300)
+        self.values   = values
+        self.prize    = prize
+        self.owner_id = owner_id
+        self.revealed = [False] * 9
+
+        for i in range(9):
+            self.add_item(ScratchButton(index=i, row_num=i // 3))
+
+
+async def _payout_and_log(interaction: discord.Interaction, prize: dict):
+    member = interaction.user
+    eco    = load_economy()
+    user_data = get_user(eco, member.id)
+    now = datetime.now(timezone.utc)
+
+    if prize["typ"] == "geld":
+        user_data["bank"] = user_data.get("bank", 0) + prize["betrag"]
+        save_economy(eco)
+
+    elif prize["typ"] == "item":
+        inventory = user_data.setdefault("inventory", [])
+        inventory.extend([prize["item"]] * prize["menge"])
+        save_economy(eco)
+
+    elif prize["typ"] == "sportwagen":
+        save_economy(eco)
+
+    else:
+        save_economy(eco)
+
+    log_ch = interaction.guild.get_channel(CASINO_LOG_CHANNEL_ID)
+    if log_ch:
+        log_color = (
+            0xFFD700 if prize["typ"] == "sportwagen"
+            else (0xFF4444 if prize["typ"] == "niete" else 0xE67E22)
+        )
+        log_embed = discord.Embed(
+            title="🎟️ Rubbellos — Gewinn",
+            description=(
+                f"**Spieler:** {member.mention} (`{member}`)\n"
+                f"**Gewinn:** {prize['label'].strip()}\n"
+                f"**Zeit:** <t:{int(now.timestamp())}:F>"
+            ),
+            color=log_color,
+            timestamp=now,
+        )
+        log_embed.set_thumbnail(url=member.display_avatar.url)
+        try:
+            await log_ch.send(embed=log_embed)
+        except Exception:
+            pass
+
+
+# ── Haupt-Button im Casino-Channel ────────────────────────────
 
 class CasinoView(discord.ui.View):
     def __init__(self):
@@ -183,63 +356,24 @@ class CasinoView(discord.ui.View):
             )
             return
 
+        # Rubbellos aus Inventar entfernen & Gewinn vorab bestimmen
         inventory.pop(idx)
+        save_economy(eco)
 
-        gewinn = _pick_prize()
-        now    = datetime.now(timezone.utc)
+        prize  = _pick_prize()
+        values = _generate_card_values(prize)
 
-        if gewinn["typ"] == "geld":
-            user_data["bank"] = user_data.get("bank", 0) + gewinn["betrag"]
-            save_economy(eco)
-            result_color = 0x2ECC71
+        view  = ScratchCardView(values=values, prize=prize, owner_id=member.id)
+        embed = _build_scratch_embed(
+            revealed=[False] * 9,
+            values=values,
+            member=member,
+        )
 
-        elif gewinn["typ"] == "item":
-            _ensure_casino_shop_items()
-            inventory.extend([gewinn["item"]] * gewinn["menge"])
-            save_economy(eco)
-            result_color = 0x2ECC71
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-        elif gewinn["typ"] == "sportwagen":
-            save_economy(eco)
-            result_color = 0xFFD700
-            ticket_ch      = interaction.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
-            ticket_mention = ticket_ch.mention if ticket_ch else f"<#{TICKET_SETUP_CHANNEL_ID}>"
-            gewinn = dict(gewinn)
-            gewinn["beschreibung"] = (
-                f"🏆 **HAUPTGEWINN!** 🏆\n"
-                f"Du hast einen **Sportwagen deiner Wahl** (bis 200.000 $) gewonnen!\n\n"
-                f"Bitte erstelle ein Ticket in {ticket_mention} um deinen Gewinn abzuholen!"
-            )
 
-        else:
-            save_economy(eco)
-            result_color = 0xFF4444
-
-        result_embed = _build_result_embed(gewinn, member, result_color)
-        await interaction.response.send_message(embed=result_embed, ephemeral=True)
-
-        log_ch = interaction.guild.get_channel(CASINO_LOG_CHANNEL_ID)
-        if log_ch:
-            log_color = (
-                0xFFD700 if gewinn["typ"] == "sportwagen"
-                else (0xFF4444 if gewinn["typ"] == "niete" else 0xE67E22)
-            )
-            log_embed = discord.Embed(
-                title="🎟️ Rubbellos — Gewinn",
-                description=(
-                    f"**Spieler:** {member.mention} (`{member}`)\n"
-                    f"**Gewinn:** {gewinn['label'].strip()}\n"
-                    f"**Zeit:** <t:{int(now.timestamp())}:F>"
-                ),
-                color=log_color,
-                timestamp=now,
-            )
-            log_embed.set_thumbnail(url=member.display_avatar.url)
-            try:
-                await log_ch.send(embed=log_embed)
-            except Exception:
-                pass
-
+# ── Embed-Setup im Casino-Channel ─────────────────────────────
 
 _CASINO_MSG_FILE = DATA_DIR / "casino_msg.json"
 
@@ -270,7 +404,7 @@ async def auto_casino_setup():
                 "──────────────────────\n"
                 f"🛒 **Kaufe ein Rubbellos** im Shop für **{RUBBELLOS_PREIS:,} $**.\n"
                 "🎟️ **Drücke den Button** um dein Rubbellos einzulösen.\n\n"
-                "💡 *Gewinne landen automatisch in deinem Inventar oder auf deinem Bankkonto.*\n"
+                "💡 *Rubbele alle 9 Felder frei — 3× dasselbe Symbol = Gewinn!*\n"
                 "🏆 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
             ),
             color=0xE67E22,
@@ -283,7 +417,6 @@ async def auto_casino_setup():
         embed.set_footer(text="Paradise City Roleplay — Rubbellose • Viel Glück! 🍀")
         view = CasinoView()
 
-        # Bestehende Nachricht bearbeiten
         mid = _load_casino_msg_id()
         if mid:
             try:
@@ -294,7 +427,6 @@ async def auto_casino_setup():
             except Exception:
                 pass
 
-        # Neu senden und ID speichern
         try:
             new_msg = await channel.send(embed=embed, view=view)
             _save_casino_msg_id(new_msg.id)
