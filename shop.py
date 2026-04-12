@@ -80,9 +80,6 @@ def _build_shop_embed(shop_key: str, member: discord.Member) -> discord.Embed:
         lines = []
         for item in filtered:
             line = f"**{item['name']}** — {item['price']:,} 💵"
-            if item.get("allowed_role"):
-                r = member.guild.get_role(item["allowed_role"])
-                line += f" *(nur {r.mention if r else 'bestimmte Rolle'})*"
             lines.append(line)
         embed.description = "\n".join(lines)
     else:
