@@ -26,22 +26,21 @@ def save_duty(data):
 def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     on_duty_set = set(duty_data.get("on_duty", []))
 
-    lines      = []
-    gesamt     = 0
-    on_count   = 0
-    off_count  = 0
+    lines     = []
+    gesamt    = 0
+    on_count  = 0
+    off_count = 0
 
-    for label, role_id in TEAM_ROLES:
+    for role_id in TEAM_ROLES:
         role = guild.get_role(role_id)
         if not role:
             continue
 
         mitglieder = [m for m in role.members if not m.bot]
         if not mitglieder:
-            lines.append(f"\n**{label}**\n> *Keine Mitglieder*\n")
             continue
 
-        lines.append(f"\n**{label}**")
+        lines.append(f"\n**{role.name}**")
         for m in sorted(mitglieder, key=lambda x: x.display_name.lower()):
             if m.id in on_duty_set:
                 lines.append(f"> {m.mention} 🟢")
@@ -76,8 +75,7 @@ class TeamOverviewView(discord.ui.View):
         super().__init__(timeout=None)
 
     def _is_team(self, member: discord.Member) -> bool:
-        ids = {r.id for r in member.roles}
-        return ADMIN_ROLE_ID in ids or MOD_ROLE_ID in ids
+        return any(r.id in TEAM_ROLE_IDS for r in member.roles)
 
     async def _update_embed(self, interaction: discord.Interaction):
         duty_data = load_duty()
@@ -96,7 +94,7 @@ class TeamOverviewView(discord.ui.View):
     async def on_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_team(interaction.user):
             await interaction.response.send_message(
-                "❌ Nur Moderatoren und Admins können ihren Dienststatus ändern.",
+                "❌ Nur Teammitglieder können ihren Dienststatus ändern.",
                 ephemeral=True,
             )
             return
@@ -121,7 +119,7 @@ class TeamOverviewView(discord.ui.View):
     async def off_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_team(interaction.user):
             await interaction.response.send_message(
-                "❌ Nur Moderatoren und Admins können ihren Dienststatus ändern.",
+                "❌ Nur Teammitglieder können ihren Dienststatus ändern.",
                 ephemeral=True,
             )
             return
@@ -150,7 +148,7 @@ async def auto_team_setup():
         embed     = build_team_embed(guild, duty_data)
         view      = TeamOverviewView()
 
-        # Vorhandene Team-Übersicht suchen und bearbeiten
+        # Vorhandene Nachricht bearbeiten
         if duty_data.get("message_id"):
             try:
                 msg = await channel.fetch_message(duty_data["message_id"])
@@ -160,7 +158,7 @@ async def auto_team_setup():
             except Exception:
                 pass
 
-        # Altes Embed löschen falls vorhanden
+        # Altes Embed suchen und löschen
         try:
             async for msg in channel.history(limit=20):
                 if msg.author.id == bot.user.id and msg.embeds:
@@ -193,7 +191,7 @@ async def auto_team_setup():
 )
 @app_commands.default_permissions(manage_messages=True)
 async def team_refresh(interaction: discord.Interaction):
-    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+    if not any(r.id in TEAM_ROLE_IDS for r in interaction.user.roles):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
