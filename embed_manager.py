@@ -8,34 +8,32 @@
 # Neue Embeds hier eintragen — events.py bleibt sauber.
 # ══════════════════════════════════════════════════════════════
 
-from ticket       import auto_ticket_setup, auto_lohnliste_setup
-from handy        import auto_handy_setup
-from einreise     import auto_einreise_setup
-from casino       import auto_casino_setup
-from dienst       import auto_dienst_setup
-from team_overview import auto_team_setup
-from boost        import auto_boost_setup
-from lotto        import auto_lotto_setup
-
-
-# ── Alle Embeds in fester Reihenfolge aufrufen ────────────────
-
-_SETUPS: list[tuple[str, object]] = [
-    ("ticket",        auto_ticket_setup),
-    ("lohnliste",     auto_lohnliste_setup),
-    ("einreise",      auto_einreise_setup),
-    ("handy",         auto_handy_setup),
-    ("casino",        auto_casino_setup),
-    ("dienst",        auto_dienst_setup),
-    ("team_overview", auto_team_setup),
-    ("boost",         auto_boost_setup),
-    ("lotto",         auto_lotto_setup),
-]
-
 
 async def setup_all_embeds():
     """Richtet alle persistenten Channel-Embeds ein."""
-    for name, fn in _SETUPS:
+
+    from ticket        import auto_ticket_setup, auto_lohnliste_setup
+    from handy         import auto_handy_setup
+    from einreise      import auto_einreise_setup
+    from casino        import auto_casino_setup
+    from dienst        import auto_dienst_setup
+    from team_overview import auto_team_setup
+    from boost         import auto_boost_setup
+    from lotto         import auto_lotto_setup
+
+    _setups = [
+        ("ticket",        auto_ticket_setup),
+        ("lohnliste",     auto_lohnliste_setup),
+        ("einreise",      auto_einreise_setup),
+        ("handy",         auto_handy_setup),
+        ("casino",        auto_casino_setup),
+        ("dienst",        auto_dienst_setup),
+        ("team_overview", auto_team_setup),
+        ("boost",         auto_boost_setup),
+        ("lotto",         auto_lotto_setup),
+    ]
+
+    for name, fn in _setups:
         try:
             await fn()
         except Exception as e:
