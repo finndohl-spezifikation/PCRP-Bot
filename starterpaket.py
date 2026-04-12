@@ -29,9 +29,9 @@ def _build_embed() -> discord.Embed:
         color=LOG_COLOR,
     )
 
-    # ── Einzeleinreise ───────────────────────────────────────
+    # ── Legale Einreise ──────────────────────────────────────
     embed.add_field(
-        name="👤 Einzeleinreise",
+        name="✅ Legale Einreise",
         value="\u200b",
         inline=False,
     )
@@ -42,12 +42,25 @@ def _build_embed() -> discord.Embed:
     )
     embed.add_field(
         name="🚗 Startfahrzeug",
-        value=(
-            "> **Declasse Voodoo**\n"
-            "> *(Standard — keine Tuning-Optionen)*\n"
-            "> **oder**\n"
-            "> **BMX Fahrrad**"
-        ),
+        value="> **Declasse Rhapsody**",
+        inline=True,
+    )
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
+
+    # ── Illegale Einreise ────────────────────────────────────
+    embed.add_field(
+        name="🚫 Illegale Einreise",
+        value="\u200b",
+        inline=False,
+    )
+    embed.add_field(
+        name="💰 Startgeld",
+        value="> 5.000 $",
+        inline=True,
+    )
+    embed.add_field(
+        name="🚗 Startfahrzeug",
+        value="> **Karin Kuruma**",
         inline=True,
     )
     embed.add_field(name="\u200b", value="\u200b", inline=False)
@@ -60,24 +73,13 @@ def _build_embed() -> discord.Embed:
     )
     embed.add_field(
         name="💰 Startgeld",
-        value="> 10.000 $",
+        value="> 10.000 $ *pro Person*",
         inline=True,
     )
     embed.add_field(
         name="🚗 Startfahrzeug",
-        value="> **Karin Kuruma**",
+        value="> **Enus Huntley S**",
         inline=True,
-    )
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-
-    # ── Hinweis ──────────────────────────────────────────────
-    embed.add_field(
-        name="⚠️ Hinweis",
-        value=(
-            "> Das Fahrzeug **Declasse Voodoo** wird ausschließlich im Standard-Zustand ausgegeben\n"
-            "> und darf keine Tuning-Optionen enthalten."
-        ),
-        inline=False,
     )
 
     embed.set_image(url=STARTERPAKET_IMG_URL)
