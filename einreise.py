@@ -238,24 +238,26 @@ class EinreiseView(discord.ui.View):
         self.add_item(EinreiseSelect())
 
 
+_EINREISE_MSG_FILE = DATA_DIR / "einreise_msg.json"
+
+def _load_einreise_msg_id() -> int | None:
+    if _EINREISE_MSG_FILE.exists():
+        try:
+            return json.load(open(_EINREISE_MSG_FILE))["message_id"]
+        except Exception:
+            pass
+    return None
+
+def _save_einreise_msg_id(mid: int):
+    with open(_EINREISE_MSG_FILE, "w") as f:
+        json.dump({"message_id": mid}, f)
+
 async def auto_einreise_setup():
     for guild in bot.guilds:
         channel = guild.get_channel(EINREISE_CHANNEL_ID)
         if not channel:
             continue
-        # Alte Einreise-Embeds löschen und neu posten (Rebranding)
-        try:
-            async for msg in channel.history(limit=20):
-                if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
-                        if emb.title and "Einreise" in emb.title:
-                            try:
-                                await msg.delete()
-                            except Exception:
-                                pass
-                            break
-        except Exception:
-            pass
+
         embed = discord.Embed(
             title="✈️ Einreise — Paradise City Roleplay",
             description=(
@@ -272,9 +274,24 @@ async def auto_einreise_setup():
             timestamp=datetime.now(timezone.utc)
         )
         embed.set_footer(text="Paradise City Roleplay — Einreisesystem")
+        view = EinreiseView()
+
+        # Bestehende Nachricht bearbeiten
+        mid = _load_einreise_msg_id()
+        if mid:
+            try:
+                msg = await channel.fetch_message(mid)
+                await msg.edit(embed=embed, view=view)
+                print(f"[einreise] Embed aktualisiert in #{channel.name}")
+                return
+            except Exception:
+                pass
+
+        # Neu senden und ID speichern
         try:
-            await channel.send(embed=embed, view=EinreiseView())
-            print(f"Einreise-Embed automatisch gepostet in #{channel.name}")
+            new_msg = await channel.send(embed=embed, view=view)
+            _save_einreise_msg_id(new_msg.id)
+            print(f"[einreise] Embed gepostet in #{channel.name}")
         except Exception as e:
             await log_bot_error("auto_einreise_setup fehlgeschlagen", str(e), guild)
 
