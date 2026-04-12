@@ -15,13 +15,153 @@ from economy_helpers import (
 from handy import give_handy_channel_access
 
 
+# ── Lager-Hilfsfunktionen ─────────────────────────────────────
+
+def _build_rucksack_embed(ziel: discord.Member, inventory: list) -> discord.Embed:
+    from collections import Counter
+    if not inventory:
+        desc = "*Dein Rucksack ist leer.*"
+    else:
+        counts = Counter(inventory)
+        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
+    embed = discord.Embed(
+        title=f"🎒 Rucksack von {ziel.display_name}",
+        description=desc,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_thumbnail(url=ziel.display_avatar.url)
+    return embed
+
+
+def _build_lager_embed(ziel: discord.Member, lager: list) -> discord.Embed:
+    from collections import Counter
+    if not lager:
+        desc = "*Dein Lager ist leer.*"
+    else:
+        counts = Counter(lager)
+        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
+    embed = discord.Embed(
+        title=f"🏠 Lager von {ziel.display_name}",
+        description=desc,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_thumbnail(url=ziel.display_avatar.url)
+    return embed
+
+
+class InLagerSelect(discord.ui.Select):
+    def __init__(self, user_id: int, inventory: list):
+        from collections import Counter
+        self.user_id = user_id
+        counts = Counter(inventory)
+        unique = list(counts.keys())[:25]
+        options = [
+            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{counts[item]} vorhanden")
+            for item in unique
+        ]
+        super().__init__(placeholder="Item auswählen…", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ Das ist nicht dein Rucksack.", ephemeral=True)
+            return
+        item = self.values[0]
+        eco       = load_economy()
+        user_data = get_user(eco, self.user_id)
+        inv       = user_data.get("inventory", [])
+        if item not in inv:
+            await interaction.response.send_message(f"❌ **{item}** ist nicht mehr in deinem Rucksack.", ephemeral=True)
+            return
+        inv.remove(item)
+        user_data.setdefault("lager", []).append(item)
+        save_economy(eco)
+        await interaction.response.send_message(
+            f"✅ **{item}** wurde ins **Lager** verschoben.", ephemeral=True
+        )
+
+
+class AusLagerSelect(discord.ui.Select):
+    def __init__(self, user_id: int, lager: list):
+        from collections import Counter
+        self.user_id = user_id
+        counts = Counter(lager)
+        unique = list(counts.keys())[:25]
+        options = [
+            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{counts[item]} im Lager")
+            for item in unique
+        ]
+        super().__init__(placeholder="Item auswählen…", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ Das ist nicht dein Lager.", ephemeral=True)
+            return
+        item = self.values[0]
+        eco       = load_economy()
+        user_data = get_user(eco, self.user_id)
+        lager     = user_data.get("lager", [])
+        if item not in lager:
+            await interaction.response.send_message(f"❌ **{item}** ist nicht mehr in deinem Lager.", ephemeral=True)
+            return
+        lager.remove(item)
+        user_data.setdefault("inventory", []).append(item)
+        save_economy(eco)
+        await interaction.response.send_message(
+            f"✅ **{item}** wurde in den **Rucksack** verschoben.", ephemeral=True
+        )
+
+
+class RucksackView(discord.ui.View):
+    def __init__(self, user_id: int, inventory: list):
+        super().__init__(timeout=120)
+        self.user_id   = user_id
+        self.inventory = inventory
+
+    @discord.ui.button(label="📦 In Lager legen", style=discord.ButtonStyle.secondary)
+    async def in_lager(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ Das ist nicht dein Rucksack.", ephemeral=True)
+            return
+        eco  = load_economy()
+        inv  = get_user(eco, self.user_id).get("inventory", [])
+        if not inv:
+            await interaction.response.send_message("❌ Dein Rucksack ist leer.", ephemeral=True)
+            return
+        view = discord.ui.View(timeout=60)
+        view.add_item(InLagerSelect(self.user_id, inv))
+        await interaction.response.send_message("Welches Item möchtest du ins Lager legen?", view=view, ephemeral=True)
+
+
+class LagerView(discord.ui.View):
+    def __init__(self, user_id: int, lager: list):
+        super().__init__(timeout=120)
+        self.user_id = user_id
+        self.lager   = lager
+
+    @discord.ui.button(label="🎒 In Rucksack nehmen", style=discord.ButtonStyle.secondary)
+    async def aus_lager(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ Das ist nicht dein Lager.", ephemeral=True)
+            return
+        eco   = load_economy()
+        lager = get_user(eco, self.user_id).get("lager", [])
+        if not lager:
+            await interaction.response.send_message("❌ Dein Lager ist leer.", ephemeral=True)
+            return
+        view = discord.ui.View(timeout=60)
+        view.add_item(AusLagerSelect(self.user_id, lager))
+        await interaction.response.send_message("Welches Item möchtest du in den Rucksack nehmen?", view=view, ephemeral=True)
+
+
 # /rucksack
 @bot.tree.command(name="rucksack", description="[Inventar] Zeige dein Inventar an", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Spieler dessen Inventar angezeigt werden soll")
 async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = None):
-    role_ids = [r.id for r in interaction.user.roles]
+    role_ids  = [r.id for r in interaction.user.roles]
     is_team_m = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
-    allowed  = is_team_m or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
+    allowed   = is_team_m or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
 
     if nutzer is not None:
         if not is_team_m:
@@ -44,21 +184,34 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
     user_data = get_user(eco, ziel.id)
     inventory = user_data.get("inventory", [])
 
-    if not inventory:
-        desc = f"*{'Dein' if ziel.id == interaction.user.id else ziel.display_name + 's'} Rucksack ist leer.*"
-    else:
-        from collections import Counter
-        counts = Counter(inventory)
-        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
+    embed = _build_rucksack_embed(ziel, inventory)
 
-    embed = discord.Embed(
-        title=f"🎒 Rucksack von {ziel.display_name}",
-        description=desc,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    embed.set_thumbnail(url=ziel.display_avatar.url)
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    # Lager-Button nur für den eigenen Rucksack anzeigen
+    if ziel.id == interaction.user.id:
+        view = RucksackView(interaction.user.id, inventory)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+    else:
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# /lager
+@bot.tree.command(name="lager", description="[Inventar] Zeige dein Lager an", guild=discord.Object(id=GUILD_ID))
+async def lager_cmd(interaction: discord.Interaction):
+    role_ids  = [r.id for r in interaction.user.roles]
+    is_team_m = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
+    allowed   = is_team_m or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
+
+    if not allowed:
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+    lager     = user_data.get("lager", [])
+
+    embed = _build_lager_embed(interaction.user, lager)
+    view  = LagerView(interaction.user.id, lager)
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 # /uebergeben
@@ -314,4 +467,4 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
             timestamp=datetime.now(timezone.utc)
         ),
         ephemeral=True
-    )
+                      )
