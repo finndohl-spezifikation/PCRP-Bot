@@ -120,8 +120,8 @@ CASINO_PRIZES = [
     },
 ]
 
-# Füller-Symbole für Felder, die nicht den Gewinn zeigen
-_FILLER_SYMBOLS = ["⭐", "🍀", "💎", "🌟", "🎲", "🃏", "🌈", "🔮", "🎯"]
+# Alle verfügbaren Symbole aus den Gewinnen (für Füller im Rubbelfeld)
+_ALL_SYMBOLS = [p["symbol"] for p in CASINO_PRIZES]  # 11 Symbole
 
 
 def _ensure_casino_shop_items():
@@ -140,36 +140,30 @@ def _pick_prize() -> dict:
 def _generate_card_values(prize: dict) -> list[str]:
     """
     Erstellt 9 Feld-Symbole für das Rubbellos.
-    Gewinn-Symbol erscheint genau 3× (bei Niete 0×).
-    Restliche Felder werden mit zufälligen Füller-Symbolen befüllt.
+    Nur echte Gewinn-Symbole werden verwendet.
+    Gewinn: Gewinn-Symbol genau 3× + 6 andere Symbole (max. 2× gleich).
+    Niete:  9 Symbole, kein Symbol 3× vorhanden.
     """
+    from collections import Counter
+
     if prize["typ"] == "niete":
-        # Niete: 9 verschiedene Füller, kein dreifach gleiches Symbol
-        pool  = _FILLER_SYMBOLS.copy()
-        cells = []
-        while len(cells) < 9:
-            random.shuffle(pool)
-            cells.extend(pool[:9])
-        cells = cells[:9]
-        # Sicherheit: keine 3 gleichen
-        from collections import Counter
-        for sym, cnt in Counter(cells).items():
-            while Counter(cells)[sym] >= 3:
-                for i in range(9):
-                    if cells[i] == sym:
-                        replacement = random.choice([s for s in _FILLER_SYMBOLS if s != sym])
-                        cells[i] = replacement
-                        break
-        return cells
+        # Alle Symbole außer Niete als mögliche Füller, max 2× das gleiche
+        pool = [s for s in _ALL_SYMBOLS if s != "❌"]
+        while True:
+            cells = random.choices(pool, k=9)
+            if max(Counter(cells).values()) <= 2:
+                return cells
     else:
-        # Gewinn: Gewinn-Symbol 3× + 6 zufällige Füller
         win_sym = prize["symbol"]
-        fillers = random.choices(
-            [s for s in _FILLER_SYMBOLS if s != win_sym], k=6
-        )
-        cells = [win_sym, win_sym, win_sym] + fillers
-        random.shuffle(cells)
-        return cells
+        others  = [s for s in _ALL_SYMBOLS if s != win_sym]
+        while True:
+            fillers = random.choices(others, k=6)
+            cells   = [win_sym, win_sym, win_sym] + fillers
+            # Sicherstellen, dass kein anderes Symbol auch 3× vorkommt
+            counts = Counter(fillers)
+            if max(counts.values()) <= 2:
+                random.shuffle(cells)
+                return cells
 
 
 def _build_scratch_embed(
@@ -235,11 +229,7 @@ class ScratchButton(discord.ui.Button):
 
         self.label    = sym
         self.disabled = True
-        self.style    = (
-            discord.ButtonStyle.success
-            if sym not in ("❌", *_FILLER_SYMBOLS)
-            else discord.ButtonStyle.secondary
-        )
+        self.style    = discord.ButtonStyle.secondary
 
         all_done = all(view.revealed)
         embed = _build_scratch_embed(
