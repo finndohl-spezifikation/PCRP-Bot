@@ -55,6 +55,7 @@ import ping_roles               # Ping-Rollen Auswahl-Embed
 import team_overview           # Team Übersicht mit On/Off Duty
 import boost                   # Boost Belohnungen Embed
 import lotto                   # Lotto-System
+import bingo                   # Wöchentliches Bingo-System
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
