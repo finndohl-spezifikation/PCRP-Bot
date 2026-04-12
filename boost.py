@@ -50,7 +50,7 @@ async def auto_boost_setup():
         if data.get("message_id"):
             try:
                 msg = await channel.fetch_message(data["message_id"])
-                await msg.edit(embed=_build_boost_embed(), view=discord.ui.View())
+                await msg.edit(embed=_build_boost_embed(), attachments=[], view=discord.ui.View())
                 print(f"[boost] Embed aktualisiert in #{channel.name}")
                 return
             except Exception:
