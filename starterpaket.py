@@ -8,7 +8,7 @@ from config import *
 
 STARTERPAKET_CHANNEL_ID = 1490878159804174470
 STARTERPAKET_MSG_FILE   = DATA_DIR / "starterpaket_msg.json"
-STARTERPAKET_IMG_URL    = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/starterpaket.png"
+STARTERPAKET_IMG_URL    = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/starterpaket.jpg"
 
 
 def _load_data() -> dict:
@@ -28,10 +28,17 @@ def _build_embed() -> discord.Embed:
         title="🎁 Starter Paket",
         color=LOG_COLOR,
     )
+
+    # ── Einzeleinreise ───────────────────────────────────────
+    embed.add_field(
+        name="👤 Einzeleinreise",
+        value="\u200b",
+        inline=False,
+    )
     embed.add_field(
         name="💰 Startgeld",
         value="> 5.000 $",
-        inline=False,
+        inline=True,
     )
     embed.add_field(
         name="🚗 Startfahrzeug",
@@ -41,16 +48,38 @@ def _build_embed() -> discord.Embed:
             "> **oder**\n"
             "> **BMX Fahrrad**"
         ),
+        inline=True,
+    )
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
+
+    # ── Gruppeneinreise ──────────────────────────────────────
+    embed.add_field(
+        name="👥 Gruppeneinreise *(ab 5 Personen)*",
+        value="\u200b",
         inline=False,
     )
     embed.add_field(
+        name="💰 Startgeld",
+        value="> 10.000 $",
+        inline=True,
+    )
+    embed.add_field(
+        name="🚗 Startfahrzeug",
+        value="> **Karin Kuruma**",
+        inline=True,
+    )
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
+
+    # ── Hinweis ──────────────────────────────────────────────
+    embed.add_field(
         name="⚠️ Hinweis",
         value=(
-            "> Das Fahrzeug **Declasse Voodoo** wird ausschließlich im Standard-Zustand ausgegeben.\n"
-            "> Es darf keine Tuning-Optionen enthalten."
+            "> Das Fahrzeug **Declasse Voodoo** wird ausschließlich im Standard-Zustand ausgegeben\n"
+            "> und darf keine Tuning-Optionen enthalten."
         ),
         inline=False,
     )
+
     embed.set_image(url=STARTERPAKET_IMG_URL)
     embed.set_footer(text="Paradise City Roleplay — Starter Paket")
     return embed
