@@ -16,23 +16,6 @@ RUBBELLOS_PREIS = 1_000
 
 CASINO_PRIZES = [
     {
-        "id":           "bier",
-        "label":        "🍺  10× Bier",
-        "weight":       45,
-        "typ":          "item",
-        "item":         "🍺| Bier",
-        "menge":        10,
-        "beschreibung": "**10× 🍺| Bier** wurden deinem Inventar hinzugefügt!",
-    },
-    {
-        "id":           "geld5k",
-        "label":        "💵  5.000 $",
-        "weight":       35,
-        "typ":          "geld",
-        "betrag":       5_000,
-        "beschreibung": "**5.000 $** wurden auf dein Bankkonto überwiesen!",
-    },
-    {
         "id":           "niete",
         "label":        "❌  Niete",
         "weight":       30,
@@ -40,37 +23,89 @@ CASINO_PRIZES = [
         "beschreibung": "Leider eine **Niete** — vielleicht beim nächsten Mal!",
     },
     {
+        "id":           "geld1k",
+        "label":        "💵  1.000 $",
+        "weight":       10,
+        "typ":          "geld",
+        "betrag":       1_000,
+        "beschreibung": "**1.000 $** wurden auf dein Bankkonto überwiesen!",
+    },
+    {
+        "id":           "geld2500",
+        "label":        "💵  2.500 $",
+        "weight":       20,
+        "typ":          "geld",
+        "betrag":       2_500,
+        "beschreibung": "**2.500 $** wurden auf dein Bankkonto überwiesen!",
+    },
+    {
+        "id":           "geld5k",
+        "label":        "💰  5.000 $",
+        "weight":       5,
+        "typ":          "geld",
+        "betrag":       5_000,
+        "beschreibung": "**5.000 $** wurden auf dein Bankkonto überwiesen!",
+    },
+    {
         "id":           "geld10k",
         "label":        "💰  10.000 $",
-        "weight":       25,
+        "weight":       5,
         "typ":          "geld",
         "betrag":       10_000,
         "beschreibung": "**10.000 $** wurden auf dein Bankkonto überwiesen!",
     },
     {
-        "id":           "taschenlampe",
-        "label":        "🔦  Taschenlampe",
-        "weight":       25,
-        "typ":          "item",
-        "item":         "🔦| Taschenlampe",
-        "menge":        1,
-        "beschreibung": "**1× 🔦| Taschenlampe** wurde deinem Inventar hinzugefügt!",
+        "id":           "geld25k",
+        "label":        "🤑  25.000 $",
+        "weight":       2,
+        "typ":          "geld",
+        "betrag":       25_000,
+        "beschreibung": "**25.000 $** wurden auf dein Bankkonto überwiesen!",
     },
     {
-        "id":           "koeder",
-        "label":        "🪱  10× Angel Köder",
-        "weight":       40,
+        "id":           "marlboro",
+        "label":        "🚬  10× Marlboro Rot",
+        "weight":       8,
         "typ":          "item",
-        "item":         "🪱| Angel Köder",
+        "item":         "🚬| Marlboro Rot",
         "menge":        10,
-        "beschreibung": "**10× 🪱| Angel Köder** wurden deinem Inventar hinzugefügt!",
+        "beschreibung": "**10× 🚬| Marlboro Rot** wurden deinem Inventar hinzugefügt!",
     },
     {
-        "id":           "sportwagen",
-        "label":        "🚗  SPORTWAGEN!",
+        "id":           "efahrrad",
+        "label":        "🚲  Elektro Fahrrad",
+        "weight":       3,
+        "typ":          "item",
+        "item":         "🚲| Elektro Fahrrad",
+        "menge":        1,
+        "beschreibung": "**1× 🚲| Elektro Fahrrad** wurde deinem Inventar hinzugefügt!",
+    },
+    {
+        "id":           "golfschlaeger",
+        "label":        "🏌️  Golfschläger",
+        "weight":       7,
+        "typ":          "item",
+        "item":         "🏌️| Golfschläger",
+        "menge":        1,
+        "beschreibung": "**1× 🏌️| Golfschläger** wurde deinem Inventar hinzugefügt!",
+    },
+    {
+        "id":           "lottolos",
+        "label":        "🎰  Lottolos",
         "weight":       5,
-        "typ":          "sportwagen",
-        "beschreibung": "🏆 **HAUPTGEWINN!** Du hast einen **Sportwagen** deiner Wahl (bis 200.000 $) gewonnen!",
+        "typ":          "item",
+        "item":         "🎰| Lottolos",
+        "menge":        1,
+        "beschreibung": "**1× 🎰| Lottolos** wurde deinem Inventar hinzugefügt!",
+    },
+    {
+        "id":           "autohaus",
+        "label":        "🚘  20% Gutschein Autohaus",
+        "weight":       5,
+        "typ":          "item",
+        "item":         "🚘| 20% Autohaus Gutschein",
+        "menge":        1,
+        "beschreibung": "**1× 🚘| 20% Autohaus Gutschein** wurde deinem Inventar hinzugefügt!",
     },
 ]
 
@@ -78,18 +113,8 @@ CASINO_PRIZES = [
 def _ensure_casino_shop_items():
     shop     = load_shop()
     existing = {normalize_item_name(i["name"]) for i in shop}
-    defaults = [
-        {"name": RUBBELLOS_ITEM,      "price": RUBBELLOS_PREIS},
-        {"name": "🔦| Taschenlampe",  "price": 500},
-        {"name": "🪱| Angel Köder",   "price": 500},
-        {"name": "🍺| Bier",          "price": 200},
-    ]
-    changed = False
-    for entry in defaults:
-        if normalize_item_name(entry["name"]) not in existing:
-            shop.append({"name": entry["name"], "price": entry["price"]})
-            changed = True
-    if changed:
+    if normalize_item_name(RUBBELLOS_ITEM) not in existing:
+        shop.append({"name": RUBBELLOS_ITEM, "price": RUBBELLOS_PREIS})
         save_shop(shop)
 
 
