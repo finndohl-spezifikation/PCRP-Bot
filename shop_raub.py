@@ -77,7 +77,7 @@ def build_shop_raub_info_embed() -> discord.Embed:
     )
     embed.add_field(
         name="📋 Regelwerk",
-        value="Schau vor dem Raub ins Regelwerk unter **„Raubüberfall"**.",
+        value='Schau vor dem Raub ins Regelwerk unter **"Raub\u00fcberfall"**.',
         inline=False
     )
     embed.set_image(url=SHOP_RAUB_IMAGE_URL)
