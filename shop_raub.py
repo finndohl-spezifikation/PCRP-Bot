@@ -44,7 +44,7 @@ def build_shop_raub_info_embed() -> discord.Embed:
     embed = discord.Embed(
         title="🏪 Shop-Raub",
         description=(
-            "Räube einen der Shops in Los Angeles aus und kassiere deine Beute!\n\n"
+            "Raube einen der Shops in Los Angeles aus und kassiere deine Beute!\n\n"
             "**📍 Ort:** Shops in **Los Angeles**\n"
             "**👥 Spieler:** **2–3 Personen** empfohlen\n"
             "**🚔 Beamte:** Mindestens **2–3 Officers** im Dienst\n"
@@ -66,6 +66,7 @@ def build_shop_raub_info_embed() -> discord.Embed:
     embed.set_image(url=SHOP_RAUB_IMAGE_URL)
     embed.set_footer(text="Paradise City Roleplay • Shop-Raub System")
     return embed
+
 
 
 # ── Beweis-Embed (Team News) ──────────────────────────────────
