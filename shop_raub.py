@@ -47,7 +47,7 @@ def build_shop_raub_info_embed() -> discord.Embed:
             "Raube einen der Shops in Los Angeles aus und kassiere deine Beute!\n\n"
             "**📍 Ort:** Shops in **Los Angeles**\n"
             "**👥 Spieler:** **2–3 Personen** empfohlen\n"
-            "**🚔 Beamte:** Mindestens **2–3 Officers** im Dienst\n"
+            "**🚔 Beamte:** Mindestens **2 Officers** im Dienst\n"
             "**⏱️ Dauer:** **15 Minuten**\n"
             "**💰 Beute:** zwischen **12.000 $** und **22.000 $** *(zufällig)*"
         ),
@@ -251,6 +251,23 @@ async def shop_raub_bild_listener(message: discord.Message):
 
     user = message.author
 
+    # ── Officer-Pflicht prüfen ─────────────────────────────────
+    on_duty_lapd = get_on_duty("lapd")
+    if len(on_duty_lapd) < 2:
+        try:
+            await message.reply(
+                "❌ Für einen Shop-Raub müssen mindestens **2 Officers** im Dienst sein.\n"
+                f"Aktuell im Dienst: **{len(on_duty_lapd)}**",
+                delete_after=15
+            )
+        except discord.Forbidden:
+            pass
+        try:
+            await message.delete()
+        except discord.Forbidden:
+            pass
+        return
+
     # ── 24h-Cooldown prüfen ────────────────────────────────────
     eco       = load_economy()
     user_data = get_user(eco, user.id)
@@ -334,7 +351,6 @@ async def shop_raub_bild_listener(message: discord.Message):
         pass
 
     # ── LAPD benachrichtigen ───────────────────────────────────
-    on_duty_lapd = get_on_duty("lapd")
     for uid_str in on_duty_lapd:
         try:
             member = message.guild.get_member(int(uid_str))
