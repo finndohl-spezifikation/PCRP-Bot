@@ -96,7 +96,6 @@ def _build_kurs_embed(key: str, aktien_data: dict) -> discord.Embed:
     eintrag = aktien_data[key]
     preis   = eintrag["preis"]
     verlauf = eintrag["verlauf"]
-    news    = eintrag.get("letzte_news")
 
     if len(verlauf) >= 2:
         change_abs = preis - verlauf[-2]
@@ -110,36 +109,29 @@ def _build_kurs_embed(key: str, aktien_data: dict) -> discord.Embed:
         else:
             trend_sym   = "→"
             trend_color = 0x95A5A6
-        change_str = f"{trend_sym} {change_pct:+.1f}%  ({_fmt(change_abs)})"
+        change_line = f"{trend_sym} {change_pct:+.1f}%   ({'+' if change_abs >= 0 else ''}{_fmt(change_abs)})"
     else:
         trend_color = LOG_COLOR
-        change_str  = "—"
+        change_line = "—"
 
     spark = _sparkline(verlauf[-15:])
 
     embed = discord.Embed(
         title=f"{info['emoji']} {info['name']}",
+        description=(
+            f"## {_fmt(preis)}\n"
+            f"{change_line}\n\n"
+            f"`{spark}`\n\n"
+            f"╔══════════════════════╗\n"
+            f"  `/aktie-kaufen {key}`\n"
+            f"  `/aktie-verkaufen {key}`\n"
+            f"  `/depot`\n"
+            f"╚══════════════════════╝"
+        ),
         color=trend_color,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.add_field(name="💵 Aktueller Kurs",  value=f"**{_fmt(preis)}**", inline=True)
-    embed.add_field(name="📉 Veränderung",      value=change_str,           inline=True)
-    embed.add_field(
-        name=f"📊 Kursverlauf ({min(len(verlauf), 15)} Updates)",
-        value=f"`{spark}`",
-        inline=False,
-    )
-    if news:
-        embed.add_field(name="📰 Letzte Meldung", value=news, inline=False)
-    embed.add_field(
-        name="📋 Commands",
-        value=(
-            f"`/aktie-kaufen {key} [Anzahl]`\n"
-            f"`/aktie-verkaufen {key} [Anzahl]`"
-        ),
-        inline=False,
-    )
-    embed.set_footer(text="Paradise City Roleplay • Aktienmarkt")
+    embed.set_footer(text="Paradise City Roleplay • Aktienmarkt • Kurs wird täglich aktualisiert")
     return embed
 
 
