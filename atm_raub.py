@@ -42,76 +42,32 @@ _pending_raids: set[int] = set()
 
 def build_atm_info_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🏧 ATM-Raub — Informationen",
+        title="🏧 ATM-Raub",
         description=(
-            "Hier findest du alle wichtigen Infos zum ATM-Raub.\n"
-            "Lies sie sorgfältig durch bevor du einen Raub startest."
+            "**💰 Beute:** 7.000$ – 15.000$ *(zufällig, Niete möglich)*\n"
+            "**📍 Ort:** Nur ATMs innerhalb **Los Santos**\n"
+            "**👤 Spieler:** Ab **1 Person** möglich"
         ),
         color=0xFF4500,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
-        name="💰 Beute",
-        value=(
-            "**7.000$ – 15.000$** (zufälliger Betrag)\n"
-            "⚠️ Mit Chance auf **Niete** — die Farbbombe platzt und du gehst leer aus."
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="⏱️ Dauer",
-        value=(
-            "🔧 **Brecheisen** → **5 Minuten**\n"
-            "💣 **Plastiksprengstoff** → **3 Minuten** *(Schneller!)*"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="📍 Ort",
-        value="Nur ATMs **innerhalb Los Santos** — Blaine County ATMs zählen nicht.",
-        inline=False
-    )
-    embed.add_field(
-        name="👤 Spieleranzahl",
-        value="Ab **1 Spieler** möglich — kein Teamzwang.",
-        inline=False
-    )
-    embed.add_field(
         name="🎒 Benötigte Items",
         value=(
-            "Du brauchst **eines** der folgenden Items im Rucksack:\n"
-            "• 🔧 **Brecheisen** — Standardvorgehen\n"
-            "• 💣 **Plastiksprengstoff** — Schneller, nur 3 Minuten\n\n"
-            "Erhältlich beim **Schwarzmarkt** oder einem **Waffenhändler**.\n"
-            "Das Item wird beim Raub verbraucht."
+            "🔧 **Brecheisen** → 5 Min. Dauer\n"
+            "💣 **Plastiksprengstoff** → 3 Min. Dauer\n"
+            f"*(Schwarzmarkt: <#{1492977067665526804}>)*"
         ),
-        inline=False
+        inline=True
     )
     embed.add_field(
         name="⚡ Ablauf",
         value=(
-            f"**1.** Führe den Raub **In-Game** durch\n"
-            f"**2.** Mache ein **Screenshot/Foto** als Beweis\n"
-            f"**3.** Sende das Bild in <#{ATM_BILD_CHANNEL_ID}>\n"
-            "**4.** Bot postet automatisch die Auswertung\n"
-            "**5.** Das Team bestätigt **Erfolg** oder **Fehlschlag**\n"
-            "**6.** Bei Erfolg → Geld direkt in deinen **Barbestand**"
+            f"1. Raub **In-Game** durchführen\n"
+            f"2. Foto als Beweis in <#{ATM_BILD_CHANNEL_ID}> senden\n"
+            f"3. Team bestätigt **Erfolg** oder **Fehlschlag**"
         ),
-        inline=False
-    )
-    embed.add_field(
-        name="❌ Fehlschlag-Gründe",
-        value=(
-            "• 🚔 **Festnahme** durch LAPD\n"
-            "• 🏥 **Verletzung / Tod** während des Raubes\n"
-            "• 🏳️ **Abbruch** des Raubes"
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="💡 Tipp",
-        value="Mit **Plastiksprengstoff** hast du weniger Zeit bis die Cops eintreffen. Plant euren Fluchtweg vorher!",
-        inline=False
+        inline=True
     )
     embed.set_thumbnail(url=ATM_IMAGE_URL)
     embed.set_footer(text="Paradise City Roleplay • ATM-System")
