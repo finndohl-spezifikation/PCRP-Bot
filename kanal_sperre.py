@@ -3,12 +3,12 @@
 # kanal_sperre.py — Server-weite Kanalsperre für Spieler
 # Paradise City Roleplay Discord Bot
 #
-# /kanal-sperre   → Sperrt alle Kanäle wo @everyone schreiben darf
-# /kanal-entsperren → Stellt die ursprünglichen Rechte wieder her
+# /kanal-sperre      → Sperrt alle definierten Kanäle,
+#                       postet rotes Embed, blockiert Threads
+# /kanal-entsperren  → Stellt Rechte wieder her, löscht Embeds
 #
-# Wichtig: Kanäle wo Spieler eh nicht schreiben dürfen werden
-#           NICHT angefasst. Nur bereits freigeschaltete Kanäle
-#           werden gesperrt/entsperrt.
+# Nur die Kanäle in SPERRE_CHANNEL_IDS werden angefasst.
+# Alle anderen Kanäle bleiben unberührt.
 # ══════════════════════════════════════════════════════════════
 
 import json
@@ -17,9 +17,55 @@ from config import *
 
 SPERRE_FILE = DATA_DIR / "kanal_sperre.json"
 
+# ── Feste Channel-Liste ───────────────────────────────────────
+# Nur diese Kanäle werden bei Sperre/Entsperrung angefasst.
+# Kommentar-Kanäle = Nur Button-Interaktionen werden blockiert
+SPERRE_CHANNEL_IDS: list[int] = [
+    1491116234459185162,
+    1491623633792143512,
+    1490882588049408180,
+    1492282065490546698,
+    1490882589014364250,
+    1490882590012604538,
+    1490882591023173682,
+    1490882596668707017,
+    1490882592445304972,
+    1490889784753782784,   # Button-Kanal
+    1492636063817138216,   # Button-Kanal
+    1490890319242461346,
+    1492128730141954178,
+    1490890320412672150,
+    1490890321276702723,
+    1490890348254200049,
+    1490890349382734044,
+    1492314171373649983,
+    1490890311755628584,
+    1492976742497783818,
+    1492977067665526804,
+    1490894244733255872,
+    1490894246587404380,
+    1490894250286649365,
+    1490894253059080232,
+    1490894255474872392,
+    1490894290455498802,
+    1490894294297477120,
+    1490894296952344616,
+    1490894299293024517,
+    1490894301339713667,
+    1490894262919893113,
+    1490894266396967096,
+    1490894274437447690,
+    1493246459062128873,
+    1490894309145313330,
+    1490894311389134858,
+    1490894314132213771,
+    1490894317462753280,
+    1490894320604020806,
+]
+
 # ── Datei-Helfer ──────────────────────────────────────────────
 
-def _load_sperre() -> dict:
+def _load() -> dict:
     try:
         with open(SPERRE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -27,22 +73,52 @@ def _load_sperre() -> dict:
         return {}
 
 
-def _save_sperre(data: dict):
+def _save(data: dict):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(SPERRE_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
 
-def _clear_sperre():
-    if SPERRE_FILE.exists():
-        SPERRE_FILE.unlink()
+def _perm_to_val(v) -> str | None:
+    """Konvertiert True/False/None zu speicherbarem Wert."""
+    if v is True:
+        return "allow"
+    if v is False:
+        return "deny"
+    return "neutral"
+
+
+def _val_to_perm(v: str | None):
+    """Konvertiert gespeicherten Wert zurück zu True/False/None."""
+    if v == "allow":
+        return True
+    if v == "deny":
+        return False
+    return None
+
+
+# ── Rotes Sperre-Embed ────────────────────────────────────────
+
+def _build_sperre_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="🔒  Kanal vorübergehend gesperrt",
+        description=(
+            "Dieser Kanal ist aktuell **gesperrt**.\n"
+            "Schreiben und das Erstellen von Threads ist während der Sperre nicht möglich.\n\n"
+            "Die Sperre wird aufgehoben sobald das Team dies freigibt."
+        ),
+        color=0xE74C3C,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text="Paradise City Roleplay • Kanalsperre")
+    return embed
 
 
 # ── /kanal-sperre ─────────────────────────────────────────────
 
 @bot.tree.command(
     name="kanal-sperre",
-    description="[Mod] Sperrt alle Kanäle für Spieler (nur Kanäle die sie nutzen dürfen)",
+    description="[Mod] Sperrt alle definierten Spieler-Kanäle und postet eine Meldung",
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.default_permissions(manage_channels=True)
@@ -51,7 +127,7 @@ async def kanal_sperre(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
-    if _load_sperre():
+    if _load():
         await interaction.response.send_message(
             "⚠️ Es ist bereits eine Kanalsperre aktiv.\n"
             "Nutze `/kanal-entsperren` um sie zuerst aufzuheben.",
@@ -61,38 +137,45 @@ async def kanal_sperre(interaction: discord.Interaction):
 
     await interaction.response.defer(ephemeral=True)
 
-    guild        = interaction.guild
-    everyone     = guild.default_role
-    gesperrte    = {}   # {str(channel_id): "allow" | "neutral"}
-    anzahl       = 0
+    guild    = interaction.guild
+    everyone = guild.default_role
+    data     = {"channels": {}, "embeds": {}}
+    gesperrt = 0
+    fehler   = 0
 
-    for channel in guild.channels:
-        # Nur Text-Kanäle
-        if not isinstance(channel, discord.TextChannel):
+    for ch_id in SPERRE_CHANNEL_IDS:
+        channel = guild.get_channel(ch_id)
+        if not channel:
             continue
 
-        # Aufgelöste Permission für @everyone prüfen
-        resolved = channel.permissions_for(everyone)
-        if not resolved.send_messages:
-            # Spieler dürfen dort eh nicht schreiben → nicht anfassen
-            continue
+        # Originale Overwrite-Werte sichern
+        ow = channel.overwrites_for(everyone)
+        data["channels"][str(ch_id)] = {
+            "send_messages":          _perm_to_val(ow.send_messages),
+            "create_public_threads":  _perm_to_val(ow.create_public_threads),
+            "create_private_threads": _perm_to_val(ow.create_private_threads),
+            "use_application_commands": _perm_to_val(ow.use_application_commands),
+        }
 
-        # Originalen Overwrite-Wert merken (True = explizit erlaubt, None = geerbt)
-        overwrite = channel.overwrites_for(everyone)
-        original  = overwrite.send_messages  # True oder None
+        # Sperren: schreiben + threads + button-Interaktionen deaktivieren
+        ow.send_messages          = False
+        ow.create_public_threads  = False
+        ow.create_private_threads = False
+        ow.use_application_commands = False
 
-        # Auf False setzen
-        overwrite.send_messages = False
         try:
-            await channel.set_permissions(everyone, overwrite=overwrite)
-            gesperrte[str(channel.id)] = "allow" if original is True else "neutral"
-            anzahl += 1
-        except discord.Forbidden:
-            pass
+            await channel.set_permissions(everyone, overwrite=ow)
 
-        await asyncio.sleep(0.4)  # Rate-Limit einhalten
+            # Rotes Embed in den Kanal posten
+            msg = await channel.send(embed=_build_sperre_embed())
+            data["embeds"][str(ch_id)] = msg.id
+            gesperrt += 1
+        except (discord.Forbidden, discord.HTTPException):
+            fehler += 1
 
-    _save_sperre(gesperrte)
+        await asyncio.sleep(0.5)
+
+    _save(data)
 
     # Mod-Log
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
@@ -101,18 +184,21 @@ async def kanal_sperre(interaction: discord.Interaction):
             title="🔒 Kanalsperre aktiviert",
             description=(
                 f"**Ausgeführt von:** {interaction.user.mention}\n"
-                f"**Gesperrte Kanäle:** {anzahl}\n\n"
-                "Spieler können in keinem freigeschalteten Kanal mehr schreiben.\n"
-                f"Zum Aufheben: `/kanal-entsperren`"
+                f"**Gesperrte Kanäle:** {gesperrt}"
+                + (f"\n**Fehler:** {fehler}" if fehler else "")
+                + "\n\nSpieler können in keinem der definierten Kanäle mehr schreiben oder Threads erstellen."
             ),
             color=0xE74C3C,
             timestamp=datetime.now(timezone.utc),
         )
         await log_ch.send(embed=embed)
 
+    status = f"✅ {gesperrt} Kanäle gesperrt"
+    if fehler:
+        status += f"\n⚠️ {fehler} Kanäle konnten nicht gesperrt werden (fehlende Rechte?)"
+
     await interaction.followup.send(
-        f"🔒 **Kanalsperre aktiviert!**\n{anzahl} Kanäle wurden gesperrt.\n"
-        f"Spieler können bis zur Entsperrung nirgends mehr schreiben.",
+        f"🔒 **Kanalsperre aktiviert!**\n{status}",
         ephemeral=True,
     )
 
@@ -121,7 +207,7 @@ async def kanal_sperre(interaction: discord.Interaction):
 
 @bot.tree.command(
     name="kanal-entsperren",
-    description="[Mod] Hebt die aktive Kanalsperre auf und stellt alle Rechte wieder her",
+    description="[Mod] Hebt die Kanalsperre auf und löscht alle Sperr-Embeds",
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.default_permissions(manage_channels=True)
@@ -130,8 +216,8 @@ async def kanal_entsperren(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
-    gesperrte = _load_sperre()
-    if not gesperrte:
+    data = _load()
+    if not data:
         await interaction.response.send_message(
             "ℹ️ Es ist gerade keine Kanalsperre aktiv.",
             ephemeral=True,
@@ -142,35 +228,45 @@ async def kanal_entsperren(interaction: discord.Interaction):
 
     guild    = interaction.guild
     everyone = guild.default_role
-    anzahl   = 0
+    restored = 0
+    fehler   = 0
 
-    for channel_id_str, original in gesperrte.items():
-        channel = guild.get_channel(int(channel_id_str))
+    for ch_id_str, saved in data.get("channels", {}).items():
+        channel = guild.get_channel(int(ch_id_str))
         if not channel:
-            continue  # Kanal wurde zwischenzeitlich gelöscht → überspringen
+            continue
 
-        overwrite = channel.overwrites_for(everyone)
-
-        if original == "allow":
-            # War explizit erlaubt → wieder auf True setzen
-            overwrite.send_messages = True
-        else:
-            # War geerbt (neutral) → Override entfernen damit Kategorie greift
-            overwrite.send_messages = None
+        # Originale Werte wiederherstellen
+        ow = channel.overwrites_for(everyone)
+        ow.send_messages            = _val_to_perm(saved.get("send_messages"))
+        ow.create_public_threads    = _val_to_perm(saved.get("create_public_threads"))
+        ow.create_private_threads   = _val_to_perm(saved.get("create_private_threads"))
+        ow.use_application_commands = _val_to_perm(saved.get("use_application_commands"))
 
         try:
-            # Falls der Overwrite jetzt komplett leer ist → ganz entfernen
-            if overwrite.is_empty():
+            if ow.is_empty():
                 await channel.set_permissions(everyone, overwrite=None)
             else:
-                await channel.set_permissions(everyone, overwrite=overwrite)
-            anzahl += 1
-        except discord.Forbidden:
-            pass
+                await channel.set_permissions(everyone, overwrite=ow)
 
-        await asyncio.sleep(0.4)  # Rate-Limit einhalten
+            # Rotes Sperre-Embed löschen
+            msg_id = data.get("embeds", {}).get(ch_id_str)
+            if msg_id:
+                try:
+                    msg = await channel.fetch_message(int(msg_id))
+                    await msg.delete()
+                except (discord.NotFound, discord.HTTPException):
+                    pass
 
-    _clear_sperre()
+            restored += 1
+        except (discord.Forbidden, discord.HTTPException):
+            fehler += 1
+
+        await asyncio.sleep(0.5)
+
+    # Daten-Datei löschen
+    if SPERRE_FILE.exists():
+        SPERRE_FILE.unlink()
 
     # Mod-Log
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
@@ -179,16 +275,20 @@ async def kanal_entsperren(interaction: discord.Interaction):
             title="🔓 Kanalsperre aufgehoben",
             description=(
                 f"**Ausgeführt von:** {interaction.user.mention}\n"
-                f"**Wiederhergestellte Kanäle:** {anzahl}\n\n"
-                "Alle Spieler können wieder normal schreiben."
+                f"**Wiederhergestellte Kanäle:** {restored}"
+                + (f"\n**Fehler:** {fehler}" if fehler else "")
+                + "\n\nAlle Spieler können wieder normal schreiben."
             ),
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
         await log_ch.send(embed=embed)
 
+    status = f"✅ {restored} Kanäle entsperrt"
+    if fehler:
+        status += f"\n⚠️ {fehler} Kanäle konnten nicht entsperrt werden"
+
     await interaction.followup.send(
-        f"🔓 **Kanalsperre aufgehoben!**\n{anzahl} Kanäle wurden wiederhergestellt.\n"
-        "Alle Spieler können wieder normal schreiben.",
+        f"🔓 **Kanalsperre aufgehoben!**\n{status}",
         ephemeral=True,
-  )
+    )
