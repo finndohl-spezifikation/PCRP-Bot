@@ -20,6 +20,8 @@ SPERRE_FILE = DATA_DIR / "kanal_sperre.json"
 # ── Feste Channel-Liste ───────────────────────────────────────
 # Nur diese Kanäle werden bei Sperre/Entsperrung angefasst.
 # Kommentar-Kanäle = Nur Button-Interaktionen werden blockiert
+SPIELER_ROLLE_ID = 1490855722534310003  # Rolle die gesperrt/entsperrt wird
+
 SPERRE_CHANNEL_IDS: list[int] = [
     1491116234459185162,
     1491623633792143512,
@@ -137,8 +139,11 @@ async def kanal_sperre(interaction: discord.Interaction):
 
     await interaction.response.defer(ephemeral=True)
 
-    guild    = interaction.guild
-    everyone = guild.default_role
+    guild        = interaction.guild
+    spieler_role = guild.get_role(SPIELER_ROLLE_ID)
+    if not spieler_role:
+        await interaction.followup.send("❌ Spieler-Rolle nicht gefunden.", ephemeral=True)
+        return
     data     = {"channels": {}, "embeds": {}}
     gesperrt = 0
     fehler   = 0
@@ -149,7 +154,7 @@ async def kanal_sperre(interaction: discord.Interaction):
             continue
 
         # Originale Overwrite-Werte sichern
-        ow = channel.overwrites_for(everyone)
+        ow = channel.overwrites_for(spieler_role)
         data["channels"][str(ch_id)] = {
             "send_messages":          _perm_to_val(ow.send_messages),
             "create_public_threads":  _perm_to_val(ow.create_public_threads),
@@ -164,7 +169,7 @@ async def kanal_sperre(interaction: discord.Interaction):
         ow.use_application_commands = False
 
         try:
-            await channel.set_permissions(everyone, overwrite=ow)
+            await channel.set_permissions(spieler_role, overwrite=ow)
 
             # Rotes Embed in den Kanal posten
             msg = await channel.send(embed=_build_sperre_embed())
@@ -226,8 +231,11 @@ async def kanal_entsperren(interaction: discord.Interaction):
 
     await interaction.response.defer(ephemeral=True)
 
-    guild    = interaction.guild
-    everyone = guild.default_role
+    guild        = interaction.guild
+    spieler_role = guild.get_role(SPIELER_ROLLE_ID)
+    if not spieler_role:
+        await interaction.followup.send("❌ Spieler-Rolle nicht gefunden.", ephemeral=True)
+        return
     restored = 0
     fehler   = 0
 
@@ -237,7 +245,7 @@ async def kanal_entsperren(interaction: discord.Interaction):
             continue
 
         # Originale Werte wiederherstellen
-        ow = channel.overwrites_for(everyone)
+        ow = channel.overwrites_for(spieler_role)
         ow.send_messages            = _val_to_perm(saved.get("send_messages"))
         ow.create_public_threads    = _val_to_perm(saved.get("create_public_threads"))
         ow.create_private_threads   = _val_to_perm(saved.get("create_private_threads"))
@@ -245,9 +253,9 @@ async def kanal_entsperren(interaction: discord.Interaction):
 
         try:
             if ow.is_empty():
-                await channel.set_permissions(everyone, overwrite=None)
+                await channel.set_permissions(spieler_role, overwrite=None)
             else:
-                await channel.set_permissions(everyone, overwrite=ow)
+                await channel.set_permissions(spieler_role, overwrite=ow)
 
             # Rotes Sperre-Embed löschen
             msg_id = data.get("embeds", {}).get(ch_id_str)
