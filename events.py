@@ -116,6 +116,11 @@ async def on_message(message):
         return
     member = message.author
 
+    # DMs haben kein Guild-Objekt — Server-Filter überspringen
+    if not message.guild:
+        await bot.process_commands(message)
+        return
+
     if message.channel.id == COUNTING_CHANNEL_ID:
         await handle_counting(message)
         return
@@ -604,4 +609,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-        )
+    )
