@@ -100,6 +100,7 @@ async def cmd_vorschlag(interaction: discord.Interaction, vorschlag: str):
     description="Nimm einen Vorschlag an. (Admin/Mod)",
     guild=discord.Object(id=GUILD_ID)
 )
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     message_id="ID der Vorschlags-Nachricht",
     grund="Begründung (optional)"
@@ -169,6 +170,7 @@ async def cmd_vorschlag_annehmen(
     description="Lehne einen Vorschlag ab. (Admin/Mod)",
     guild=discord.Object(id=GUILD_ID)
 )
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     message_id="ID der Vorschlags-Nachricht",
     grund="Begründung (optional)"
