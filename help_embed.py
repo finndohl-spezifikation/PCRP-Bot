@@ -31,11 +31,11 @@ CATEGORY_MAP = {
     "Behörde":  ("🚗", "Führerschein / Behörde",  "Behörden-Team"),
 }
 
-# Staff-only Kategorien (Warn, Admin, Team, LOBBY, Allgemein) werden nicht angezeigt
-HIDDEN_CATEGORIES = {"Warn", "Admin", "Team", "LOBBY", "Allgemein"}
+# Staff-only Kategorien werden nicht angezeigt
+HIDDEN_CATEGORIES = {"Warn", "Admin", "Mod", "Team", "LOBBY", "Allgemein", "__other__"}
 
 CATEGORY_ORDER = [
-    "Konto", "Inventar", "Shop", "Ausweis", "Behörde", "__other__",
+    "Konto", "Inventar", "Shop", "Ausweis", "Behörde",
 ]
 
 
@@ -76,8 +76,8 @@ def _build_embed(commands: list) -> discord.Embed:
     total = sum(len(v) for v in grouped.values())
 
     embed = discord.Embed(
-        title="📋 Paradise City — Slash Commands",
-        description="Tippe `/` um einen Command zu starten.\n\u200b",
+        title="📋 Paradise City Roleplay — Commands",
+        description="Alle verfügbaren Slash-Commands auf einem Blick.\nTippe `/` um loszulegen.\n\u200b",
         color=EMBED_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
@@ -85,21 +85,20 @@ def _build_embed(commands: list) -> discord.Embed:
     for key in CATEGORY_ORDER:
         if key not in grouped:
             continue
-        if key == "__other__":
-            emoji, cat_name, who = "📌", "Sonstiges", "Alle"
-        else:
-            emoji, cat_name, who = CATEGORY_MAP.get(key, ("📌", key, "Team"))
+        emoji, cat_name, who = CATEGORY_MAP.get(key, ("📌", key, "Alle"))
 
-        lines = "\n".join(f"`/{name}` ─ {desc}" for name, desc in grouped[key])
+        # Jeder Command auf eigener Zeile: /name ─ Beschreibung
+        lines = "\n".join(
+            f"╰ `/{name}` — {desc}" for name, desc in sorted(grouped[key], key=lambda x: x[0])
+        )
+
         embed.add_field(
-            name=f"{emoji}  {cat_name}  ·  *{who}*",
-            value=f"{lines}\n\u200b",
+            name=f"{emoji}  **{cat_name}**",
+            value=f"*Zugriff: {who}*\n{lines}\n\u200b",
             inline=False,
         )
 
-    embed.set_footer(
-        text=f"{total} Commands · Automatisch aktualisiert"
-    )
+    embed.set_footer(text=f"Paradise City Roleplay  •  {total} Commands verfügbar")
     return embed
 
 
