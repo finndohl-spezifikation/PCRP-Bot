@@ -6,12 +6,12 @@
 #
 # Ablauf:
 #   1. Spieler sendet ein Foto im Bild-Kanal (ATM_BILD_CHANNEL_ID)
-#   2. Bot postet automatisch im Raub-Kanal (ATM_RAUB_CHANNEL_ID):
-#      → Embed mit dem Bild + Spieler-Info + Erfolgreich/Fehlschlag Buttons
-#   3. Alle LAPD-Beamten im Dienst erhalten eine DM
-#   4. Team drückt einen Button → Ergebnis-DM an den Spieler
-#      Erfolgreich → zufällige Beute (7.000$–15.000$) in Barbestand
-#      Fehlschlag  → keine Beute, Info-DM
+#   2. Bot sendet Spieler eine Bestätigungs-DM
+#   3. Bot postet Beweis-Embed im Team-News-Kanal mit Buttons
+#   4. Alle LAPD-Beamten im Dienst erhalten eine DM
+#   5. Team drückt Button → Ergebnis-DM an den Spieler
+#      Erfolgreich → 3.000$–10.000$ in Barbestand
+#      Fehlschlag  → Info-DM, kein Geld
 # ══════════════════════════════════════════════════════════════
 
 import random
@@ -23,32 +23,32 @@ from dienst import get_on_duty
 
 # ── Konstanten ────────────────────────────────────────────────
 
-ATM_BILD_CHANNEL_ID  = 1490894309145313330   # Kanal wo Spieler das Foto sendet
-ATM_RAUB_CHANNEL_ID  = 1490894308088352961   # Kanal wo Bot das Embed + Buttons postet
+ATM_BILD_CHANNEL_ID  = 1490894309145313330   # Spieler sendet Foto hier
+ATM_INFO_CHANNEL_ID  = 1490894308088352961   # Info-Embed beim Start
+ATM_TEAM_CHANNEL_ID  = 1490878141235855491   # Team News — Beweis + Buttons
 
-BEUTE_MIN            = 7_000
-BEUTE_MAX            = 15_000
-NIETE_CHANCE         = 0.15   # 15% Chance – Farbbombe geplatzt → 0$
+BEUTE_MIN            = 3_000
+BEUTE_MAX            = 10_000
 
 ATM_CONFIRM_ROLES    = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
 ATM_IMAGE_URL        = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/atm_raub.jpg"
 
-# user_id → True (verhindert Doppel-Einreichungen)
+# Verhindert Doppel-Einreichungen
 _pending_raids: set[int] = set()
 
 
-# ── Info-Embed (automatisch beim Start gepostet) ──────────────
+# ── Info-Embed (automatisch beim Start) ───────────────────────
 
 def build_atm_info_embed() -> discord.Embed:
     embed = discord.Embed(
         title="🏧 ATM-Raub",
         description=(
-            "**💰 Beute:** 7.000$ – 15.000$ *(zufällig, Niete möglich)*\n"
-            "**📍 Ort:** Nur ATMs innerhalb **Los Santos**\n"
+            "**💰 Beute:** 3.000$ – 10.000$ *(zufällig)*\n"
+            "**📍 Ort:** Nur ATMs innerhalb **Los Angeles**\n"
             "**👤 Spieler:** Ab **1 Person** möglich"
         ),
-        color=0xFF4500,
+        color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
@@ -63,33 +63,32 @@ def build_atm_info_embed() -> discord.Embed:
     embed.add_field(
         name="⚡ Ablauf",
         value=(
-            f"1. Raub **In-Game** durchführen\n"
+            "1. Raub **In-Game** durchführen\n"
             f"2. Foto als Beweis in <#{ATM_BILD_CHANNEL_ID}> senden\n"
-            f"3. Team bestätigt **Erfolg** oder **Fehlschlag**"
+            "3. Team bestätigt **Erfolg** oder **Fehlschlag**"
         ),
         inline=True
     )
-    embed.set_thumbnail(url=ATM_IMAGE_URL)
+    embed.set_image(url=ATM_IMAGE_URL)
     embed.set_footer(text="Paradise City Roleplay • ATM-System")
     return embed
 
 
-# ── Beweis-Embed (wird im Raub-Kanal gepostet) ────────────────
+# ── Beweis-Embed (Team News) ──────────────────────────────────
 
 def build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
     embed = discord.Embed(
         title="🏧 ATM-Raub — Beweis eingereicht",
         description=(
-            f"{user.mention} hat einen **ATM-Raub** durchgeführt und einen Beweis eingereicht.\n\n"
-            "⏳ **Wartet auf Team-Bestätigung...**"
+            f"{user.mention} hat einen **ATM-Raub** durchgeführt.\n"
+            "⏳ Bitte Ergebnis bestätigen."
         ),
         color=0xFF8C00,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(name="👤 Spieler", value=f"{user.mention}\n`{user.display_name}`", inline=True)
-    embed.add_field(name="📸 Beweis", value="Bild unten ↓", inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay • ATM-System | Nur Team kann bestätigen")
+    embed.set_footer(text="Paradise City Roleplay • ATM-System | Nur Team")
     return embed
 
 
@@ -99,21 +98,13 @@ def _build_result_embed(
     raeuber: discord.Member,
     bild_url: str,
     beute: int,
-    niete: bool,
     team_member: discord.Member,
     success: bool
 ) -> discord.Embed:
-    if success and not niete:
+    if success:
         color = 0x00CC44
         title = "🏧 ATM-Raub — Erfolgreich ✅"
-        desc  = (
-            f"{raeuber.mention} hat erfolgreich einen ATM ausgeraubt!\n"
-            f"**{beute:,}$** wurden in den **Barbestand** übertragen."
-        )
-    elif success and niete:
-        color = 0xFF8C00
-        title = "🏧 ATM-Raub — Farbbombe geplatzt 💣"
-        desc  = f"{raeuber.mention} hat den ATM geknackt, aber die **Farbbombe ist geplatzt**. Keine Beute."
+        desc  = f"{raeuber.mention} hat **{beute:,}$** erbeutet → **Barbestand**."
     else:
         color = 0xE74C3C
         title = "🏧 ATM-Raub — Fehlgeschlagen ❌"
@@ -123,7 +114,7 @@ def _build_result_embed(
                           timestamp=datetime.now(timezone.utc))
     embed.add_field(name="👤 Spieler", value=raeuber.mention, inline=True)
     embed.add_field(name="✅ Bestätigt von", value=team_member.mention, inline=True)
-    if success and not niete:
+    if success:
         embed.add_field(name="💰 Beute", value=f"**{beute:,}$**", inline=True)
     embed.set_image(url=bild_url)
     embed.set_footer(text="Paradise City Roleplay • ATM-System")
@@ -139,48 +130,38 @@ class AtmRaubView(discord.ui.View):
         self.bild_url   = bild_url
 
     def _check_team(self, interaction: discord.Interaction) -> bool:
-        role_ids = {r.id for r in interaction.user.roles}
-        return bool(role_ids & ATM_CONFIRM_ROLES)
+        return bool({r.id for r in interaction.user.roles} & ATM_CONFIRM_ROLES)
 
-    @discord.ui.button(
-        label="✅  Erfolgreich",
-        style=discord.ButtonStyle.success,
-        custom_id="atm_raub:erfolg"
-    )
+    @discord.ui.button(label="✅  Erfolgreich", style=discord.ButtonStyle.success, custom_id="atm_raub:erfolg")
     async def erfolg_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message(
-                "❌ Nur Team-Mitglieder können den Raub bestätigen.", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Nur Team-Mitglieder können bestätigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
         if not raeuber:
-            await interaction.response.send_message(
-                "❌ Spieler nicht mehr auf dem Server.", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
-        niete = random.random() < NIETE_CHANCE
-        beute = 0 if niete else random.randint(BEUTE_MIN, BEUTE_MAX)
+        beute = random.randint(BEUTE_MIN, BEUTE_MAX)
 
-        if beute > 0:
-            eco = load_economy()
-            user_data = get_user(eco, self.raeuber_id)
-            user_data["cash"] = user_data.get("cash", 0) + beute
-            save_economy(eco)
-            await log_money_action(
-                interaction.guild,
-                "ATM-Raub Beute",
-                f"{raeuber.mention} hat einen ATM ausgeraubt.\n"
-                f"**Beute:** {beute:,}$ → Barbestand\n"
-                f"**Bestätigt von:** {interaction.user.mention}"
-            )
+        eco = load_economy()
+        user_data = get_user(eco, self.raeuber_id)
+        user_data["cash"] = user_data.get("cash", 0) + beute
+        save_economy(eco)
+
+        await log_money_action(
+            interaction.guild,
+            "ATM-Raub Beute",
+            f"{raeuber.mention} hat einen ATM ausgeraubt.\n"
+            f"**Beute:** {beute:,}$ → Barbestand\n"
+            f"**Bestätigt von:** {interaction.user.mention}"
+        )
 
         for child in self.children:
             child.disabled = True
         await interaction.message.edit(
-            embed=_build_result_embed(raeuber, self.bild_url, beute, niete, interaction.user, success=True),
+            embed=_build_result_embed(raeuber, self.bild_url, beute, interaction.user, success=True),
             view=self
         )
         await interaction.response.send_message(
@@ -188,29 +169,14 @@ class AtmRaubView(discord.ui.View):
         )
 
         try:
-            if niete:
-                dm = discord.Embed(
-                    title="🏧 ATM-Raub — Pech gehabt! 💣",
-                    description=(
-                        "Dein ATM-Raub war technisch erfolgreich, aber...\n"
-                        "**Die Farbbombe ist geplatzt!**\n\n"
-                        "Du gehst leider **leer aus** — kein Geld diesmal."
-                    ),
-                    color=0xFF4500,
-                    timestamp=datetime.now(timezone.utc)
-                )
-            else:
-                dm = discord.Embed(
-                    title="🏧 ATM-Raub — Erfolgreich! 💰",
-                    description=(
-                        f"Dein ATM-Raub war **erfolgreich**!\n\n"
-                        f"**{beute:,}$** wurden direkt in deinen **Barbestand** übertragen."
-                    ),
-                    color=0x00CC44,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                dm.add_field(name="💵 Beute", value=f"**{beute:,}$**", inline=True)
-                dm.add_field(name="📍 Gutgeschrieben", value="Barbestand (Cash)", inline=True)
+            dm = discord.Embed(
+                title="🏧 ATM-Raub — Erfolgreich! 💰",
+                description=f"Dein ATM-Raub war **erfolgreich**!\n\n**{beute:,}$** wurden in deinen **Barbestand** übertragen.",
+                color=0x00CC44,
+                timestamp=datetime.now(timezone.utc)
+            )
+            dm.add_field(name="💵 Beute", value=f"**{beute:,}$**", inline=True)
+            dm.add_field(name="📍 Gutgeschrieben", value="Barbestand (Cash)", inline=True)
             dm.set_footer(text="Paradise City Roleplay • ATM-System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
@@ -218,29 +184,21 @@ class AtmRaubView(discord.ui.View):
 
         _pending_raids.discard(self.raeuber_id)
 
-    @discord.ui.button(
-        label="❌  Fehlschlag",
-        style=discord.ButtonStyle.danger,
-        custom_id="atm_raub:fehlschlag"
-    )
+    @discord.ui.button(label="❌  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="atm_raub:fehlschlag")
     async def fehlschlag_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message(
-                "❌ Nur Team-Mitglieder können den Raub bestätigen.", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Nur Team-Mitglieder können bestätigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
         if not raeuber:
-            await interaction.response.send_message(
-                "❌ Spieler nicht mehr auf dem Server.", ephemeral=True
-            )
+            await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
         for child in self.children:
             child.disabled = True
         await interaction.message.edit(
-            embed=_build_result_embed(raeuber, self.bild_url, 0, False, interaction.user, success=False),
+            embed=_build_result_embed(raeuber, self.bild_url, 0, interaction.user, success=False),
             view=self
         )
         await interaction.response.send_message(
@@ -252,11 +210,10 @@ class AtmRaubView(discord.ui.View):
                 title="🏧 ATM-Raub — Fehlgeschlagen ❌",
                 description=(
                     "Dein ATM-Raub ist **fehlgeschlagen**.\n\n"
-                    "Mögliche Gründe:\n"
-                    "• 🚔 Du wurdest festgenommen\n"
-                    "• 🏥 Du wurdest verletzt oder getötet\n"
-                    "• 🏳️ Der Raub wurde abgebrochen\n\n"
-                    "Du erhältst **keine Beute**. Beim nächsten Mal mehr Glück!"
+                    "• 🚔 Festnahme durch LAPD\n"
+                    "• 🏥 Verletzung / Tod\n"
+                    "• 🏳️ Abbruch\n\n"
+                    "Du erhältst **keine Beute**."
                 ),
                 color=0xE74C3C,
                 timestamp=datetime.now(timezone.utc)
@@ -269,7 +226,7 @@ class AtmRaubView(discord.ui.View):
         _pending_raids.discard(self.raeuber_id)
 
 
-# ── on_message — Bild-Erkennung ───────────────────────────────
+# ── on_message — Foto-Erkennung ───────────────────────────────
 
 @bot.listen("on_message")
 async def atm_bild_listener(message: discord.Message):
@@ -292,7 +249,7 @@ async def atm_bild_listener(message: discord.Message):
     if user.id in _pending_raids:
         try:
             await message.reply(
-                "⏳ Du hast bereits einen laufenden Raub eingereicht. Warte bis dieser abgeschlossen ist.",
+                "⏳ Du hast bereits einen laufenden Raub eingereicht. Warte auf das Ergebnis.",
                 delete_after=10
             )
         except discord.Forbidden:
@@ -301,17 +258,33 @@ async def atm_bild_listener(message: discord.Message):
 
     _pending_raids.add(user.id)
 
-    raub_channel = message.guild.get_channel(ATM_RAUB_CHANNEL_ID)
-    if not raub_channel:
+    team_channel = message.guild.get_channel(ATM_TEAM_CHANNEL_ID)
+    if not team_channel:
         _pending_raids.discard(user.id)
         return
 
     view  = AtmRaubView(raeuber_id=user.id, bild_url=bild_url)
     embed = build_beweis_embed(user, bild_url)
-    await raub_channel.send(embed=embed, view=view)
+    await team_channel.send(embed=embed, view=view)
 
     try:
         await message.add_reaction("✅")
+    except discord.Forbidden:
+        pass
+
+    try:
+        dm = discord.Embed(
+            title="🏧 ATM-Raub — Beweis eingereicht ✅",
+            description=(
+                "Dein Beweis wurde erfolgreich eingereicht!\n\n"
+                "Das Team überprüft deinen Raub und bestätigt das Ergebnis in Kürze.\n"
+                "Du wirst per DM benachrichtigt sobald eine Entscheidung getroffen wurde."
+            ),
+            color=0xFF8C00,
+            timestamp=datetime.now(timezone.utc)
+        )
+        dm.set_footer(text="Paradise City Roleplay • ATM-System")
+        await user.send(embed=dm)
     except discord.Forbidden:
         pass
 
@@ -324,16 +297,15 @@ async def atm_bild_listener(message: discord.Message):
             cop_embed = discord.Embed(
                 title="🚔 LAPD — ATM-Raub gemeldet!",
                 description=(
-                    "Ein **ATM-Raub** wurde eingereicht!\n\n"
                     f"**Verdächtiger:** {user.mention} (`{user.display_name}`)\n\n"
-                    f"Prüfe den Kanal <#{ATM_RAUB_CHANNEL_ID}> für Details."
+                    f"Prüfe <#{ATM_TEAM_CHANNEL_ID}> für Details."
                 ),
                 color=0x1E90FF,
                 timestamp=datetime.now(timezone.utc)
             )
             cop_embed.set_thumbnail(url=user.display_avatar.url)
             cop_embed.set_image(url=bild_url)
-            cop_embed.set_footer(text="Paradise City Roleplay • LAPD Benachrichtigung")
+            cop_embed.set_footer(text="Paradise City Roleplay • LAPD")
             await member.send(embed=cop_embed)
         except discord.Forbidden:
             pass
@@ -343,18 +315,17 @@ async def atm_bild_listener(message: discord.Message):
 
 async def _atm_info_auto_setup():
     for guild in bot.guilds:
-        channel = guild.get_channel(ATM_RAUB_CHANNEL_ID)
+        channel = guild.get_channel(ATM_INFO_CHANNEL_ID)
         if not channel:
             continue
 
         embed = build_atm_info_embed()
-
         existing_msg = None
         try:
             async for msg in channel.history(limit=50):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
-                        if emb.title and "ATM-Raub" in emb.title and "Informationen" in emb.title:
+                        if emb.title and "ATM-Raub" in emb.title:
                             existing_msg = msg
                             break
                 if existing_msg:
