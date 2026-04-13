@@ -378,39 +378,41 @@ async def shop_raub_bild_listener(message: discord.Message):
 # ── Auto-Setup beim Start ─────────────────────────────────────
 
 async def _shop_raub_info_auto_setup():
-    await bot.wait_until_ready()
-    try:
-        channel = await bot.fetch_channel(SHOP_RAUB_INFO_CHANNEL_ID)
-    except Exception as e:
-        print(f"[shop_raub] ❌ Info-Kanal nicht gefunden: {e}")
-        return
+    for guild in bot.guilds:
+        channel = guild.get_channel(SHOP_RAUB_INFO_CHANNEL_ID)
+        if not channel:
+            try:
+                channel = await bot.fetch_channel(SHOP_RAUB_INFO_CHANNEL_ID)
+            except Exception as e:
+                print(f"[shop_raub] ❌ Info-Kanal nicht gefunden: {e}")
+                continue
 
-    embed        = build_shop_raub_info_embed()
-    existing_msg = None
-    try:
-        async for msg in channel.history(limit=50):
-            if msg.author.id == bot.user.id and msg.embeds:
-                for emb in msg.embeds:
-                    if emb.title and "Shop-Raub" in emb.title:
-                        existing_msg = msg
-                        break
+        embed        = build_shop_raub_info_embed()
+        existing_msg = None
+        try:
+            async for msg in channel.history(limit=50):
+                if msg.author.id == bot.user.id and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Shop-Raub" in emb.title:
+                            existing_msg = msg
+                            break
+                if existing_msg:
+                    break
+        except Exception:
+            pass
+
+        try:
             if existing_msg:
-                break
-    except Exception:
-        pass
-
-    try:
-        if existing_msg:
-            await existing_msg.edit(embed=embed)
-            print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
-        else:
-            await channel.send(embed=embed)
-            print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
-    except Exception as e:
-        print(f"[shop_raub] ❌ Fehler beim Senden: {e}")
+                await existing_msg.edit(embed=embed)
+                print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
+            else:
+                await channel.send(embed=embed)
+                print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
+        except Exception as e:
+            print(f"[shop_raub] ❌ Fehler beim Senden: {e}")
 
 
 @bot.listen("on_ready")
 async def shop_raub_on_ready():
-    bot.loop.create_task(_shop_raub_info_auto_setup())
+    await _shop_raub_info_auto_setup()
 
