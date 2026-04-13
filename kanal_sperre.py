@@ -101,11 +101,11 @@ def _val_to_perm(v: str | None):
 
 def _build_sperre_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🔒  Kanal vorübergehend gesperrt",
+        title="🔒  Kanal gesperrt — Lobby geschlossen",
         description=(
-            "Dieser Kanal ist aktuell **gesperrt**.\n"
-            "Schreiben und das Erstellen von Threads ist während der Sperre nicht möglich.\n\n"
-            "Die Sperre wird aufgehoben sobald das Team dies freigibt."
+            "Die **Lobby ist aktuell geschlossen**, daher ist dieser Kanal gesperrt.\n"
+            "Schreiben ist während der Sperrung nicht möglich.\n\n"
+            "Sobald die Lobby wieder geöffnet wird, kannst du hier wieder schreiben."
         ),
         color=0xE74C3C,
         timestamp=datetime.now(timezone.utc),
