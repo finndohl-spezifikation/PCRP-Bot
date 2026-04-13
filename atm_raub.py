@@ -364,8 +364,7 @@ class GegenstandView(discord.ui.View):
                         title="🚔 LAPD — ATM-Raub gemeldet!",
                         description=(
                             f"**Verdächtiger:** {self.raeuber.mention} (`{self.raeuber.display_name}`)\n"
-                            f"**Gegenstand:** {item['label']}\n\n"
-                            f"Prüfe <#{ATM_TEAM_CHANNEL_ID}> für Details."
+                            f"**Gegenstand:** {item['label']}"
                         ),
                         color=0x1E90FF,
                         timestamp=datetime.now(timezone.utc)
