@@ -23,7 +23,7 @@ from dienst import get_on_duty
 
 # ── Konstanten ────────────────────────────────────────────────
 
-SHOP_RAUB_INFO_CHANNEL_ID = 1343782893218041977   # Info-Embed beim Start
+SHOP_RAUB_INFO_CHANNEL_ID = 1490894310118392012   # Info-Embed beim Start
 SHOP_RAUB_BILD_CHANNEL_ID = 1343782933248344177   # Spieler sendet Foto hier
 SHOP_RAUB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
 
@@ -412,49 +412,4 @@ async def _shop_raub_info_auto_setup():
 async def shop_raub_on_ready():
     await _shop_raub_info_auto_setup()
 
-
-# ── /shop-raub-setup (Admin-Command) ──────────────────────────
-
-@bot.tree.command(
-    name="shop-raub-setup",
-    description="[Admin] Postet das Shop-Raub Info-Embed mit Bild",
-    guild=discord.Object(id=GUILD_ID)
-)
-@app_commands.default_permissions(administrator=True)
-async def shop_raub_setup(interaction: discord.Interaction):
-    if ADMIN_ROLE_ID not in {r.id for r in interaction.user.roles}:
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
-    channel = interaction.guild.get_channel(SHOP_RAUB_INFO_CHANNEL_ID)
-    if not channel:
-        try:
-            channel = await bot.fetch_channel(SHOP_RAUB_INFO_CHANNEL_ID)
-        except Exception:
-            await interaction.followup.send("❌ Info-Kanal nicht gefunden.", ephemeral=True)
-            return
-
-    embed        = build_shop_raub_info_embed()
-    existing_msg = None
-    try:
-        async for msg in channel.history(limit=50):
-            if msg.author.id == bot.user.id and msg.embeds:
-                for emb in msg.embeds:
-                    if emb.title and "Shop-Raub" in emb.title:
-                        existing_msg = msg
-                        break
-            if existing_msg:
-                break
-    except Exception:
-        pass
-
-    try:
-        if existing_msg:
-            await existing_msg.edit(embed=embed)
-            await interaction.followup.send("✅ Info-Embed aktualisiert.", ephemeral=True)
-        else:
-            await channel.send(embed=embed)
-            await interaction.followup.send("✅ Info-Embed gepostet.", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ Fehler: {e}", ephemeral=True)
 
