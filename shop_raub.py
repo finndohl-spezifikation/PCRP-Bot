@@ -378,36 +378,55 @@ async def shop_raub_bild_listener(message: discord.Message):
 # ── Auto-Setup beim Start ─────────────────────────────────────
 
 async def _shop_raub_info_auto_setup():
-    for guild in bot.guilds:
-        channel = guild.get_channel(SHOP_RAUB_INFO_CHANNEL_ID)
-        if not channel:
-            continue
+    await bot.wait_until_ready()
+    try:
+        channel = await bot.fetch_channel(SHOP_RAUB_INFO_CHANNEL_ID)
+    except Exception as e:
+        print(f"[shop_raub] ❌ Info-Kanal nicht gefunden: {e}")
+        return
 
-        embed        = build_shop_raub_info_embed()
-        existing_msg = None
-        try:
-            async for msg in channel.history(limit=50):
-                if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
-                        if emb.title and "Shop-Raub" in emb.title:
-                            existing_msg = msg
-                            break
-                if existing_msg:
-                    break
-        except Exception:
-            pass
-
-        try:
+    embed        = build_shop_raub_info_embed()
+    existing_msg = None
+    try:
+        async for msg in channel.history(limit=50):
+            if msg.author.id == bot.user.id and msg.embeds:
+                for emb in msg.embeds:
+                    if emb.title and "Shop-Raub" in emb.title:
+                        existing_msg = msg
+                        break
             if existing_msg:
-                await existing_msg.edit(embed=embed)
-                print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
-            else:
-                await channel.send(embed=embed)
-                print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
-        except Exception as e:
-            print(f"[shop_raub] ❌ Fehler: {e}")
+                break
+    except Exception:
+        pass
+
+    try:
+        if existing_msg:
+            await existing_msg.edit(embed=embed)
+            print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
+        else:
+            await channel.send(embed=embed)
+            print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
+    except Exception as e:
+        print(f"[shop_raub] ❌ Fehler beim Senden: {e}")
 
 
 @bot.listen("on_ready")
 async def shop_raub_on_ready():
+    bot.loop.create_task(_shop_raub_info_auto_setup())
+
+
+# ── /shop-raub-setup (manueller Fallback) ─────────────────────
+
+@bot.tree.command(
+    name="shop-raub-setup",
+    description="[Admin] Postet das Shop-Raub Info-Embed manuell",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.default_permissions(administrator=True)
+async def shop_raub_setup(interaction: discord.Interaction):
+    if ADMIN_ROLE_ID not in {r.id for r in interaction.user.roles}:
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
     await _shop_raub_info_auto_setup()
+    await interaction.followup.send("✅ Shop-Raub Info-Embed wurde gepostet/aktualisiert.", ephemeral=True)
