@@ -62,6 +62,7 @@ import vorschlag               # Vorschlag-System
 import auto_geben              # Fahrzeug-Vergabe-System
 import atm_raub               # ATM-Raub System
 import shop_raub              # Shop-Raub System
+import raubueberfall          # Raubüberfall System
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
