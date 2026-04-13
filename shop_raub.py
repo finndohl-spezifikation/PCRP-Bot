@@ -414,19 +414,3 @@ async def _shop_raub_info_auto_setup():
 async def shop_raub_on_ready():
     bot.loop.create_task(_shop_raub_info_auto_setup())
 
-
-# ── /shop-raub-setup (manueller Fallback) ─────────────────────
-
-@bot.tree.command(
-    name="shop-raub-setup",
-    description="[Admin] Postet das Shop-Raub Info-Embed manuell",
-    guild=discord.Object(id=GUILD_ID)
-)
-@app_commands.default_permissions(administrator=True)
-async def shop_raub_setup(interaction: discord.Interaction):
-    if ADMIN_ROLE_ID not in {r.id for r in interaction.user.roles}:
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
-    await _shop_raub_info_auto_setup()
-    await interaction.followup.send("✅ Shop-Raub Info-Embed wurde gepostet/aktualisiert.", ephemeral=True)
