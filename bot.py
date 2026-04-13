@@ -65,7 +65,11 @@ import shop_raub              # Shop-Raub System
 import raubueberfall          # Raubüberfall System
 import aktien                 # Aktienmarkt-System
 import kanal_sperre           # /kanal-sperre, /kanal-entsperren
-import server_schutz          # Schutz vor unbefugten Kanal/Rollen-Änderungen
+
+try:
+    import server_schutz      # Schutz vor unbefugten Kanal/Rollen-Änderungen
+except Exception as _import_err:
+    print(f"[WARNING] server_schutz konnte nicht geladen werden: {_import_err}")
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
