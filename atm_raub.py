@@ -54,9 +54,8 @@ def build_atm_info_embed() -> discord.Embed:
     embed.add_field(
         name="🎒 Benötigte Items",
         value=(
-            "🔧 **Brecheisen** → 5 Min. Dauer\n"
-            "💣 **Plastiksprengstoff** → 3 Min. Dauer\n"
-            f"*(Schwarzmarkt: <#{1492977067665526804}>)*"
+            f"🔧 **Brecheisen** → 5 Min.\n┗ <#{1492976742497783818}>\n\n"
+            f"💣 **Plastiksprengstoff** → 3 Min.\n┗ <#{1492977067665526804}>"
         ),
         inline=True
     )
@@ -268,7 +267,7 @@ async def atm_bild_listener(message: discord.Message):
     await team_channel.send(embed=embed, view=view)
 
     try:
-        await message.add_reaction("✅")
+        await message.delete()
     except discord.Forbidden:
         pass
 
