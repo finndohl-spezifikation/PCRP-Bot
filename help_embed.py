@@ -29,13 +29,26 @@ CATEGORY_MAP = {
     "Shop":     ("🏪", "Shop",                    "Alle Spieler / Shop-Admin"),
     "Ausweis":  ("🪪", "Ausweis",                 "Bürger / Admin / Mod"),
     "Behörde":  ("🚗", "Führerschein / Behörde",  "Behörden-Team"),
+    "IC":       ("🎭", "IC Aktionen",             "Alle Spieler"),
+    "Aktien":   ("📈", "Aktienmarkt",             "Alle Spieler"),
+}
+
+# Commands ohne [Kategorie]-Präfix werden hier manuell zugeordnet
+# Schlüssel = Command-Name, Wert = Kategorie-Schlüssel
+NAME_CATEGORY_MAP: dict[str, str] = {
+    "erste-hilfe":    "IC",
+    "ortung":         "IC",
+    "fesseln":        "IC",
+    "aktie-kaufen":   "Aktien",
+    "aktie-verkaufen":"Aktien",
+    "depot":          "Aktien",
 }
 
 # Staff-only Kategorien werden nicht angezeigt
 HIDDEN_CATEGORIES = {"Warn", "Admin", "Mod", "Team", "LOBBY", "Allgemein", "__other__"}
 
 CATEGORY_ORDER = [
-    "Konto", "Inventar", "Shop", "Ausweis", "Behörde",
+    "Konto", "Inventar", "Shop", "Ausweis", "Behörde", "IC", "Aktien",
 ]
 
 
@@ -67,11 +80,17 @@ def _strip_prefix(description: str) -> str:
 def _build_embed(commands: list) -> discord.Embed:
     grouped = {}
     for cmd in commands:
-        prefix = _get_prefix(cmd.description)
-        if prefix in HIDDEN_CATEGORIES:
+        # Zuerst prüfen ob Command manuell einer Kategorie zugeordnet ist
+        if cmd.name in NAME_CATEGORY_MAP:
+            category = NAME_CATEGORY_MAP[cmd.name]
+        else:
+            category = _get_prefix(cmd.description)
+
+        if category in HIDDEN_CATEGORIES:
             continue
+
         clean_desc = _strip_prefix(cmd.description)
-        grouped.setdefault(prefix, []).append((cmd.name, clean_desc))
+        grouped.setdefault(category, []).append((cmd.name, clean_desc))
 
     total = sum(len(v) for v in grouped.values())
 
