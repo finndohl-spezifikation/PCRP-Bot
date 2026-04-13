@@ -27,7 +27,8 @@ SHOP_RAUB_INFO_CHANNEL_ID = 1490894310118392012   # Info-Embed beim Start
 SHOP_RAUB_BILD_CHANNEL_ID = 1343782933248344177   # Spieler sendet Foto hier
 SHOP_RAUB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
 
-BEUTE_MOEGLICHKEITEN = [10_000, 20_000, 35_000]
+BEUTE_MIN = 12_000
+BEUTE_MAX = 22_000
 
 SHOP_RAUB_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
@@ -43,28 +44,15 @@ def build_shop_raub_info_embed() -> discord.Embed:
     embed = discord.Embed(
         title="🏪 Shop-Raub",
         description=(
-            "Du willst deinen Fuhrpark erweitern oder hast Stress mit dem Shop-Besitzer? "
-            "Dann ist dieser Raub genau das Richtige für dich!\n\n"
-            "**💰 Beute:** 10.000$ / 20.000$ / 35.000$ *(zufällig)*\n"
+            "Räube einen der Shops in Los Angeles aus und kassiere deine Beute!\n\n"
             "**📍 Ort:** Shops in **Los Angeles**\n"
             "**👥 Spieler:** **2–3 Personen** empfohlen\n"
-            "**🚔 Beamte:** Mindestens **2–3 Officers** im Dienst nötig"
+            "**🚔 Beamte:** Mindestens **2–3 Officers** im Dienst nötig\n"
+            "**⏱️ Dauer:** ca. **15 Minuten**\n"
+            "**💰 Beute:** zwischen **12.000 $** und **22.000 $** *(zufällig)*"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
-    )
-    embed.add_field(
-        name="⏱️ Dauer",
-        value=(
-            "Die Shops in LA haben ziemlich gute Tresore —\n"
-            "der Raub dauert ca. **10 Minuten**."
-        ),
-        inline=False
-    )
-    embed.add_field(
-        name="💵 Mögliche Beute",
-        value="🥉 **10.000 $**\n🥈 **20.000 $**\n🥇 **35.000 $**",
-        inline=True
     )
     embed.add_field(
         name="⚡ Ablauf",
@@ -73,11 +61,11 @@ def build_shop_raub_info_embed() -> discord.Embed:
             f"2. Foto als Beweis in <#{SHOP_RAUB_BILD_CHANNEL_ID}> senden\n"
             "3. Team bestätigt **Erfolg** oder **Fehlschlag**"
         ),
-        inline=True
+        inline=False
     )
     embed.add_field(
         name="📋 Regelwerk",
-        value='Schau vor dem Raub ins Regelwerk unter **"Raub\u00fcberfall"**.',
+        value='Schau vor dem Raub ins Regelwerk unter **"Raubüberfall"**.',
         inline=False
     )
     embed.set_image(url=SHOP_RAUB_IMAGE_URL)
@@ -98,7 +86,7 @@ def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(name="👤 Spieler",  value=f"{user.mention}\n`{user.display_name}`", inline=True)
-    embed.add_field(name="⏱️ Dauer",    value="**10 Minuten**",                          inline=True)
+    embed.add_field(name="⏱️ Dauer",    value="**15 Minuten**",                          inline=True)
     embed.set_image(url=bild_url)
     embed.set_footer(text="Paradise City Roleplay • Shop-Raub System | Nur Team")
     return embed
@@ -155,7 +143,7 @@ class ShopRaubView(discord.ui.View):
             await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
-        beute = random.choice(BEUTE_MOEGLICHKEITEN)
+        beute = random.randint(BEUTE_MIN, BEUTE_MAX)
 
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
