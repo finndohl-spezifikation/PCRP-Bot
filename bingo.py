@@ -246,6 +246,7 @@ async def _call_loop():
     description="[Admin/Mod] Startet das wöchentliche Bingo-Spiel",
     guild=discord.Object(id=GUILD_ID),
 )
+@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(gewinn="Was gewinnt der Sieger? z.B. '50.000 $' oder 'VIP-Status'")
 async def bingo_start(interaction: discord.Interaction, gewinn: str):
     global _game
