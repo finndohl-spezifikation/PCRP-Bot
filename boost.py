@@ -53,7 +53,7 @@ def _build_boost_embed() -> discord.Embed:
         ),
         color=BOOST_COLOR,
     )
-    embed.set_thumbnail(url=BOOST_BANNER_URL)
+    embed.set_image(url=BOOST_BANNER_URL)
     embed.set_footer(text="Paradise City Roleplay — Server Boosts")
     return embed
 
@@ -134,7 +134,7 @@ async def boost_reward_on_member_update(before: discord.Member, after: discord.M
         name=after.display_name,
         icon_url=after.display_avatar.url
     )
-    embed.set_thumbnail(url=BOOST_BANNER_URL)
+    embed.set_image(url=BOOST_BANNER_URL)
     embed.set_footer(text="Paradise City Roleplay — Server Boosts")
 
     try:
