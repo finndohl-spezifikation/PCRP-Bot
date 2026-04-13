@@ -339,9 +339,9 @@ async def lohn_abholen(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-# ── /kontostand ───────────────────────────────────────────────
+# ── /konto ────────────────────────────────────────────────────
 
-@bot.tree.command(name="kontostand", description="[Konto] Zeigt den Kontostand an", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="konto", description="[Konto] Zeigt den Kontostand an", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
 async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids  = [r.id for r in interaction.user.roles]
