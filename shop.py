@@ -429,42 +429,6 @@ async def shop(interaction: discord.Interaction):
     )
 
 
-# ── /buy (nur noch für Admins sichtbar) ───────────────────────
-
-@bot.tree.command(
-    name="buy",
-    description="[Admin] Kaufe ein Item direkt per Command",
-    guild=discord.Object(id=GUILD_ID)
-)
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(
-    itemname="Name des Items",
-    menge="Menge (Standard: 1)"
-)
-@app_commands.autocomplete(itemname=shop_item_autocomplete)
-async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
-    role_ids = {r.id for r in interaction.user.roles}
-    is_adm   = ADMIN_ROLE_ID in role_ids
-
-    items = load_shop()
-    item  = find_shop_item(items, itemname)
-    if not item:
-        await interaction.response.send_message(
-            f"❌ Item **{itemname}** nicht gefunden.", ephemeral=True
-        )
-        return
-
-    shop_key = _item_shop(item)
-    shop_cfg = SHOPS.get(shop_key, SHOPS["kwik"])
-    if not is_adm and interaction.channel.id != shop_cfg["channel"]:
-        await interaction.response.send_message(
-            f"❌ Dieses Item kann nur in <#{shop_cfg['channel']}> gekauft werden.", ephemeral=True
-        )
-        return
-
-    await _execute_buy(interaction, item, menge, shop_key)
-
-
 # ── /shop-add ─────────────────────────────────────────────────
 
 class ShopAddConfirmView(discord.ui.View):
