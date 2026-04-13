@@ -230,22 +230,32 @@ async def kanal_entsperren(interaction: discord.Interaction):
     restored = 0
     fehler   = 0
 
-    for ch_id_str, saved in data.get("channels", {}).items():
-        channel = guild.get_channel(int(ch_id_str))
+    # Embed-IDs aus gespeicherter JSON (zum Löschen der roten Embeds)
+    embed_ids: dict = data.get("embeds", {})
+
+    # Immer direkt über die feste Channel-Liste gehen — nicht über gespeicherte Daten
+    for ch_id in SPERRE_CHANNEL_IDS:
+        channel = guild.get_channel(ch_id)
         if not channel:
             continue
 
         try:
-            if saved:
-                # Original hatte explizite Werte → exakt wiederherstellen
-                ow = _dict_to_ow(saved)
-                await channel.set_permissions(spieler_role, overwrite=ow)
-            else:
-                # Original hatte keinen Overwrite → komplett entfernen
+            # Aktuellen Overwrite holen und NUR die 4 Lock-Felder entfernen
+            ow = channel.overwrites_for(spieler_role)
+            ow.send_messages            = None
+            ow.create_public_threads    = None
+            ow.create_private_threads   = None
+            ow.use_application_commands = None
+
+            if ow.is_empty():
+                # Kein Overwrite mehr übrig → komplett entfernen
                 await channel.set_permissions(spieler_role, overwrite=None)
+            else:
+                # Andere Felder noch vorhanden → nur Lock-Felder sind weg
+                await channel.set_permissions(spieler_role, overwrite=ow)
 
             # Rotes Sperre-Embed löschen
-            msg_id = data.get("embeds", {}).get(ch_id_str)
+            msg_id = embed_ids.get(str(ch_id))
             if msg_id:
                 try:
                     msg = await channel.fetch_message(int(msg_id))
@@ -286,4 +296,4 @@ async def kanal_entsperren(interaction: discord.Interaction):
     await interaction.followup.send(
         f"🔓 **Kanalsperre aufgehoben!**\n{status}",
         ephemeral=True,
-    )
+              )
