@@ -59,22 +59,25 @@ def _get_prefix(description: str) -> str:
     return match.group(1) if match else "__other__"
 
 
+def _strip_prefix(description: str) -> str:
+    """Entfernt den [Kategorie]-Präfix aus der Command-Beschreibung."""
+    return re.sub(r"^\[[^\]]+\]\s*", "", description)
+
+
 def _build_embed(commands: list) -> discord.Embed:
     grouped = {}
     for cmd in commands:
         prefix = _get_prefix(cmd.description)
         if prefix in HIDDEN_CATEGORIES:
             continue
-        grouped.setdefault(prefix, []).append(f"`/{cmd.name}` — {cmd.description}")
+        clean_desc = _strip_prefix(cmd.description)
+        grouped.setdefault(prefix, []).append((cmd.name, clean_desc))
 
     total = sum(len(v) for v in grouped.values())
 
     embed = discord.Embed(
-        title="📋 Paradise City Roleplay — Bot Commands",
-        description=(
-            "Hier findest du alle verfügbaren Slash-Commands des Servers,\n"
-            "sortiert nach Kategorie. Tippe `/` um sie zu nutzen.\n\u200b"
-        ),
+        title="📋 Paradise City — Slash Commands",
+        description="Tippe `/` um einen Command zu starten.\n\u200b",
         color=EMBED_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
@@ -87,15 +90,15 @@ def _build_embed(commands: list) -> discord.Embed:
         else:
             emoji, cat_name, who = CATEGORY_MAP.get(key, ("📌", key, "Team"))
 
-        lines = "\n".join(grouped[key])
+        lines = "\n".join(f"`/{name}` ─ {desc}" for name, desc in grouped[key])
         embed.add_field(
-            name=f"{emoji}  {cat_name}",
-            value=f"**Zugriff:** {who}\n{lines}\n\u200b",
+            name=f"{emoji}  {cat_name}  ·  *{who}*",
+            value=f"{lines}\n\u200b",
             inline=False,
         )
 
     embed.set_footer(
-        text=f"📊 Insgesamt {total} aktive Command{'s' if total != 1 else ''} | Automatisch aktualisiert"
+        text=f"{total} Commands · Automatisch aktualisiert"
     )
     return embed
 
