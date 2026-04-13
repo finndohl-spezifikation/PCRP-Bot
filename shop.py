@@ -190,7 +190,7 @@ async def _execute_buy(
     return True
 
 
-# ── Mengen-Modal ──────────────────────────────────────────────
+# ── Mengen-Modal (nach Item-Auswahl per Dropdown) ─────────────
 
 class BuyMengeModal(discord.ui.Modal):
     def __init__(self, item: dict, shop_key: str):
@@ -215,6 +215,49 @@ class BuyMengeModal(discord.ui.Modal):
             await interaction.response.send_message("❌ Bitte eine gültige Zahl eingeben.", ephemeral=True)
             return
         await _execute_buy(interaction, self.item, menge, self.shop_key)
+
+
+# ── Direkt-Kauf-Modal (Itemname + Menge frei eintippen) ───────
+
+class DirektkaufModal(discord.ui.Modal, title="✏️ Direkt kaufen"):
+    item_input = discord.ui.TextInput(
+        label="Itemname",
+        placeholder="z.B. Burger, Holz, Pistole …",
+        min_length=1,
+        max_length=100,
+        required=True
+    )
+    menge_input = discord.ui.TextInput(
+        label="Menge",
+        placeholder="z.B. 1",
+        default="1",
+        min_length=1,
+        max_length=3,
+        required=True
+    )
+
+    def __init__(self, shop_key: str):
+        super().__init__()
+        self.shop_key = shop_key
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            menge = int(self.menge_input.value.strip())
+        except ValueError:
+            await interaction.response.send_message("❌ Bitte eine gültige Zahl als Menge eingeben.", ephemeral=True)
+            return
+
+        items = load_shop()
+        item  = find_shop_item(items, self.item_input.value.strip())
+        if not item:
+            await interaction.response.send_message(
+                f"❌ Item **{self.item_input.value}** nicht gefunden.\n"
+                "Schaue dir die Liste oben an und achte auf den genauen Namen.",
+                ephemeral=True
+            )
+            return
+
+        await _execute_buy(interaction, item, menge, self.shop_key)
 
 
 # ── Item-Auswahl Select ───────────────────────────────────────
@@ -266,8 +309,22 @@ class ShopPageView(discord.ui.View):
         if page_items:
             self.add_item(BuyItemSelect(self.shop_key, page_items))
 
-        prev = discord.ui.Button(label="◀ Zurück", style=discord.ButtonStyle.secondary, disabled=self.page <= 0)
-        next_ = discord.ui.Button(label="Weiter ▶", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1)
+        # "✏️ Direkt kaufen" Button — öffnet Modal mit Itemname + Menge
+        direkt_btn = discord.ui.Button(
+            label="✏️ Direkt kaufen",
+            style=discord.ButtonStyle.primary,
+            row=2
+        )
+        shop_key = self.shop_key
+
+        async def direkt_cb(interaction: discord.Interaction):
+            await interaction.response.send_modal(DirektkaufModal(shop_key))
+
+        direkt_btn.callback = direkt_cb
+        self.add_item(direkt_btn)
+
+        prev = discord.ui.Button(label="◀ Zurück", style=discord.ButtonStyle.secondary, disabled=self.page <= 0, row=2)
+        next_ = discord.ui.Button(label="Weiter ▶", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1, row=2)
 
         async def prev_cb(interaction: discord.Interaction):
             self.page -= 1
