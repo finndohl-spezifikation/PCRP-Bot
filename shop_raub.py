@@ -359,8 +359,7 @@ async def shop_raub_bild_listener(message: discord.Message):
             cop_embed = discord.Embed(
                 title="🚔 LAPD — Shop-Raub gemeldet!",
                 description=(
-                    f"**Verdächtiger:** {user.mention} (`{user.display_name}`)\n\n"
-                    f"Prüfe <#{SHOP_RAUB_TEAM_CHANNEL_ID}> für Details."
+                    f"**Verdächtiger:** {user.mention} (`{user.display_name}`)"
                 ),
                 color=0x1E90FF,
                 timestamp=datetime.now(timezone.utc)
