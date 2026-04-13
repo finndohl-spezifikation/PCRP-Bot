@@ -32,7 +32,7 @@ BEUTE_MAX = 22_000
 
 SHOP_RAUB_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
-SHOP_RAUB_IMAGE_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/shop_raub.jpg"
+SHOP_RAUB_IMAGE_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/shop_raub.jpg?v=2"
 
 # Verhindert Doppel-Einreichungen (user_id)
 _pending_shop_raids: set[int] = set()
@@ -382,11 +382,9 @@ async def _shop_raub_info_auto_setup():
 
         try:
             if existing_msg:
-                await existing_msg.edit(embed=embed)
-                print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
-            else:
-                await channel.send(embed=embed)
-                print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
+                await existing_msg.delete()
+            await channel.send(embed=embed)
+            print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
         except Exception as e:
             print(f"[shop_raub] ❌ Fehler beim Senden: {e}")
 
