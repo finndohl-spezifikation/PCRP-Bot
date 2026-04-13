@@ -15,6 +15,7 @@ BINGO_CHANNEL_ID    = 1490882562015498362
 BINGO_ROLE_ID       = 1490855737130221598
 BINGO_JOIN_SECONDS  = 300          # 5 Minuten Beitrittszeit
 BINGO_CALL_INTERVAL = 20           # Sekunden zwischen zwei Zahlen
+BINGO_GRACE_SECONDS = 60           # Schonfrist nach letzter Zahl
 BINGO_MIN           = 1
 BINGO_MAX           = 75           # Zahlenpool 1–75
 BINGO_SIZE          = 4            # 4×4 Karte = 16 Felder
@@ -29,36 +30,21 @@ def _make_card() -> list[list[int]]:
     return [pool[i * BINGO_SIZE:(i + 1) * BINGO_SIZE] for i in range(BINGO_SIZE)]
 
 
-def _has_bingo(marked: list[list[bool]]) -> bool:
-    s = BINGO_SIZE
-    for r in range(s):
-        if all(marked[r][c] for c in range(s)):
-            return True
-    for c in range(s):
-        if all(marked[r][c] for r in range(s)):
-            return True
-    if all(marked[i][i] for i in range(s)):
-        return True
-    if all(marked[i][s - 1 - i] for i in range(s)):
-        return True
-    return False
-
-
-def _marked_count(marked: list[list[bool]]) -> int:
-    return sum(marked[r][c] for r in range(BINGO_SIZE) for c in range(BINGO_SIZE))
-
-
-def _build_embed(pdata: dict) -> discord.Embed:
-    prize      = _game["prize"]   if _game else "—"
-    called_lst = _game["called"]  if _game else []
+def _card_embed(view: BingoCardView) -> discord.Embed:
+    called_set = _game["called_set"] if _game else set()
+    prize      = _game["prize"]      if _game else "—"
+    called_lst = _game["called"]     if _game else []
+    last       = called_lst[-1]      if called_lst else None
 
     rows = []
     for r in range(BINGO_SIZE):
         parts = []
         for c in range(BINGO_SIZE):
-            n = pdata["card"][r][c]
-            if pdata["marked"][r][c]:
+            n = view.card[r][c]
+            if view.marked[r][c]:
                 parts.append(f"✓{n:02d}")
+            elif n in called_set:
+                parts.append(f"●{n:02d}")
             else:
                 parts.append(f"○{n:02d}")
         rows.append("  ".join(parts))
@@ -72,7 +58,7 @@ def _build_embed(pdata: dict) -> discord.Embed:
     )
     embed.add_field(
         name="🔢 Letzte Zahl",
-        value=f"**{called_lst[-1]}**" if called_lst else "—",
+        value=f"**{last}**" if last else "—",
         inline=True,
     )
     embed.add_field(name="🏆 Gewinn", value=prize, inline=True)
@@ -81,8 +67,103 @@ def _build_embed(pdata: dict) -> discord.Embed:
         value=(" · ".join(str(x) for x in called_lst) or "—")[:1024],
         inline=False,
     )
-    embed.set_footer(text="✓ = aufgerufen  ○ = ausstehend")
+    embed.set_footer(text="✓ = markiert  ●  = aufgerufen, noch nicht markiert  ○ = ausstehend")
     return embed
+
+
+# ── View & Buttons ────────────────────────────────────────────────────────────
+
+class BingoCardView(discord.ui.View):
+    def __init__(self, user_id: int, card: list[list[int]]):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+        self.card    = card
+        self.marked  = [[False] * BINGO_SIZE for _ in range(BINGO_SIZE)]
+        self._rebuild()
+
+    def _rebuild(self):
+        self.clear_items()
+        called_set = _game["called_set"] if _game else set()
+        for r in range(BINGO_SIZE):
+            for c in range(BINGO_SIZE):
+                n      = self.card[r][c]
+                marked = self.marked[r][c]
+                called = n in called_set
+                if marked:
+                    style, label, disabled = discord.ButtonStyle.success, f"✓{n}", True
+                elif called:
+                    style, label, disabled = discord.ButtonStyle.primary, str(n), False
+                else:
+                    style, label, disabled = discord.ButtonStyle.secondary, str(n), True
+                self.add_item(
+                    BingoButton(
+                        row_idx=r, col_idx=c, number=n, view_ref=self,
+                        style=style, label=label, disabled=disabled,
+                    )
+                )
+
+    def rebuild(self):
+        self._rebuild()
+
+    def has_bingo(self) -> bool:
+        m = self.marked
+        s = BINGO_SIZE
+        for r in range(s):
+            if all(m[r][c] for c in range(s)):
+                return True
+        for c in range(s):
+            if all(m[r][c] for r in range(s)):
+                return True
+        if all(m[i][i] for i in range(s)):
+            return True
+        if all(m[i][s - 1 - i] for i in range(s)):
+            return True
+        return False
+
+    def marked_count(self) -> int:
+        return sum(self.marked[r][c] for r in range(BINGO_SIZE) for c in range(BINGO_SIZE))
+
+
+class BingoButton(discord.ui.Button):
+    def __init__(self, row_idx: int, col_idx: int, number: int,
+                 view_ref: BingoCardView, **kwargs):
+        super().__init__(row=row_idx, **kwargs)
+        self._r    = row_idx
+        self._c    = col_idx
+        self._n    = number
+        self._vref = view_ref
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self._vref.user_id:
+            await interaction.response.send_message(
+                "❌ Das ist nicht deine Karte!", ephemeral=True
+            )
+            return
+
+        if not _game or _game.get("ended"):
+            await interaction.response.send_message(
+                "❌ Kein aktives Bingo-Spiel.", ephemeral=True
+            )
+            return
+
+        if self._n not in _game["called_set"]:
+            await interaction.response.send_message(
+                f"❌ Die Zahl **{self._n}** wurde noch nicht aufgerufen!", ephemeral=True
+            )
+            return
+
+        if self._vref.marked[self._r][self._c]:
+            await interaction.response.send_message("✅ Bereits markiert!", ephemeral=True)
+            return
+
+        self._vref.marked[self._r][self._c] = True
+        self._vref.rebuild()
+        await interaction.response.edit_message(
+            embed=_card_embed(self._vref), view=self._vref
+        )
+
+        if self._vref.has_bingo():
+            await _declare_winner(interaction.user)
 
 
 # ── Gewinn-Handling ───────────────────────────────────────────────────────────
@@ -137,57 +218,68 @@ async def _call_loop():
 
     for number in pool:
         if not _game or _game.get("ended"):
-            break
+            return
 
         await asyncio.sleep(BINGO_CALL_INTERVAL)
 
         if not _game or _game.get("ended"):
-            break
+            return
 
         _game["called"].append(number)
         _game["called_set"].add(number)
 
-        # Zahl bei allen Spielern automatisch markieren
-        bingo_uids: list[int] = []
-        for uid, pdata in list(_game["players"].items()):
-            for r in range(BINGO_SIZE):
-                for c in range(BINGO_SIZE):
-                    if pdata["card"][r][c] == number:
-                        pdata["marked"][r][c] = True
-            if _has_bingo(pdata["marked"]):
-                bingo_uids.append(uid)
-
-        # Alle DM-Karten aktualisieren
-        for uid, pdata in list(_game["players"].items()):
+        for uid, view in list(_game["views"].items()):
             msg = _game["messages"].get(uid)
             if not msg:
                 continue
+            view.rebuild()
             try:
-                await msg.edit(embed=_build_embed(pdata))
+                await msg.edit(embed=_card_embed(view), view=view)
             except Exception:
                 pass
 
-        # Bingo sofort auswerten
-        if bingo_uids:
-            winner_uid = random.choice(bingo_uids)
-            guild  = bot.get_guild(GUILD_ID)
-            member = guild.get_member(winner_uid) if guild else None
-            if member:
-                await _declare_winner(member)
+        if _game.get("ended"):
             return
 
-    # Alle Zahlen aufgerufen — Spieler mit den meisten Markierungen gewinnt
-    if _game and not _game.get("ended"):
-        best_uid = max(
-            _game["players"],
-            key=lambda uid: _marked_count(_game["players"][uid]["marked"])
+    # Alle Zahlen aufgerufen — 60 Sekunden Schonfrist für letzte Klicks
+    if not _game or _game.get("ended"):
+        return
+
+    channel = bot.get_channel(BINGO_CHANNEL_ID)
+    if channel:
+        await channel.send(
+            f"🎱 Alle Zahlen wurden aufgerufen!\n"
+            f"Ihr habt noch **{BINGO_GRACE_SECONDS} Sekunden** um eure letzten Felder anzuklicken!"
         )
+
+    await asyncio.sleep(BINGO_GRACE_SECONDS)
+
+    if not _game or _game.get("ended"):
+        return
+
+    # Erst prüfen ob jemand Bingo hat (Klicks während Schonfrist)
+    bingo_uids = [
+        uid for uid, view in _game["views"].items() if view.has_bingo()
+    ]
+    if bingo_uids:
+        winner_uid = random.choice(bingo_uids)
+        guild  = bot.get_guild(GUILD_ID)
+        member = guild.get_member(winner_uid) if guild else None
+        if member:
+            await _declare_winner(member)
+            return
+
+    # Kein Bingo — Spieler mit den meisten markierten Feldern gewinnt
+    if _game["views"]:
+        best_uid = max(_game["views"], key=lambda uid: _game["views"][uid].marked_count())
         guild  = bot.get_guild(GUILD_ID)
         member = guild.get_member(best_uid) if guild else None
         if member:
             await _declare_winner(member)
-        else:
-            _game["ended"] = True
+            return
+
+    if _game:
+        _game["ended"] = True
 
 
 # ── /bingo Command ────────────────────────────────────────────────────────────
@@ -230,7 +322,7 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
             f"⏳ Eintragungszeit: **5 Minuten**\n"
             f"Danach erhältst du dein persönliches Bingo-Feld per DM.\n"
             f"Der Bot ruft alle **20 Sekunden** eine neue Zahl auf — "
-            f"aufgerufene Zahlen werden auf deiner Karte automatisch markiert!\n\n"
+            f"klicke sie auf deiner Karte an um sie zu markieren!\n\n"
             f"**Wer zuerst eine vollständige Reihe, Spalte oder Diagonale hat, gewinnt! 🎉**"
         ),
         color=LOG_COLOR,
@@ -248,7 +340,7 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
         "prize":      gewinn,
         "called":     [],
         "called_set": set(),
-        "players":    {},
+        "views":      {},
         "messages":   {},
         "ended":      False,
         "task":       None,
@@ -288,23 +380,24 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
     # Karten per DM versenden
     dm_failed: list[str] = []
     for user in participants:
-        card   = _make_card()
-        pdata  = {"card": card, "marked": [[False] * BINGO_SIZE for _ in range(BINGO_SIZE)]}
-        _game["players"][user.id] = pdata
+        card = _make_card()
+        view = BingoCardView(user_id=user.id, card=card)
+        _game["views"][user.id] = view
         try:
             dm_msg = await user.send(
                 content=(
                     f"🎱 **Dein Bingo-Feld ist da!**\n"
                     f"Gewinn: **{gewinn}**\n\n"
-                    f"Aufgerufene Zahlen werden **automatisch** auf deiner Karte markiert.\n"
+                    f"Sobald eine Zahl aufgerufen wird leuchtet sie **blau** auf — "
+                    f"klicke sie um sie zu markieren!\n"
                     f"Wer zuerst eine vollständige **Reihe, Spalte oder Diagonale** hat, gewinnt!"
                 ),
-                embed=_build_embed(pdata),
+                embed=_card_embed(view),
+                view=view,
             )
             _game["messages"][user.id] = dm_msg
         except discord.Forbidden:
             dm_failed.append(user.display_name)
-            _game["players"].pop(user.id, None)
 
     if dm_failed:
         await channel.send(
