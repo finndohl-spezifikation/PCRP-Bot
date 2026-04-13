@@ -16,6 +16,7 @@
 #      Fehlschlag  → Info-DM, kein Geld
 # ══════════════════════════════════════════════════════════════
 
+import io
 import random
 from config import *
 from economy_helpers import (
@@ -264,12 +265,13 @@ class AtmRaubView(discord.ui.View):
 class GegenstandView(discord.ui.View):
     """Wird dem Spieler per DM geschickt. Er wählt seinen Gegenstand."""
 
-    def __init__(self, raeuber: discord.Member, bild_url: str, guild_id: int):
+    def __init__(self, raeuber: discord.Member, img_bytes: bytes, img_filename: str, guild_id: int):
         super().__init__(timeout=300)   # 5 Minuten Zeit zum Auswählen
-        self.raeuber  = raeuber
-        self.bild_url = bild_url
-        self.guild_id = guild_id
-        self._done    = False
+        self.raeuber      = raeuber
+        self.img_bytes    = img_bytes
+        self.img_filename = img_filename
+        self.guild_id     = guild_id
+        self._done        = False
 
     async def on_timeout(self):
         _pending_raids.discard(self.raeuber.id)
@@ -316,19 +318,34 @@ class GegenstandView(discord.ui.View):
         confirm_embed.set_footer(text="Paradise City Roleplay • ATM-System")
         await interaction.response.edit_message(embed=confirm_embed, view=self)
 
-        # Beweis ins Team-Channel posten
+        # Beweis ins Team-Channel posten (Bild als Datei hochladen)
         guild = bot.get_guild(self.guild_id)
         if guild:
             team_channel = guild.get_channel(ATM_TEAM_CHANNEL_ID)
+            bild_url = ""
             if team_channel:
-                view  = AtmRaubView(
+                file  = discord.File(io.BytesIO(self.img_bytes), filename=self.img_filename)
+                embed = build_beweis_embed(
+                    self.raeuber,
+                    f"attachment://{self.img_filename}",
+                    item["label"],
+                    item["minuten"]
+                )
+                # Erst ohne View senden um die URL des Attachments zu bekommen
+                tmp_msg = await team_channel.send(file=file)
+                if tmp_msg.attachments:
+                    bild_url = tmp_msg.attachments[0].url
+
+                view = AtmRaubView(
                     raeuber_id=self.raeuber.id,
-                    bild_url=self.bild_url,
+                    bild_url=bild_url,
                     item_label=item["label"],
                     item_minuten=item["minuten"]
                 )
-                embed = build_beweis_embed(self.raeuber, self.bild_url, item["label"], item["minuten"])
-                await team_channel.send(embed=embed, view=view)
+                beweis_embed = build_beweis_embed(
+                    self.raeuber, bild_url, item["label"], item["minuten"]
+                )
+                await team_channel.send(embed=beweis_embed, view=view)
 
             # LAPD benachrichtigen
             on_duty_lapd = get_on_duty("lapd")
@@ -348,7 +365,8 @@ class GegenstandView(discord.ui.View):
                         timestamp=datetime.now(timezone.utc)
                     )
                     cop_embed.set_thumbnail(url=self.raeuber.display_avatar.url)
-                    cop_embed.set_image(url=self.bild_url)
+                    if bild_url:
+                        cop_embed.set_image(url=bild_url)
                     cop_embed.set_footer(text="Paradise City Roleplay • LAPD")
                     await member.send(embed=cop_embed)
                 except discord.Forbidden:
@@ -372,16 +390,39 @@ async def atm_bild_listener(message: discord.Message):
     if message.channel.id != ATM_BILD_CHANNEL_ID:
         return
 
-    bild_url = None
-    for attachment in message.attachments:
-        if attachment.content_type and attachment.content_type.startswith("image/"):
-            bild_url = attachment.url
+    attachment = None
+    for att in message.attachments:
+        if att.content_type and att.content_type.startswith("image/"):
+            attachment = att
             break
 
-    if not bild_url:
+    if not attachment:
         return
 
     user = message.author
+
+    # ── 24h-Cooldown prüfen ────────────────────────────────────
+    eco       = load_economy()
+    user_data = get_user(eco, user.id)
+    last_raid = user_data.get("atm_last_raid")
+    if last_raid:
+        last_dt  = datetime.fromisoformat(last_raid)
+        vergangen = (datetime.now(timezone.utc) - last_dt).total_seconds()
+        if vergangen < 86400:
+            verbleibend = int((86400 - vergangen) / 3600)
+            minuten     = int(((86400 - vergangen) % 3600) / 60)
+            try:
+                await message.reply(
+                    f"⏳ Du kannst erst in **{verbleibend}h {minuten}min** wieder einen ATM ausrauben.",
+                    delete_after=15
+                )
+            except discord.Forbidden:
+                pass
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                pass
+            return
 
     if user.id in _pending_raids:
         try:
@@ -393,12 +434,23 @@ async def atm_bild_listener(message: discord.Message):
             pass
         return
 
+    # ── Bild-Bytes sofort sichern (vor dem Löschen) ───────────
+    try:
+        img_bytes    = await attachment.read()
+        img_filename = attachment.filename or "beweis.jpg"
+    except Exception:
+        return
+
     _pending_raids.add(user.id)
 
     try:
         await message.delete()
     except discord.Forbidden:
         pass
+
+    # ── 24h-Cooldown setzen ────────────────────────────────────
+    user_data["atm_last_raid"] = datetime.now(timezone.utc).isoformat()
+    save_economy(eco)
 
     # DM mit Gegenstand-Auswahl schicken
     try:
@@ -426,7 +478,7 @@ async def atm_bild_listener(message: discord.Message):
         )
         dm_embed.set_footer(text="Paradise City Roleplay • ATM-System")
 
-        view = GegenstandView(raeuber=user, bild_url=bild_url, guild_id=message.guild.id)
+        view = GegenstandView(raeuber=user, img_bytes=img_bytes, img_filename=img_filename, guild_id=message.guild.id)
         await user.send(embed=dm_embed, view=view)
 
     except discord.Forbidden:
