@@ -54,7 +54,6 @@ def _is_shop_admin(member: discord.Member) -> bool:
 
 
 def _item_shop(item: dict) -> str:
-    """Gibt den Shop-Key eines Items zurück; default: 'kwik' für alte Items."""
     return item.get("shop", "kwik")
 
 
@@ -62,7 +61,6 @@ _PAGE_SIZE = 15
 
 
 def _get_shop_items(shop_key: str, member: discord.Member) -> list:
-    """Gibt alle für den Nutzer sichtbaren Items eines Shops zurück."""
     role_ids = {r.id for r in member.roles}
     is_adm   = ADMIN_ROLE_ID in role_ids
     return [
@@ -73,14 +71,12 @@ def _get_shop_items(shop_key: str, member: discord.Member) -> list:
 
 
 def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0) -> tuple[discord.Embed, int]:
-    """Gibt (embed, total_pages) zurück."""
     shop     = SHOPS[shop_key]
     filtered = _get_shop_items(shop_key, member)
 
-    total_pages = max(1, -(-len(filtered) // _PAGE_SIZE))  # ceil division
+    total_pages = max(1, -(-len(filtered) // _PAGE_SIZE))
     page        = max(0, min(page, total_pages - 1))
-
-    page_items = filtered[page * _PAGE_SIZE : (page + 1) * _PAGE_SIZE]
+    page_items  = filtered[page * _PAGE_SIZE : (page + 1) * _PAGE_SIZE]
 
     embed = discord.Embed(
         title=shop["label"],
@@ -94,14 +90,164 @@ def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0) -> t
     else:
         embed.description = "*Dieser Shop ist aktuell leer.*"
 
-    footer = "Kaufen mit /buy [itemname] • Nur mit Bargeld möglich"
+    footer = "Wähle ein Item unten aus um es zu kaufen • Nur Bargeld"
     if total_pages > 1:
         footer += f"  |  Seite {page + 1}/{total_pages}"
     embed.set_footer(text=footer)
     return embed, total_pages
 
 
-# ── Seiten-View (Blättern) ────────────────────────────────────
+# ── Kauf-Logik (Hilfsfunktion) ────────────────────────────────
+
+async def _execute_buy(
+    interaction: discord.Interaction,
+    item: dict,
+    menge: int,
+    shop_key: str,
+) -> bool:
+    """Führt den Kauf durch. Gibt True zurück wenn erfolgreich."""
+    role_ids = {r.id for r in interaction.user.roles}
+    is_adm   = ADMIN_ROLE_ID in role_ids
+
+    if not is_adm and not has_citizen_or_wage(interaction.user):
+        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        return False
+
+    if menge < 1 or menge > 100:
+        await interaction.response.send_message("❌ Menge muss zwischen **1** und **100** liegen.", ephemeral=True)
+        return False
+
+    # Schwarzmarkt-Zugang
+    if shop_key == "schwarzmarkt" and not is_adm and not _has_schwarzmarkt_access(interaction.user):
+        await interaction.response.send_message("❌ Du hast keinen Zugang zum Schwarzmarkt.", ephemeral=True)
+        return False
+
+    # Rollen-Check für Item
+    allowed_role = item.get("allowed_role")
+    if allowed_role and not is_adm and allowed_role not in role_ids:
+        rolle_obj = interaction.guild.get_role(allowed_role)
+        rname     = rolle_obj.name if rolle_obj else f"<@&{allowed_role}>"
+        await interaction.response.send_message(
+            f"❌ Dieses Item ist nur für die Rolle **{rname}** erhältlich.", ephemeral=True
+        )
+        return False
+
+    eco       = load_economy()
+    user_data = get_user(eco, interaction.user.id)
+
+    # Rubbellos-Tageslimit
+    if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME) and not is_adm:
+        today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
+        rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
+        if rb_count + menge > _RUBBELLOS_TAGESLIMIT:
+            verbleibend = max(0, _RUBBELLOS_TAGESLIMIT - rb_count)
+            await interaction.response.send_message(
+                f"❌ Du kannst nur **{_RUBBELLOS_TAGESLIMIT} Rubbellose pro Tag** kaufen.\n"
+                f"Heute gekauft: **{rb_count}** — noch kaufbar: **{verbleibend}**.",
+                ephemeral=True
+            )
+            return False
+
+    gesamtpreis = item["price"] * menge
+    if user_data["cash"] < gesamtpreis:
+        await interaction.response.send_message(
+            f"❌ Nicht genug **Bargeld**.\n"
+            f"**Preis:** {item['price']:,} 💵 × {menge} = **{gesamtpreis:,} 💵**\n"
+            f"**Dein Bargeld:** {user_data['cash']:,} 💵\n"
+            f"ℹ️ Hebe Geld mit `/auszahlen` ab.",
+            ephemeral=True
+        )
+        return False
+
+    user_data["cash"] -= gesamtpreis
+    user_data.setdefault("inventory", [])
+    for _ in range(menge):
+        user_data["inventory"].append(item["name"])
+
+    if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME):
+        today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
+        rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
+        user_data["rubbellos_daily"] = {"date": today, "count": rb_count + menge}
+
+    save_economy(eco)
+
+    if normalize_item_name(item["name"]) == normalize_item_name(HANDY_ITEM_NAME):
+        await give_handy_channel_access(interaction.guild, interaction.user)
+
+    menge_text = f" × {menge}" if menge > 1 else ""
+    embed = discord.Embed(
+        title="✅ Gekauft!",
+        description=(
+            f"Du hast **{item['name']}**{menge_text} für **{gesamtpreis:,} 💵** gekauft.\n"
+            f"**Verbleibendes Bargeld:** {user_data['cash']:,} 💵"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+    return True
+
+
+# ── Mengen-Modal ──────────────────────────────────────────────
+
+class BuyMengeModal(discord.ui.Modal):
+    def __init__(self, item: dict, shop_key: str):
+        super().__init__(title=f"🛒 {item['name'][:40]} kaufen")
+        self.item     = item
+        self.shop_key = shop_key
+
+        self.menge_input = discord.ui.TextInput(
+            label=f"Menge  (Preis: {item['price']:,}$ pro Stück)",
+            placeholder="z.B. 1",
+            default="1",
+            min_length=1,
+            max_length=3,
+            required=True
+        )
+        self.add_item(self.menge_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            menge = int(self.menge_input.value.strip())
+        except ValueError:
+            await interaction.response.send_message("❌ Bitte eine gültige Zahl eingeben.", ephemeral=True)
+            return
+        await _execute_buy(interaction, self.item, menge, self.shop_key)
+
+
+# ── Item-Auswahl Select ───────────────────────────────────────
+
+class BuyItemSelect(discord.ui.Select):
+    def __init__(self, shop_key: str, page_items: list):
+        self.shop_key = shop_key
+        options = [
+            discord.SelectOption(
+                label=item["name"][:100],
+                value=item["name"][:100],
+                description=f"{item['price']:,} 💵"
+            )
+            for item in page_items[:25]
+        ]
+        super().__init__(
+            placeholder="🛒 Item kaufen — hier auswählen...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        item_name = self.values[0]
+        items     = load_shop()
+        item      = find_shop_item(items, item_name)
+        if not item:
+            await interaction.response.send_message("❌ Item nicht mehr verfügbar.", ephemeral=True)
+            return
+        await interaction.response.send_modal(BuyMengeModal(item, self.shop_key))
+
+
+# ── Seiten-View (Blättern + Kaufen) ──────────────────────────
 
 class ShopPageView(discord.ui.View):
     def __init__(self, shop_key: str, member: discord.Member, page: int, total_pages: int):
@@ -110,25 +256,37 @@ class ShopPageView(discord.ui.View):
         self.member      = member
         self.page        = page
         self.total_pages = total_pages
-        self._refresh_buttons()
+        self._rebuild()
 
-    def _refresh_buttons(self):
-        self.prev_btn.disabled = self.page <= 0
-        self.next_btn.disabled = self.page >= self.total_pages - 1
+    def _rebuild(self):
+        self.clear_items()
+        page_items = _get_shop_items(self.shop_key, self.member)[
+            self.page * _PAGE_SIZE : (self.page + 1) * _PAGE_SIZE
+        ]
+        if page_items:
+            self.add_item(BuyItemSelect(self.shop_key, page_items))
 
-    @discord.ui.button(label="◀ Zurück", style=discord.ButtonStyle.secondary)
-    async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.page -= 1
-        embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
-        self._refresh_buttons()
-        await interaction.response.edit_message(embed=embed, view=self)
+        prev = discord.ui.Button(label="◀ Zurück", style=discord.ButtonStyle.secondary, disabled=self.page <= 0)
+        next_ = discord.ui.Button(label="Weiter ▶", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1)
 
-    @discord.ui.button(label="Weiter ▶", style=discord.ButtonStyle.secondary)
-    async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.page += 1
-        embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
-        self._refresh_buttons()
-        await interaction.response.edit_message(embed=embed, view=self)
+        async def prev_cb(interaction: discord.Interaction):
+            self.page -= 1
+            embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+            self._rebuild()
+            await interaction.response.edit_message(embed=embed, view=self)
+
+        async def next_cb(interaction: discord.Interaction):
+            self.page += 1
+            embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+            self._rebuild()
+            await interaction.response.edit_message(embed=embed, view=self)
+
+        prev.callback  = prev_cb
+        next_.callback = next_cb
+
+        if self.total_pages > 1:
+            self.add_item(prev)
+            self.add_item(next_)
 
 
 # ── Shop-Auswahl Select ───────────────────────────────────────
@@ -161,18 +319,13 @@ class ShopSelectView(discord.ui.View):
         shop_cfg = SHOPS[shop_key]
         is_adm   = ADMIN_ROLE_ID in {r.id for r in interaction.user.roles}
 
-        # Schwarzmarkt-Berechtigungsprüfung
         if shop_key == "schwarzmarkt" and not _has_schwarzmarkt_access(interaction.user):
             await interaction.response.edit_message(
-                embed=discord.Embed(
-                    description="❌ Du hast keinen Zugang zum Schwarzmarkt.",
-                    color=0xE74C3C
-                ),
+                embed=discord.Embed(description="❌ Du hast keinen Zugang zum Schwarzmarkt.", color=0xE74C3C),
                 view=None
             )
             return
 
-        # Kanal-Check
         if not is_adm and interaction.channel.id != shop_cfg["channel"]:
             await interaction.response.edit_message(
                 embed=discord.Embed(
@@ -196,7 +349,6 @@ class ShopSelectView(discord.ui.View):
     guild=discord.Object(id=GUILD_ID)
 )
 async def shop(interaction: discord.Interaction):
-    # Prüfen ob User überhaupt irgendeinen Shop öffnen darf
     is_adm = ADMIN_ROLE_ID in {r.id for r in interaction.user.roles}
     if not is_adm:
         shop_key = CHANNEL_TO_SHOP.get(interaction.channel.id)
@@ -220,125 +372,40 @@ async def shop(interaction: discord.Interaction):
     )
 
 
-# ── /buy ──────────────────────────────────────────────────────
+# ── /buy (nur noch für Admins sichtbar) ───────────────────────
 
 @bot.tree.command(
     name="buy",
-    description="Kaufe ein Item aus dem Shop",
+    description="[Admin] Kaufe ein Item direkt per Command",
     guild=discord.Object(id=GUILD_ID)
 )
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
-    itemname="Name des Items das du kaufen möchtest",
-    menge="Wie viele möchtest du kaufen? (Standard: 1)"
+    itemname="Name des Items",
+    menge="Menge (Standard: 1)"
 )
+@app_commands.autocomplete(itemname=shop_item_autocomplete)
 async def buy(interaction: discord.Interaction, itemname: str, menge: int = 1):
     role_ids = {r.id for r in interaction.user.roles}
     is_adm   = ADMIN_ROLE_ID in role_ids
 
-    if not is_adm and not has_citizen_or_wage(interaction.user):
-        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
-        return
-
-    if menge < 1:
-        await interaction.response.send_message("❌ Die Menge muss mindestens **1** sein.", ephemeral=True)
-        return
-    if menge > 100:
-        await interaction.response.send_message("❌ Du kannst maximal **100** Items auf einmal kaufen.", ephemeral=True)
-        return
-
     items = load_shop()
     item  = find_shop_item(items, itemname)
-
     if not item:
         await interaction.response.send_message(
-            f"❌ Item **{itemname}** wurde nicht gefunden. Nutze `/shop` um alle Items zu sehen.",
-            ephemeral=True
+            f"❌ Item **{itemname}** nicht gefunden.", ephemeral=True
         )
         return
 
-    # Kanal-Check: User muss im korrekten Shop-Kanal sein
     shop_key = _item_shop(item)
     shop_cfg = SHOPS.get(shop_key, SHOPS["kwik"])
     if not is_adm and interaction.channel.id != shop_cfg["channel"]:
         await interaction.response.send_message(
-            f"❌ Dieses Item kann nur in <#{shop_cfg['channel']}> gekauft werden.",
-            ephemeral=True
+            f"❌ Dieses Item kann nur in <#{shop_cfg['channel']}> gekauft werden.", ephemeral=True
         )
         return
 
-    # Schwarzmarkt-Zugang
-    if shop_key == "schwarzmarkt" and not is_adm and not _has_schwarzmarkt_access(interaction.user):
-        await interaction.response.send_message(
-            "❌ Du hast keinen Zugang zum Schwarzmarkt.", ephemeral=True
-        )
-        return
-
-    # Rollen-Check für Item
-    allowed_role = item.get("allowed_role")
-    if allowed_role and not is_adm and allowed_role not in role_ids:
-        rolle_obj = interaction.guild.get_role(allowed_role)
-        rname     = rolle_obj.name if rolle_obj else f"<@&{allowed_role}>"
-        await interaction.response.send_message(
-            f"❌ Dieses Item ist nur für die Rolle **{rname}** erhältlich.", ephemeral=True
-        )
-        return
-
-    eco       = load_economy()
-    user_data = get_user(eco, interaction.user.id)
-
-    # Rubbellos-Tageslimit
-    if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME) and not is_adm:
-        today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
-        rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
-        if rb_count + menge > _RUBBELLOS_TAGESLIMIT:
-            verbleibend = max(0, _RUBBELLOS_TAGESLIMIT - rb_count)
-            await interaction.response.send_message(
-                f"❌ Du kannst nur **{_RUBBELLOS_TAGESLIMIT} Rubbellose pro Tag** kaufen.\n"
-                f"Heute bereits gekauft: **{rb_count}** — noch kaufbar: **{verbleibend}**.",
-                ephemeral=True
-            )
-            return
-
-    gesamtpreis = item["price"] * menge
-    if user_data["cash"] < gesamtpreis:
-        await interaction.response.send_message(
-            f"❌ Du hast nicht genug **Bargeld**.\n"
-            f"Preis: **{item['price']:,} 💵** × {menge} = **{gesamtpreis:,} 💵** | "
-            f"Dein Bargeld: **{user_data['cash']:,} 💵**\n"
-            f"ℹ️ Käufe sind nur mit Bargeld möglich. Hebe Geld mit `/auszahlen` ab.",
-            ephemeral=True
-        )
-        return
-
-    user_data["cash"] -= gesamtpreis
-    if "inventory" not in user_data:
-        user_data["inventory"] = []
-    for _ in range(menge):
-        user_data["inventory"].append(item["name"])
-
-    if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME):
-        today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
-        rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
-        user_data["rubbellos_daily"] = {"date": today, "count": rb_count + menge}
-
-    save_economy(eco)
-
-    if normalize_item_name(item["name"]) == normalize_item_name(HANDY_ITEM_NAME):
-        await give_handy_channel_access(interaction.guild, interaction.user)
-
-    menge_text = f" × {menge}" if menge > 1 else ""
-    embed = discord.Embed(
-        title="✅ Gekauft!",
-        description=(
-            f"Du hast **{item['name']}**{menge_text} für **{gesamtpreis:,} 💵** gekauft.\n"
-            f"**Verbleibendes Bargeld:** {user_data['cash']:,} 💵"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await interaction.response.send_message(embed=embed)
+    await _execute_buy(interaction, item, menge, shop_key)
 
 
 # ── /shop-add ─────────────────────────────────────────────────
@@ -487,14 +554,13 @@ async def shop_edit(
         if neuer_preis <= 0:
             await interaction.response.send_message("❌ Preis muss größer als 0 sein.", ephemeral=True)
             return
-        old_price           = shop_item["price"]
-        shop_item["price"]  = neuer_preis
+        old_price          = shop_item["price"]
+        shop_item["price"] = neuer_preis
         changes.append(f"**Preis:** {old_price:,} 💵 → {neuer_preis:,} 💵")
 
     if neuer_name:
-        old_name           = shop_item["name"]
-        shop_item["name"]  = neuer_name
-        # Auch in Inventaren aktualisieren
+        old_name          = shop_item["name"]
+        shop_item["name"] = neuer_name
         eco = load_economy()
         for uid, udata in eco.items():
             udata["inventory"] = [
@@ -565,7 +631,7 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
             f"**Preis war:** {shop_item['price']:,} 💵\n"
             f"**Entfernt von:** {interaction.user.mention}\n\n"
             f"**Inventare bereinigt:** {players_cleaned} Spieler\n"
-            f"**Items entfernt:** {total_removed}x"
+            f"**Items entfernt:** {total_removed}×"
         ),
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
