@@ -144,12 +144,13 @@ def _build_result_embed(
 # ── Team-Button-View ──────────────────────────────────────────
 
 class AtmRaubView(discord.ui.View):
-    def __init__(self, raeuber_id: int, bild_url: str, item_label: str, item_minuten: int):
+    def __init__(self, raeuber_id: int, bild_url: str, item_label: str, item_minuten: int, item_inv: str):
         super().__init__(timeout=None)
         self.raeuber_id   = raeuber_id
         self.bild_url     = bild_url
         self.item_label   = item_label
         self.item_minuten = item_minuten
+        self.item_inv     = item_inv   # Inventar-Name für Rückgabe bei Fehlschlag
 
     def _check_team(self, interaction: discord.Interaction) -> bool:
         return bool({r.id for r in interaction.user.roles} & ATM_CONFIRM_ROLES)
@@ -225,6 +226,13 @@ class AtmRaubView(discord.ui.View):
             await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
+        # Item zurück ins Inventar + Cooldown zurücksetzen
+        eco       = load_economy()
+        user_data = get_user(eco, self.raeuber_id)
+        user_data.setdefault("inventory", []).append(self.item_inv)
+        user_data["atm_last_raid"] = None
+        save_economy(eco)
+
         for child in self.children:
             child.disabled = True
         await interaction.message.edit(
@@ -246,6 +254,7 @@ class AtmRaubView(discord.ui.View):
                     "• 🚔 Festnahme durch LAPD\n"
                     "• 🏥 Verletzung / Tod\n"
                     "• 🏳️ Abbruch\n\n"
+                    f"Dein **{self.item_inv}** wurde dir zurückgegeben.\n"
                     "Du erhältst **keine Beute**."
                 ),
                 color=0xE74C3C,
@@ -324,28 +333,26 @@ class GegenstandView(discord.ui.View):
             team_channel = guild.get_channel(ATM_TEAM_CHANNEL_ID)
             bild_url = ""
             if team_channel:
-                file  = discord.File(io.BytesIO(self.img_bytes), filename=self.img_filename)
-                embed = build_beweis_embed(
+                # Bild + Embed + Buttons in EINER Nachricht → Bild im Embed unten
+                file         = discord.File(io.BytesIO(self.img_bytes), filename=self.img_filename)
+                beweis_embed = build_beweis_embed(
                     self.raeuber,
                     f"attachment://{self.img_filename}",
                     item["label"],
                     item["minuten"]
                 )
-                # Erst ohne View senden um die URL des Attachments zu bekommen
-                tmp_msg = await team_channel.send(file=file)
-                if tmp_msg.attachments:
-                    bild_url = tmp_msg.attachments[0].url
-
                 view = AtmRaubView(
                     raeuber_id=self.raeuber.id,
-                    bild_url=bild_url,
+                    bild_url="",          # Platzhalter — wird nach dem Senden gesetzt
                     item_label=item["label"],
-                    item_minuten=item["minuten"]
+                    item_minuten=item["minuten"],
+                    item_inv=item["inv"]
                 )
-                beweis_embed = build_beweis_embed(
-                    self.raeuber, bild_url, item["label"], item["minuten"]
-                )
-                await team_channel.send(embed=beweis_embed, view=view)
+                sent_msg = await team_channel.send(file=file, embed=beweis_embed, view=view)
+                # Echte Attachment-URL für das Ergebnis-Embed sichern
+                if sent_msg.attachments:
+                    bild_url = sent_msg.attachments[0].url
+                    view.bild_url = bild_url
 
             # LAPD benachrichtigen
             on_duty_lapd = get_on_duty("lapd")
