@@ -49,7 +49,7 @@ def build_raub_info_embed() -> discord.Embed:
         description=(
             "Plane einen Raubüberfall und kassiere deine Beute!\n\n"
             "**👥 Spieler:** Mindestens **2 Personen**\n"
-            "**🚔 PDLer:** Mindestens **2 PDLer** im Dienst\n"
+            "**🚔 Beamte:** Mindestens **2 Officers** im Dienst\n"
             "**⏱️ Dauer:** **15 Minuten**\n"
             "**💰 Beute:** zwischen **7.000 $** und **13.000 $** *(zufällig)*\n"
             "**🍺 Bonus:** zwischen **1** und **6 Bier** *(zufällig)*"
@@ -226,7 +226,7 @@ class RaubView(discord.ui.View):
                 title="🔫 Raubüberfall — Fehlgeschlagen ❌",
                 description=(
                     "Dein Raubüberfall ist **fehlgeschlagen**.\n\n"
-                    "• 🚔 Festnahme durch PDL\n"
+                    "• 🚔 Festnahme durch Officers\n"
                     "• 🏥 Verletzung / Tod\n"
                     "• 🏳️ Abbruch\n\n"
                     "Du erhältst **keine Beute**."
@@ -267,7 +267,7 @@ async def raubueberfall_bild_listener(message: discord.Message):
     if len(on_duty_lapd) < RAUB_MIN_PDL:
         try:
             await message.reply(
-                f"❌ Für einen Raubüberfall müssen mindestens **{RAUB_MIN_PDL} PDLer** im Dienst sein.\n"
+                f"❌ Für einen Raubüberfall müssen mindestens **{RAUB_MIN_PDL} Officers** im Dienst sein.\n"
                 f"Aktuell im Dienst: **{len(on_duty_lapd)}**",
                 delete_after=15
             )
@@ -368,7 +368,7 @@ async def raubueberfall_bild_listener(message: discord.Message):
             if not member:
                 continue
             cop_embed = discord.Embed(
-                title="🚔 PDL — Raubüberfall gemeldet!",
+                title="🚔 LAPD — Raubüberfall gemeldet!",
                 description=(
                     f"**Verdächtiger:** {user.mention} (`{user.display_name}`)\n\n"
                     f"Prüfe <#{RAUB_TEAM_CHANNEL_ID}> für Details."
@@ -379,7 +379,7 @@ async def raubueberfall_bild_listener(message: discord.Message):
             cop_embed.set_thumbnail(url=user.display_avatar.url)
             if bild_url:
                 cop_embed.set_image(url=bild_url)
-            cop_embed.set_footer(text="Paradise City Roleplay • PDL")
+            cop_embed.set_footer(text="Paradise City Roleplay • LAPD")
             await member.send(embed=cop_embed)
         except discord.Forbidden:
             pass
