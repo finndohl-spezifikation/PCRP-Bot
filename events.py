@@ -367,19 +367,18 @@ async def on_member_remove(member):
     if goodbye_ch:
         try:
             g_embed = discord.Embed(
-                title="📤 Mitglied hat den Server verlassen",
+                title="📤 Auf Wiedersehen!",
                 description=(
-                    f"**{member.mention}** hat uns verlassen.\n\n"
-                    f"Wir wünschen dir alles Gute!\n"
-                    f"Du bist jederzeit herzlich willkommen zurückzukehren."
+                    f"**{member.display_name}** hat **Paradise City Roleplay** verlassen.\n\n"
+                    f"Wir wünschen dir alles Gute — du bist jederzeit willkommen zurückzukehren! 👋"
                 ),
-                color=LOG_COLOR,
+                color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             g_embed.set_thumbnail(url=member.display_avatar.url)
-            g_embed.add_field(name="Mitglied", value=str(member), inline=True)
-            g_embed.add_field(name="ID",       value=str(member.id), inline=True)
-            g_embed.set_footer(text=f"Noch {guild.member_count} Mitglieder")
+            g_embed.add_field(name="👤 Mitglied", value=str(member), inline=True)
+            g_embed.add_field(name="🆔 ID",       value=str(member.id), inline=True)
+            g_embed.set_footer(text=f"Paradise City Roleplay • Noch {guild.member_count} Mitglieder")
             await goodbye_ch.send(embed=g_embed)
         except Exception:
             pass
@@ -557,14 +556,16 @@ async def on_member_join(member):
 
     try:
         embed = discord.Embed(
+            title="👋 Willkommen auf Paradise City Roleplay!",
             description=(
-                "> Willkommen auf Paradise City Roleplay deinem RP server mit Ultimativem Spaß und Hochwertigem RP\n\n"
-                "> Wir wünschen dir viel Spaß auf unserem Server und hoffen das du dich bei uns Gut Zurecht findest\n\n"
-                "> Solltest du mal Schwierigkeiten haben melde dich gerne Jederzeit über ein Support Ticket im channel "
-                f"[#ticket-erstellen](https://discord.com/channels/{GUILD_ID}/{TICKET_CHANNEL_ID})"
+                "> Willkommen auf **Paradise City Roleplay** — deinem PS4 GTA RP Server mit Ultimativem Spaß und Hochwertigem RP!\n\n"
+                "> Wir freuen uns dich bei uns zu haben und wünschen dir viel Spaß auf unserem Server.\n\n"
+                "> Solltest du Hilfe benötigen, melde dich jederzeit über ein Support-Ticket in "
+                f"<#{TICKET_CHANNEL_ID}>."
             ),
-            color=LOG_COLOR
+            color=0xE67E22
         )
+        embed.set_footer(text="Paradise City Roleplay • Willkommen!")
         await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
@@ -573,19 +574,18 @@ async def on_member_join(member):
     if welcome_ch:
         try:
             w_embed = discord.Embed(
-                title="📥 Willkommen auf dem Server!",
+                title="👋 Willkommen auf Paradise City Roleplay!",
                 description=(
-                    f"Herzlich Willkommen {member.mention} auf **Paradise City Roleplay**!\n\n"
-                    f"Wir freuen uns dich hier zu haben.\n"
-                    f"Bitte wähle deine Einreiseart und erstelle deinen Ausweis."
+                    f"Hey {member.mention}, herzlich willkommen auf **Paradise City Roleplay**!\n\n"
+                    f"Wähle deine Einreiseart und erstelle deinen Ausweis um loszulegen."
                 ),
-                color=LOG_COLOR,
+                color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             w_embed.set_thumbnail(url=member.display_avatar.url)
-            w_embed.add_field(name="Mitglied", value=str(member), inline=True)
-            w_embed.add_field(name="ID", value=str(member.id), inline=True)
-            w_embed.set_footer(text=f"Mitglied #{guild.member_count}")
+            w_embed.add_field(name="👤 Mitglied", value=str(member), inline=True)
+            w_embed.add_field(name="🆔 ID", value=str(member.id), inline=True)
+            w_embed.set_footer(text=f"Paradise City Roleplay • Mitglied #{guild.member_count}")
             await welcome_ch.send(embed=w_embed)
         except Exception:
             pass
@@ -604,4 +604,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
-            )
+        )
