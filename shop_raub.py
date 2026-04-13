@@ -80,7 +80,6 @@ def build_shop_raub_info_embed() -> discord.Embed:
         value='Schau vor dem Raub ins Regelwerk unter **"Raub\u00fcberfall"**.',
         inline=False
     )
-    embed.set_image(url=SHOP_RAUB_IMAGE_URL)
     embed.set_footer(text="Paradise City Roleplay • Shop-Raub System")
     return embed
 
@@ -378,14 +377,12 @@ async def shop_raub_bild_listener(message: discord.Message):
 # ── Auto-Setup beim Start ─────────────────────────────────────
 
 async def _shop_raub_info_auto_setup():
+    print(f"[shop_raub] 🔍 Starte Auto-Setup, Guilds: {[g.name for g in bot.guilds]}")
     for guild in bot.guilds:
         channel = guild.get_channel(SHOP_RAUB_INFO_CHANNEL_ID)
+        print(f"[shop_raub] Guild={guild.name}, Channel={channel}")
         if not channel:
-            try:
-                channel = await bot.fetch_channel(SHOP_RAUB_INFO_CHANNEL_ID)
-            except Exception as e:
-                print(f"[shop_raub] ❌ Info-Kanal nicht gefunden: {e}")
-                continue
+            continue
 
         embed        = build_shop_raub_info_embed()
         existing_msg = None
