@@ -81,22 +81,18 @@ def _save(data: dict):
         json.dump(data, f, indent=2)
 
 
-def _perm_to_val(v) -> str | None:
-    """Konvertiert True/False/None zu speicherbarem Wert."""
-    if v is True:
-        return "allow"
-    if v is False:
-        return "deny"
-    return "neutral"
+def _ow_to_dict(ow: discord.PermissionOverwrite) -> dict:
+    """Speichert alle explizit gesetzten Felder eines Overwrites."""
+    result = {}
+    for name, value in ow:
+        if value is not None:
+            result[name] = value  # True oder False
+    return result
 
 
-def _val_to_perm(v: str | None):
-    """Konvertiert gespeicherten Wert zurück zu True/False/None."""
-    if v == "allow":
-        return True
-    if v == "deny":
-        return False
-    return None
+def _dict_to_ow(d: dict) -> discord.PermissionOverwrite:
+    """Stellt einen Overwrite exakt aus gespeicherten Daten wieder her."""
+    return discord.PermissionOverwrite(**d)
 
 
 # ── Rotes Sperre-Embed ────────────────────────────────────────
@@ -153,19 +149,14 @@ async def kanal_sperre(interaction: discord.Interaction):
         if not channel:
             continue
 
-        # Originale Overwrite-Werte sichern
+        # Kompletten originalen Overwrite sichern
         ow = channel.overwrites_for(spieler_role)
-        data["channels"][str(ch_id)] = {
-            "send_messages":          _perm_to_val(ow.send_messages),
-            "create_public_threads":  _perm_to_val(ow.create_public_threads),
-            "create_private_threads": _perm_to_val(ow.create_private_threads),
-            "use_application_commands": _perm_to_val(ow.use_application_commands),
-        }
+        data["channels"][str(ch_id)] = _ow_to_dict(ow)
 
         # Sperren: schreiben + threads + button-Interaktionen deaktivieren
-        ow.send_messages          = False
-        ow.create_public_threads  = False
-        ow.create_private_threads = False
+        ow.send_messages            = False
+        ow.create_public_threads    = False
+        ow.create_private_threads   = False
         ow.use_application_commands = False
 
         try:
@@ -244,18 +235,14 @@ async def kanal_entsperren(interaction: discord.Interaction):
         if not channel:
             continue
 
-        # Originale Werte wiederherstellen
-        ow = channel.overwrites_for(spieler_role)
-        ow.send_messages            = _val_to_perm(saved.get("send_messages"))
-        ow.create_public_threads    = _val_to_perm(saved.get("create_public_threads"))
-        ow.create_private_threads   = _val_to_perm(saved.get("create_private_threads"))
-        ow.use_application_commands = _val_to_perm(saved.get("use_application_commands"))
-
         try:
-            if ow.is_empty():
-                await channel.set_permissions(spieler_role, overwrite=None)
-            else:
+            if saved:
+                # Original hatte explizite Werte → exakt wiederherstellen
+                ow = _dict_to_ow(saved)
                 await channel.set_permissions(spieler_role, overwrite=ow)
+            else:
+                # Original hatte keinen Overwrite → komplett entfernen
+                await channel.set_permissions(spieler_role, overwrite=None)
 
             # Rotes Sperre-Embed löschen
             msg_id = data.get("embeds", {}).get(ch_id_str)
