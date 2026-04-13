@@ -323,8 +323,7 @@ async def shop_raub_bild_listener(message: discord.Message):
             title="🏪 Shop-Raub — Beweis eingereicht ✅",
             description=(
                 "Dein Beweis wurde erfolgreich eingereicht!\n\n"
-                "Das Team überprüft deinen Raub und bestätigt das Ergebnis in Kürze.\n"
-                "Du wirst per DM benachrichtigt sobald eine Entscheidung getroffen wurde."
+                "Du hast ab jetzt **15 Minuten** Zeit."
             ),
             color=0xFF8C00,
             timestamp=datetime.now(timezone.utc)
