@@ -316,10 +316,8 @@ class GegenstandView(discord.ui.View):
             title="🏧 ATM-Raub — Beweis eingereicht ✅",
             description=(
                 "Dein Beweis wurde erfolgreich eingereicht!\n\n"
-                f"**Gegenstand:** {item['label']} *(aus deinem Inventar entnommen)*\n"
-                f"**Deine Zeit:** {item['minuten']} Minuten\n\n"
-                "Das Team überprüft deinen Raub und bestätigt das Ergebnis in Kürze.\n"
-                "Du wirst per DM benachrichtigt sobald eine Entscheidung getroffen wurde."
+                f"**Gegenstand:** {item['label']} *(aus deinem Inventar entnommen)*\n\n"
+                f"Du hast ab jetzt **{item['minuten']} Minuten** Zeit."
             ),
             color=0xFF8C00,
             timestamp=datetime.now(timezone.utc)
