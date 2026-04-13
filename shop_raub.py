@@ -24,7 +24,7 @@ from dienst import get_on_duty
 # ── Konstanten ────────────────────────────────────────────────
 
 SHOP_RAUB_INFO_CHANNEL_ID = 1490894310118392012   # Info-Embed beim Start
-SHOP_RAUB_BILD_CHANNEL_ID = 1343782933248344177   # Spieler sendet Foto hier
+SHOP_RAUB_BILD_CHANNEL_ID = 1490894311389134858   # Spieler sendet Foto hier
 SHOP_RAUB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
 
 BEUTE_MIN = 12_000
@@ -61,11 +61,6 @@ def build_shop_raub_info_embed() -> discord.Embed:
             f"2. Foto als Beweis in <#{SHOP_RAUB_BILD_CHANNEL_ID}> senden\n"
             "3. Team bestätigt **Erfolg** oder **Fehlschlag**"
         ),
-        inline=False
-    )
-    embed.add_field(
-        name="📋 Regelwerk",
-        value='Schau vor dem Raub ins Regelwerk unter **"Raubüberfall"**.',
         inline=False
     )
     embed.set_image(url=SHOP_RAUB_IMAGE_URL)
