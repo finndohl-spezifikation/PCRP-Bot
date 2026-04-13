@@ -55,7 +55,7 @@ def build_atm_info_embed() -> discord.Embed:
         title="🏧 ATM-Raub",
         description=(
             "**💰 Beute:** 3.000$ – 10.000$ *(zufällig)*\n"
-            "**📍 Ort:** Nur ATMs innerhalb **Los Angeles**\n"
+            "**📍 Ort:** Alle ATMs im gesamten Staat erlaubt\n"
             "**👤 Spieler:** Ab **1 Person** möglich"
         ),
         color=LOG_COLOR,
