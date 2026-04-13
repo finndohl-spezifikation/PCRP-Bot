@@ -19,7 +19,8 @@
 import random
 from config import *
 from economy_helpers import (
-    load_economy, save_economy, get_user, log_money_action
+    load_economy, save_economy, get_user, log_money_action,
+    has_item, consume_item
 )
 from dienst import get_on_duty
 
@@ -36,10 +37,10 @@ ATM_CONFIRM_ROLES    = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
 ATM_IMAGE_URL        = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/atm_raub.jpg"
 
-# Aufbrechmittel: key → Anzeigename + Zeitangabe in Minuten
+# Aufbrechmittel: key → Anzeigename, Minuten, Inventar-Suchbegriff
 ATM_ITEMS = {
-    "brecheisen":  {"label": "🔧 Brecheisen",          "minuten": 5},
-    "sprengstoff": {"label": "💣 Plastiksprengstoff",   "minuten": 10},
+    "brecheisen":  {"label": "🔧 Brecheisen",         "minuten": 10, "inv": "Brecheisen"},
+    "sprengstoff": {"label": "💣 Plastiksprengstoff",  "minuten": 5,  "inv": "Plastiksprengstoff"},
 }
 
 # Verhindert Doppel-Einreichungen (user_id)
@@ -62,8 +63,8 @@ def build_atm_info_embed() -> discord.Embed:
     embed.add_field(
         name="🎒 Benötigte Items",
         value=(
-            f"🔧 **Brecheisen** → 5 Min.\n┗ <#{1492976742497783818}>\n\n"
-            f"💣 **Plastiksprengstoff** → 10 Min.\n┗ <#{1492977067665526804}>"
+            f"🔧 **Brecheisen** → 10 Min.\n┗ <#{1492976742497783818}>\n\n"
+            f"💣 **Plastiksprengstoff** → 5 Min.\n┗ <#{1492977067665526804}>"
         ),
         inline=True
     )
@@ -277,9 +278,25 @@ class GegenstandView(discord.ui.View):
         if self._done:
             await interaction.response.send_message("⏳ Du hast bereits einen Gegenstand gewählt.", ephemeral=True)
             return
-        self._done = True
 
         item = ATM_ITEMS[item_key]
+
+        # ── Inventar-Check ────────────────────────────────────
+        if not has_item(self.raeuber, item["inv"]):
+            # Buttons NICHT deaktivieren — Spieler kann noch wechseln
+            await interaction.response.send_message(
+                f"❌ Du hast kein **{item['label']}** in deinem Inventar!\n"
+                f"Kaufe es zuerst im Shop und versuche es erneut.",
+                ephemeral=True
+            )
+            _pending_raids.discard(self.raeuber.id)
+            return
+
+        self._done = True
+
+        # ── Item verbrauchen ──────────────────────────────────
+        consume_item(self.raeuber, item["inv"])
+
         for child in self.children:
             child.disabled = True
 
@@ -288,7 +305,7 @@ class GegenstandView(discord.ui.View):
             title="🏧 ATM-Raub — Beweis eingereicht ✅",
             description=(
                 "Dein Beweis wurde erfolgreich eingereicht!\n\n"
-                f"**Gegenstand:** {item['label']}\n"
+                f"**Gegenstand:** {item['label']} *(aus deinem Inventar entnommen)*\n"
                 f"**Deine Zeit:** {item['minuten']} Minuten\n\n"
                 "Das Team überprüft deinen Raub und bestätigt das Ergebnis in Kürze.\n"
                 "Du wirst per DM benachrichtigt sobald eine Entscheidung getroffen wurde."
@@ -337,11 +354,11 @@ class GegenstandView(discord.ui.View):
                 except discord.Forbidden:
                     pass
 
-    @discord.ui.button(label="🔧 Brecheisen (5 Min.)", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="🔧 Brecheisen (10 Min.)", style=discord.ButtonStyle.primary)
     async def brecheisen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._submit(interaction, "brecheisen")
 
-    @discord.ui.button(label="💣 Plastiksprengstoff (10 Min.)", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="💣 Plastiksprengstoff (5 Min.)", style=discord.ButtonStyle.danger)
     async def sprengstoff_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._submit(interaction, "sprengstoff")
 
@@ -391,7 +408,7 @@ async def atm_bild_listener(message: discord.Message):
                 "Dein Foto wurde empfangen!\n\n"
                 "**Mit welchem Gegenstand brichst du den ATM auf?**\n"
                 "Wähle unten einen der beiden Gegenstände aus.\n\n"
-                "⏱️ **Je nach Gegenstand hast du 5 oder 10 Minuten Zeit.**\n"
+                "⏱️ **Je nach Gegenstand hast du 10 oder 5 Minuten Zeit.**\n"
                 "Du hast **5 Minuten**, um hier auszuwählen."
             ),
             color=0xFF8C00,
@@ -399,12 +416,12 @@ async def atm_bild_listener(message: discord.Message):
         )
         dm_embed.add_field(
             name="🔧 Brecheisen",
-            value=f"5 Minuten Zeit\n┗ Kaufbar im Baumarkt",
+            value="10 Minuten Zeit\n┗ Kaufbar im Baumarkt",
             inline=True
         )
         dm_embed.add_field(
             name="💣 Plastiksprengstoff",
-            value=f"10 Minuten Zeit\n┗ Kaufbar im Schwarzmarkt",
+            value="5 Minuten Zeit\n┗ Kaufbar im Schwarzmarkt",
             inline=True
         )
         dm_embed.set_footer(text="Paradise City Roleplay • ATM-System")
