@@ -65,6 +65,7 @@ import shop_raub              # Shop-Raub System
 import raubueberfall          # Raubüberfall System
 import aktien                 # Aktienmarkt-System
 import kanal_sperre           # /kanal-sperre, /kanal-entsperren
+import server_schutz          # Schutz vor unbefugten Kanal/Rollen-Änderungen
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
