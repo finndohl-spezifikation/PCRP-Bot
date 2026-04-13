@@ -47,8 +47,8 @@ def build_shop_raub_info_embed() -> discord.Embed:
             "Räube einen der Shops in Los Angeles aus und kassiere deine Beute!\n\n"
             "**📍 Ort:** Shops in **Los Angeles**\n"
             "**👥 Spieler:** **2–3 Personen** empfohlen\n"
-            "**🚔 Beamte:** Mindestens **2–3 Officers** im Dienst nötig\n"
-            "**⏱️ Dauer:** ca. **15 Minuten**\n"
+            "**🚔 Beamte:** Mindestens **2–3 Officers** im Dienst\n"
+            "**⏱️ Dauer:** **15 Minuten**\n"
             "**💰 Beute:** zwischen **12.000 $** und **22.000 $** *(zufällig)*"
         ),
         color=LOG_COLOR,
