@@ -14,7 +14,7 @@ from config import *
 from economy_helpers import load_economy, save_economy, get_user
 
 AKTIEN_FILE             = DATA_DIR / "aktien.json"
-AKTIEN_UPDATE_INTERVAL  = 3600        # Kurs-Update alle 60 Minuten
+AKTIEN_UPDATE_INTERVAL  = 86400       # Kurs-Update einmal täglich
 AKTIEN_MIN_PREIS        = 50          # Minimum-Kurs in $
 AKTIEN_VERLAUF_MAX      = 20          # Wie viele Kurswerte gespeichert werden
 
@@ -175,20 +175,13 @@ async def _update_channel_embed(key: str, aktien_data: dict):
 
 # ── Preis-Update ─────────────────────────────────────────────
 
-async def _update_all_prices(news_overrides: dict[str, tuple[float, str]] | None = None):
-    """Aktualisiert alle Kurse. news_overrides: {key: (prozent, nachricht)}"""
+async def _update_all_prices():
+    """Aktualisiert alle Kurse automatisch (täglich)."""
     aktien_data = _load_aktien()
 
     for key in AKTIEN:
         eintrag = aktien_data[key]
-
-        if news_overrides and key in news_overrides:
-            pct, news_text = news_overrides[key]
-            change = pct / 100
-            eintrag["letzte_news"] = news_text
-        else:
-            change = random.uniform(-0.08, 0.10)
-
+        change  = random.uniform(-0.08, 0.10)
         neuer_preis = max(AKTIEN_MIN_PREIS, round(eintrag["preis"] * (1 + change)))
         eintrag["preis"] = float(neuer_preis)
         eintrag["verlauf"].append(float(neuer_preis))
@@ -405,39 +398,3 @@ async def depot(interaction: discord.Interaction):
     embed.add_field(name="💵 Kontostand",       value=_fmt(user_data.get("balance", 0)),       inline=True)
     embed.set_footer(text="Paradise City Roleplay • Aktienmarkt")
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-# ── /aktie-ereignis (Admin) ───────────────────────────────────
-
-@bot.tree.command(
-    name="aktie-ereignis",
-    description="[Admin] Löst ein Markt-Ereignis aus das den Kurs beeinflusst",
-    guild=discord.Object(id=GUILD_ID),
-)
-@app_commands.default_permissions(manage_messages=True)
-@app_commands.describe(
-    aktie="Welche Aktie betrifft das Ereignis?",
-    prozent="Kursveränderung in % (z.B. -20 oder +15)",
-    nachricht="Kurze Beschreibung des Ereignisses",
-)
-@app_commands.choices(aktie=AKTIE_CHOICES)
-async def aktie_ereignis(interaction: discord.Interaction, aktie: str,
-                         prozent: float, nachricht: str):
-    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
-        return
-
-    await interaction.response.defer(ephemeral=True)
-
-    await _update_all_prices(news_overrides={aktie: (prozent, nachricht)})
-
-    aktien_data = _load_aktien()
-    info        = AKTIEN[aktie]
-    neuer_kurs  = aktien_data[aktie]["preis"]
-
-    await interaction.followup.send(
-        f"✅ Ereignis ausgelöst!\n"
-        f"**{info['emoji']} {info['name']}:** {prozent:+.1f}% → **{_fmt(neuer_kurs)}**\n"
-        f"📰 *{nachricht}*",
-        ephemeral=True,
-  )
