@@ -64,6 +64,7 @@ import atm_raub               # ATM-Raub System
 import shop_raub              # Shop-Raub System
 import raubueberfall          # Raubüberfall System
 import aktien                 # Aktienmarkt-System
+import kanal_sperre           # /kanal-sperre, /kanal-entsperren
 
 try:
     import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
