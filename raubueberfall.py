@@ -24,7 +24,7 @@ from dienst import get_on_duty
 # ── Konstanten ────────────────────────────────────────────────
 
 RAUB_INFO_CHANNEL_ID = 1490894312727117904   # Info-Embed beim Start
-RAUB_BILD_CHANNEL_ID = 0                     # ← BITTE KANAL-ID EINTRAGEN
+RAUB_BILD_CHANNEL_ID = 1490894314132213771   # Spieler sendet Foto hier
 RAUB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
 
 RAUB_BEUTE_MIN  = 7_000
