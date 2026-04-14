@@ -22,6 +22,7 @@ async def setup_all_embeds():
     from lotto         import auto_lotto_setup
     from startinfo     import auto_startinfo_setup
     from starterpaket  import auto_starterpaket_setup
+    from human_labs_raub import _hl_info_auto_setup
     from aktien        import aktien_setup
 
     _setups = [
@@ -36,6 +37,7 @@ async def setup_all_embeds():
         ("lotto",         auto_lotto_setup),
         ("startinfo",     auto_startinfo_setup),
         ("starterpaket",  auto_starterpaket_setup),
+        ("human_labs",    _hl_info_auto_setup),
         ("aktien",        aktien_setup),
     ]
 
