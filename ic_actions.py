@@ -19,6 +19,8 @@ def _hat_buerger_rolle(member) -> bool:
 
 
 def _in_ic_channel(interaction: discord.Interaction) -> bool:
+    if any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
+        return True
     return interaction.channel_id == IC_ACTIONS_CHANNEL_ID
 
 
