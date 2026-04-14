@@ -40,6 +40,7 @@ import inventory                # /rucksack, /uebergeben, /verstecken, /use-item
 import warns                    # /warn, /warn-list, /remove-warn, etc.
 import einreise                 # Einreise-System, /ausweisen, /ausweis-*
 import fuehrerschein            # Führerschein-System
+import support_voice          # Automatischer Voice-Support mit TTS  ← muss vor lobby stehen
 import casino                   # Casino Glücksrad
 import lobby                    # /lobby-abstimmung, /lobby-open, /lobby-close
 import giveaway                 # /create-giveaway
@@ -65,7 +66,6 @@ import shop_raub              # Shop-Raub System
 import raubueberfall          # Raubüberfall System
 import human_labs_raub        # Humane Labs Raubüberfall System
 import staatsbank_raub        # Staatsbank Raubüberfall System
-import support_voice          # Automatischer Voice-Support mit TTS
 import aktien                 # Aktienmarkt-System
 import kanal_sperre           # /kanal-sperre, /kanal-entsperren
 
