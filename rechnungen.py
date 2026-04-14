@@ -312,7 +312,8 @@ class MahnungView(discord.ui.View):
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler dem die Rechnung gestellt wird")
 async def rechnung_schreiben(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
+    is_privileged = any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles)
+    if not is_privileged and interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
         await interaction.response.send_message(
             f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
             ephemeral=True,
@@ -330,7 +331,8 @@ async def rechnung_schreiben(interaction: discord.Interaction, nutzer: discord.M
     guild=discord.Object(id=GUILD_ID),
 )
 async def rechnungen_cmd(interaction: discord.Interaction):
-    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
+    is_privileged = any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles)
+    if not is_privileged and interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
         await interaction.response.send_message(
             f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
             ephemeral=True,
@@ -391,7 +393,8 @@ async def rechnungen_cmd(interaction: discord.Interaction):
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler dessen Rechnung eine Mahnung erhält")
 async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
+    is_privileged = any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles)
+    if not is_privileged and interaction.channel.id != RECHNUNGEN_CHANNEL_ID:
         await interaction.response.send_message(
             f"❌ Diesen Command kannst du nur in <#{RECHNUNGEN_CHANNEL_ID}> benutzen.",
             ephemeral=True,
@@ -420,4 +423,4 @@ async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
             f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
             view=view,
             ephemeral=True,
-                )
+        )
