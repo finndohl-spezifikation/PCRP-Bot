@@ -123,8 +123,8 @@ CASINO_PRIZES = [
     },
 ]
 
-# Alle verfügbaren Symbole aus den Gewinnen (für Füller im Rubbelfeld)
-_ALL_SYMBOLS = [p["symbol"] for p in CASINO_PRIZES]  # 11 Symbole
+# Alle verfügbaren Symbole für Felder — Niete-Symbol wird NICHT als Feld angezeigt
+_ALL_SYMBOLS = [p["symbol"] for p in CASINO_PRIZES if p["typ"] != "niete"]
 
 
 def _ensure_casino_shop_items():
