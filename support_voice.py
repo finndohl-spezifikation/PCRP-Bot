@@ -1,5 +1,12 @@
 """
 support_voice.py – Automatischer Voice-Support für Paradise City Roleplay
+────────────────────────────────────────────────────────────────────────────
+• Bot betritt den Warteraum wenn ein Spieler (mit Spieler-Rolle) beitritt
+• Spielt TTS-Ansage → dann Wartemusik → alle 30 Sek. TTS wiederholen
+• Lobby OFFEN  → Ansage + Wartemusik in Schleife
+• Lobby CLOSED → nur Ansage, keine Musik, alle 30 Sek. wiederholt
+• /support-lobby open|close  – Status umschalten (Admin / Mod)
+• /support-status             – Aktuellen Status anzeigen
 """
 
 from __future__ import annotations
@@ -15,15 +22,16 @@ from config import bot
 
 # ── Konfiguration ─────────────────────────────────────────────────────────
 
-WARTERAUM_ID    = 1490882556269297716   # Support Warteraum Voice-Channel
-SPIELER_ROLLE   = 1490855722534310003   # Nur Spieler mit dieser Rolle triggern den Bot
-MUSIK_URL       = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/wartemusik.mp3"
-MUSIK_LOKAL     = "wartemusik_cache.mp3"
-TTS_STIMME      = "de-DE-ConradNeural"
-MUSIK_VOL       = 0.25
+WARTERAUM_ID   = 1490882556269297716
+SPIELER_ROLLE  = 1490855722534310003
+MUSIK_URL      = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/wartemusik.mp3"
+MUSIK_LOKAL    = "wartemusik_cache.mp3"
+TTS_STIMME     = "de-DE-ConradNeural"
+MUSIK_VOL      = 0.25
+WIEDERHOL_SEK  = 30   # TTS alle X Sekunden wiederholen
 
-ADMIN_ROLE_ID   = 1490855702225485936
-MOD_ROLE_ID     = 1490855703370534965
+ADMIN_ROLE_ID  = 1490855702225485936
+MOD_ROLE_ID    = 1490855703370534965
 
 TTS_OFFEN = (
     "Willkommen im Support! "
@@ -39,22 +47,23 @@ TTS_CLOSED = (
 
 _lobby_open: bool = True
 _tts_cache: dict[str, str] = {}
+_voice_tasks: dict[int, asyncio.Task] = {}   # guild_id → laufender Loop-Task
 
-# ── Prüfungen beim Import ─────────────────────────────────────────────────
+# ── Pakete prüfen ─────────────────────────────────────────────────────────
 
 try:
-    import edge_tts as _edge_tts_mod
+    import edge_tts as _et  # noqa: F401
     _EDGE_OK = True
 except ImportError:
     _EDGE_OK = False
     print("[support_voice] ⚠️  edge-tts fehlt – TTS deaktiviert")
 
 try:
-    import nacl as _nacl_mod  # noqa: F401
+    import nacl as _nacl  # noqa: F401
     _NACL_OK = True
 except ImportError:
     _NACL_OK = False
-    print("[support_voice] ❌ PyNaCl fehlt – Voice deaktiviert! → pip install PyNaCl")
+    print("[support_voice] ❌ PyNaCl fehlt – Voice deaktiviert!")
 
 # ── TTS ───────────────────────────────────────────────────────────────────
 
@@ -80,41 +89,90 @@ async def _refresh_tts() -> None:
     await _gen_tts("offen",  TTS_OFFEN)
     await _gen_tts("closed", TTS_CLOSED)
 
-# ── Audio ─────────────────────────────────────────────────────────────────
+# ── Audio-Hilfsfunktionen ─────────────────────────────────────────────────
 
-def _play_musik(vc: discord.VoiceClient) -> None:
+async def _play_tts_async(vc: discord.VoiceClient) -> None:
+    """TTS abspielen und warten bis sie fertig ist."""
+    key  = "offen" if _lobby_open else "closed"
+    text = TTS_OFFEN if _lobby_open else TTS_CLOSED
+    path = await _gen_tts(key, text)
+    if not path or not vc.is_connected():
+        return
+
+    done = asyncio.Event()
+    try:
+        if vc.is_playing():
+            vc.stop()
+            await asyncio.sleep(0.2)
+        vc.play(FFmpegPCMAudio(path), after=lambda e: done.set())
+        await done.wait()
+    except Exception as e:
+        print(f"[support_voice] ❌ TTS-Play-Fehler: {e}")
+        done.set()
+
+def _start_musik(vc: discord.VoiceClient) -> None:
+    """Musik einmalig starten (kein Loop — Loop läuft über den Task)."""
     if not vc.is_connected() or vc.is_playing():
         return
-    # Lokale Datei bevorzugen, sonst URL-Stream
     quelle = MUSIK_LOKAL if os.path.exists(MUSIK_LOKAL) else MUSIK_URL
-    print(f"[support_voice] 🎵 Spiele Musik: {quelle}")
     try:
         if quelle == MUSIK_URL:
             audio = FFmpegPCMAudio(quelle, before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5")
         else:
             audio = FFmpegPCMAudio(quelle)
-        source = PCMVolumeTransformer(audio, volume=MUSIK_VOL)
-        vc.play(source, after=lambda e: (
-            print(f"[support_voice] Musik-After: {e}") or _play_musik(vc)
-        ) if vc.is_connected() else None)
+        vc.play(PCMVolumeTransformer(audio, volume=MUSIK_VOL))
+        print(f"[support_voice] 🎵 Musik gestartet")
     except Exception as e:
-        print(f"[support_voice] ❌ Musik-Fehler: {type(e).__name__}: {e}")
+        print(f"[support_voice] ❌ Musik-Fehler: {e}")
 
-async def _disconnect(guild: discord.Guild) -> None:
-    vc = guild.voice_client
-    if vc and vc.is_connected():
+# ── Haupt-Loop pro Guild ──────────────────────────────────────────────────
+
+async def _warteraum_loop(vc: discord.VoiceClient) -> None:
+    """
+    Läuft solange Bot im Warteraum ist:
+    1. TTS abspielen
+    2. Falls offen: Wartemusik starten
+    3. 30 Sekunden warten
+    4. Wiederholen ab 1.
+    """
+    print("[support_voice] 🔄 Warteraum-Loop gestartet")
+    try:
+        while vc.is_connected():
+            # TTS abspielen
+            await _play_tts_async(vc)
+
+            if not vc.is_connected():
+                break
+
+            # Musik starten (nur wenn Lobby offen)
+            if _lobby_open:
+                _start_musik(vc)
+
+            # 30 Sekunden warten
+            await asyncio.sleep(WIEDERHOL_SEK)
+
+            # Musik stoppen bevor TTS wiederholt wird
+            if vc.is_playing():
+                vc.stop()
+                await asyncio.sleep(0.3)
+
+    except asyncio.CancelledError:
+        print("[support_voice] 🔄 Loop abgebrochen")
+    except Exception as e:
+        print(f"[support_voice] ❌ Loop-Fehler: {e}")
+    finally:
         if vc.is_playing():
             vc.stop()
-        await vc.disconnect()
-        print("[support_voice] 👋 Bot getrennt (Warteraum leer)")
 
-# ── Beitritt-Handler ──────────────────────────────────────────────────────
+# ── Verbindung & Loop verwalten ───────────────────────────────────────────
 
 async def _handle_join(member: discord.Member, channel: discord.VoiceChannel) -> None:
     guild = member.guild
-    vc    = guild.voice_client
 
-    # Verbinden
+    # Laufenden Loop abbrechen falls vorhanden
+    _cancel_loop(guild.id)
+
+    vc = guild.voice_client
     try:
         if vc and vc.is_connected():
             if vc.channel.id != channel.id:
@@ -126,36 +184,27 @@ async def _handle_join(member: discord.Member, channel: discord.VoiceChannel) ->
         print(f"[support_voice] ❌ Verbindungsfehler: {type(e).__name__}: {e}")
         return
 
-    # Laufendes Audio stoppen
-    if vc.is_playing():
-        vc.stop()
-    await asyncio.sleep(0.3)
+    # Loop starten
+    task = asyncio.create_task(_warteraum_loop(vc))
+    _voice_tasks[guild.id] = task
 
-    # TTS abspielen
-    key      = "offen" if _lobby_open else "closed"
-    text     = TTS_OFFEN if _lobby_open else TTS_CLOSED
-    tts_path = await _gen_tts(key, text)
+def _cancel_loop(guild_id: int) -> None:
+    task = _voice_tasks.pop(guild_id, None)
+    if task and not task.done():
+        task.cancel()
 
-    def _nach_tts(_err: Optional[Exception]) -> None:
-        if _err:
-            print(f"[support_voice] TTS-Abspiel-Fehler: {_err}")
-        if _lobby_open and vc.is_connected():
-            _play_musik(vc)
+async def _disconnect(guild: discord.Guild) -> None:
+    _cancel_loop(guild.id)
+    vc = guild.voice_client
+    if vc and vc.is_connected():
+        if vc.is_playing():
+            vc.stop()
+        await vc.disconnect()
+        print("[support_voice] 👋 Bot getrennt (Warteraum leer)")
 
-    if tts_path:
-        try:
-            vc.play(FFmpegPCMAudio(tts_path), after=_nach_tts)
-        except Exception as e:
-            print(f"[support_voice] TTS-Play-Fehler: {e}")
-            if _lobby_open:
-                _play_musik(vc)
-    elif _lobby_open:
-        _play_musik(vc)
-
-# ── Listener ─────────────────────────────────────────────────────────────
+# ── Musik herunterladen ───────────────────────────────────────────────────
 
 async def _download_musik() -> None:
-    """Musik-Datei einmalig herunterladen und lokal cachen."""
     if os.path.exists(MUSIK_LOKAL):
         print("[support_voice] 🎵 Wartemusik bereits gecacht")
         return
@@ -173,10 +222,11 @@ async def _download_musik() -> None:
     except Exception as e:
         print(f"[support_voice] ❌ Musik-Download Fehler: {e}")
 
+# ── Listener ─────────────────────────────────────────────────────────────
 
 @bot.listen("on_ready")
 async def support_voice_on_ready() -> None:
-    print(f"[support_voice] 🟢 Bereit | PyNaCl={_NACL_OK} | edge-tts={_EDGE_OK}")
+    print(f"[support_voice] 🟢 Bereit | PyNaCl={_NACL_OK} | edge-tts={_EDGE_OK} | Lobby={'OFFEN' if _lobby_open else 'CLOSED'}")
     await _download_musik()
     if _EDGE_OK:
         await _refresh_tts()
@@ -188,22 +238,17 @@ async def support_voice_state(
     before: discord.VoiceState,
     after:  discord.VoiceState,
 ) -> None:
-    if member.bot:
-        return
-    if not _NACL_OK:
+    if member.bot or not _NACL_OK:
         return
 
-    # Nur Spieler mit der Spieler-Rolle
     rolle_ids = {r.id for r in member.roles}
     hat_rolle = SPIELER_ROLLE in rolle_ids
 
-    # Spieler betritt Warteraum
     if after.channel and after.channel.id == WARTERAUM_ID and hat_rolle:
-        print(f"[support_voice] 🎤 {member.display_name} betritt Warteraum")
+        print(f"[support_voice] 🎤 {member.display_name} betritt Warteraum | Lobby={'OFFEN' if _lobby_open else 'CLOSED'}")
         await _handle_join(member, after.channel)
         return
 
-    # Warteraum verlassen → prüfen ob noch Menschen drin
     if before.channel and before.channel.id == WARTERAUM_ID:
         humans = [m for m in before.channel.members if not m.bot]
         if not humans:
@@ -231,17 +276,31 @@ async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> No
     if _EDGE_OK:
         await _refresh_tts()
 
-    if _lobby_open:
-        embed = discord.Embed(
-            title="🟢 Support-Lobby geöffnet",
-            description="Spieler werden ab jetzt begrüßt und hören Wartemusik.",
-            color=0x2ECC71
-        )
-    else:
-        embed = discord.Embed(
-            title="🔴 Support-Lobby geschlossen",
-            description="Spieler werden über die Nicht-Verfügbarkeit informiert.",
-            color=0xE74C3C
-        )
+    print(f"[support_voice] 🔧 Lobby-Status geändert zu {'OFFEN' if _lobby_open else 'CLOSED'} von {interaction.user.display_name}")
 
+    farbe = 0x2ECC71 if _lobby_open else 0xE74C3C
+    titel = "🟢 Support-Lobby geöffnet" if _lobby_open else "🔴 Support-Lobby geschlossen"
+    text  = "Spieler werden begrüßt und hören Wartemusik." if _lobby_open else "Spieler werden über die Nicht-Verfügbarkeit informiert."
+
+    await interaction.response.send_message(
+        embed=discord.Embed(title=titel, description=text, color=farbe),
+        ephemeral=True
+    )
+
+# ── /support-status ───────────────────────────────────────────────────────
+
+@bot.tree.command(
+    name="support-status",
+    description="Aktuellen Support-Lobby Status anzeigen"
+)
+async def cmd_support_status(interaction: discord.Interaction) -> None:
+    farbe = 0x2ECC71 if _lobby_open else 0xE74C3C
+    status_text = "🟢 **Offen** — Spieler werden begrüßt" if _lobby_open else "🔴 **Geschlossen** — Spieler werden abgewiesen"
+    embed = discord.Embed(
+        title="📞 Support-Lobby Status",
+        description=status_text,
+        color=farbe
+    )
+    embed.add_field(name="⏱️ TTS-Wiederholung", value=f"alle **{WIEDERHOL_SEK} Sekunden**", inline=True)
+    embed.add_field(name="🎵 Wartemusik", value="✅ Bereit" if os.path.exists(MUSIK_LOKAL) else "⬇️ Wird geladen...", inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=True)
