@@ -26,7 +26,7 @@ SB_INFO_CHANNEL_ID = 1490894319027097751   # Info-Embed beim Start
 SB_BILD_CHANNEL_ID = 1490894320604020806   # Spieler sendet Foto hier
 SB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
 
-SB_MIN_PDL = 3   # Mindestanzahl PDLer im Dienst
+SB_MIN_PDL = 5   # Mindestanzahl PDLer im Dienst
 
 SB_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
@@ -46,9 +46,9 @@ def build_sb_info_embed() -> discord.Embed:
         title="🏦 Staatsbank — Raubüberfall",
         description=(
             "Der Raub, auf den jeder gewartet hat — überfallt die **Staatsbank von LA**!\n\n"
-            "**👥 Spieler:** **3–6 Personen**\n"
-            "**🚔 Beamte:** **3–6 Officers** im Dienst\n"
-            "**⏱️ Dauer:** **25 Minuten**\n"
+            "**👥 Spieler:** Mindestens **4 Personen**\n"
+            "**🚔 Beamte:** Mindestens **5 Officers** im Dienst\n"
+            "**⏱️ Dauer:** **30 Minuten**\n"
             "**💰 Beute:** zwischen **75.000 $** und **105.000 $** *(zufällig)*"
         ),
         color=LOG_COLOR,
@@ -57,7 +57,7 @@ def build_sb_info_embed() -> discord.Embed:
     embed.add_field(
         name="⚡ Ablauf",
         value=(
-            "1. Raub **In-Game** mit 3–6 Spielern starten\n"
+            "1. Raub **In-Game** mit min. 4 Spielern starten\n"
             f"2. Foto als Beweis in <#{SB_BILD_CHANNEL_ID}> senden\n"
             "3. Team bestätigt **Erfolg** oder **Fehlschlag**"
         ),
@@ -81,7 +81,7 @@ def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(name="👤 Spieler", value=f"{user.mention}\n`{user.display_name}`", inline=True)
-    embed.add_field(name="⏱️ Dauer",   value="**25 Minuten**",                          inline=True)
+    embed.add_field(name="⏱️ Dauer",   value="**30 Minuten**",                          inline=True)
     embed.set_image(url=bild_url)
     embed.set_footer(text="Paradise City Roleplay • Staatsbank System | Nur Team")
     return embed
@@ -341,7 +341,7 @@ async def staatsbank_bild_listener(message: discord.Message):
             title="🏦 Staatsbank — Beweis eingereicht ✅",
             description=(
                 "Dein Beweis wurde erfolgreich eingereicht!\n\n"
-                "Du hast ab jetzt **25 Minuten** Zeit."
+                "Du hast ab jetzt **30 Minuten** Zeit."
             ),
             color=0xFF8C00,
             timestamp=datetime.now(timezone.utc)
