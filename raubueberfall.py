@@ -66,6 +66,7 @@ def build_raub_info_embed() -> discord.Embed:
         ),
         inline=False
     )
+    embed.set_image(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/raubueberfall_bar.png")
     embed.set_footer(text="Paradise City Roleplay • Raubüberfall System")
     return embed
 
