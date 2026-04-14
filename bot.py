@@ -65,6 +65,7 @@ import shop_raub              # Shop-Raub System
 import raubueberfall          # Raubüberfall System
 import human_labs_raub        # Humane Labs Raubüberfall System
 import staatsbank_raub        # Staatsbank Raubüberfall System
+import support_voice          # Automatischer Voice-Support mit TTS
 import aktien                 # Aktienmarkt-System
 import kanal_sperre           # /kanal-sperre, /kanal-entsperren
 
