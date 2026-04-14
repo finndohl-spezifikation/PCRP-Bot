@@ -284,7 +284,7 @@ class KontostandView(discord.ui.View):
 @bot.tree.command(name="lohn-abholen", description="[Konto] Hole deinen stündlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
 async def lohn_abholen(interaction: discord.Interaction):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
+    is_adm   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
 
     if not is_adm and interaction.channel.id != LOHN_CHANNEL_ID:
         await interaction.response.send_message(channel_error(LOHN_CHANNEL_ID), ephemeral=True)
@@ -345,7 +345,7 @@ async def lohn_abholen(interaction: discord.Interaction):
 @app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
 async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids  = [r.id for r in interaction.user.roles]
-    is_adm    = ADMIN_ROLE_ID in role_ids
+    is_adm    = ADMIN_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
     is_team_m = is_adm or MOD_ROLE_ID in role_ids
 
     if nutzer is not None:
@@ -394,7 +394,7 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not any(r.id in (MONEY_ADD_ROLE_1_ID, MONEY_ADD_ROLE_2_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
+    if not any(r.id == INHABER_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
         return
 
