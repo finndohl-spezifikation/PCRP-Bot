@@ -240,19 +240,13 @@ async def kanal_entsperren(interaction: discord.Interaction):
             continue
 
         try:
-            # Aktuellen Overwrite holen und NUR die 4 Lock-Felder entfernen
+            # Aktuellen Overwrite holen und Lock-Felder explizit freigeben
             ow = channel.overwrites_for(spieler_role)
-            ow.send_messages            = None
-            ow.create_public_threads    = None
+            ow.send_messages            = True   # Immer explizit erlauben
+            ow.create_public_threads    = None   # Erbt von Kategorie
             ow.create_private_threads   = None
             ow.use_application_commands = None
-
-            if ow.is_empty():
-                # Kein Overwrite mehr übrig → komplett entfernen
-                await channel.set_permissions(spieler_role, overwrite=None)
-            else:
-                # Andere Felder noch vorhanden → nur Lock-Felder sind weg
-                await channel.set_permissions(spieler_role, overwrite=ow)
+            await channel.set_permissions(spieler_role, overwrite=ow)
 
             # Rotes Sperre-Embed löschen
             msg_id = embed_ids.get(str(ch_id))
@@ -296,4 +290,4 @@ async def kanal_entsperren(interaction: discord.Interaction):
     await interaction.followup.send(
         f"🔓 **Kanalsperre aufgehoben!**\n{status}",
         ephemeral=True,
-              )
+        )
