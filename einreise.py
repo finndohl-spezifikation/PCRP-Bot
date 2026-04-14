@@ -434,4 +434,4 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
 
     await interaction.response.send_modal(
         AusweisCreateModal(target=nutzer, einreise_typ=einreise_typ)
-    )
+            )
