@@ -397,9 +397,11 @@ async def _shop_raub_info_auto_setup():
 
         try:
             if existing_msg:
-                await existing_msg.delete()
-            await channel.send(embed=embed)
-            print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
+                await existing_msg.edit(embed=embed)
+                print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
+            else:
+                await channel.send(embed=embed)
+                print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
         except Exception as e:
             print(f"[shop_raub] ❌ Fehler beim Senden: {e}")
 
