@@ -33,6 +33,13 @@ except ImportError:
     _EDGE_OK = False
     print("[support_voice] ⚠️  edge-tts nicht installiert – TTS deaktiviert")
 
+try:
+    import nacl  # noqa: F401
+    _NACL_OK = True
+except ImportError:
+    _NACL_OK = False
+    print("[support_voice] ❌ PyNaCl nicht installiert – Voice komplett deaktiviert! (pip install PyNaCl)")
+
 # ── Konfiguration ─────────────────────────────────────────────────────────
 
 WARTERAUM_ID  = 1490882556269297716   # Support Warteraum Voice-Channel
@@ -121,8 +128,9 @@ async def _handle_join(member: discord.Member, channel: discord.VoiceChannel) ->
                 await vc.move_to(channel)
         else:
             vc = await channel.connect()
+        print(f"[support_voice] ✅ Verbunden mit {channel.name}")
     except Exception as e:
-        print(f"[support_voice] Verbindungsfehler: {e}")
+        print(f"[support_voice] ❌ Verbindungsfehler: {type(e).__name__}: {e}")
         return
 
     if vc.is_playing():
@@ -159,8 +167,12 @@ async def support_voice_state(
     if member.bot:
         return
 
+    if not _NACL_OK:
+        return  # Voice ohne PyNaCl nicht möglich
+
     # Spieler betritt Warteraum
     if after.channel and after.channel.id == WARTERAUM_ID:
+        print(f"[support_voice] 🎤 {member.display_name} betritt Warteraum → verbinde...")
         await _handle_join(member, after.channel)
         return
 
@@ -168,6 +180,7 @@ async def support_voice_state(
     if before.channel and before.channel.id == WARTERAUM_ID:
         humans = [m for m in before.channel.members if not m.bot]
         if not humans:
+            print(f"[support_voice] 👋 Warteraum leer → trenne Verbindung")
             await _disconnect(member.guild)
 
 
