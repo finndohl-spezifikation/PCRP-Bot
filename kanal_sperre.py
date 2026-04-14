@@ -22,6 +22,12 @@ SPERRE_FILE = DATA_DIR / "kanal_sperre.json"
 # Kommentar-Kanäle = Nur Button-Interaktionen werden blockiert
 SPIELER_ROLLE_ID = 1490855722534310003  # Rolle die gesperrt/entsperrt wird
 
+# Kanäle wo nur Buttons blockiert werden (kein schreiben sowieso möglich)
+BUTTON_ONLY_CHANNEL_IDS: set[int] = {
+    1490889784753782784,  # Rubbellose
+    1492636063817138216,  # Lotto
+}
+
 SPERRE_CHANNEL_IDS: list[int] = [
     1491116234459185162,
     1491623633792143512,
@@ -153,11 +159,14 @@ async def kanal_sperre(interaction: discord.Interaction):
         ow = channel.overwrites_for(spieler_role)
         data["channels"][str(ch_id)] = _ow_to_dict(ow)
 
-        # Sperren: schreiben + threads + button-Interaktionen deaktivieren
-        ow.send_messages            = False
-        ow.create_public_threads    = False
-        ow.create_private_threads   = False
-        ow.use_application_commands = False
+        # Sperren — Button-Kanäle nur use_application_commands, Rest alles
+        if ch_id in BUTTON_ONLY_CHANNEL_IDS:
+            ow.use_application_commands = False
+        else:
+            ow.send_messages            = False
+            ow.create_public_threads    = False
+            ow.create_private_threads   = False
+            ow.use_application_commands = False
 
         try:
             await channel.set_permissions(spieler_role, overwrite=ow)
@@ -240,13 +249,22 @@ async def kanal_entsperren(interaction: discord.Interaction):
             continue
 
         try:
-            # Aktuellen Overwrite holen und Lock-Felder explizit freigeben
             ow = channel.overwrites_for(spieler_role)
-            ow.send_messages            = True   # Immer explizit erlauben
-            ow.create_public_threads    = None   # Erbt von Kategorie
-            ow.create_private_threads   = None
-            ow.use_application_commands = None
-            await channel.set_permissions(spieler_role, overwrite=ow)
+
+            if ch_id in BUTTON_ONLY_CHANNEL_IDS:
+                # Nur Buttons waren gesperrt → nur use_application_commands zurücksetzen
+                ow.use_application_commands = None
+                if ow.is_empty():
+                    await channel.set_permissions(spieler_role, overwrite=None)
+                else:
+                    await channel.set_permissions(spieler_role, overwrite=ow)
+            else:
+                # Normale Kanäle → send_messages explizit auf True
+                ow.send_messages            = True
+                ow.create_public_threads    = None
+                ow.create_private_threads   = None
+                ow.use_application_commands = None
+                await channel.set_permissions(spieler_role, overwrite=ow)
 
             # Rotes Sperre-Embed löschen
             msg_id = embed_ids.get(str(ch_id))
@@ -290,4 +308,4 @@ async def kanal_entsperren(interaction: discord.Interaction):
     await interaction.followup.send(
         f"🔓 **Kanalsperre aufgehoben!**\n{status}",
         ephemeral=True,
-        )
+    )
