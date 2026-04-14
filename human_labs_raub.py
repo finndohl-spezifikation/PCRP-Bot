@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # ══════════════════════════════════════════════════════════════
-# human_labs_raub.py — Human Labs Raubüberfall System
+# human_labs_raub.py — Humane Labs Raubüberfall System
 # Paradise City Roleplay Discord Bot
 #
 # Ablauf:
 #   1. Spieler sendet Foto im Bild-Kanal (HL_BILD_CHANNEL_ID)
 #   2. Bot löscht Foto, postet Beweis-Embed im Team-Kanal
 #   3. Team bestätigt Erfolg oder Fehlschlag
-#      Erfolgreich → zufällige Chemikalien-Beute (3 Stufen)
+#      Erfolgreich → 55.000–73.000 $ + zufällige Chemikalien ins Inventar
 #      Fehlschlag  → Info-DM, kein Geld
 #   4. 24h-Cooldown pro Spieler
 # ══════════════════════════════════════════════════════════════
@@ -26,14 +26,16 @@ HL_INFO_CHANNEL_ID = 1490894316170641458   # Info-Embed beim Start
 HL_BILD_CHANNEL_ID = 1490894317462753280   # Spieler sendet Foto hier
 HL_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
 
-HL_MIN_PDL = 3   # Mindestanzahl PDLer im Dienst
+HL_MIN_PDL = 4   # Mindestanzahl PDLer im Dienst
 
 HL_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
 HL_IMAGE_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/human_labs.jpg"
 
-HL_BEUTE_MIN = 55_000
-HL_BEUTE_MAX = 73_000
+HL_BEUTE_MIN     = 55_000
+HL_BEUTE_MAX     = 73_000
+HL_CHEMIE_MIN    = 50     # Mindestmenge Chemikalien (Einheiten)
+HL_CHEMIE_MAX    = 150    # Maximalmenge Chemikalien (Einheiten)
 
 # Verhindert Doppel-Einreichungen (user_id)
 _pending_hl: set[int] = set()
@@ -43,42 +45,29 @@ _pending_hl: set[int] = set()
 
 def build_hl_info_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🧪 Human Labs — Raubüberfall",
+        title="🧪 Humane Labs — Raubüberfall",
         description=(
-            "Das **Human Labs** hat zu viel Ware bestellt — nutze deine Chance!\n\n"
-            "**🚔 Beamte:** Mindestens **3 Officers** im Dienst\n"
-            "**👥 Spieler:** Mehrere Personen empfohlen\n"
+            "Das **Humane Labs** hat zu viel Ware bestellt — nutze deine Chance!\n\n"
+            "**👥 Spieler:** Mindestens **3 Personen**\n"
+            "**🚔 Beamte:** Mindestens **4 Officers** im Dienst\n"
             "**⏱️ Dauer:** **20 Minuten**\n"
-            "**🔒 Sicherheit:** Dicke Stahltüren — gute Planung nötig"
+            "**💰 Beute:** zwischen **55.000 $** und **73.000 $** *(zufällig)*\n"
+            "**🧪 Bonus:** **50–150× Chemikalien** ins Inventar *(zufällig)*"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
-        name="💰 Mögliche Beute",
-        value=(
-            "🧪 **Chemikalien** → zwischen **55.000 $** und **73.000 $**\n"
-            "*(zufällig je nach Raubüberfall)*"
-        ),
-        inline=True
-    )
-    embed.add_field(
         name="⚡ Ablauf",
         value=(
-            "1. Raub **In-Game** starten\n"
-            "2. **Human Labs Start** im Auswahlmenü ausführen\n"
-            f"3. Foto als Beweis in <#{HL_BILD_CHANNEL_ID}> senden\n"
-            "4. Team bestätigt **Erfolg** oder **Fehlschlag**"
+            "1. Raub **In-Game** mit min. 3 Spielern starten\n"
+            f"2. Foto als Beweis in <#{HL_BILD_CHANNEL_ID}> senden\n"
+            "3. Team bestätigt **Erfolg** oder **Fehlschlag**"
         ),
-        inline=True
-    )
-    embed.add_field(
-        name="🗺️ Bonus",
-        value="Nach erfolgreichem Abschluss erhältst du eine\n**streng geheime Route** *(wird freigeschaltet)*",
         inline=False
     )
     embed.set_image(url=HL_IMAGE_URL)
-    embed.set_footer(text="Paradise City Roleplay • Human Labs System")
+    embed.set_footer(text="Paradise City Roleplay • Humane Labs System")
     return embed
 
 
@@ -86,9 +75,9 @@ def build_hl_info_embed() -> discord.Embed:
 
 def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
     embed = discord.Embed(
-        title="🧪 Human Labs — Beweis eingereicht",
+        title="🧪 Humane Labs — Beweis eingereicht",
         description=(
-            f"{user.mention} hat einen **Human Labs Raubüberfall** durchgeführt.\n"
+            f"{user.mention} hat einen **Humane Labs Raubüberfall** durchgeführt.\n"
             "⏳ Bitte Ergebnis bestätigen."
         ),
         color=0xFF8C00,
@@ -97,7 +86,7 @@ def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
     embed.add_field(name="👤 Spieler", value=f"{user.mention}\n`{user.display_name}`", inline=True)
     embed.add_field(name="⏱️ Dauer",   value="**20 Minuten**",                          inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay • Human Labs System | Nur Team")
+    embed.set_footer(text="Paradise City Roleplay • Humane Labs System | Nur Team")
     return embed
 
 
@@ -107,19 +96,20 @@ def _build_result_embed(
     raeuber: discord.Member,
     bild_url: str,
     beute_wert: int,
+    chemie: int,
     team_member: discord.Member,
     success: bool
 ) -> discord.Embed:
     if success:
         color = 0x00CC44
-        title = "🧪 Human Labs — Erfolgreich ✅"
+        title = "🧪 Humane Labs — Erfolgreich ✅"
         desc  = (
-            f"{raeuber.mention} hat das **Human Labs** erfolgreich ausgeraubt.\n"
+            f"{raeuber.mention} hat das **Humane Labs** erfolgreich ausgeraubt.\n"
             f"**{beute_wert:,}$** landen im Barbestand."
         )
     else:
         color = 0xE74C3C
-        title = "🧪 Human Labs — Fehlgeschlagen ❌"
+        title = "🧪 Humane Labs — Fehlgeschlagen ❌"
         desc  = f"{raeuber.mention} ist **gescheitert**. Festnahme, Verletzung oder Abbruch."
 
     embed = discord.Embed(title=title, description=desc, color=color,
@@ -127,9 +117,10 @@ def _build_result_embed(
     embed.add_field(name="👤 Spieler",       value=raeuber.mention,    inline=True)
     embed.add_field(name="✅ Bestätigt von", value=team_member.mention, inline=True)
     if success:
-        embed.add_field(name="💰 Beute", value=f"**{beute_wert:,}$**", inline=True)
+        embed.add_field(name="💰 Beute",      value=f"**{beute_wert:,}$**",    inline=True)
+        embed.add_field(name="🧪 Chemikalien", value=f"**{chemie}×** ins Inventar", inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay • Human Labs System")
+    embed.set_footer(text="Paradise City Roleplay • Humane Labs System")
     return embed
 
 
@@ -155,26 +146,29 @@ class HumanLabsView(discord.ui.View):
             await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
-        # Zufällige Beute
         beute_wert = random.randint(HL_BEUTE_MIN, HL_BEUTE_MAX)
+        chemie     = random.randint(HL_CHEMIE_MIN, HL_CHEMIE_MAX)
 
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
         user_data["cash"] = user_data.get("cash", 0) + beute_wert
+        for _ in range(chemie):
+            user_data.setdefault("inventory", []).append("Chemikalien")
         save_economy(eco)
 
         await log_money_action(
             interaction.guild,
-            "Human Labs Beute",
-            f"{raeuber.mention} hat das Human Labs ausgeraubt.\n"
+            "Humane Labs Beute",
+            f"{raeuber.mention} hat das Humane Labs ausgeraubt.\n"
             f"**Beute:** {beute_wert:,}$ → Barbestand\n"
+            f"**Chemikalien:** {chemie}× ins Inventar\n"
             f"**Bestätigt von:** {interaction.user.mention}"
         )
 
         for child in self.children:
             child.disabled = True
         await interaction.message.edit(
-            embed=_build_result_embed(raeuber, self.bild_url, beute_wert, interaction.user, success=True),
+            embed=_build_result_embed(raeuber, self.bild_url, beute_wert, chemie, interaction.user, success=True),
             view=self
         )
         await interaction.response.send_message(
@@ -183,19 +177,19 @@ class HumanLabsView(discord.ui.View):
 
         try:
             dm = discord.Embed(
-                title="🧪 Human Labs — Erfolgreich! 💰",
+                title="🧪 Humane Labs — Erfolgreich! 💰",
                 description=(
-                    f"Dein Raubüberfall im **Human Labs** war **erfolgreich**!\n\n"
+                    f"Dein Raubüberfall im **Humane Labs** war **erfolgreich**!\n\n"
                     f"**{beute_wert:,}$** wurden in deinen **Barbestand** übertragen.\n"
-                    f"Zusätzlich hast du eine **streng geheime Route** erhalten."
+                    f"Zusätzlich erhältst du **{chemie}× Chemikalien** ins Inventar."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="💵 Beute",           value=f"**{beute_wert:,}$**", inline=True)
-            dm.add_field(name="📍 Gutgeschrieben",  value="Barbestand (Cash)",    inline=True)
-            dm.add_field(name="🗺️ Bonus",           value="Streng geheime Route freigeschaltet", inline=False)
-            dm.set_footer(text="Paradise City Roleplay • Human Labs System")
+            dm.add_field(name="💵 Beute",          value=f"**{beute_wert:,}$**",       inline=True)
+            dm.add_field(name="🧪 Chemikalien",    value=f"**{chemie}×**",             inline=True)
+            dm.add_field(name="📍 Gutgeschrieben", value="Barbestand (Cash)",          inline=True)
+            dm.set_footer(text="Paradise City Roleplay • Humane Labs System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
             pass
@@ -221,7 +215,7 @@ class HumanLabsView(discord.ui.View):
         for child in self.children:
             child.disabled = True
         await interaction.message.edit(
-            embed=_build_result_embed(raeuber, self.bild_url, "", 0, interaction.user, success=False),
+            embed=_build_result_embed(raeuber, self.bild_url, 0, 0, interaction.user, success=False),
             view=self
         )
         await interaction.response.send_message(
@@ -230,9 +224,9 @@ class HumanLabsView(discord.ui.View):
 
         try:
             dm = discord.Embed(
-                title="🧪 Human Labs — Fehlgeschlagen ❌",
+                title="🧪 Humane Labs — Fehlgeschlagen ❌",
                 description=(
-                    "Dein Raubüberfall im **Human Labs** ist **fehlgeschlagen**.\n\n"
+                    "Dein Raubüberfall im **Humane Labs** ist **fehlgeschlagen**.\n\n"
                     "• 🚔 Festnahme durch Officers\n"
                     "• 🏥 Verletzung / Tod\n"
                     "• 🏳️ Abbruch\n\n"
@@ -241,7 +235,7 @@ class HumanLabsView(discord.ui.View):
                 color=0xE74C3C,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.set_footer(text="Paradise City Roleplay • Human Labs System")
+            dm.set_footer(text="Paradise City Roleplay • Humane Labs System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
             pass
@@ -274,7 +268,7 @@ async def human_labs_bild_listener(message: discord.Message):
     if len(on_duty_lapd) < HL_MIN_PDL:
         try:
             await message.reply(
-                f"❌ Für einen Human Labs Raub müssen mindestens **{HL_MIN_PDL} Officers** im Dienst sein.\n"
+                f"❌ Für einen Humane Labs Raub müssen mindestens **{HL_MIN_PDL} Officers** im Dienst sein.\n"
                 f"Aktuell im Dienst: **{len(on_duty_lapd)}**",
                 delete_after=15
             )
@@ -298,7 +292,7 @@ async def human_labs_bild_listener(message: discord.Message):
             minuten     = int(((86400 - vergangen) % 3600) / 60)
             try:
                 await message.reply(
-                    f"⏳ Du kannst erst in **{verbleibend}h {minuten}min** wieder das Human Labs ausrauben.",
+                    f"⏳ Du kannst erst in **{verbleibend}h {minuten}min** wieder das Humane Labs ausrauben.",
                     delete_after=15
                 )
             except discord.Forbidden:
@@ -355,7 +349,7 @@ async def human_labs_bild_listener(message: discord.Message):
     # ── Bestätigungs-DM an Spieler ─────────────────────────────
     try:
         dm = discord.Embed(
-            title="🧪 Human Labs — Beweis eingereicht ✅",
+            title="🧪 Humane Labs — Beweis eingereicht ✅",
             description=(
                 "Dein Beweis wurde erfolgreich eingereicht!\n\n"
                 "Du hast ab jetzt **20 Minuten** Zeit."
@@ -363,7 +357,7 @@ async def human_labs_bild_listener(message: discord.Message):
             color=0xFF8C00,
             timestamp=datetime.now(timezone.utc)
         )
-        dm.set_footer(text="Paradise City Roleplay • Human Labs System")
+        dm.set_footer(text="Paradise City Roleplay • Humane Labs System")
         await user.send(embed=dm)
     except discord.Forbidden:
         pass
@@ -375,10 +369,8 @@ async def human_labs_bild_listener(message: discord.Message):
             if not member:
                 continue
             cop_embed = discord.Embed(
-                title="🚔 LAPD — Human Labs Raub gemeldet!",
-                description=(
-                    f"**Verdächtiger:** {user.mention} (`{user.display_name}`)"
-                ),
+                title="🚔 LAPD — Humane Labs Raub gemeldet!",
+                description=f"**Verdächtiger:** {user.mention} (`{user.display_name}`)",
                 color=0x1E90FF,
                 timestamp=datetime.now(timezone.utc)
             )
@@ -405,7 +397,7 @@ async def _hl_info_auto_setup():
             async for msg in channel.history(limit=50):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
-                        if emb.title and "Human Labs" in emb.title:
+                        if emb.title and "Humane Labs" in emb.title:
                             existing_msg = msg
                             break
                 if existing_msg:
