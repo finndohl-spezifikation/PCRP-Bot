@@ -45,9 +45,30 @@ TTS_CLOSED = (
 
 # ── Zustand ───────────────────────────────────────────────────────────────
 
-_lobby_open: bool = True
+_STATUS_DATEI  = "support_lobby_status.json"
 _tts_cache: dict[str, str] = {}
 _voice_tasks: dict[int, asyncio.Task] = {}   # guild_id → laufender Loop-Task
+
+
+def _load_status() -> bool:
+    try:
+        import json
+        with open(_STATUS_DATEI, "r") as f:
+            return json.load(f).get("open", True)
+    except Exception:
+        return True
+
+
+def _save_status(open: bool) -> None:
+    try:
+        import json
+        with open(_STATUS_DATEI, "w") as f:
+            json.dump({"open": open}, f)
+    except Exception as e:
+        print(f"[support_voice] ⚠️ Status-Speicher-Fehler: {e}")
+
+
+_lobby_open: bool = _load_status()
 
 # ── Pakete prüfen ─────────────────────────────────────────────────────────
 
@@ -273,6 +294,7 @@ async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> No
         return
 
     _lobby_open = status == "open"
+    _save_status(_lobby_open)
     if _EDGE_OK:
         await _refresh_tts()
 
