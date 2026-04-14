@@ -238,7 +238,7 @@ class LagerView(discord.ui.View):
 @app_commands.describe(nutzer="(Nur Team) Spieler dessen Inventar angezeigt werden soll")
 async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = None):
     role_ids  = [r.id for r in interaction.user.roles]
-    is_team_m = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
+    is_team_m = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
     allowed   = is_team_m or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
 
     if nutzer is not None:
@@ -298,7 +298,7 @@ async def lager_cmd(interaction: discord.Interaction):
 @app_commands.autocomplete(item=inventory_item_autocomplete)
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
+    is_adm   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
 
     if not is_adm and interaction.channel.id != UEBERGEBEN_CHANNEL_ID:
         await interaction.response.send_message(channel_error(UEBERGEBEN_CHANNEL_ID), ephemeral=True)
@@ -360,7 +360,7 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
 @app_commands.autocomplete(item=inventory_item_autocomplete)
 async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
+    is_adm   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
 
     if not is_adm and interaction.channel.id != VERSTECKEN_CHANNEL_ID:
         await interaction.response.send_message(channel_error(VERSTECKEN_CHANNEL_ID), ephemeral=True)
@@ -415,7 +415,7 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
 )
 async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids
+    is_adm   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
 
     if not is_adm and interaction.channel.id != RUCKSACK_CHANNEL_ID:
         await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
@@ -545,4 +545,4 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
             timestamp=datetime.now(timezone.utc)
         ),
         ephemeral=True
-            )
+        )
