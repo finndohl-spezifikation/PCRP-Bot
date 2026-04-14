@@ -14,6 +14,9 @@ from economy_helpers import (
 RUBBELLOS_ITEM  = "🎟️| Rubbellos"
 RUBBELLOS_PREIS = 1_000
 
+# Speichert die letzte Rubbellos-Nachricht pro User für automatisches Löschen
+_active_scratch_messages: dict[int, discord.WebhookMessage] = {}
+
 CASINO_PRIZES = [
     {
         "id":           "niete",
@@ -350,6 +353,14 @@ class CasinoView(discord.ui.View):
         inventory.pop(idx)
         save_economy(eco)
 
+        # Alte Rubbellos-Nachricht dieses Users löschen
+        if member.id in _active_scratch_messages:
+            try:
+                await _active_scratch_messages[member.id].delete()
+            except Exception:
+                pass
+            del _active_scratch_messages[member.id]
+
         prize  = _pick_prize()
         values = _generate_card_values(prize)
 
@@ -360,7 +371,9 @@ class CasinoView(discord.ui.View):
             member=member,
         )
 
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.defer(ephemeral=True)
+        msg = await interaction.followup.send(embed=embed, view=view, ephemeral=True, wait=True)
+        _active_scratch_messages[member.id] = msg
 
 
 # ── Embed-Setup im Casino-Channel ─────────────────────────────
