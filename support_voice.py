@@ -18,6 +18,7 @@ from config import bot
 WARTERAUM_ID    = 1490882556269297716   # Support Warteraum Voice-Channel
 SPIELER_ROLLE   = 1490855722534310003   # Nur Spieler mit dieser Rolle triggern den Bot
 MUSIK_URL       = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/wartemusik.mp3"
+MUSIK_LOKAL     = "wartemusik_cache.mp3"
 TTS_STIMME      = "de-DE-ConradNeural"
 MUSIK_VOL       = 0.25
 
@@ -84,17 +85,20 @@ async def _refresh_tts() -> None:
 def _play_musik(vc: discord.VoiceClient) -> None:
     if not vc.is_connected() or vc.is_playing():
         return
+    # Lokale Datei bevorzugen, sonst URL-Stream
+    quelle = MUSIK_LOKAL if os.path.exists(MUSIK_LOKAL) else MUSIK_URL
+    print(f"[support_voice] 🎵 Spiele Musik: {quelle}")
     try:
-        source = PCMVolumeTransformer(
-            FFmpegPCMAudio(
-                MUSIK_URL,
-                before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
-            ),
-            volume=MUSIK_VOL
-        )
-        vc.play(source, after=lambda e: _play_musik(vc) if vc.is_connected() else None)
+        if quelle == MUSIK_URL:
+            audio = FFmpegPCMAudio(quelle, before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5")
+        else:
+            audio = FFmpegPCMAudio(quelle)
+        source = PCMVolumeTransformer(audio, volume=MUSIK_VOL)
+        vc.play(source, after=lambda e: (
+            print(f"[support_voice] Musik-After: {e}") or _play_musik(vc)
+        ) if vc.is_connected() else None)
     except Exception as e:
-        print(f"[support_voice] Musik-Fehler: {e}")
+        print(f"[support_voice] ❌ Musik-Fehler: {type(e).__name__}: {e}")
 
 async def _disconnect(guild: discord.Guild) -> None:
     vc = guild.voice_client
@@ -150,9 +154,30 @@ async def _handle_join(member: discord.Member, channel: discord.VoiceChannel) ->
 
 # ── Listener ─────────────────────────────────────────────────────────────
 
+async def _download_musik() -> None:
+    """Musik-Datei einmalig herunterladen und lokal cachen."""
+    if os.path.exists(MUSIK_LOKAL):
+        print("[support_voice] 🎵 Wartemusik bereits gecacht")
+        return
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get(MUSIK_URL) as resp:
+                if resp.status == 200:
+                    data = await resp.read()
+                    with open(MUSIK_LOKAL, "wb") as f:
+                        f.write(data)
+                    print(f"[support_voice] ✅ Wartemusik heruntergeladen ({len(data)//1024} KB)")
+                else:
+                    print(f"[support_voice] ❌ Musik-Download fehlgeschlagen: HTTP {resp.status}")
+    except Exception as e:
+        print(f"[support_voice] ❌ Musik-Download Fehler: {e}")
+
+
 @bot.listen("on_ready")
 async def support_voice_on_ready() -> None:
     print(f"[support_voice] 🟢 Bereit | PyNaCl={_NACL_OK} | edge-tts={_EDGE_OK}")
+    await _download_musik()
     if _EDGE_OK:
         await _refresh_tts()
         print("[support_voice] ✅ TTS vorgeneriert")
