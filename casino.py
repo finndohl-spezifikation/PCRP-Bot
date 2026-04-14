@@ -100,13 +100,13 @@ CASINO_PRIZES = [
     },
     {
         "id":           "lottolos",
-        "label":        "🎰  Lottolos",
-        "symbol":       "🎰",
+        "label":        "🎟  Lottoschein",
+        "symbol":       "🎟",
         "weight":       5,
         "typ":          "item",
-        "item":         "🎰| Lottolos",
+        "item":         "🎟| Lottoschein",
         "menge":        1,
-        "beschreibung": "**1× 🎰| Lottolos** wurde deinem Inventar hinzugefügt!",
+        "beschreibung": "**1× 🎟| Lottoschein** wurde deinem Inventar hinzugefügt!",
     },
     {
         "id":           "autohaus",
