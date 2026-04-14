@@ -70,6 +70,16 @@ def _save_status(open: bool) -> None:
 
 _lobby_open: bool = _load_status()
 
+
+def set_lobby_status(offen: bool) -> None:
+    """Wird von lobby.py aufgerufen wenn /lobby-open oder /lobby-close genutzt wird."""
+    global _lobby_open
+    _lobby_open = offen
+    _save_status(offen)
+    print(f"[support_voice] 🔄 Lobby-Status extern gesetzt: {'OFFEN' if offen else 'CLOSED'}")
+    if _EDGE_OK:
+        asyncio.get_event_loop().create_task(_refresh_tts())
+
 # ── Pakete prüfen ─────────────────────────────────────────────────────────
 
 try:
