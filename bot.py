@@ -63,7 +63,8 @@ import auto_geben              # Fahrzeug-Vergabe-System
 import atm_raub               # ATM-Raub System
 import shop_raub              # Shop-Raub System
 import raubueberfall          # Raubüberfall System
-import human_labs_raub        # Human Labs Raubüberfall System
+import human_labs_raub        # Humane Labs Raubüberfall System
+import staatsbank_raub        # Staatsbank Raubüberfall System
 import aktien                 # Aktienmarkt-System
 import kanal_sperre           # /kanal-sperre, /kanal-entsperren
 
