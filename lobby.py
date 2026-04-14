@@ -5,6 +5,7 @@
 # ══════════════════════════════════════════════════════════════
 
 from config import *
+import support_voice as _sv
 
 
 @bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
@@ -87,6 +88,7 @@ async def lobby_open(interaction: discord.Interaction):
     ping_text = "<@&1490855734517174376>"
 
     await interaction.response.send_message("✅ Lobby geöffnet!", ephemeral=True)
+    _sv.set_lobby_status(True)
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -132,6 +134,7 @@ async def lobby_close(interaction: discord.Interaction):
     ping_text = "<@&1490855734517174376>"
 
     await interaction.response.send_message("✅ Lobby geschlossen!", ephemeral=True)
+    _sv.set_lobby_status(False)
 
     try:
         async with aiohttp.ClientSession() as session:
