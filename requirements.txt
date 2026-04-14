@@ -1,1 +1,4 @@
-discord.py
+discord.py[voice]
+aiohttp
+PyNaCl
+edge-tts
