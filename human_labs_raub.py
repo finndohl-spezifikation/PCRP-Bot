@@ -106,7 +106,6 @@ def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
 def _build_result_embed(
     raeuber: discord.Member,
     bild_url: str,
-    beute_desc: str,
     beute_wert: int,
     team_member: discord.Member,
     success: bool
@@ -116,7 +115,7 @@ def _build_result_embed(
         title = "🧪 Human Labs — Erfolgreich ✅"
         desc  = (
             f"{raeuber.mention} hat das **Human Labs** erfolgreich ausgeraubt.\n"
-            f"Beute: **{beute_desc}** → **{beute_wert:,}$** Barbestand"
+            f"**{beute_wert:,}$** landen im Barbestand."
         )
     else:
         color = 0xE74C3C
@@ -128,8 +127,7 @@ def _build_result_embed(
     embed.add_field(name="👤 Spieler",       value=raeuber.mention,    inline=True)
     embed.add_field(name="✅ Bestätigt von", value=team_member.mention, inline=True)
     if success:
-        embed.add_field(name="🧪 Beute",  value=f"**{beute_desc}**",    inline=True)
-        embed.add_field(name="💰 Wert",   value=f"**{beute_wert:,}$**", inline=True)
+        embed.add_field(name="💰 Beute", value=f"**{beute_wert:,}$**", inline=True)
     embed.set_image(url=bild_url)
     embed.set_footer(text="Paradise City Roleplay • Human Labs System")
     return embed
@@ -194,8 +192,7 @@ class HumanLabsView(discord.ui.View):
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="🧪 Beute",          value=f"**{beute_desc}**",    inline=True)
-            dm.add_field(name="💵 Wert",            value=f"**{beute_wert:,}$**", inline=True)
+            dm.add_field(name="💵 Beute",           value=f"**{beute_wert:,}$**", inline=True)
             dm.add_field(name="📍 Gutgeschrieben",  value="Barbestand (Cash)",    inline=True)
             dm.add_field(name="🗺️ Bonus",           value="Streng geheime Route freigeschaltet", inline=False)
             dm.set_footer(text="Paradise City Roleplay • Human Labs System")
