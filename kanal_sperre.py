@@ -171,8 +171,8 @@ async def kanal_sperre(interaction: discord.Interaction):
         try:
             await channel.set_permissions(spieler_role, overwrite=ow)
 
-            # Rotes Embed in den Kanal posten
-            msg = await channel.send(embed=_build_sperre_embed())
+            # Rotes Embed still senden — keine Ungelesen-Markierung für Mitglieder
+            msg = await channel.send(embed=_build_sperre_embed(), silent=True)
             data["embeds"][str(ch_id)] = msg.id
             gesperrt += 1
         except (discord.Forbidden, discord.HTTPException):
@@ -308,4 +308,4 @@ async def kanal_entsperren(interaction: discord.Interaction):
     await interaction.followup.send(
         f"🔓 **Kanalsperre aufgehoben!**\n{status}",
         ephemeral=True,
-    )
+              )
