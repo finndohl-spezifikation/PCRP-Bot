@@ -406,67 +406,6 @@ async def lotto_draw_loop():
             await asyncio.sleep(30)
 
 
-# ── Test-Command ──────────────────────────────────────────────
-
-@bot.tree.command(
-    name="lotto-test",
-    description="[Admin] Sofort-Test der Lotto-Ziehung mit eigenen Zahlen",
-    guild=discord.Object(id=GUILD_ID)
-)
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(
-    zahlen="6 Zahlen (1–100), durch Komma getrennt",
-    superzahl="Superzahl (1–10)",
-)
-async def lotto_test(
-    interaction: discord.Interaction,
-    zahlen: str,
-    superzahl: int,
-):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
-
-    try:
-        parts = [p.strip() for p in zahlen.split(",") if p.strip()]
-        nums  = [int(p) for p in parts]
-    except ValueError:
-        await interaction.response.send_message("❌ Ungültige Zahlen.", ephemeral=True)
-        return
-
-    if len(nums) != 6 or len(set(nums)) != 6 or any(n < 1 or n > 100 for n in nums):
-        await interaction.response.send_message(
-            "❌ Bitte genau 6 verschiedene Zahlen zwischen 1 und 100 eingeben.",
-            ephemeral=True
-        )
-        return
-    if superzahl < 1 or superzahl > 10:
-        await interaction.response.send_message("❌ Superzahl muss zwischen 1 und 10 liegen.", ephemeral=True)
-        return
-
-    result = _evaluate_ticket(nums, superzahl)
-
-    drawn_str  = ", ".join(str(n) for n in result["drawn_numbers"])
-    player_str = ", ".join(str(n) for n in sorted(nums))
-
-    desc_parts = [
-        f"**Deine Zahlen:** {player_str}",
-        f"**Gezogene Zahlen:** {drawn_str}",
-        f"**Superzahl:** {superzahl} (gezogen: {result['drawn_super']})",
-        "",
-        f"🎯 **Richtige:** {result['correct']}",
-        f"⭐ **Superzahl getroffen:** {'Ja' if result['superzahl_win'] else 'Nein'}",
-        f"💰 **Gewinn:** {result['prize']:,} $" if result["prize"] > 0 else "❌ **Niete**",
-    ]
-
-    embed = discord.Embed(
-        title="🎰 Lotto Test-Ziehung",
-        description="\n".join(desc_parts),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 @bot.tree.command(
     name="lotto-setup",
