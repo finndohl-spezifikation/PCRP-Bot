@@ -289,6 +289,7 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    confirm_embed.set_footer(text="Paradise City Roleplay • Dispatch-System")
     await interaction.followup.send(embed=confirm_embed, ephemeral=True)
 
 
