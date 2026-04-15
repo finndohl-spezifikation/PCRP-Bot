@@ -113,6 +113,7 @@ async def create_giveaway_channel_flow(admin: discord.Member, guild: discord.Gui
                     color=0xF1C40F,
                     timestamp=datetime.now(timezone.utc)
                 )
+                win_embed.set_footer(text="Paradise City Roleplay • Giveaway-System")
                 await giveaway_channel.send(content=winner.mention, embed=win_embed)
             else:
                 await giveaway_channel.send("❌ Niemand hat am Giveaway teilgenommen.")
