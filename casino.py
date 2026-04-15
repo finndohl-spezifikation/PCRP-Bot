@@ -150,7 +150,6 @@ def _generate_card_values(prize: dict) -> list[str]:
     from collections import Counter
 
     if prize["typ"] == "niete":
-        # Alle Symbole außer Niete als mögliche Füller, max 2× das gleiche
         pool = [s for s in _ALL_SYMBOLS if s != "❌"]
         while True:
             cells = random.choices(pool, k=9)
@@ -162,7 +161,6 @@ def _generate_card_values(prize: dict) -> list[str]:
         while True:
             fillers = random.choices(others, k=6)
             cells   = [win_sym, win_sym, win_sym] + fillers
-            # Sicherstellen, dass kein anderes Symbol auch 3× vorkommt
             counts = Counter(fillers)
             if max(counts.values()) <= 2:
                 random.shuffle(cells)
@@ -180,24 +178,23 @@ def _build_scratch_embed(
 
     if done and prize:
         if prize["typ"] == "niete":
-            color = 0xFF4444
+            color = 0xE74C3C
             title = "🎟️ Rubbellos — Leider Niete!"
+            desc  = f"😔 {prize['beschreibung']}"
         else:
             color = 0x2ECC71
-            title = "🎟️ Rubbellos — Gewonnen!"
-        desc = (
-            f"🎯 **Ergebnis:** {prize['beschreibung']}"
-        )
+            title = "🎟️ Rubbellos — Gewonnen! 🎉"
+            desc  = f"🎯 {prize['beschreibung']}"
     else:
         color = 0xE67E22
         title = "🎟️ Rubbellos — Rubbele alle Felder frei!"
-        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} übrig — klick die 🎫 Buttons!"
+        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} übrig\n*Klicke die 🎫 Buttons zum Aufdecken!*"
 
     embed = discord.Embed(title=title, description=desc, color=color,
                           timestamp=datetime.now(timezone.utc))
     if member:
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"{member.display_name} • Nur du siehst diese Nachricht")
+        embed.set_footer(text=f"{member.display_name} • Nur du siehst diese Nachricht • Paradise City Roleplay")
     return embed
 
 
@@ -226,7 +223,6 @@ class ScratchButton(discord.ui.Button):
             await interaction.response.defer()
             return
 
-        # Feld aufdecken
         view.revealed[self.cell_index] = True
         sym = view.values[self.cell_index]
 
@@ -244,12 +240,9 @@ class ScratchButton(discord.ui.Button):
         )
 
         if all_done:
-            # Alle Buttons deaktivieren
             for item in view.children:
                 item.disabled = True
             view.stop()
-
-            # Gewinn auszahlen & loggen
             await _payout_and_log(interaction, view.prize)
 
         await interaction.response.edit_message(embed=embed, view=view)
@@ -290,21 +283,23 @@ async def _payout_and_log(interaction: discord.Interaction, prize: dict):
 
     log_ch = interaction.guild.get_channel(CASINO_LOG_CHANNEL_ID)
     if log_ch:
-        log_color = (
-            0xFFD700 if prize["typ"] == "sportwagen"
-            else (0xFF4444 if prize["typ"] == "niete" else 0xE67E22)
-        )
+        if prize["typ"] == "sportwagen":
+            log_color = 0xFFD700
+        elif prize["typ"] == "niete":
+            log_color = 0xE74C3C
+        else:
+            log_color = 0xE67E22
+
         log_embed = discord.Embed(
-            title="🎟️ Rubbellos — Gewinn",
-            description=(
-                f"**Spieler:** {member.mention} (`{member}`)\n"
-                f"**Gewinn:** {prize['label'].strip()}\n"
-                f"**Zeit:** <t:{int(now.timestamp())}:F>"
-            ),
+            title="🎟️ Rubbellos — Ergebnis",
             color=log_color,
             timestamp=now,
         )
         log_embed.set_thumbnail(url=member.display_avatar.url)
+        log_embed.add_field(name="👤 Spieler", value=f"{member.mention} (`{member}`)", inline=True)
+        log_embed.add_field(name="🎁 Gewinn",  value=prize['label'].strip(),           inline=True)
+        log_embed.add_field(name="🕒 Zeit",    value=f"<t:{int(now.timestamp())}:F>",  inline=False)
+        log_embed.set_footer(text="Paradise City Roleplay • Casino Log")
         try:
             await log_ch.send(embed=log_embed)
         except Exception:
@@ -349,11 +344,9 @@ class CasinoView(discord.ui.View):
             )
             return
 
-        # Rubbellos aus Inventar entfernen & Gewinn vorab bestimmen
         inventory.pop(idx)
         save_economy(eco)
 
-        # Alte Rubbellos-Nachricht dieses Users löschen
         if member.id in _active_scratch_messages:
             try:
                 await _active_scratch_messages[member.id].delete()
@@ -401,23 +394,25 @@ async def auto_casino_setup():
 
         prize_lines = "\n".join(f"　 {p['label']}" for p in CASINO_PRIZES)
         embed = discord.Embed(
-            title="🎟️ Rubbellose",
+            title="🎰 Rubbellose — Paradise City Casino",
             description=(
+                f"**Mögliche Gewinne:**\n"
                 f"{prize_lines}\n\n"
-                "──────────────────────\n"
-                f"🛒 **Kaufe ein Rubbellos** im Shop für **{RUBBELLOS_PREIS:,} $**.\n"
-                "🎟️ **Drücke den Button** um dein Rubbellos einzulösen.\n\n"
-                "💡 *Rubbele alle 9 Felder frei — 3× dasselbe Symbol = Gewinn!*\n"
-                "🏆 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🛒 Kaufe ein **Rubbellos** im Shop für **{RUBBELLOS_PREIS:,} $**\n"
+                f"🎟️ Drücke den Button und rubbele alle **9 Felder** frei\n"
+                f"🏆 **3× dasselbe Symbol** = Gewinn!\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"💡 *Beim Hauptgewinn bitte ein Ticket erstellen!*"
             ),
             color=0xE67E22,
             timestamp=datetime.now(timezone.utc),
         )
         embed.set_author(
-            name="🎟️ Paradise City Roleplay — Rubbellose",
+            name="Paradise City Roleplay — Casino",
             icon_url=bot.user.display_avatar.url,
         )
-        embed.set_footer(text="Paradise City Roleplay — Rubbellose • Viel Glück! 🍀")
+        embed.set_footer(text="Paradise City Roleplay • Casino • Viel Glück! 🍀")
         embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/rubbellos.jpg")
         view = CasinoView()
 
