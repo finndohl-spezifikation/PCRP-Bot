@@ -77,15 +77,15 @@ class EinzahlenModal(discord.ui.Modal, title="🏦 Einzahlen"):
         )
 
         embed = discord.Embed(
-            title="🏦 Eingezahlt",
-            description=(
-                f"**Eingezahlt:** {betrag:,} 💵\n"
-                f"**Bargeld:** {user_data['cash']:,} 💵\n"
-                f"**Bank:** {user_data['bank']:,} 💵"
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            title="🏦 Einzahlung erfolgreich",
+            color=0x2ECC71,
+            timestamp=datetime.now(timezone.utc),
         )
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.add_field(name="💵 Eingezahlt",  value=f"**{betrag:,} $**",               inline=True)
+        embed.add_field(name="🧾 Bargeld",      value=f"{user_data['cash']:,} $",         inline=True)
+        embed.add_field(name="🏦 Kontostand",   value=f"{user_data['bank']:,} $",         inline=True)
+        embed.set_footer(text="Paradise City Roleplay • Maze Bank")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -143,15 +143,15 @@ class AuszahlenModal(discord.ui.Modal, title="💸 Auszahlen"):
         )
 
         embed = discord.Embed(
-            title="💸 Ausgezahlt",
-            description=(
-                f"**Ausgezahlt:** {betrag:,} 💵\n"
-                f"**Bargeld:** {user_data['cash']:,} 💵\n"
-                f"**Bank:** {user_data['bank']:,} 💵"
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            title="💸 Auszahlung erfolgreich",
+            color=0xE67E22,
+            timestamp=datetime.now(timezone.utc),
         )
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.add_field(name="💸 Ausgezahlt",  value=f"**{betrag:,} $**",               inline=True)
+        embed.add_field(name="🧾 Bargeld",      value=f"{user_data['cash']:,} $",         inline=True)
+        embed.add_field(name="🏦 Kontostand",   value=f"{user_data['bank']:,} $",         inline=True)
+        embed.set_footer(text="Paradise City Roleplay • Maze Bank")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -215,14 +215,15 @@ class UeberweisungsBetragModal(discord.ui.Modal, title="💳 Überweisen"):
 
         embed = discord.Embed(
             title="💳 Überweisung erfolgreich",
-            description=(
-                f"**An:** {self.ziel.mention}\n"
-                f"**Betrag:** {betrag:,} 💵\n"
-                f"**Dein Kontostand:** {sender['bank']:,} 💵"
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            color=0x3498DB,
+            timestamp=datetime.now(timezone.utc),
         )
+        embed.set_thumbnail(url=self.ziel.display_avatar.url)
+        embed.add_field(name="📤 Von",           value=interaction.user.mention,    inline=True)
+        embed.add_field(name="📥 An",            value=self.ziel.mention,           inline=True)
+        embed.add_field(name="💳 Betrag",         value=f"**{betrag:,} $**",         inline=True)
+        embed.add_field(name="🏦 Dein Kontostand", value=f"{sender['bank']:,} $",   inline=True)
+        embed.set_footer(text="Paradise City Roleplay • Maze Bank")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -328,14 +329,15 @@ async def lohn_abholen(interaction: discord.Interaction):
     save_economy(eco)
 
     embed = discord.Embed(
-        title="💵 Lohn abgeholt!",
-        description=(
-            f"Du hast **{total_wage:,} 💵** auf dein Konto erhalten.\n"
-            f"**Kontostand:** {user_data['bank']:,} 💵"
-        ),
-        color=LOG_COLOR,
-        timestamp=now
+        title="💵 Lohn erhalten!",
+        description=f"Dein stündlicher Lohn wurde auf dein Konto überwiesen.",
+        color=0x2ECC71,
+        timestamp=now,
     )
+    embed.set_thumbnail(url=interaction.user.display_avatar.url)
+    embed.add_field(name="💰 Lohn",          value=f"**{total_wage:,} $**",          inline=True)
+    embed.add_field(name="🏦 Neuer Kontostand", value=f"{user_data['bank']:,} $",    inline=True)
+    embed.set_footer(text="Paradise City Roleplay • Lohnbüro")
     await interaction.response.send_message(embed=embed)
 
 
@@ -371,18 +373,19 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
     user_data = get_user(eco, ziel.id)
     save_economy(eco)
 
-    titel = "💳 Kontostand" if ziel.id == interaction.user.id else f"💳 Kontostand — {ziel.display_name}"
+    gesamt = user_data['cash'] + user_data['bank']
+    titel  = "💳 Mein Kontostand" if ziel.id == interaction.user.id else f"💳 Kontostand — {ziel.display_name}"
+
     embed = discord.Embed(
         title=titel,
-        description=(
-            f"**Bargeld:** {user_data['cash']:,} 💵\n"
-            f"**Bank:** {user_data['bank']:,} 💵\n"
-            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} 💵"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        color=0x5865F2,
+        timestamp=datetime.now(timezone.utc),
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
+    embed.add_field(name="🧾 Bargeld",    value=f"{user_data['cash']:,} $",  inline=True)
+    embed.add_field(name="🏦 Bank",       value=f"{user_data['bank']:,} $",  inline=True)
+    embed.add_field(name="💼 Gesamt",     value=f"**{gesamt:,} $**",         inline=True)
+    embed.set_footer(text="Paradise City Roleplay • Maze Bank")
 
     view = KontostandView() if show_btns else None
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -415,14 +418,14 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 
     embed = discord.Embed(
         title="💰 Geld hinzugefügt",
-        description=(
-            f"**Spieler:** {nutzer.mention}\n"
-            f"**Hinzugefügt:** {betrag:,} 💵\n"
-            f"**Kontostand:** {user_data['bank']:,} 💵"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        color=0x2ECC71,
+        timestamp=datetime.now(timezone.utc),
     )
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.add_field(name="👤 Spieler",       value=nutzer.mention,               inline=True)
+    embed.add_field(name="➕ Hinzugefügt",   value=f"**{betrag:,} $**",          inline=True)
+    embed.add_field(name="🏦 Neuer Kontostand", value=f"{user_data['bank']:,} $", inline=True)
+    embed.set_footer(text=f"Vergeben von {interaction.user.display_name} • Paradise City Roleplay")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -453,14 +456,14 @@ async def remove_money(interaction: discord.Interaction, nutzer: discord.Member,
 
     embed = discord.Embed(
         title="💸 Geld entfernt",
-        description=(
-            f"**Spieler:** {nutzer.mention}\n"
-            f"**Entfernt:** {betrag:,} 💵\n"
-            f"**Bargeld:** {user_data['cash']:,} 💵"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        color=0xE74C3C,
+        timestamp=datetime.now(timezone.utc),
     )
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.add_field(name="👤 Spieler",    value=nutzer.mention,              inline=True)
+    embed.add_field(name="➖ Entfernt",   value=f"**{betrag:,} $**",         inline=True)
+    embed.add_field(name="🧾 Bargeld",    value=f"{user_data['cash']:,} $",  inline=True)
+    embed.set_footer(text=f"Entfernt von {interaction.user.display_name} • Paradise City Roleplay")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -482,14 +485,17 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
     save_economy(eco)
 
     embed = discord.Embed(
-        title="⚙️ Limit gesetzt",
-        description=(
-            f"**Spieler:** {nutzer.mention}\n"
-            f"**Neues Tageslimit:** {limit:,} 💵\n"
-            f"*(gilt für Einzahlen, Auszahlen & Überweisen)*"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        title="⚙️ Tageslimit aktualisiert",
+        color=0x5865F2,
+        timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text=f"Gesetzt von {interaction.user.display_name}")
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.add_field(name="👤 Spieler",      value=nutzer.mention,    inline=True)
+    embed.add_field(name="📊 Neues Limit",  value=f"**{limit:,} $**", inline=True)
+    embed.add_field(
+        name="ℹ️ Gilt für",
+        value="Einzahlen · Auszahlen · Überweisen",
+        inline=False,
+    )
+    embed.set_footer(text=f"Gesetzt von {interaction.user.display_name} • Paradise City Roleplay")
     await interaction.response.send_message(embed=embed)
