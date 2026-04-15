@@ -111,7 +111,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    welcome_embed.set_footer(text="Paradise City Roleplay • Support-System | Nur Teammitglieder können das Ticket schließen")
+    welcome_embed.set_footer(text="Paradise City Roleplay • Support-System")
 
     action_view = TicketActionView()
     await channel.send(content=team_mentions, embed=welcome_embed, view=action_view)
@@ -128,7 +128,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
-        crew_embed.set_footer(text="Paradise City Roleplay • Support-System | Bitte fülle alle Felder aus")
+        crew_embed.set_footer(text="Paradise City Roleplay • Support-System")
         await channel.send(embed=crew_embed)
 
     await interaction.response.send_message(
@@ -208,9 +208,8 @@ class AssignUserSelect(discord.ui.UserSelect):
             ticket_data[channel.id]["handler_id"] = user.id
 
         assign_embed = discord.Embed(
-            title="👤 Ticket zugewiesen",
             description=(
-                f"{user.mention} wurde dem Ticket zugewiesen.\n"
+                f"👤 {user.mention} wurde dem Ticket zugewiesen.\n"
                 f"**Zugewiesen von:** {interaction.user.mention}"
             ),
             color=LOG_COLOR,
@@ -514,7 +513,7 @@ def _build_ticket_embed() -> discord.Embed:
     )
 
     embed.set_thumbnail(url=TICKET_IMG_URL)
-    embed.set_footer(text="Paradise City Roleplay — Support System • Nur eine Ticket gleichzeitig möglich")
+    embed.set_footer(text="Paradise City Roleplay • Support-System | Nur ein Ticket gleichzeitig möglich")
     return embed
 
 
@@ -679,6 +678,7 @@ async def auto_lohnliste_setup():
             description=desc,
             color=LOG_COLOR
         )
+        embed.set_footer(text="Paradise City Roleplay • Support-System")
         try:
             await channel.send(embed=embed)
             print(f"Lohnliste automatisch gepostet in #{channel.name}")
