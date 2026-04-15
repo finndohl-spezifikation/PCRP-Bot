@@ -47,6 +47,7 @@ async def kartenkontrolle(interaction: discord.Interaction):
                 color=LOG_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
+            dm_embed.set_footer(text="Paradise City Roleplay • Kartenkontrolle")
             await member.send(embed=dm_embed)
             sent += 1
         except Exception:
