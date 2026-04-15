@@ -160,7 +160,7 @@ class EinstellungenSelect(discord.ui.Select):
                     timestamp=datetime.now(timezone.utc)
                 )
                 public_embed.set_thumbnail(url=member.display_avatar.url)
-                public_embed.set_footer(text="Paradise City Roleplay — SIM-System")
+                public_embed.set_footer(text="Paradise City Roleplay • SIM-System")
                 try:
                     await sim_channel.send(embed=public_embed)
                 except Exception:
@@ -264,7 +264,7 @@ async def handle_dispatch(interaction: discord.Interaction, role_id: int, dispat
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    dispatch_embed.set_footer(text="Paradise City Roleplay — Dispatch System")
+    dispatch_embed.set_footer(text="Paradise City Roleplay • Dispatch-System")
 
     sent   = 0
     failed = 0
@@ -308,7 +308,7 @@ def _build_handy_embed() -> discord.Embed:
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay — Handy System")
+    embed.set_footer(text="Paradise City Roleplay • Handy-System")
     return embed
 
 
