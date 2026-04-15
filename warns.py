@@ -43,6 +43,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Warn-System")
     log_ch = interaction.guild.get_channel(WARN_LOG_CHANNEL_ID)
     if log_ch:
         await log_ch.send(embed=embed)
@@ -77,6 +78,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
                 color=MOD_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
+            dm_embed.set_footer(text="Paradise City Roleplay • Warn-System")
             await nutzer.send(embed=dm_embed)
         except Exception:
             pass
@@ -91,6 +93,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        timeout_embed.set_footer(text="Paradise City Roleplay • Warn-System")
         if log_ch:
             await log_ch.send(embed=timeout_embed)
 
@@ -157,6 +160,7 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Warn-System")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -192,6 +196,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Warn-System")
     log_ch = interaction.guild.get_channel(TEAM_WARN_LOG_CHANNEL_ID)
     if log_ch:
         await log_ch.send(embed=embed)
@@ -209,6 +214,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        dm_embed.set_footer(text="Paradise City Roleplay • Warn-System")
         await nutzer.send(embed=dm_embed)
     except Exception:
         pass
@@ -284,6 +290,7 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        log_embed.set_footer(text="Paradise City Roleplay • Warn-System")
         await log_ch.send(embed=log_embed)
 
     embed = discord.Embed(
@@ -296,4 +303,5 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Warn-System")
     await interaction.response.send_message(embed=embed, ephemeral=True)
