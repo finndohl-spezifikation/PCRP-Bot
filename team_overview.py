@@ -64,7 +64,7 @@ def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Paradise City Roleplay — Team Übersicht • Zuletzt aktualisiert")
+    embed.set_footer(text="Paradise City Roleplay • Team-Übersicht | Zuletzt aktualisiert")
     return embed
 
 
