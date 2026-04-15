@@ -80,8 +80,8 @@ class EinzahlenModal(discord.ui.Modal, title="🏦 Einzahlen"):
             title="🏦 Eingezahlt",
             description=(
                 f"**Eingezahlt:** {betrag:,} 💵\n"
-                f"**Bargeld:** {user_data['cash']:,} 💵\n"
-                f"**Bank:** {user_data['bank']:,} 💵"
+                f"💵 **Bargeld:** {user_data['cash']:,} 💵\n"
+                f"🏦 **Konto:** {user_data['bank']:,} 💵"
             ),
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -115,10 +115,17 @@ class AuszahlenModal(discord.ui.Modal, title="💸 Auszahlen"):
         user_data = get_user(eco, interaction.user.id)
         reset_daily_if_needed(user_data)
 
-        if user_data["bank"] < betrag:
-            await interaction.response.send_message(
-                f"❌ Nicht genug Guthaben. Dein Kontostand: **{user_data['bank']:,} 💵**", ephemeral=True
-            )
+        dispo_limit = user_data.get("dispo", 0)
+        if user_data["bank"] + dispo_limit < betrag:
+            if dispo_limit > 0:
+                await interaction.response.send_message(
+                    f"❌ Nicht genug Guthaben. 🏦 **Konto:** {user_data['bank']:,} 💵 | 📊 **Dispo:** -{dispo_limit:,} 💵",
+                    ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    f"❌ Nicht genug Guthaben. 🏦 **Konto:** {user_data['bank']:,} 💵", ephemeral=True
+                )
             return
 
         if not is_adm:
@@ -147,8 +154,8 @@ class AuszahlenModal(discord.ui.Modal, title="💸 Auszahlen"):
             title="💸 Ausgezahlt",
             description=(
                 f"**Ausgezahlt:** {betrag:,} 💵\n"
-                f"**Bargeld:** {user_data['cash']:,} 💵\n"
-                f"**Bank:** {user_data['bank']:,} 💵"
+                f"💵 **Bargeld:** {user_data['cash']:,} 💵\n"
+                f"🏦 **Konto:** {user_data['bank']:,} 💵"
             ),
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -375,14 +382,18 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
     user_data = get_user(eco, ziel.id)
     save_economy(eco)
 
+    dispo     = user_data.get("dispo", 0)
     titel = "💳 Kontostand" if ziel.id == interaction.user.id else f"💳 Kontostand — {ziel.display_name}"
+    desc  = (
+        f"💵 **Bargeld:** {user_data['cash']:,} 💵\n"
+        f"🏦 **Konto:** {user_data['bank']:,} 💵\n"
+        f"💰 **Gesamt:** {user_data['cash'] + user_data['bank']:,} 💵"
+    )
+    if dispo > 0:
+        desc += f"\n📊 **Dispo:** bis -{dispo:,} 💵"
     embed = discord.Embed(
         title=titel,
-        description=(
-            f"**Bargeld:** {user_data['cash']:,} 💵\n"
-            f"**Bank:** {user_data['bank']:,} 💵\n"
-            f"**Gesamt:** {user_data['cash'] + user_data['bank']:,} 💵"
-        ),
+        description=desc,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
@@ -495,6 +506,56 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
             f"**Neues Tageslimit:** {limit:,} 💵\n"
             f"*(gilt für Einzahlen, Auszahlen & Überweisen)*"
         ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Gesetzt von {interaction.user.display_name} • Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /dispo ────────────────────────────────────────────────────
+
+@bot.tree.command(name="dispo", description="[Admin] Setzt das Dispo-Limit eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler", betrag="Maximales Minus-Limit in $ (0 = kein Dispo)")
+async def dispo_cmd(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        return
+
+    if betrag < 0:
+        await interaction.response.send_message("❌ Betrag muss 0 oder größer sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["dispo"] = betrag
+    save_economy(eco)
+
+    await log_money_action(
+        interaction.guild,
+        "Admin: Dispo gesetzt",
+        f"**Spieler:** {nutzer.mention}\n"
+        f"**Dispo-Limit:** -{betrag:,} 💵\n"
+        f"**Gesetzt von:** {interaction.user.mention}"
+    )
+
+    if betrag == 0:
+        beschreibung = (
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Dispo:** deaktiviert\n"
+            f"*(Konto kann nicht mehr ins Minus gehen)*"
+        )
+    else:
+        beschreibung = (
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Dispo-Limit:** bis -{betrag:,} 💵\n"
+            f"*(Konto darf bis zu diesem Betrag ins Minus gehen)*"
+        )
+
+    embed = discord.Embed(
+        title="📊 Dispo gesetzt",
+        description=beschreibung,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
