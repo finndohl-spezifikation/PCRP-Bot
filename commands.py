@@ -49,21 +49,22 @@ async def ticketsetup(ctx):
         await ctx.send("❌ Ticket-Kanal nicht gefunden!")
         return
     embed = discord.Embed(
-        title="🎟️ Paradise City — Support System",
+        title="🎟 Support — Ticket erstellen",
         description=(
-            "Benötigst du Hilfe oder hast ein Anliegen?\n"
-            "Wähle unten die passende Ticket-Art aus — unser Team meldet sich schnellstmöglich.\n"
-            "━━━━━━━━━━━━━━━━━━━━━━"
+            "Benötigst du Hilfe oder möchtest ein Anliegen melden?\n\n"
+            "Wähle unten im Menü die passende Ticket-Art aus.\n"
+            "Unser Team wird sich schnellstmöglich um dich kümmern.\n\n"
+            "**Verfügbare Ticket-Arten:**\n"
+            "🎟 **Support** — Allgemeiner Support\n"
+            "🎟 **Highteam Ticket** — Direkter Kontakt zum Highteam\n"
+            "🎟 **Fraktions Bewerbung** — Bewirb dich für eine Fraktion\n"
+            "🎟 **Beschwerde Ticket** — Beschwerde einreichen\n"
+            "🎟 **Bug Report** — Fehler oder Bug melden"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.add_field(name="🎟️ Support",              value="> Allgemeiner Support bei Fragen & Problemen",                   inline=False)
-    embed.add_field(name="👑 Highteam Ticket",       value="> Direkter Kontakt zum Highteam",                               inline=False)
-    embed.add_field(name="🏛️ Fraktions Bewerbung",  value="> Bewirb dich für eine Fraktion auf dem Server",                inline=False)
-    embed.add_field(name="📢 Beschwerde Ticket",     value="> Melde eine Beschwerde gegen einen Spieler oder Mitarbeiter",  inline=False)
-    embed.add_field(name="🐛 Bug Report",            value="> Melde einen Fehler oder Bug im Roleplay",                     inline=False)
-    embed.set_footer(text="Paradise City Roleplay • Support-System • Nur ein Ticket gleichzeitig möglich")
+    embed.set_footer(text="Paradise City Roleplay • Support-System")
     await channel.send(embed=embed, view=TicketSelectView())
     try:
         await ctx.message.delete()
