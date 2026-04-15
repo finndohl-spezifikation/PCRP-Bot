@@ -89,11 +89,11 @@ class RechnungModal(discord.ui.Modal, title="📄 Rechnung schreiben"):
             timestamp=now,
         )
         embed.set_thumbnail(url=self.an_member.display_avatar.url)
-        embed.add_field(name="An",            value=self.an_member.mention,    inline=True)
-        embed.add_field(name="Summe",         value=f"💵 {summe_int:,}$",       inline=True)
-        embed.add_field(name="Rechnungs-ID",  value=f"`{rechnung_id}`",         inline=True)
-        embed.add_field(name="Grund",         value=self.grund.value.strip(),   inline=False)
-        embed.set_footer(text="Paradise City Roleplay — Rechnungs-System")
+        embed.add_field(name="👤 An",             value=self.an_member.mention,          inline=True)
+        embed.add_field(name="💵 Summe",          value=f"**{summe_int:,} $**",          inline=True)
+        embed.add_field(name="🔖 Rechnungs-ID",   value=f"`{rechnung_id}`",              inline=True)
+        embed.add_field(name="📝 Grund",          value=self.grund.value.strip(),        inline=False)
+        embed.set_footer(text=f"Ausgestellt von {interaction.user.display_name} • Paradise City Roleplay")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -145,10 +145,10 @@ class EinzelBezahlenButton(discord.ui.Button):
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
-        embed.add_field(name="Rechnungs-ID",     value=f"`{self.rechnung_id}`",  inline=True)
-        embed.add_field(name="Betrag",           value=f"💵 {self.summe:,}$",    inline=True)
-        embed.add_field(name="Neuer Kontostand", value=f"💳 {zahler['bank']:,}$", inline=True)
-        embed.set_footer(text="Paradise City Roleplay — Rechnungs-System")
+        embed.add_field(name="🔖 Rechnungs-ID",     value=f"`{self.rechnung_id}`",     inline=True)
+        embed.add_field(name="💵 Bezahlt",           value=f"**{self.summe:,} $**",     inline=True)
+        embed.add_field(name="🏦 Neuer Kontostand",  value=f"{zahler['bank']:,} $",     inline=True)
+        embed.set_footer(text="Paradise City Roleplay • Rechnungs-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         try:
             await interaction.message.delete()
@@ -206,10 +206,10 @@ class AlleBezahlenButton(discord.ui.Button):
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
-        embed.add_field(name="Anzahl",           value=str(len(self.rechnungen)), inline=True)
-        embed.add_field(name="Gesamtbetrag",     value=f"💵 {self.gesamt:,}$",    inline=True)
-        embed.add_field(name="Neuer Kontostand", value=f"💳 {zahler['bank']:,}$", inline=True)
-        embed.set_footer(text="Paradise City Roleplay — Rechnungs-System")
+        embed.add_field(name="📋 Anzahl",           value=str(len(self.rechnungen)),   inline=True)
+        embed.add_field(name="💵 Gesamtbetrag",     value=f"**{self.gesamt:,} $**",    inline=True)
+        embed.add_field(name="🏦 Neuer Kontostand", value=f"{zahler['bank']:,} $",     inline=True)
+        embed.set_footer(text="Paradise City Roleplay • Rechnungs-System")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         try:
             await interaction.message.delete()
@@ -350,28 +350,27 @@ async def rechnungen_cmd(interaction: discord.Interaction):
 
     embeds = []
     for r in eigene[:10]:
-        color = 0xFF0000 if r.get("mahnung") else 0xE67E22
+        hat_mahnung = bool(r.get("mahnung"))
+        color = 0xE74C3C if hat_mahnung else 0xE67E22
+        titel = f"⚠️ Mahnung — Rechnung `{r['id']}`" if hat_mahnung else f"📄 Rechnung `{r['id']}`"
+
         embed = discord.Embed(
-            title=f"📄 Rechnung `{r['id']}`",
+            title=titel,
             color=color,
             timestamp=datetime.fromisoformat(r["erstellt_am"]),
         )
-        embed.add_field(name="Von",   value=r["von_display"], inline=True)
-        embed.add_field(name="Summe", value=f"💵 {r['summe']:,}$", inline=True)
-        embed.add_field(
-            name="Ausgestellt am",
-            value=datetime.fromisoformat(r["erstellt_am"]).strftime("%d.%m.%Y"),
-            inline=True,
-        )
-        embed.add_field(name="Grund", value=r["grund"], inline=False)
-        if r.get("mahnung"):
+        embed.add_field(name="👤 Von",             value=r["von_display"],                                     inline=True)
+        embed.add_field(name="💵 Summe",           value=f"**{r['summe']:,} $**",                              inline=True)
+        embed.add_field(name="📅 Ausgestellt am",  value=datetime.fromisoformat(r["erstellt_am"]).strftime("%d.%m.%Y"), inline=True)
+        embed.add_field(name="📝 Grund",           value=r["grund"],                                           inline=False)
+        if hat_mahnung:
             m = r["mahnung"]
             embed.add_field(
-                name="⚠️ MAHNUNG",
+                name="🚨 Mahnung",
                 value=f"**Frist:** {m['frist']}\n**Konsequenz:** {m['konsequenz']}",
                 inline=False,
             )
-        embed.set_footer(text="Paradise City Roleplay — Rechnungs-System")
+        embed.set_footer(text="Paradise City Roleplay • Rechnungs-System")
         embeds.append(embed)
 
     hinweis = ""
@@ -423,4 +422,4 @@ async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
             f"Welche Rechnung von **{nutzer.display_name}** soll eine Mahnung erhalten?",
             view=view,
             ephemeral=True,
-        )
+            )
