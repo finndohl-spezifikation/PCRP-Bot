@@ -122,25 +122,30 @@ async def beschlagnahmen_cmd(
         color=0xE74C3C,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.add_field(name="Spieler",     value=nutzer.mention,              inline=True)
-    embed.add_field(name="Fahrzeug",    value=fahrzeug,                    inline=True)
-    embed.add_field(name="Beamter",     value=interaction.user.mention,    inline=True)
-    embed.add_field(name="Grund",       value=grund,                       inline=False)
-    embed.add_field(name="Eintrags-ID", value=f"`{eintrag['id']}`",        inline=True)
-    embed.set_footer(text="Paradise City Roleplay — LAPD Beschlagnahmung")
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.add_field(name="👤 Spieler",     value=nutzer.mention,              inline=True)
+    embed.add_field(name="🚗 Fahrzeug",    value=f"**{fahrzeug}**",           inline=True)
+    embed.add_field(name="👮 Beamter",     value=interaction.user.mention,    inline=True)
+    embed.add_field(name="📝 Grund",       value=grund,                       inline=False)
+    embed.add_field(name="🔖 Eintrags-ID", value=f"`{eintrag['id']}`",        inline=True)
+    embed.set_footer(text="Paradise City Roleplay • LAPD Beschlagnahmung")
     await interaction.response.send_message(content=nutzer.mention, embed=embed)
 
     # DM an den Spieler
     try:
         dm_embed = discord.Embed(
             title="🚔 Dein Fahrzeug wurde beschlagnahmt",
-            description=f"**{fahrzeug}** wurde von der LAPD beschlagnahmt.",
+            description=(
+                f"Die **LAPD** hat dein Fahrzeug **{fahrzeug}** beschlagnahmt.\n"
+                f"Wende dich für weitere Informationen an die zuständige Behörde."
+            ),
             color=0xE74C3C,
             timestamp=datetime.now(timezone.utc),
         )
-        dm_embed.add_field(name="Grund",    value=grund,                       inline=False)
-        dm_embed.add_field(name="Beamter",  value=interaction.user.display_name, inline=True)
-        dm_embed.set_footer(text="Paradise City Roleplay — LAPD")
+        dm_embed.add_field(name="🚗 Fahrzeug",  value=fahrzeug,                          inline=True)
+        dm_embed.add_field(name="👮 Beamter",   value=interaction.user.display_name,     inline=True)
+        dm_embed.add_field(name="📝 Grund",     value=grund,                             inline=False)
+        dm_embed.set_footer(text="Paradise City Roleplay • LAPD")
         await nutzer.send(embed=dm_embed)
     except discord.Forbidden:
         pass
@@ -179,7 +184,6 @@ async def remove_beschlagnahmung_cmd(
     uid   = str(nutzer.id)
     liste = data.get(uid, [])
 
-    # Suche per ID (Autocomplete) oder Fahrzeugname
     treffer = next((e for e in liste if e["id"] == fahrzeug or e["fahrzeug"].lower() == fahrzeug.lower()), None)
 
     if not treffer:
@@ -197,22 +201,27 @@ async def remove_beschlagnahmung_cmd(
         color=0x2ECC71,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.add_field(name="Spieler",  value=nutzer.mention,           inline=True)
-    embed.add_field(name="Fahrzeug", value=treffer["fahrzeug"],      inline=True)
-    embed.add_field(name="Beamter",  value=interaction.user.mention, inline=True)
-    embed.set_footer(text="Paradise City Roleplay — LAPD Beschlagnahmung")
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.add_field(name="👤 Spieler",  value=nutzer.mention,              inline=True)
+    embed.add_field(name="🚗 Fahrzeug", value=f"**{treffer['fahrzeug']}**", inline=True)
+    embed.add_field(name="👮 Beamter",  value=interaction.user.mention,    inline=True)
+    embed.set_footer(text="Paradise City Roleplay • LAPD Beschlagnahmung")
     await interaction.response.send_message(content=nutzer.mention, embed=embed)
 
     # DM an den Spieler
     try:
         dm_embed = discord.Embed(
             title="✅ Dein Fahrzeug wurde freigegeben",
-            description=f"**{treffer['fahrzeug']}** wurde von der LAPD freigegeben.",
+            description=(
+                f"Dein Fahrzeug **{treffer['fahrzeug']}** wurde von der **LAPD** freigegeben.\n"
+                f"Du kannst es wieder abholen."
+            ),
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
-        dm_embed.add_field(name="Freigegeben von", value=interaction.user.display_name, inline=True)
-        dm_embed.set_footer(text="Paradise City Roleplay — LAPD")
+        dm_embed.add_field(name="🚗 Fahrzeug",        value=treffer["fahrzeug"],               inline=True)
+        dm_embed.add_field(name="👮 Freigegeben von", value=interaction.user.display_name,     inline=True)
+        dm_embed.set_footer(text="Paradise City Roleplay • LAPD")
         await nutzer.send(embed=dm_embed)
     except discord.Forbidden:
         pass
@@ -278,9 +287,10 @@ async def konfiszieren_cmd(
         color=0xE74C3C,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.add_field(name="Spieler",  value=nutzer.mention,              inline=True)
-    embed.add_field(name="Item",     value=entfernt[0],                 inline=True)
-    embed.add_field(name="Menge",    value=str(len(entfernt)),          inline=True)
-    embed.add_field(name="Beamter",  value=interaction.user.mention,    inline=True)
-    embed.set_footer(text="Paradise City Roleplay — LAPD Konfiszierung")
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.add_field(name="👤 Spieler",  value=nutzer.mention,              inline=True)
+    embed.add_field(name="📦 Item",     value=f"**{entfernt[0]}**",        inline=True)
+    embed.add_field(name="🔢 Menge",    value=str(len(entfernt)),          inline=True)
+    embed.add_field(name="👮 Beamter",  value=interaction.user.mention,    inline=True)
+    embed.set_footer(text="Paradise City Roleplay • LAPD Konfiszierung")
     await interaction.response.send_message(content=nutzer.mention, embed=embed)
