@@ -23,18 +23,15 @@ def _build_rucksack_embed(ziel: discord.Member, inventory: list) -> discord.Embe
         desc = "*Dein Rucksack ist leer.*"
     else:
         counts = Counter(inventory)
-        lines  = [f"┣ **{item}** × {count}" for item, count in counts.items()]
-        lines[-1] = lines[-1].replace("┣", "┗")
-        desc = "\n".join(lines)
-
+        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
     embed = discord.Embed(
-        title=f"🎒 Rucksack — {ziel.display_name}",
+        title=f"🎒 Rucksack von {ziel.display_name}",
         description=desc,
-        color=0x5865F2,
-        timestamp=datetime.now(timezone.utc),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text=f"Paradise City Roleplay • {len(inventory)} Item(s) im Rucksack")
+    embed.set_footer(text="Paradise City Roleplay • Inventar")
     return embed
 
 
@@ -44,18 +41,15 @@ def _build_lager_embed(ziel: discord.Member, lager: list) -> discord.Embed:
         desc = "*Dein Lager ist leer.*"
     else:
         counts = Counter(lager)
-        lines  = [f"┣ **{item}** × {count}" for item, count in counts.items()]
-        lines[-1] = lines[-1].replace("┣", "┗")
-        desc = "\n".join(lines)
-
+        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
     embed = discord.Embed(
-        title=f"🏠 Lager — {ziel.display_name}",
+        title=f"🏠 Lager von {ziel.display_name}",
         description=desc,
-        color=0xE67E22,
-        timestamp=datetime.now(timezone.utc),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text=f"Paradise City Roleplay • {len(lager)} Item(s) im Lager")
+    embed.set_footer(text="Paradise City Roleplay • Inventar")
     return embed
 
 
@@ -272,6 +266,7 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
 
     embed = _build_rucksack_embed(ziel, inventory)
 
+    # Lager-Button nur für den eigenen Rucksack anzeigen
     if ziel.id == interaction.user.id:
         view = RucksackView(interaction.user.id, inventory)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -347,16 +342,17 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     if normalize_item_name(match) == normalize_item_name(HANDY_ITEM_NAME):
         await give_handy_channel_access(interaction.guild, nutzer)
 
-    menge_str = f"× {menge}" if menge > 1 else ""
+    menge_text = f"×{menge}" if menge > 1 else ""
     embed = discord.Embed(
         title="🤝 Item übergeben",
-        color=0x2ECC71,
-        timestamp=datetime.now(timezone.utc),
+        description=(
+            f"**Von:** {interaction.user.mention}\n"
+            f"**An:** {nutzer.mention}\n"
+            f"**Item:** {match} {menge_text}"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=nutzer.display_avatar.url)
-    embed.add_field(name="📤 Von",   value=interaction.user.mention, inline=True)
-    embed.add_field(name="📥 An",    value=nutzer.mention,           inline=True)
-    embed.add_field(name="📦 Item",  value=f"**{match}** {menge_str}", inline=False)
     embed.set_footer(text="Paradise City Roleplay • Inventar")
     await interaction.response.send_message(embed=embed)
 
@@ -403,13 +399,14 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
 
     embed = discord.Embed(
         title="🕵️ Item versteckt",
-        color=0xE67E22,
-        timestamp=datetime.now(timezone.utc),
+        description=(
+            f"**Item:** {match}\n"
+            f"**Versteckt an:** {ort}\n\n"
+            f"Nur du kannst es wieder herausnehmen."
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=interaction.user.display_avatar.url)
-    embed.add_field(name="📦 Item",         value=match,        inline=True)
-    embed.add_field(name="📍 Versteckt an", value=f"*{ort}*",   inline=True)
-    embed.add_field(name="🔒 Hinweis",      value="Nur du kannst es wieder herausnehmen.", inline=False)
     embed.set_footer(text="Paradise City Roleplay • Inventar")
     await interaction.response.send_message(embed=embed, view=view)
 
@@ -455,16 +452,16 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
         inv.remove(match)
     save_economy(eco)
 
-    menge_str = f" × {menge}" if menge > 1 else ""
+    menge_text = f" × {menge}" if menge > 1 else ""
     embed = discord.Embed(
         title="✅ Item benutzt",
-        color=0x2ECC71,
-        timestamp=datetime.now(timezone.utc),
+        description=(
+            f"**{interaction.user.mention}** hat **{match}**{menge_text} benutzt.\n"
+            f"Das Item wurde aus dem Inventar entfernt."
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=interaction.user.display_avatar.url)
-    embed.add_field(name="👤 Spieler", value=interaction.user.mention,       inline=True)
-    embed.add_field(name="📦 Item",    value=f"**{match}**{menge_str}",      inline=True)
-    embed.add_field(name="🗑️ Status",  value="Aus dem Inventar entfernt",    inline=False)
     embed.set_footer(text="Paradise City Roleplay • Inventar")
     await interaction.response.send_message(embed=embed)
 
@@ -509,14 +506,16 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 
     embed = discord.Embed(
         title="📦 Item vergeben",
-        color=0x2ECC71,
-        timestamp=datetime.now(timezone.utc),
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Item:** {shop_item['name']}\n"
+            f"**Menge:** {menge}×\n"
+            f"**Vergeben von:** {interaction.user.mention}"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=nutzer.display_avatar.url)
-    embed.add_field(name="👤 Spieler",    value=nutzer.mention,         inline=True)
-    embed.add_field(name="📦 Item",       value=shop_item['name'],       inline=True)
-    embed.add_field(name="🔢 Menge",      value=f"{menge}×",            inline=True)
-    embed.set_footer(text=f"Vergeben von {interaction.user.display_name} • Paradise City Roleplay")
+    embed.set_footer(text="Paradise City Roleplay • Inventar")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -544,13 +543,11 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     user_data["inventory"] = inventory
     save_economy(eco)
 
-    embed = discord.Embed(
-        title="🗑️ Item entfernt",
-        color=0xE74C3C,
-        timestamp=datetime.now(timezone.utc),
+    e = discord.Embed(
+        title="📦 Item entfernt",
+        description=f"**{match}** wurde von **{nutzer.mention}** entfernt.",
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
     )
-    embed.set_thumbnail(url=nutzer.display_avatar.url)
-    embed.add_field(name="👤 Spieler", value=nutzer.mention, inline=True)
-    embed.add_field(name="📦 Item",    value=match,          inline=True)
-    embed.set_footer(text=f"Entfernt von {interaction.user.display_name} • Paradise City Roleplay")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    e.set_footer(text="Paradise City Roleplay • Inventar")
+    await interaction.response.send_message(embed=e, ephemeral=True)
