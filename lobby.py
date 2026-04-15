@@ -34,6 +34,7 @@ async def lobby_abstimmung(interaction: discord.Interaction):
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Lobby-System")
 
     GIF_URL   = "https://share.creavite.co/69d7a4bca828deb1587385dd.gif"
     ping_text = "<@&1490855734517174376>"
@@ -83,6 +84,7 @@ async def lobby_open(interaction: discord.Interaction):
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Lobby-System")
 
     GIF_URL   = "https://share.creavite.co/69d7bee5a828deb1587385f2.gif"
     ping_text = "<@&1490855734517174376>"
@@ -129,6 +131,7 @@ async def lobby_close(interaction: discord.Interaction):
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Lobby-System")
 
     GIF_URL   = "https://share.creavite.co/69d7c321a828deb1587385f6.gif"
     ping_text = "<@&1490855734517174376>"
