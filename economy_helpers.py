@@ -35,6 +35,7 @@ def get_user(data, user_id):
             "daily_reset": None,
             "inventory": [],
             "custom_limit": None,
+            "dispo": 0,
         }
     return data[uid]
 
