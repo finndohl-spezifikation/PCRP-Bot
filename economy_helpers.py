@@ -147,6 +147,7 @@ def build_abstimmung_embed(poll: dict) -> discord.Embed:
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
+    embed.set_footer(text="Paradise City Roleplay • Abstimmungs-System")
     return embed
 
 
