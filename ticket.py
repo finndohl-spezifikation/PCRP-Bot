@@ -111,7 +111,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    welcome_embed.set_footer(text="Nur Teammitglieder können das Ticket schließen")
+    welcome_embed.set_footer(text="Paradise City Roleplay • Support-System | Nur Teammitglieder können das Ticket schließen")
 
     action_view = TicketActionView()
     await channel.send(content=team_mentions, embed=welcome_embed, view=action_view)
@@ -128,7 +128,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
-        crew_embed.set_footer(text="Bitte fülle alle Felder aus, damit wir deine Anfrage bearbeiten können.")
+        crew_embed.set_footer(text="Paradise City Roleplay • Support-System | Bitte fülle alle Felder aus")
         await channel.send(embed=crew_embed)
 
     await interaction.response.send_message(
@@ -147,6 +147,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        log_embed.set_footer(text="Paradise City Roleplay • Support-System")
         await log_ch.send(embed=log_embed)
 
 
@@ -207,13 +208,15 @@ class AssignUserSelect(discord.ui.UserSelect):
             ticket_data[channel.id]["handler_id"] = user.id
 
         assign_embed = discord.Embed(
+            title="👤 Ticket zugewiesen",
             description=(
-                f"👤 {user.mention} wurde dem Ticket zugewiesen.\n"
+                f"{user.mention} wurde dem Ticket zugewiesen.\n"
                 f"**Zugewiesen von:** {interaction.user.mention}"
             ),
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        assign_embed.set_footer(text="Paradise City Roleplay • Support-System")
         await channel.send(embed=assign_embed)
         await interaction.response.send_message(
             f"✅ {user.mention} wurde dem Ticket zugewiesen.", ephemeral=True
@@ -262,6 +265,7 @@ class TicketActionView(discord.ui.View):
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        closing_embed.set_footer(text="Paradise City Roleplay • Support-System")
         await channel.send(embed=closing_embed)
 
         transcript_lines = [
@@ -307,6 +311,7 @@ class TicketActionView(discord.ui.View):
                 color=LOG_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
+            closed_embed.set_footer(text="Paradise City Roleplay • Support-System")
             await log_ch.send(embed=closed_embed, file=transcript_file)
 
         creator = interaction.guild.get_member(data["creator_id"])
@@ -323,6 +328,7 @@ class TicketActionView(discord.ui.View):
                     color=LOG_COLOR,
                     timestamp=datetime.now(timezone.utc)
                 )
+                dm_embed.set_footer(text="Paradise City Roleplay • Support-System")
                 rating_view = RatingView(
                     channel_name=channel.name,
                     handler_name=interaction.user.display_name,
@@ -400,6 +406,7 @@ class CommentModal(discord.ui.Modal, title="⭐ Ticket Bewertung"):
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        thank_embed.set_footer(text="Paradise City Roleplay • Support-System")
         await interaction.response.send_message(embed=thank_embed)
 
         log_ch = self.rating_view.guild_ref.get_channel(TICKET_RATING_CHANNEL_ID)
@@ -418,6 +425,7 @@ class CommentModal(discord.ui.Modal, title="⭐ Ticket Bewertung"):
                 color=LOG_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
+            rating_embed.set_footer(text="Paradise City Roleplay • Support-System")
             await log_ch.send(embed=rating_embed)
 
         for item in self.rating_view.children:
