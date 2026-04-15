@@ -28,6 +28,7 @@ async def handle_discord_invite(message):
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        dm_embed.set_footer(text="Paradise City Roleplay • Moderation")
         await member.send(embed=dm_embed)
     except Exception:
         pass
@@ -52,6 +53,7 @@ async def handle_discord_invite(message):
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        embed.set_footer(text="Paradise City Roleplay • Moderation")
         await log_ch.send(embed=embed)
 
 
@@ -97,6 +99,7 @@ async def handle_vulgar_message(message):
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
+        embed.set_footer(text="Paradise City Roleplay • Moderation")
         await log_ch.send(embed=embed)
 
 
@@ -141,6 +144,7 @@ async def check_spam(message):
                 color=MOD_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
+            embed.set_footer(text="Paradise City Roleplay • Moderation")
             await log_ch.send(embed=embed)
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
