@@ -107,7 +107,7 @@ async def handysetup(ctx):
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay — Handy System")
+    embed.set_footer(text="Paradise City Roleplay • Handy-System")
     await channel.send(embed=embed, view=HandyView())
     try:
         await ctx.message.delete()
