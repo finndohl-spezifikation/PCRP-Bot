@@ -21,8 +21,6 @@ from economy_helpers import (
 )
 from dienst import get_on_duty
 
-
-
 # â”€â”€ Konstanten â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 RAUB_INFO_CHANNEL_ID = 1490894312727117904   # Info-Embed beim Start
@@ -38,7 +36,6 @@ RAUB_MIN_PDL    = 2   # Mindestanzahl PDLer im Dienst
 RAUB_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
 
 RAUB_IMAGE_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/raubueberfall.jpg"
-RAUB_BAR_IMAGE_URL = "https://136643ba-e2d7-462a-9d79-80b31d48cd0e-00-1tc3t15bfz4kf.sisko.replit.dev/raubueberfall_bar.png"
 
 # Verhindert Doppel-Einreichungen (user_id)
 _pending_raube: set[int] = set()
@@ -69,7 +66,7 @@ def build_raub_info_embed() -> discord.Embed:
         ),
         inline=False
     )
-    embed.set_image(url=RAUB_BAR_IMAGE_URL)
+    embed.set_image(url="https://136643ba-e2d7-462a-9d79-80b31d48cd0e-00-1tc3t15bfz4kf.sisko.replit.dev/raubueberfall_bar.png")
     embed.set_footer(text="Paradise City Roleplay â€¢ RaubÃ¼berfall System")
     return embed
 
