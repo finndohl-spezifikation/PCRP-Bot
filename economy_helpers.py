@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# economy_helpers.py — Economy, Shop, Inventar Hilfsfunktionen
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# economy_helpers.py \u2014 Economy, Shop, Inventar Hilfsfunktionen
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from helpers import log_bot_error
 
 
-# ── Economy Helpers ──────────────────────────────────────────
+# \u2500\u2500 Economy Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_economy():
     if ECONOMY_FILE.exists():
@@ -53,7 +53,7 @@ def reset_daily_if_needed(user_data):
         user_data["daily_reset"]    = now.isoformat()
 
 
-# ── Shop Helpers ─────────────────────────────────────────────
+# \u2500\u2500 Shop Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_shop():
     if SHOP_FILE.exists():
@@ -67,7 +67,7 @@ def save_shop(items):
         json.dump(items, f, indent=2, ensure_ascii=False)
 
 
-# ── Hidden Items Helpers ─────────────────────────────────────
+# \u2500\u2500 Hidden Items Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_hidden_items():
     if HIDDEN_ITEMS_FILE.exists():
@@ -81,7 +81,7 @@ def save_hidden_items(data):
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-# ── Counting Helpers ─────────────────────────────────────────
+# \u2500\u2500 Counting Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_counting_state():
     if COUNTING_FILE.exists():
@@ -99,7 +99,7 @@ def save_counting_state(state):
 counting_state = load_counting_state()
 
 
-# ── Abstimmung Helpers ───────────────────────────────────────
+# \u2500\u2500 Abstimmung Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_abstimmung():
     if ABSTIMMUNG_FILE.exists():
@@ -122,7 +122,7 @@ def make_progress_bar(count: int, total: int, width: int = 20) -> str:
     else:
         filled = round(count / total * width)
     filled = max(0, min(width, filled))
-    return "█" * filled + "░" * (width - filled)
+    return "\u2588" * filled + "\u2591" * (width - filled)
 
 
 def build_abstimmung_embed(poll: dict) -> discord.Embed:
@@ -136,23 +136,23 @@ def build_abstimmung_embed(poll: dict) -> discord.Embed:
     r_bar    = make_progress_bar(r_count, total)
 
     description = (
-        f"✅ **{poll['option_ja']}** — {g_count} Stimme(n)\n"
+        f"\u2705 **{poll['option_ja']}** \u2014 {g_count} Stimme(n)\n"
         f"`{g_bar}` **{g_pct}%**\n\n"
-        f"❌ **{poll['option_nein']}** — {r_count} Stimme(n)\n"
+        f"\u274C **{poll['option_nein']}** \u2014 {r_count} Stimme(n)\n"
         f"`{r_bar}` **{r_pct}%**\n\n"
-        f"👥 **Gesamt:** {total} Abstimmung(en)"
+        f"\U0001F465 **Gesamt:** {total} Abstimmung(en)"
     )
     embed = discord.Embed(
-        title=f"🗳️ Abstimmung — {poll['question']}",
+        title=f"\U0001F5F3\uFE0F Abstimmung \u2014 {poll['question']}",
         description=description,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay • Abstimmungs-System")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Abstimmungs-System")
     return embed
 
 
-# ── Normalisierungsfunktion für Item-Namen ───────────────────
+# \u2500\u2500 Normalisierungsfunktion f\u00FCr Item-Namen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def normalize_item_name(name: str) -> str:
     name = name.lower().strip()
@@ -161,7 +161,7 @@ def normalize_item_name(name: str) -> str:
     return re.sub(r'\s+', ' ', name).strip()
 
 
-# ── Handy Helpers ────────────────────────────────────────────
+# \u2500\u2500 Handy Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_handy_numbers():
     if HANDY_FILE.exists():
@@ -205,7 +205,7 @@ def has_sim_karte(member):
 
 
 def consume_sim_karte(member) -> bool:
-    """Entfernt genau eine SIM-Karte aus dem Inventar. Gibt True zurück wenn erfolgreich."""
+    """Entfernt genau eine SIM-Karte aus dem Inventar. Gibt True zur\u00FCck wenn erfolgreich."""
     eco = load_economy()
     user_data = get_user(eco, member.id)
     inventory = user_data.get("inventory", [])
@@ -221,7 +221,7 @@ def consume_sim_karte(member) -> bool:
 
 
 def has_item(member, item_query: str) -> bool:
-    """Prüft ob member ein Item mit dem Namen item_query im Inventar hat."""
+    """Pr\u00FCft ob member ein Item mit dem Namen item_query im Inventar hat."""
     eco = load_economy()
     user_data = get_user(eco, member.id)
     inventory = user_data.get("inventory", [])
@@ -245,13 +245,13 @@ def consume_item(member, item_query: str) -> bool:
     return False
 
 
-# ── Money Log Helper ─────────────────────────────────────────
+# \u2500\u2500 Money Log Helper \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def log_money_action(guild: discord.Guild, title: str, description: str):
     ch = guild.get_channel(MONEY_LOG_CHANNEL_ID)
     if ch:
         embed = discord.Embed(
-            title=f"💵 {title}",
+            title=f"\U0001F4B5 {title}",
             description=description,
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -262,7 +262,7 @@ async def log_money_action(guild: discord.Guild, title: str, description: str):
             pass
 
 
-# ── Betrag Autocomplete ─────────────────────────────────────
+# \u2500\u2500 Betrag Autocomplete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 BETRAG_SUGGESTIONS = [
     1_000, 5_000, 10_000, 25_000, 50_000,
@@ -278,13 +278,13 @@ async def betrag_autocomplete(
     choices = []
     clean = current.replace(".", "").replace(",", "").strip()
     for val in BETRAG_SUGGESTIONS:
-        label = f"{val:,} 💵".replace(",", ".")
+        label = f"{val:,} \U0001F4B5".replace(",", ".")
         if clean == "" or clean in str(val) or clean.lower() in label.lower():
             choices.append(app_commands.Choice(name=label, value=val))
     return choices[:25]
 
 
-# ── Shop-Item Autocomplete ──────────────────────────────────
+# \u2500\u2500 Shop-Item Autocomplete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def shop_item_autocomplete(
     interaction: discord.Interaction,
@@ -300,7 +300,7 @@ async def shop_item_autocomplete(
     return choices[:25]
 
 
-# ── Inventar-Item Autocomplete ───────────────────────────────
+# \u2500\u2500 Inventar-Item Autocomplete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def inventory_item_autocomplete(
     interaction: discord.Interaction,
@@ -314,13 +314,13 @@ async def inventory_item_autocomplete(
     current_lower = current.lower()
     choices = []
     for item_name, count in counts.items():
-        label = f"{item_name} (×{count})"
+        label = f"{item_name} (\u00D7{count})"
         if current_lower == "" or current_lower in item_name.lower():
             choices.append(app_commands.Choice(name=label, value=item_name))
     return choices[:25]
 
 
-# ── Versteck-Button (persistent) ─────────────────────────────
+# \u2500\u2500 Versteck-Button (persistent) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class VersteckRetrieveView(discord.ui.View):
     def __init__(self, item_id: str, owner_id: int):
@@ -328,7 +328,7 @@ class VersteckRetrieveView(discord.ui.View):
         self.item_id  = item_id
         self.owner_id = owner_id
         btn = discord.ui.Button(
-            label="📦 Aus Versteck holen",
+            label="\U0001F4E6 Aus Versteck holen",
             style=discord.ButtonStyle.green,
             custom_id=f"retrieve_{item_id}_{owner_id}"
         )
@@ -338,19 +338,23 @@ class VersteckRetrieveView(discord.ui.View):
     async def retrieve_callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.owner_id:
             await interaction.response.send_message(
-                "❌ Nur derjenige der das Item versteckt hat kann es herausnehmen.",
+                "\u274C Nur derjenige der das Item versteckt hat kann es herausnehmen.",
                 ephemeral=True
             )
             return
         hidden = load_hidden_items()
         entry  = next((h for h in hidden if h["id"] == self.item_id), None)
         if not entry:
-            await interaction.response.send_message("❌ Item wurde bereits geborgen oder existiert nicht mehr.", ephemeral=True)
+            await interaction.response.send_message("\u274C Item wurde bereits geborgen oder existiert nicht mehr.", ephemeral=True)
             return
 
         eco       = load_economy()
         user_data = get_user(eco, interaction.user.id)
-        user_data.setdefault("inventory", []).append(entry["item"])
+        inv = user_data.setdefault("inventory", [])
+        hidden_marker = f"{entry['item']} (Versteckt)"
+        if hidden_marker in inv:
+            inv.remove(hidden_marker)
+        inv.append(entry["item"])
         save_economy(eco)
 
         hidden = [h for h in hidden if h["id"] != self.item_id]
@@ -364,12 +368,12 @@ class VersteckRetrieveView(discord.ui.View):
             pass
 
         await interaction.response.send_message(
-            f"✅ **{entry['item']}** wurde aus dem Versteck (**{entry['location']}**) geholt.",
+            f"\u2705 **{entry['item']}** wurde aus dem Versteck (**{entry['location']}**) geholt.",
             ephemeral=True
         )
 
         embed_public = discord.Embed(
-            title="📦 Item aus Versteck geholt",
+            title="\U0001F4E6 Item aus Versteck geholt",
             description=(
                 f"{interaction.user.mention} hat **{entry['item']}** "
                 f"aus dem Versteck an **{entry['location']}** geholt."
@@ -386,7 +390,7 @@ class VersteckRetrieveView(discord.ui.View):
             ic_channel = interaction.guild.get_channel(IC_CHAT_CHANNEL_ID)
             if ic_channel:
                 embed = discord.Embed(
-                    title="🕵️ IC — Item aus Versteck geholt",
+                    title="\U0001F575\uFE0F IC \u2014 Item aus Versteck geholt",
                     description=(
                         f"**{interaction.user.display_name}** hat **{entry['item']}** "
                         f"aus dem Versteck an **{entry['location']}** geholt."
@@ -394,14 +398,14 @@ class VersteckRetrieveView(discord.ui.View):
                     color=0xFFA500,
                     timestamp=datetime.now(timezone.utc)
                 )
-                embed.set_footer(text=f"Nutzer: {interaction.user} • ID: {interaction.user.id}")
+                embed.set_footer(text=f"Nutzer: {interaction.user} \u2022 ID: {interaction.user.id}")
                 try:
                     await ic_channel.send(embed=embed)
                 except Exception:
                     pass
 
 
-# ── Warn Helpers ─────────────────────────────────────────────
+# \u2500\u2500 Warn Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_warns():
     if WARNS_FILE.exists():
@@ -435,7 +439,7 @@ def get_user_team_warns(warns, user_id):
     return warns.setdefault(str(user_id), [])
 
 
-# ── Shop/Inventar Suchfunktionen ────────────────────────────
+# \u2500\u2500 Shop/Inventar Suchfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def find_inventory_item(inventory: list, query: str):
     q = query.lower().strip()
@@ -486,4 +490,4 @@ def find_shop_item(items, query: str):
 
 
 def channel_error(channel_id: int) -> str:
-    return f"❌ Du kannst diesen Command nur hier ausführen: <#{channel_id}>"
+    return f"\u274C Du kannst diesen Command nur hier ausf\u00FChren: <#{channel_id}>"
