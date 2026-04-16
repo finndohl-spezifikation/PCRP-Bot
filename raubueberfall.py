@@ -391,29 +391,11 @@ async def _raub_info_auto_setup():
     for guild in bot.guilds:
         channel = guild.get_channel(RAUB_INFO_CHANNEL_ID)
         if not channel:
+            print(f"[raubueberfall] âŒ Kanal {RAUB_INFO_CHANNEL_ID} nicht gefunden")
             continue
-
-        embed        = build_raub_info_embed()
-        existing_msg = None
         try:
-            async for msg in channel.history(limit=50):
-                if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
-                        if emb.title and "RaubÃ¼berfall" in emb.title:
-                            existing_msg = msg
-                            break
-                if existing_msg:
-                    break
-        except Exception:
-            pass
-
-        try:
-            if existing_msg:
-                await existing_msg.edit(embed=embed)
-                print(f"[raubueberfall] âœ… Info-Embed aktualisiert in #{channel.name}")
-            else:
-                await channel.send(embed=embed)
-                print(f"[raubueberfall] âœ… Info-Embed gepostet in #{channel.name}")
+            await channel.send(embed=build_raub_info_embed())
+            print(f"[raubueberfall] âœ… Info-Embed gepostet in #{channel.name}")
         except Exception as e:
             print(f"[raubueberfall] âŒ Fehler beim Senden: {e}")
 
