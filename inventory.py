@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# inventory.py — Inventar Commands (Rucksack, Übergeben, Verstecken, Use)
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# inventory.py \u2014 Inventar Commands (Rucksack, \u00DCbergeben, Verstecken, Use)
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from helpers import is_admin
@@ -15,7 +15,7 @@ from economy_helpers import (
 from handy import give_handy_channel_access
 
 
-# ── Lager-Hilfsfunktionen ─────────────────────────────────────
+# \u2500\u2500 Lager-Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_rucksack_embed(ziel: discord.Member, inventory: list) -> discord.Embed:
     from collections import Counter
@@ -23,15 +23,15 @@ def _build_rucksack_embed(ziel: discord.Member, inventory: list) -> discord.Embe
         desc = "*Dein Rucksack ist leer.*"
     else:
         counts = Counter(inventory)
-        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
+        desc   = "\n".join(f"\u2022 **{item}** \u00D7{count}" for item, count in counts.items())
     embed = discord.Embed(
-        title=f"🎒 Rucksack von {ziel.display_name}",
+        title=f"\U0001F392 Rucksack von {ziel.display_name}",
         description=desc,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Paradise City Roleplay • Inventar")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     return embed
 
 
@@ -41,19 +41,19 @@ def _build_lager_embed(ziel: discord.Member, lager: list) -> discord.Embed:
         desc = "*Dein Lager ist leer.*"
     else:
         counts = Counter(lager)
-        desc   = "\n".join(f"• **{item}** ×{count}" for item, count in counts.items())
+        desc   = "\n".join(f"\u2022 **{item}** \u00D7{count}" for item, count in counts.items())
     embed = discord.Embed(
-        title=f"🏠 Lager von {ziel.display_name}",
+        title=f"\U0001F3E0 Lager von {ziel.display_name}",
         description=desc,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_thumbnail(url=ziel.display_avatar.url)
-    embed.set_footer(text="Paradise City Roleplay • Inventar")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     return embed
 
 
-# ── Mengen-Modals ─────────────────────────────────────────────
+# \u2500\u2500 Mengen-Modals \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class InLagerMengeModal(discord.ui.Modal, title="Menge ins Lager legen"):
     menge = discord.ui.TextInput(
@@ -68,20 +68,20 @@ class InLagerMengeModal(discord.ui.Modal, title="Menge ins Lager legen"):
         self.user_id     = user_id
         self.item        = item
         self.verfuegbar  = verfuegbar
-        self.menge.label = f"Menge (max. {verfuegbar}×)"
+        self.menge.label = f"Menge (max. {verfuegbar}\u00D7)"
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
             anzahl = int(self.menge.value)
         except ValueError:
-            await interaction.response.send_message("❌ Bitte eine gültige Zahl eingeben.", ephemeral=True)
+            await interaction.response.send_message("\u274C Bitte eine g\u00FCltige Zahl eingeben.", ephemeral=True)
             return
         if anzahl < 1:
-            await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
+            await interaction.response.send_message("\u274C Menge muss mindestens 1 sein.", ephemeral=True)
             return
         if anzahl > self.verfuegbar:
             await interaction.response.send_message(
-                f"❌ Du hast nur **{self.verfuegbar}×** **{self.item}** im Rucksack.", ephemeral=True
+                f"\u274C Du hast nur **{self.verfuegbar}\u00D7** **{self.item}** im Rucksack.", ephemeral=True
             )
             return
         eco       = load_economy()
@@ -90,7 +90,7 @@ class InLagerMengeModal(discord.ui.Modal, title="Menge ins Lager legen"):
         vorhanden = inv.count(self.item)
         if vorhanden < anzahl:
             await interaction.response.send_message(
-                f"❌ Nur noch **{vorhanden}×** **{self.item}** im Rucksack.", ephemeral=True
+                f"\u274C Nur noch **{vorhanden}\u00D7** **{self.item}** im Rucksack.", ephemeral=True
             )
             return
         for _ in range(anzahl):
@@ -98,7 +98,7 @@ class InLagerMengeModal(discord.ui.Modal, title="Menge ins Lager legen"):
         user_data.setdefault("lager", []).extend([self.item] * anzahl)
         save_economy(eco)
         await interaction.response.send_message(
-            f"✅ **{anzahl}× {self.item}** wurde ins **Lager** verschoben.", ephemeral=True
+            f"\u2705 **{anzahl}\u00D7 {self.item}** wurde ins **Lager** verschoben.", ephemeral=True
         )
 
 
@@ -115,20 +115,20 @@ class AusLagerMengeModal(discord.ui.Modal, title="Menge in Rucksack nehmen"):
         self.user_id     = user_id
         self.item        = item
         self.verfuegbar  = verfuegbar
-        self.menge.label = f"Menge (max. {verfuegbar}×)"
+        self.menge.label = f"Menge (max. {verfuegbar}\u00D7)"
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
             anzahl = int(self.menge.value)
         except ValueError:
-            await interaction.response.send_message("❌ Bitte eine gültige Zahl eingeben.", ephemeral=True)
+            await interaction.response.send_message("\u274C Bitte eine g\u00FCltige Zahl eingeben.", ephemeral=True)
             return
         if anzahl < 1:
-            await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
+            await interaction.response.send_message("\u274C Menge muss mindestens 1 sein.", ephemeral=True)
             return
         if anzahl > self.verfuegbar:
             await interaction.response.send_message(
-                f"❌ Du hast nur **{self.verfuegbar}×** **{self.item}** im Lager.", ephemeral=True
+                f"\u274C Du hast nur **{self.verfuegbar}\u00D7** **{self.item}** im Lager.", ephemeral=True
             )
             return
         eco       = load_economy()
@@ -137,7 +137,7 @@ class AusLagerMengeModal(discord.ui.Modal, title="Menge in Rucksack nehmen"):
         vorhanden = lager.count(self.item)
         if vorhanden < anzahl:
             await interaction.response.send_message(
-                f"❌ Nur noch **{vorhanden}×** **{self.item}** im Lager.", ephemeral=True
+                f"\u274C Nur noch **{vorhanden}\u00D7** **{self.item}** im Lager.", ephemeral=True
             )
             return
         for _ in range(anzahl):
@@ -145,11 +145,11 @@ class AusLagerMengeModal(discord.ui.Modal, title="Menge in Rucksack nehmen"):
         user_data.setdefault("inventory", []).extend([self.item] * anzahl)
         save_economy(eco)
         await interaction.response.send_message(
-            f"✅ **{anzahl}× {self.item}** wurde in den **Rucksack** verschoben.", ephemeral=True
+            f"\u2705 **{anzahl}\u00D7 {self.item}** wurde in den **Rucksack** verschoben.", ephemeral=True
         )
 
 
-# ── Dropdowns ─────────────────────────────────────────────────
+# \u2500\u2500 Dropdowns \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class InLagerSelect(discord.ui.Select):
     def __init__(self, user_id: int, inventory: list):
@@ -158,14 +158,14 @@ class InLagerSelect(discord.ui.Select):
         self.counts  = Counter(inventory)
         unique = list(self.counts.keys())[:25]
         options = [
-            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{self.counts[item]} vorhanden")
+            discord.SelectOption(label=item[:100], value=item[:100], description=f"\u00D7{self.counts[item]} vorhanden")
             for item in unique
         ]
-        super().__init__(placeholder="Item auswählen…", min_values=1, max_values=1, options=options)
+        super().__init__(placeholder="Item ausw\u00E4hlen\u2026", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ Das ist nicht dein Rucksack.", ephemeral=True)
+            await interaction.response.send_message("\u274C Das ist nicht dein Rucksack.", ephemeral=True)
             return
         item       = self.values[0]
         verfuegbar = self.counts.get(item, 0)
@@ -179,14 +179,14 @@ class AusLagerSelect(discord.ui.Select):
         self.counts  = Counter(lager)
         unique = list(self.counts.keys())[:25]
         options = [
-            discord.SelectOption(label=item[:100], value=item[:100], description=f"×{self.counts[item]} im Lager")
+            discord.SelectOption(label=item[:100], value=item[:100], description=f"\u00D7{self.counts[item]} im Lager")
             for item in unique
         ]
-        super().__init__(placeholder="Item auswählen…", min_values=1, max_values=1, options=options)
+        super().__init__(placeholder="Item ausw\u00E4hlen\u2026", min_values=1, max_values=1, options=options)
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ Das ist nicht dein Lager.", ephemeral=True)
+            await interaction.response.send_message("\u274C Das ist nicht dein Lager.", ephemeral=True)
             return
         item       = self.values[0]
         verfuegbar = self.counts.get(item, 0)
@@ -199,19 +199,19 @@ class RucksackView(discord.ui.View):
         self.user_id   = user_id
         self.inventory = inventory
 
-    @discord.ui.button(label="📦 In Lager legen", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="\U0001F4E6 In Lager legen", style=discord.ButtonStyle.secondary)
     async def in_lager(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ Das ist nicht dein Rucksack.", ephemeral=True)
+            await interaction.response.send_message("\u274C Das ist nicht dein Rucksack.", ephemeral=True)
             return
         eco  = load_economy()
         inv  = get_user(eco, self.user_id).get("inventory", [])
         if not inv:
-            await interaction.response.send_message("❌ Dein Rucksack ist leer.", ephemeral=True)
+            await interaction.response.send_message("\u274C Dein Rucksack ist leer.", ephemeral=True)
             return
         view = discord.ui.View(timeout=60)
         view.add_item(InLagerSelect(self.user_id, inv))
-        await interaction.response.send_message("Welches Item möchtest du ins Lager legen?", view=view, ephemeral=True)
+        await interaction.response.send_message("Welches Item m\u00F6chtest du ins Lager legen?", view=view, ephemeral=True)
 
 
 class LagerView(discord.ui.View):
@@ -220,19 +220,19 @@ class LagerView(discord.ui.View):
         self.user_id = user_id
         self.lager   = lager
 
-    @discord.ui.button(label="🎒 In Rucksack nehmen", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="\U0001F392 In Rucksack nehmen", style=discord.ButtonStyle.secondary)
     async def aus_lager(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ Das ist nicht dein Lager.", ephemeral=True)
+            await interaction.response.send_message("\u274C Das ist nicht dein Lager.", ephemeral=True)
             return
         eco   = load_economy()
         lager = get_user(eco, self.user_id).get("lager", [])
         if not lager:
-            await interaction.response.send_message("❌ Dein Lager ist leer.", ephemeral=True)
+            await interaction.response.send_message("\u274C Dein Lager ist leer.", ephemeral=True)
             return
         view = discord.ui.View(timeout=60)
         view.add_item(AusLagerSelect(self.user_id, lager))
-        await interaction.response.send_message("Welches Item möchtest du in den Rucksack nehmen?", view=view, ephemeral=True)
+        await interaction.response.send_message("Welches Item m\u00F6chtest du in den Rucksack nehmen?", view=view, ephemeral=True)
 
 
 # /rucksack
@@ -246,7 +246,7 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
     if nutzer is not None:
         if not is_team_m:
             await interaction.response.send_message(
-                "❌ Du hast keine Berechtigung, den Rucksack anderer Spieler einzusehen.",
+                "\u274C Du hast keine Berechtigung, den Rucksack anderer Spieler einzusehen.",
                 ephemeral=True
             )
             return
@@ -256,7 +256,7 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
             await interaction.response.send_message(channel_error(RUCKSACK_CHANNEL_ID), ephemeral=True)
             return
         if not allowed:
-            await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+            await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
             return
         ziel = interaction.user
 
@@ -266,7 +266,7 @@ async def rucksack(interaction: discord.Interaction, nutzer: discord.Member = No
 
     embed = _build_rucksack_embed(ziel, inventory)
 
-    # Lager-Button nur für den eigenen Rucksack anzeigen
+    # Lager-Button nur f\u00FCr den eigenen Rucksack anzeigen
     if ziel.id == interaction.user.id:
         view = RucksackView(interaction.user.id, inventory)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -282,7 +282,7 @@ async def lager_cmd(interaction: discord.Interaction):
     allowed   = is_team_m or CITIZEN_ROLE_ID in role_ids or any(r in role_ids for r in WAGE_ROLES)
 
     if not allowed:
-        await interaction.response.send_message("❌ Du hast keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
         return
 
     eco       = load_economy()
@@ -296,7 +296,7 @@ async def lager_cmd(interaction: discord.Interaction):
 
 # /uebergeben
 @bot.tree.command(name="uebergeben", description="[Inventar] Gib ein Item an jemanden weiter", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="Empfänger", item="Item auswählen", menge="Wie viele möchtest du übergeben? (Standard: 1)")
+@app_commands.describe(nutzer="Empf\u00E4nger", item="Item ausw\u00E4hlen", menge="Wie viele m\u00F6chtest du \u00FCbergeben? (Standard: 1)")
 @app_commands.autocomplete(item=inventory_item_autocomplete)
 async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, item: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
@@ -307,11 +307,11 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
         return
 
     if nutzer.id == interaction.user.id:
-        await interaction.response.send_message("❌ Du kannst nicht an dich selbst übergeben.", ephemeral=True)
+        await interaction.response.send_message("\u274C Du kannst nicht an dich selbst \u00FCbergeben.", ephemeral=True)
         return
 
     if menge < 1:
-        await interaction.response.send_message("❌ Die Menge muss mindestens 1 sein.", ephemeral=True)
+        await interaction.response.send_message("\u274C Die Menge muss mindestens 1 sein.", ephemeral=True)
         return
 
     eco        = load_economy()
@@ -321,14 +321,14 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
-            f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+            f"\u274C **{item}** ist nicht in deinem Inventar.", ephemeral=True
         )
         return
 
     available = inv.count(match)
     if available < menge:
         await interaction.response.send_message(
-            f"❌ Du hast nur **{available}×** **{match}** im Inventar, aber möchtest **{menge}×** übergeben.",
+            f"\u274C Du hast nur **{available}\u00D7** **{match}** im Inventar, aber m\u00F6chtest **{menge}\u00D7** \u00FCbergeben.",
             ephemeral=True
         )
         return
@@ -342,9 +342,9 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
     if normalize_item_name(match) == normalize_item_name(HANDY_ITEM_NAME):
         await give_handy_channel_access(interaction.guild, nutzer)
 
-    menge_text = f"×{menge}" if menge > 1 else ""
+    menge_text = f"\u00D7{menge}" if menge > 1 else ""
     embed = discord.Embed(
-        title="🤝 Item übergeben",
+        title="\U0001F91D Item \u00FCbergeben",
         description=(
             f"**Von:** {interaction.user.mention}\n"
             f"**An:** {nutzer.mention}\n"
@@ -353,13 +353,13 @@ async def uebergeben(interaction: discord.Interaction, nutzer: discord.Member, i
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay • Inventar")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     await interaction.response.send_message(embed=embed)
 
 
 # /verstecken
 @bot.tree.command(name="verstecken", description="[Inventar] Verstecke ein Item an einem Ort", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(item="Item auswählen", ort="Wo soll das Item versteckt werden?")
+@app_commands.describe(item="Item ausw\u00E4hlen", ort="Wo soll das Item versteckt werden?")
 @app_commands.autocomplete(item=inventory_item_autocomplete)
 async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     role_ids = [r.id for r in interaction.user.roles]
@@ -376,11 +376,12 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
-            f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+            f"\u274C **{item}** ist nicht in deinem Inventar.", ephemeral=True
         )
         return
 
-    inv.remove(match)
+    idx = inv.index(match)
+    inv[idx] = f"{match} (Versteckt)"
     save_economy(eco)
 
     item_id = str(uuid.uuid4())[:8]
@@ -398,7 +399,7 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
     bot.add_view(view)
 
     embed = discord.Embed(
-        title="🕵️ Item versteckt",
+        title="\U0001F575\uFE0F Item versteckt",
         description=(
             f"**Item:** {match}\n"
             f"**Versteckt an:** {ort}\n\n"
@@ -407,15 +408,15 @@ async def verstecken(interaction: discord.Interaction, item: str, ort: str):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay • Inventar")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     await interaction.response.send_message(embed=embed, view=view)
 
 
 # /use-item
 @bot.tree.command(name="use-item", description="[Inventar] Benutze und entferne ein Item aus deinem Inventar", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(
-    item="Name des Items das du benutzen möchtest",
-    menge="Wie viele möchtest du benutzen? (Standard: 1)"
+    item="Name des Items das du benutzen m\u00F6chtest",
+    menge="Wie viele m\u00F6chtest du benutzen? (Standard: 1)"
 )
 async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
     role_ids = [r.id for r in interaction.user.roles]
@@ -426,7 +427,7 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
         return
 
     if menge < 1:
-        await interaction.response.send_message("❌ Die Menge muss mindestens **1** sein.", ephemeral=True)
+        await interaction.response.send_message("\u274C Die Menge muss mindestens **1** sein.", ephemeral=True)
         return
 
     eco       = load_economy()
@@ -436,14 +437,14 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
     match = find_inventory_item(inv, item)
     if not match:
         await interaction.response.send_message(
-            f"❌ **{item}** ist nicht in deinem Inventar.", ephemeral=True
+            f"\u274C **{item}** ist nicht in deinem Inventar.", ephemeral=True
         )
         return
 
     verfuegbar = inv.count(match)
     if menge > verfuegbar:
         await interaction.response.send_message(
-            f"❌ Du hast nur **{verfuegbar}x {match}** im Inventar, aber möchtest **{menge}** benutzen.",
+            f"\u274C Du hast nur **{verfuegbar}x {match}** im Inventar, aber m\u00F6chtest **{menge}** benutzen.",
             ephemeral=True
         )
         return
@@ -452,9 +453,9 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
         inv.remove(match)
     save_economy(eco)
 
-    menge_text = f" × {menge}" if menge > 1 else ""
+    menge_text = f" \u00D7 {menge}" if menge > 1 else ""
     embed = discord.Embed(
-        title="✅ Item benutzt",
+        title="\u2705 Item benutzt",
         description=(
             f"**{interaction.user.mention}** hat **{match}**{menge_text} benutzt.\n"
             f"Das Item wurde aus dem Inventar entfernt."
@@ -462,7 +463,7 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay • Inventar")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     await interaction.response.send_message(embed=embed)
 
 
@@ -477,19 +478,19 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
 @app_commands.autocomplete(itemname=shop_item_autocomplete)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str, menge: int = 1):
     if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
     if menge < 1:
-        await interaction.response.send_message("❌ Menge muss mindestens 1 sein.", ephemeral=True)
+        await interaction.response.send_message("\u274C Menge muss mindestens 1 sein.", ephemeral=True)
         return
 
     shop_items = load_shop()
     shop_item  = find_shop_item(shop_items, itemname)
     if not shop_item:
         await interaction.response.send_message(
-            f"❌ Das Item **{itemname}** existiert nicht im Shop.\n"
-            f"Es können nur vorhandene Shop-Items vergeben werden. Nutze `/shop` um alle Items zu sehen.",
+            f"\u274C Das Item **{itemname}** existiert nicht im Shop.\n"
+            f"Es k\u00F6nnen nur vorhandene Shop-Items vergeben werden. Nutze `/shop` um alle Items zu sehen.",
             ephemeral=True
         )
         return
@@ -505,17 +506,17 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
         await give_handy_channel_access(interaction.guild, nutzer)
 
     embed = discord.Embed(
-        title="📦 Item vergeben",
+        title="\U0001F4E6 Item vergeben",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Item:** {shop_item['name']}\n"
-            f"**Menge:** {menge}×\n"
+            f"**Menge:** {menge}\u00D7\n"
             f"**Vergeben von:** {interaction.user.mention}"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay • Inventar")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -525,7 +526,7 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
     if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
     eco       = load_economy()
@@ -535,7 +536,7 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     match = find_inventory_item(inventory, itemname)
     if not match:
         await interaction.response.send_message(
-            f"❌ **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
+            f"\u274C **{nutzer.display_name}** besitzt kein Item namens **{itemname}**.", ephemeral=True
         )
         return
 
@@ -544,10 +545,10 @@ async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, 
     save_economy(eco)
 
     e = discord.Embed(
-        title="📦 Item entfernt",
+        title="\U0001F4E6 Item entfernt",
         description=f"**{match}** wurde von **{nutzer.mention}** entfernt.",
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    e.set_footer(text="Paradise City Roleplay • Inventar")
+    e.set_footer(text="Paradise City Roleplay \u2022 Inventar")
     await interaction.response.send_message(embed=e, ephemeral=True)
