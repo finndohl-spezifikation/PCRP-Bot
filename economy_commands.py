@@ -565,10 +565,19 @@ async def dispo_cmd(interaction: discord.Interaction, nutzer: discord.Member, be
 
 # \u2500\u2500 /raub-cooldown \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
+_RAUB_CHOICES = [
+    app_commands.Choice(name="\U0001F37A Bar-Raub\u00FCberfall",  value="raub_last_raid"),
+    app_commands.Choice(name="\U0001F3E7 ATM-Raub",              value="atm_last_raid"),
+    app_commands.Choice(name="\U0001F6D2 Shop-Raub",             value="shop_raub_last_raid"),
+    app_commands.Choice(name="\U0001F9EA Humane Labs",            value="hl_last_raid"),
+    app_commands.Choice(name="\U0001F3E6 Staatsbank",             value="sb_last_raid"),
+]
+
 @bot.tree.command(name="raub-cooldown", description="[Admin] Entfernt den 24h Raub-Cooldown eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(administrator=True)
-@app_commands.describe(nutzer="Spieler dessen Raub-Cooldown zur\u00FCckgesetzt werden soll")
-async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.Member):
+@app_commands.describe(nutzer="Spieler dessen Raub-Cooldown zur\u00FCckgesetzt werden soll", raub="Welcher Raub-Cooldown?")
+@app_commands.choices(raub=_RAUB_CHOICES)
+async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.Member, raub: app_commands.Choice[str]):
     if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
@@ -576,27 +585,27 @@ async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.
     eco       = load_economy()
     user_data = get_user(eco, nutzer.id)
 
-    if not user_data.get("raub_last_raid"):
+    if not user_data.get(raub.value):
         await interaction.response.send_message(
-            f"\u2139\uFE0F {nutzer.mention} hat aktuell keinen aktiven Raub-Cooldown.",
+            f"\u2139\uFE0F {nutzer.mention} hat aktuell keinen aktiven Cooldown f\u00FCr **{raub.name}**.",
             ephemeral=True
         )
         return
 
-    user_data["raub_last_raid"] = None
+    user_data[raub.value] = None
     save_economy(eco)
 
     await log_money_action(
         interaction.guild,
         "Admin: Raub-Cooldown zur\u00FCckgesetzt",
-        f"**Spieler:** {nutzer.mention}\n**Admin:** {interaction.user.mention}"
+        f"**Spieler:** {nutzer.mention}\n**Raub:** {raub.name}\n**Admin:** {interaction.user.mention}"
     )
 
     embed = discord.Embed(
         title="\u23F1\uFE0F Raub-Cooldown zur\u00FCckgesetzt",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"Der 24h Raub-Cooldown wurde entfernt.\n"
+            f"**Raub:** {raub.name}\n\n"
             f"Der Spieler kann sofort wieder rauben."
         ),
         color=LOG_COLOR,
