@@ -290,13 +290,15 @@ async def shop_item_autocomplete(
     interaction: discord.Interaction,
     current: str
 ):
+    import re
     items = load_shop()
     current_lower = current.lower()
     choices = []
     for item in items:
         name = item["name"]
-        if current_lower == "" or current_lower in name.lower():
-            choices.append(app_commands.Choice(name=name, value=name))
+        display = re.sub(r'<a?:[^:]+:\d+>\s*', '', name).strip()
+        if current_lower == "" or current_lower in name.lower() or current_lower in display.lower():
+            choices.append(app_commands.Choice(name=display[:100], value=name[:100]))
     return choices[:25]
 
 
