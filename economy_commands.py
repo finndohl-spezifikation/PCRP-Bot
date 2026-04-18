@@ -406,11 +406,11 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
 
 # \u2500\u2500 /money-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-@bot.tree.command(name="money-add", description="[Team] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
+@bot.tree.command(name="money-add", description="[Admin] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not any(r.id == INHABER_ROLE_ID for r in interaction.user.roles):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -561,3 +561,46 @@ async def dispo_cmd(interaction: discord.Interaction, nutzer: discord.Member, be
     )
     embed.set_footer(text=f"Gesetzt von {interaction.user.display_name} \u2022 Paradise City Roleplay")
     await interaction.response.send_message(embed=embed)
+
+
+# \u2500\u2500 /raub-cooldown \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="raub-cooldown", description="[Admin] Entfernt den 24h Raub-Cooldown eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler dessen Raub-Cooldown zur\u00FCckgesetzt werden soll")
+async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.Member):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+
+    if not user_data.get("raub_last_raid"):
+        await interaction.response.send_message(
+            f"\u2139\uFE0F {nutzer.mention} hat aktuell keinen aktiven Raub-Cooldown.",
+            ephemeral=True
+        )
+        return
+
+    user_data["raub_last_raid"] = None
+    save_economy(eco)
+
+    await log_money_action(
+        interaction.guild,
+        "Admin: Raub-Cooldown zur\u00FCckgesetzt",
+        f"**Spieler:** {nutzer.mention}\n**Admin:** {interaction.user.mention}"
+    )
+
+    embed = discord.Embed(
+        title="\u23F1\uFE0F Raub-Cooldown zur\u00FCckgesetzt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"Der 24h Raub-Cooldown wurde entfernt.\n"
+            f"Der Spieler kann sofort wieder rauben."
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Zur\u00FCckgesetzt von {interaction.user.display_name} \u2022 Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
