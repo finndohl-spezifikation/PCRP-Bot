@@ -195,7 +195,7 @@ async def _execute_buy(
 class BuyMengeModal(discord.ui.Modal):
     def __init__(self, item: dict, shop_key: str):
         import re as _re
-        _clean = _re.sub(r'<a?:[^:]+:\d+>\s*', '', item['name']).strip()
+        _clean = _re.sub(r'<a?:[^:]+:\d+>\s*\|?\s*', '', item['name']).strip()
         super().__init__(title=f"\U0001F6D2 {_clean[:35]} kaufen")
         self.item     = item
         self.shop_key = shop_key
@@ -272,7 +272,7 @@ class BuyItemSelect(discord.ui.Select):
         for item in page_items[:25]:
             name = item["name"]
             custom = re.search(r'<(a?):([^:]+):(\d+)>', name)
-            label  = re.sub(r'<a?:[^:]+:\d+>\s*', '', name).strip() or name
+            label  = re.sub(r'<a?:[^:]+:\d+>\s*\|?\s*', '', name).strip() or name
             if custom:
                 emoji = discord.PartialEmoji(
                     animated=bool(custom.group(1)),
