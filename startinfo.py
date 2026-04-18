@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# startinfo.py — "Wo starte ich?" Embed
+# startinfo.py \u2014 "Wo starte ich?" Embed
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
 
 from config import *
 
@@ -25,29 +23,31 @@ def _save_data(data: dict):
 
 def _build_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🌆 Wo starte ich?",
+        title="\U0001f306 Wo starte ich?",
+        description=(
+            "Willkommen in **Paradise City**! W\u00e4hle deinen Startpunkt je nach Einreiseart.\n"
+            "Dein Startfahrzeug findest du in <#1490878159804174470>."
+        ),
         color=LOG_COLOR,
     )
     embed.add_field(
-        name="✈️ Du hast die legale Einreise gewählt?",
+        name="\u2708\ufe0f Legale Einreise",
         value=(
-            "> Da du als legaler Bewohner einreist, startest du bei uns am Flughafen von Los Santos.\n"
-            "> Von dort aus kannst du dir ein Taxi zum Autohaus nehmen, um dein Startfahrzeug abzuholen.\n"
-            "> Welches Startfahrzeug du bekommst, findest du in <#1490878159804174470>."
+            "Du startest am **Flughafen** von Los Santos. "
+            "Nimm ein Taxi zum Autohaus und hole dein Startfahrzeug ab."
         ),
-        inline=False,
+        inline=True,
     )
     embed.add_field(
-        name="⚓ Du hast die illegale Einreise gewählt?",
+        name="\u2693 Illegale Einreise",
         value=(
-            "> Da du als illegaler Bewohner startest, kommst du am Hafen von Los Santos an.\n"
-            "> Sobald du dort ankommst, begib dich unauffällig zum Autohaus, ohne vom LAPD erwischt zu werden,\n"
-            "> und hole dein Startfahrzeug ab. Welches Startfahrzeug das ist, findest du in <#1490878159804174470>."
+            "Du kommst am **Hafen** von Los Santos an. "
+            "Begib dich unauff\u00e4llig zum Autohaus, ohne vom LAPD erwischt zu werden."
         ),
-        inline=False,
+        inline=True,
     )
     embed.set_thumbnail(url=STARTINFO_IMG_URL)
-    embed.set_footer(text="Paradise City Roleplay • Start-Info")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Start-Info")
     return embed
 
 
