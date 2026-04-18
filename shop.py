@@ -194,7 +194,9 @@ async def _execute_buy(
 
 class BuyMengeModal(discord.ui.Modal):
     def __init__(self, item: dict, shop_key: str):
-        super().__init__(title=f"\U0001F6D2 {item['name'][:40]} kaufen")
+        import re as _re
+        _clean = _re.sub(r'<a?:[^:]+:\d+>\s*', '', item['name']).strip()
+        super().__init__(title=f"\U0001F6D2 {_clean[:35]} kaufen")
         self.item     = item
         self.shop_key = shop_key
 
