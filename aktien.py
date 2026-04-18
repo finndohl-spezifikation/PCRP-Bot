@@ -246,7 +246,7 @@ async def aktie_kaufen(interaction: discord.Interaction, aktie: str, anzahl: int
         )
         return
 
-    user_data["bank"] = kontostand - gesamtpreis
+    user_data["bank"] = int(kontostand - gesamtpreis)
 
     depot = user_data.setdefault("aktien", {})
     if aktie in depot:
@@ -317,7 +317,7 @@ async def aktie_verkaufen(interaction: discord.Interaction, aktie: str, anzahl: 
     if depot[aktie]["anzahl"] == 0:
         del depot[aktie]
 
-    user_data["bank"] = user_data.get("bank", 0) + gesamterloes
+    user_data["bank"] = int(user_data.get("bank", 0) + gesamterloes)
     save_economy(eco)
 
     info = AKTIEN[aktie]
