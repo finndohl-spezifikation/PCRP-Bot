@@ -385,9 +385,9 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
     dispo     = user_data.get("dispo", 0)
     titel = "\U0001F4B3 Kontostand" if ziel.id == interaction.user.id else f"\U0001F4B3 Kontostand \u2014 {ziel.display_name}"
     desc  = (
-        f"\U0001F4B5 **Bargeld:** {user_data['cash']:,} \U0001F4B5\n"
-        f"\U0001F3E6 **Konto:** {user_data['bank']:,} \U0001F4B5\n"
-        f"\U0001F4B0 **Gesamt:** {user_data['cash'] + user_data['bank']:,} \U0001F4B5"
+        f"\U0001F4B5 **Bargeld:** {int(user_data['cash']):,} \U0001F4B5\n"
+        f"\U0001F3E6 **Konto:** {int(user_data['bank']):,} \U0001F4B5\n"
+        f"\U0001F4B0 **Gesamt:** {int(user_data['cash']) + int(user_data['bank']):,} \U0001F4B5"
     )
     if dispo > 0:
         desc += f"\n\U0001F4CA **Dispo:** bis -{dispo:,} \U0001F4B5"
