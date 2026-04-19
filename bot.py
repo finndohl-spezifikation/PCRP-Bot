@@ -101,6 +101,7 @@ import human_labs_raub        # Humane Labs Raub\u00FCberfall System
 import staatsbank_raub        # Staatsbank Raub\u00FCberfall System
 import aktien                 # Aktienmarkt-System
 import kanal_sperre           # /kanal-sperre, /kanal-entsperren
+import nebenserver            # Nebenserver Import/Export Embed
 
 try:
     import server_schutz      # Schutz vor unbefugten Kanal/Rollen-\u00C4nderungen
