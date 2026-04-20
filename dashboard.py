@@ -75,7 +75,7 @@ def require_login():
 
 
 # \u2500\u2500 CSS & Basis-Template \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-BASE = r"""<!DOCTYPE html>
+BASE = """<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
