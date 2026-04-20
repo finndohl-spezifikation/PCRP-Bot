@@ -2,3 +2,4 @@ discord.py[voice]
 aiohttp
 PyNaCl
 edge-tts
+flask
