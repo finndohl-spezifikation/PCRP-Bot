@@ -119,4 +119,13 @@ if not TOKEN:
     print("\u274C DISCORD_TOKEN ist nicht gesetzt!")
     exit(1)
 
+# Dashboard als Hintergrund-Thread starten
+import threading
+try:
+    import dashboard as _dashboard
+    _t = threading.Thread(target=_dashboard.start_dashboard, daemon=True)
+    _t.start()
+except Exception as _dash_err:
+    print(f"[WARNING] Dashboard konnte nicht gestartet werden: {_dash_err}")
+
 bot.run(TOKEN)
