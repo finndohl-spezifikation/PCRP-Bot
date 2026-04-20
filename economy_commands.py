@@ -404,5 +404,212 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
+# \u2500\u2500 /money-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-# Admin-Commands wurden ins Dashboard verschoben (dashboard.py)
+@bot.tree.command(name="money-add", description="[Admin] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
+async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    if betrag <= 0:
+        await interaction.response.send_message("\u274C Betrag muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["bank"] += betrag
+    save_economy(eco)
+    await log_money_action(
+        interaction.guild,
+        "Admin: Geld hinzugef\u00FCgt",
+        f"**Spieler:** {nutzer.mention}\n**Betrag:** +{betrag:,} \U0001F4B5\n"
+        f"**Bank danach:** {user_data['bank']:,} \U0001F4B5\n**Admin:** {interaction.user.mention}"
+    )
+
+    embed = discord.Embed(
+        title="\U0001F4B0 Geld hinzugef\u00FCgt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Hinzugef\u00FCgt:** {betrag:,} \U0001F4B5\n"
+            f"**Kontostand:** {user_data['bank']:,} \U0001F4B5"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Maze Bank")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# \u2500\u2500 /remove-money \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="remove-money", description="[Admin] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
+async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    if betrag <= 0:
+        await interaction.response.send_message("\u274C Betrag muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["cash"] = max(0, user_data["cash"] - betrag)
+    save_economy(eco)
+    await log_money_action(
+        interaction.guild,
+        "Admin: Geld entfernt",
+        f"**Spieler:** {nutzer.mention}\n**Betrag:** -{betrag:,} \U0001F4B5\n"
+        f"**Bargeld danach:** {user_data['cash']:,} \U0001F4B5\n**Admin:** {interaction.user.mention}"
+    )
+
+    embed = discord.Embed(
+        title="\U0001F4B8 Geld entfernt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Entfernt:** {betrag:,} \U0001F4B5\n"
+            f"**Bargeld:** {user_data['cash']:,} \U0001F4B5"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Maze Bank")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# \u2500\u2500 /set-limit \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="set-limit", description="[Team] Setzt das individuelle Tageslimit eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(manage_messages=True)
+@app_commands.describe(nutzer="Spieler", limit="Neues Tageslimit")
+@app_commands.choices(limit=LIMIT_CHOICES)
+async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, limit: int):
+    role_ids = [r.id for r in interaction.user.roles]
+    if ADMIN_ROLE_ID not in role_ids and MOD_ROLE_ID not in role_ids:
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["custom_limit"] = limit
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="\u2699\uFE0F Limit gesetzt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Neues Tageslimit:** {limit:,} \U0001F4B5\n"
+            f"*(gilt f\u00FCr Einzahlen, Auszahlen & \u00DCberweisen)*"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Gesetzt von {interaction.user.display_name} \u2022 Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed)
+
+
+# \u2500\u2500 /dispo \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="dispo", description="[Admin] Setzt das Dispo-Limit eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler", betrag="Maximales Minus-Limit in $ (0 = kein Dispo)")
+async def dispo_cmd(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    if betrag < 0:
+        await interaction.response.send_message("\u274C Betrag muss 0 oder gr\u00F6\u00DFer sein.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["dispo"] = betrag
+    save_economy(eco)
+
+    await log_money_action(
+        interaction.guild,
+        "Admin: Dispo gesetzt",
+        f"**Spieler:** {nutzer.mention}\n"
+        f"**Dispo-Limit:** -{betrag:,} \U0001F4B5\n"
+        f"**Gesetzt von:** {interaction.user.mention}"
+    )
+
+    if betrag == 0:
+        beschreibung = (
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Dispo:** deaktiviert\n"
+            f"*(Konto kann nicht mehr ins Minus gehen)*"
+        )
+    else:
+        beschreibung = (
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Dispo-Limit:** bis -{betrag:,} \U0001F4B5\n"
+            f"*(Konto darf bis zu diesem Betrag ins Minus gehen)*"
+        )
+
+    embed = discord.Embed(
+        title="\U0001F4CA Dispo gesetzt",
+        description=beschreibung,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Gesetzt von {interaction.user.display_name} \u2022 Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed)
+
+
+# \u2500\u2500 /raub-cooldown \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+_RAUB_CHOICES = [
+    app_commands.Choice(name="\U0001F37A Bar-Raub\u00FCberfall",  value="raub_last_raid"),
+    app_commands.Choice(name="\U0001F3E7 ATM-Raub",              value="atm_last_raid"),
+    app_commands.Choice(name="\U0001F6D2 Shop-Raub",             value="shop_raub_last_raid"),
+    app_commands.Choice(name="\U0001F9EA Humane Labs",            value="hl_last_raid"),
+    app_commands.Choice(name="\U0001F3E6 Staatsbank",             value="sb_last_raid"),
+]
+
+@bot.tree.command(name="raub-cooldown", description="[Admin] Entfernt den 24h Raub-Cooldown eines Spielers", guild=discord.Object(id=GUILD_ID))
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(nutzer="Spieler dessen Raub-Cooldown zur\u00FCckgesetzt werden soll", raub="Welcher Raub-Cooldown?")
+@app_commands.choices(raub=_RAUB_CHOICES)
+async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.Member, raub: app_commands.Choice[str]):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+
+    if not user_data.get(raub.value):
+        await interaction.response.send_message(
+            f"\u2139\uFE0F {nutzer.mention} hat aktuell keinen aktiven Cooldown f\u00FCr **{raub.name}**.",
+            ephemeral=True
+        )
+        return
+
+    user_data[raub.value] = None
+    save_economy(eco)
+
+    await log_money_action(
+        interaction.guild,
+        "Admin: Raub-Cooldown zur\u00FCckgesetzt",
+        f"**Spieler:** {nutzer.mention}\n**Raub:** {raub.name}\n**Admin:** {interaction.user.mention}"
+    )
+
+    embed = discord.Embed(
+        title="\u23F1\uFE0F Raub-Cooldown zur\u00FCckgesetzt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Raub:** {raub.name}\n\n"
+            f"Der Spieler kann sofort wieder rauben."
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text=f"Zur\u00FCckgesetzt von {interaction.user.display_name} \u2022 Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
