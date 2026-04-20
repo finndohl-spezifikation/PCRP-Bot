@@ -222,7 +222,9 @@ input:focus,select:focus{border-color:#e67e22}
     {% endif %}
     <div class="nav-section">Moderation</div>
     <a href="/warns" class="{{ 'active' if page=='warns' }}"><span class="ic">\u26A0\uFE0F</span> Verwarnungen</a>
+    {% if role in ('admin','inhaber') %}
     <a href="/teamwarns" class="{{ 'active' if page=='teamwarns' }}"><span class="ic">\U0001F6E1\uFE0F</span> Team Warns</a>
+    {% endif %}
     <div class="nav-section">Account</div>
     <a href="/logout"><span class="ic">\U0001F6AA</span> Abmelden</a>
   </nav>
@@ -410,8 +412,9 @@ def spieler_detail(uid):
     eco   = load_json(ECONOMY_FILE)
     msg   = request.args.get("_msg")
     mtype = "alert-ok"
-    role  = get_role()
-    can_edit = has_role("admin")
+    role         = get_role()
+    can_edit_money = has_role("admin")
+    can_edit_inv   = has_role("mod")
 
     if uid not in eco:
         eco[uid] = {"cash":0,"bank":0,"inventory":[],"last_wage":None,
@@ -420,22 +423,23 @@ def spieler_detail(uid):
 
     data = eco[uid]
 
-    if request.method == "POST" and can_edit:
+    if request.method == "POST":
         action = request.form.get("action","")
-        if action == "money":
-            try:
-                data["cash"] = int(request.form.get("cash",0))
-                data["bank"] = int(request.form.get("bank",0))
-                eco[uid] = data
-                save_json(ECONOMY_FILE, eco)
-                msg = "\u2705 Guthaben gespeichert"
-            except Exception as e:
-                msg = f"\u274C {e}"; mtype="alert-err"
-        elif action == "reset":
-            data["cash"] = 0; data["bank"] = 0
-            eco[uid] = data; save_json(ECONOMY_FILE, eco)
-            msg = "\u2705 Guthaben zur\u00FCckgesetzt"
-        elif action == "add_item":
+        if action in ("money","reset") and can_edit_money:
+            if action == "money":
+                try:
+                    data["cash"] = int(request.form.get("cash",0))
+                    data["bank"] = int(request.form.get("bank",0))
+                    eco[uid] = data
+                    save_json(ECONOMY_FILE, eco)
+                    msg = "\u2705 Guthaben gespeichert"
+                except Exception as e:
+                    msg = f"\u274C {e}"; mtype="alert-err"
+            else:
+                data["cash"] = 0; data["bank"] = 0
+                eco[uid] = data; save_json(ECONOMY_FILE, eco)
+                msg = "\u2705 Guthaben zur\u00FCckgesetzt"
+        elif action == "add_item" and can_edit_inv:
             item = request.form.get("item","").strip()
             if item:
                 data.setdefault("inventory",[]).append(item)
@@ -443,7 +447,7 @@ def spieler_detail(uid):
                 msg = "\u2705 Item hinzugef\u00FCgt"
             else:
                 msg="\u274C Kein Item eingegeben"; mtype="alert-err"
-        elif action == "rm_item":
+        elif action == "rm_item" and can_edit_inv:
             item = request.form.get("item","")
             inv = data.get("inventory",[])
             if item in inv:
@@ -452,10 +456,13 @@ def spieler_detail(uid):
                 msg="\u2705 Item entfernt"
             else:
                 msg="\u274C Item nicht gefunden"; mtype="alert-err"
+        else:
+            msg="\u274C Keine Berechtigung"; mtype="alert-err"
         return redirect(f"/spieler/{uid}?_msg={msg}")
 
     inv = data.get("inventory",[])
-    if can_edit:
+    # Inventar: Mod+ darf bearbeiten (x-Button + Add)
+    if can_edit_inv:
         inv_html = "".join(f"""<div class="inv-item"><span>{i}</span>
           <form method="post" style="margin:0"><input type="hidden" name="action" value="rm_item">
           <input type="hidden" name="item" value="{i.replace('"','&quot;')}">
@@ -471,8 +478,8 @@ def spieler_detail(uid):
       <input type="hidden" name="idx" value="{i}"><input type="hidden" name="back" value="/spieler/{uid}">
       <button class="btn btn-d btn-sm" type="submit">\u274C</button></form></td></tr>""" for i,w in enumerate(uw))
 
-    # Guthaben-Sektion: Admins d\u00FCrfen bearbeiten, Mods nur lesen
-    if can_edit:
+    # Guthaben: Admin+ darf bearbeiten, Mod nur lesen
+    if can_edit_money:
         guthaben_html = f"""<div class="frm"><h2>\U0001F4B0 Guthaben bearbeiten</h2>
     <form method="post"><input type="hidden" name="action" value="money">
       <div class="row">
@@ -484,6 +491,15 @@ def spieler_detail(uid):
         <button class="btn btn-d" type="button" onclick="if(confirm('Wirklich auf $0 setzen?')){{document.querySelector('[name=action]').value='reset';this.closest('form').submit()}}">Zur\u00FCcksetzen</button>
       </div>
     </form></div>"""
+    else:
+        guthaben_html = f"""<div class="frm"><h2>\U0001F4B0 Guthaben (nur lesen)</h2>
+    <div class="row">
+      <div class="fg"><label>Bar ($)</label><div style="padding:9px;background:#0a0a15;border:1px solid #1c1c2e;border-radius:6px;color:#e67e22;font-weight:700">${fmt(data.get('cash',0))}</div></div>
+      <div class="fg"><label>Bank ($)</label><div style="padding:9px;background:#0a0a15;border:1px solid #1c1c2e;border-radius:6px;color:#3498db;font-weight:700">${fmt(data.get('bank',0))}</div></div>
+    </div></div>"""
+
+    # Inventar: Mod+ darf bearbeiten
+    if can_edit_inv:
         inventar_html = f"""<div class="frm"><h2>\U0001F392 Inventar ({len(inv)} Items)</h2>
     <div class="inv-list">{inv_html or '<span style="color:#333;font-size:12px">Leer</span>'}</div>
     <form method="post" style="display:flex;gap:7px;margin-top:9px">
@@ -492,11 +508,6 @@ def spieler_detail(uid):
       <button class="btn btn-p" type="submit" style="white-space:nowrap">+ Add</button>
     </form></div>"""
     else:
-        guthaben_html = f"""<div class="frm"><h2>\U0001F4B0 Guthaben (nur lesen)</h2>
-    <div class="row">
-      <div class="fg"><label>Bar ($)</label><div style="padding:9px;background:#0a0a15;border:1px solid #1c1c2e;border-radius:6px;color:#e67e22;font-weight:700">${fmt(data.get('cash',0))}</div></div>
-      <div class="fg"><label>Bank ($)</label><div style="padding:9px;background:#0a0a15;border:1px solid #1c1c2e;border-radius:6px;color:#3498db;font-weight:700">${fmt(data.get('bank',0))}</div></div>
-    </div></div>"""
         inventar_html = f"""<div class="frm"><h2>\U0001F392 Inventar ({len(inv)} Items)</h2>
     <div class="inv-list">{inv_html or '<span style="color:#333;font-size:12px">Leer</span>'}</div></div>"""
 
@@ -901,7 +912,7 @@ def warns_page():
 
 @app.route("/teamwarns")
 def teamwarns_page():
-    r = require_login()
+    r = require_role("admin")
     if r: return r
     return _warns_page(TEAM_WARNS_FILE, "\U0001F6E1\uFE0F Team Warns", "teamwarns", "/teamwarns")
 
@@ -980,7 +991,7 @@ def warn_detail(uid):
 
 @app.route("/teamwarns/<uid>")
 def teamwarn_detail(uid):
-    r = require_login()
+    r = require_role("admin")
     if r: return r
     return _warn_detail(TEAM_WARNS_FILE, uid, "\U0001F6E1\uFE0F Team Warns", "teamwarns", "/teamwarns")
 
@@ -1071,25 +1082,25 @@ def warns_clear():
 
 @app.route("/teamwarns/add",    methods=["POST"])
 def teamwarns_add():
-    r = require_login()
+    r = require_role("admin")
     if r: return r
     return _warns_add(TEAM_WARNS_FILE)
 
 @app.route("/teamwarns/edit",   methods=["POST"])
 def teamwarns_edit():
-    r = require_login()
+    r = require_role("admin")
     if r: return r
     return _warns_edit(TEAM_WARNS_FILE)
 
 @app.route("/teamwarns/remove", methods=["POST"])
 def teamwarns_remove():
-    r = require_login()
+    r = require_role("admin")
     if r: return r
     return _warns_remove(TEAM_WARNS_FILE, "/teamwarns")
 
 @app.route("/teamwarns/clear",  methods=["POST"])
 def teamwarns_clear():
-    r = require_login()
+    r = require_role("admin")
     if r: return r
     return _warns_clear(TEAM_WARNS_FILE, "/teamwarns")
 
