@@ -31,19 +31,20 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
     save_warns(warns)
     warn_count = len(user_warns)
 
+    badge = "\U0001F534" if warn_count >= 3 else "\U0001F7E1" if warn_count == 2 else "\U0001F7E2"
     embed = discord.Embed(
-        title="\u26A0\uFE0F Verwarnung",
-        description=(
-            f"**Spieler:** {nutzer.mention}\n"
-            f"**Grund:** {grund}\n"
-            f"**Konsequenz:** {konsequenz}\n"
-            f"**Verwarnt von:** {interaction.user.mention}\n"
-            f"**Warns gesamt:** {warn_count}"
-        ),
+        title=f"\u26A0\uFE0F Verwarnung ausgestellt",
+        description=f"\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015",
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
+    embed.add_field(name="\U0001F464 Spieler",      value=nutzer.mention,              inline=True)
+    embed.add_field(name=f"{badge} Warns gesamt",   value=f"**{warn_count}**",         inline=True)
+    embed.add_field(name="\U0001F6E1\uFE0F Verwarnt von", value=interaction.user.mention, inline=True)
+    embed.add_field(name="\U0001F4CB Grund",        value=grund,                       inline=False)
+    embed.add_field(name="\u2694\uFE0F Konsequenz", value=konsequenz,                  inline=False)
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.set_footer(text="\U0001F6E1\uFE0F Warn-System \u2022 Paradise City Roleplay")
     log_ch = interaction.guild.get_channel(WARN_LOG_CHANNEL_ID)
     if log_ch:
         await log_ch.send(embed=embed)
