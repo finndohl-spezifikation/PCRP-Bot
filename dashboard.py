@@ -17,7 +17,8 @@ WARNS_FILE         = DATA_DIR / "warns_data.json"
 TEAM_WARNS_FILE    = DATA_DIR / "team_warns_data.json"
 
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
-DASHBOARD_PORT     = int(os.environ.get("DASHBOARD_PORT", "8080"))
+# Railway setzt PORT automatisch \u2014 darauf h\u00F6ren damit General Domain funktioniert
+DASHBOARD_PORT     = int(os.environ.get("PORT", os.environ.get("DASHBOARD_PORT", "8080")))
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("DASHBOARD_SECRET", "pcrp-dashboard-secret-key-2025")
