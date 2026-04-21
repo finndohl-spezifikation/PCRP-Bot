@@ -401,48 +401,117 @@ class BuyItemSelect(discord.ui.Select):
             )
             options.append(opt)
         super().__init__(
-            placeholder="\U0001F6D2 Items ausw\u00E4hlen (Mehrfachauswahl m\u00F6glich)...",
+            placeholder="\U0001F6D2 Items ausw\u00E4hlen (max. 10 gleichzeitig)...",
             min_values=1,
-            max_values=len(options),
+            max_values=min(len(options), 10),
             options=options
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if len(self.values) == 1:
-            items = load_shop()
-            item  = find_shop_item(items, self.values[0])
-            if not item:
-                await interaction.response.send_message("\u274C Item nicht mehr verf\u00FCgbar.", ephemeral=True)
-                return
-            await interaction.response.send_modal(BuyMengeModal(item, self.shop_key))
-            return
-
-        # Mehrfachauswahl: alle gew\u00E4hlten Items mit Menge 1 in den Warenkorb
         items_db = load_shop()
-        uid      = interaction.user.id
-        cart     = _SHOP_CARTS.setdefault(uid, [])
-        added    = []
-        missing  = []
-
+        selected = []
         for name in self.values:
             item = find_shop_item(items_db, name)
-            if not item:
-                missing.append(name)
+            if item:
+                selected.append(item)
+
+        if not selected:
+            await interaction.response.send_message("\u274C Items nicht mehr verf\u00FCgbar.", ephemeral=True)
+            return
+
+        if len(selected) == 1:
+            await interaction.response.send_modal(BuyMengeModal(selected[0], self.shop_key))
+        elif len(selected) <= 5:
+            # Modal mit je einem Mengen-Feld pro Item
+            await interaction.response.send_modal(MultiMengeModal(selected, self.shop_key))
+        else:
+            # 6-10 Items: alle mit Menge 1 in den Warenkorb
+            uid  = interaction.user.id
+            cart = _SHOP_CARTS.setdefault(uid, [])
+            for item in selected:
+                for entry in cart:
+                    if entry["name"] == item["name"] and entry["shop"] == self.shop_key:
+                        entry["qty"] += 1
+                        break
+                else:
+                    cart.append({"name": item["name"], "qty": 1, "price": item["price"], "shop": self.shop_key})
+
+            eco      = load_economy()
+            ud       = get_user(eco, uid)
+            cash     = int(ud.get("cash", 0))
+            subtotal = sum(c["price"] * c["qty"] for c in cart)
+            lines    = []
+            for c in cart:
+                c_clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', c["name"]).strip()
+                lines.append(f"\u27A4 **{c_clean}** \u00D7 {c['qty']} \u2014 `{c['price'] * c['qty']:,} \U0001F4B5`")
+            sep   = "\u2015" * 22
+            embed = discord.Embed(
+                title="\U0001F6D2 Warenkorb",
+                description=sep + "\n" + "\n".join(lines) + "\n" + sep,
+                color=0x3498DB,
+                timestamp=datetime.now(timezone.utc)
+            )
+            embed.add_field(name="\U0001F4B0 Zwischensumme", value=f"**{subtotal:,} $**", inline=True)
+            embed.add_field(name="\U0001F4B5 Dein Bargeld",  value=f"**{cash:,} $**",      inline=True)
+            embed.add_field(
+                name="\u2139\uFE0F Hinweis",
+                value="Bei mehr als 5 Items wird Menge **1** gesetzt. Nutze \u201E\u270F\uFE0F Direkt kaufen\u201C um Mengen anzupassen.",
+                inline=False
+            )
+            if cash < subtotal:
+                embed.add_field(name="\u26A0\uFE0F", value="Nicht genug Bargeld f\u00FCr den gesamten Warenkorb!", inline=False)
+            embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
+            await interaction.response.send_message(embed=embed, view=CartCheckoutView(uid, interaction.guild), ephemeral=True)
+
+
+# \u2500\u2500 Multi-Item Mengen-Modal (2\u20135 Items gleichzeitig) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class MultiMengeModal(discord.ui.Modal):
+    def __init__(self, items: list, shop_key: str):
+        super().__init__(title="\U0001F6D2 Mengen eingeben")
+        self.items    = items
+        self.shop_key = shop_key
+        self.inputs   = []
+
+        for item in items[:5]:
+            clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', item["name"]).strip()
+            inp = discord.ui.TextInput(
+                label=f"{clean[:40]}  ({item['price']:,} $)",
+                placeholder="Menge (z.B. 1)",
+                default="1",
+                min_length=1,
+                max_length=3,
+                required=True
+            )
+            self.inputs.append(inp)
+            self.add_item(inp)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        uid  = interaction.user.id
+        cart = _SHOP_CARTS.setdefault(uid, [])
+        errors = []
+
+        for item, inp in zip(self.items, self.inputs):
+            try:
+                menge = int(inp.value.strip())
+            except ValueError:
+                errors.append(f"\u274C **{item['name']}**: ung\u00FCltige Menge")
+                continue
+            if menge < 1 or menge > 100:
+                errors.append(f"\u274C **{item['name']}**: Menge 1\u2013100")
                 continue
             for entry in cart:
                 if entry["name"] == item["name"] and entry["shop"] == self.shop_key:
-                    entry["qty"] += 1
+                    entry["qty"] += menge
                     break
             else:
-                cart.append({"name": item["name"], "qty": 1, "price": item["price"], "shop": self.shop_key})
-            added.append(item["name"])
+                cart.append({"name": item["name"], "qty": menge, "price": item["price"], "shop": self.shop_key})
 
         eco      = load_economy()
         ud       = get_user(eco, uid)
         cash     = int(ud.get("cash", 0))
         subtotal = sum(c["price"] * c["qty"] for c in cart)
-
-        lines = []
+        lines    = []
         for c in cart:
             c_clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', c["name"]).strip()
             lines.append(f"\u27A4 **{c_clean}** \u00D7 {c['qty']} \u2014 `{c['price'] * c['qty']:,} \U0001F4B5`")
@@ -456,8 +525,8 @@ class BuyItemSelect(discord.ui.Select):
         )
         embed.add_field(name="\U0001F4B0 Zwischensumme", value=f"**{subtotal:,} $**", inline=True)
         embed.add_field(name="\U0001F4B5 Dein Bargeld",  value=f"**{cash:,} $**",      inline=True)
-        if missing:
-            embed.add_field(name="\u26A0\uFE0F Nicht gefunden", value=", ".join(missing), inline=False)
+        if errors:
+            embed.add_field(name="\u26A0\uFE0F Fehler", value="\n".join(errors), inline=False)
         if cash < subtotal:
             embed.add_field(name="\u26A0\uFE0F Hinweis", value="Nicht genug Bargeld f\u00FCr den gesamten Warenkorb!", inline=False)
         embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
@@ -655,6 +724,18 @@ class ShopPageView(discord.ui.View):
 
             kasse_btn.callback = kasse_cb
             self.add_item(kasse_btn)
+
+        close_btn = discord.ui.Button(label="\u2716 Schlie\u00DFen", style=discord.ButtonStyle.danger, row=3)
+
+        async def close_cb(interaction: discord.Interaction):
+            try:
+                await interaction.response.defer()
+                await interaction.delete_original_response()
+            except Exception:
+                pass
+
+        close_btn.callback = close_cb
+        self.add_item(close_btn)
 
         prev = discord.ui.Button(label="\u25C0 Zur\u00FCck", style=discord.ButtonStyle.secondary, disabled=self.page <= 0, row=3)
         next_ = discord.ui.Button(label="Weiter \u25B6", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1, row=3)
