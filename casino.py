@@ -12,7 +12,7 @@ from economy_helpers import (
     load_team_shop, normalize_item_name
 )
 
-RUBBELLOS_ITEM  = "\u1F39F\uFE0F| Rubbellos"
+RUBBELLOS_ITEM  = "\U0001F39F\uFE0F| Rubbellos"
 RUBBELLOS_PREIS = 1_000
 
 # Speichert die letzte Rubbellos-Nachricht pro User f\u00FCr automatisches L\u00F6schen
@@ -29,8 +29,8 @@ CASINO_PRIZES = [
     },
     {
         "id":           "geld1k",
-        "label":        "\u1F4B5  1.000 $",
-        "symbol":       "\u1F4B5 1K",
+        "label":        "\U0001F4B5  1.000 $",
+        "symbol":       "\U0001F4B5 1K",
         "weight":       10,
         "typ":          "geld",
         "betrag":       1_000,
@@ -38,8 +38,8 @@ CASINO_PRIZES = [
     },
     {
         "id":           "geld2500",
-        "label":        "\u1F4B5  2.500 $",
-        "symbol":       "\u1F4B5 2.5K",
+        "label":        "\U0001F4B5  2.500 $",
+        "symbol":       "\U0001F4B5 2.5K",
         "weight":       20,
         "typ":          "geld",
         "betrag":       2_500,
@@ -47,8 +47,8 @@ CASINO_PRIZES = [
     },
     {
         "id":           "geld5k",
-        "label":        "\u1F4B0  5.000 $",
-        "symbol":       "\u1F4B0 5K",
+        "label":        "\U0001F4B0  5.000 $",
+        "symbol":       "\U0001F4B0 5K",
         "weight":       5,
         "typ":          "geld",
         "betrag":       5_000,
@@ -56,8 +56,8 @@ CASINO_PRIZES = [
     },
     {
         "id":           "geld10k",
-        "label":        "\u1F4B0  10.000 $",
-        "symbol":       "\u1F4B0 10K",
+        "label":        "\U0001F4B0  10.000 $",
+        "symbol":       "\U0001F4B0 10K",
         "weight":       5,
         "typ":          "geld",
         "betrag":       10_000,
@@ -65,8 +65,8 @@ CASINO_PRIZES = [
     },
     {
         "id":           "geld25k",
-        "label":        "\u1F911  25.000 $",
-        "symbol":       "\u1F911 25K",
+        "label":        "\U0001F911  25.000 $",
+        "symbol":       "\U0001F911 25K",
         "weight":       2,
         "typ":          "geld",
         "betrag":       25_000,
@@ -74,53 +74,53 @@ CASINO_PRIZES = [
     },
     {
         "id":           "marlboro",
-        "label":        "\u1F6AC  10\u00D7 Marlboro Rot",
-        "symbol":       "\u1F6AC",
+        "label":        "\U0001F6AC  10\u00D7 Marlboro Rot",
+        "symbol":       "\U0001F6AC",
         "weight":       8,
         "typ":          "item",
-        "item":         "\u1F6AC| Marlboro Rot",
+        "item":         "\U0001F6AC| Marlboro Rot",
         "menge":        10,
-        "beschreibung": "**10\u00D7 \u1F6AC| Marlboro Rot** wurden deinem Inventar hinzugef\u00FCgt!",
+        "beschreibung": "**10\u00D7 \U0001F6AC| Marlboro Rot** wurden deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "efahrrad",
-        "label":        "\u1F6B2  Elektro Fahrrad",
-        "symbol":       "\u1F6B2",
+        "label":        "\U0001F6B2  Elektro Fahrrad",
+        "symbol":       "\U0001F6B2",
         "weight":       3,
         "typ":          "item",
-        "item":         "\u1F6B2| Elektro Fahrrad",
+        "item":         "\U0001F6B2| Elektro Fahrrad",
         "menge":        1,
-        "beschreibung": "**1\u00D7 \u1F6B2| Elektro Fahrrad** wurde deinem Inventar hinzugef\u00FCgt!",
+        "beschreibung": "**1\u00D7 \U0001F6B2| Elektro Fahrrad** wurde deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "golfschlaeger",
-        "label":        "\u1F3CC\uFE0F  Golfschl\u00E4ger",
-        "symbol":       "\u1F3CC\uFE0F",
+        "label":        "\U0001F3CC\uFE0F  Golfschl\u00E4ger",
+        "symbol":       "\U0001F3CC\uFE0F",
         "weight":       7,
         "typ":          "item",
-        "item":         "\u1F3CC\uFE0F| Golfschl\u00E4ger",
+        "item":         "\U0001F3CC\uFE0F| Golfschl\u00E4ger",
         "menge":        1,
-        "beschreibung": "**1\u00D7 \u1F3CC\uFE0F| Golfschl\u00E4ger** wurde deinem Inventar hinzugef\u00FCgt!",
+        "beschreibung": "**1\u00D7 \U0001F3CC\uFE0F| Golfschl\u00E4ger** wurde deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "lottolos",
-        "label":        "\u1F39F  Lottoschein",
-        "symbol":       "\u1F39F",
+        "label":        "\U0001F39F  Lottoschein",
+        "symbol":       "\U0001F39F",
         "weight":       5,
         "typ":          "item",
-        "item":         "\u1F39F| Lottoschein",
+        "item":         "\U0001F39F| Lottoschein",
         "menge":        1,
-        "beschreibung": "**1\u00D7 \u1F39F| Lottoschein** wurde deinem Inventar hinzugef\u00FCgt!",
+        "beschreibung": "**1\u00D7 \U0001F39F| Lottoschein** wurde deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "autohaus",
-        "label":        "\u1F698  20% Gutschein Autohaus",
-        "symbol":       "\u1F698",
+        "label":        "\U0001F698  20% Gutschein Autohaus",
+        "symbol":       "\U0001F698",
         "weight":       5,
         "typ":          "item",
-        "item":         "\u1F698| 20% Autohaus Gutschein",
+        "item":         "\U0001F698| 20% Autohaus Gutschein",
         "menge":        1,
-        "beschreibung": "**1\u00D7 \u1F698| 20% Autohaus Gutschein** wurde deinem Inventar hinzugef\u00FCgt!",
+        "beschreibung": "**1\u00D7 \U0001F698| 20% Autohaus Gutschein** wurde deinem Inventar hinzugef\u00FCgt!",
     },
 ]
 
@@ -196,17 +196,17 @@ def _build_scratch_embed(
     if done and prize:
         if prize["typ"] == "niete":
             color = 0xFF4444
-            title = "\u1F39F\uFE0F Rubbellos \u2014 Leider Niete!"
+            title = "\U0001F39F\uFE0F Rubbellos \u2014 Leider Niete!"
         else:
             color = 0x2ECC71
-            title = "\u1F39F\uFE0F Rubbellos \u2014 Gewonnen!"
+            title = "\U0001F39F\uFE0F Rubbellos \u2014 Gewonnen!"
         desc = (
-            f"\u1F3AF **Ergebnis:** {prize['beschreibung']}"
+            f"\U0001F3AF **Ergebnis:** {prize['beschreibung']}"
         )
     else:
         color = 0xE67E22
-        title = "\u1F39F\uFE0F Rubbellos \u2014 Rubbele alle Felder frei!"
-        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} \u00FCbrig \u2014 klick die \u1F3AB Buttons!"
+        title = "\U0001F39F\uFE0F Rubbellos \u2014 Rubbele alle Felder frei!"
+        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} \u00FCbrig \u2014 klick die \U0001F3AB Buttons!"
 
     embed = discord.Embed(title=title, description=desc, color=color,
                           timestamp=datetime.now(timezone.utc))
@@ -221,7 +221,7 @@ def _build_scratch_embed(
 class ScratchButton(discord.ui.Button):
     def __init__(self, index: int, row_num: int):
         super().__init__(
-            label="\u1F3AB",
+            label="\U0001F3AB",
             style=discord.ButtonStyle.secondary,
             row=row_num,
             custom_id=f"scratch_cell:{index}:{uuid.uuid4().hex[:8]}",
@@ -311,7 +311,7 @@ async def _payout_and_log(interaction: discord.Interaction, prize: dict):
             else (0xFF4444 if prize["typ"] == "niete" else 0xE67E22)
         )
         log_embed = discord.Embed(
-            title="\u1F39F\uFE0F Rubbellos \u2014 Gewinn",
+            title="\U0001F39F\uFE0F Rubbellos \u2014 Gewinn",
             description=(
                 f"**Spieler:** {member.mention} (`{member}`)\n"
                 f"**Gewinn:** {prize['label'].strip()}\n"
@@ -334,7 +334,7 @@ class CasinoView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="\u1F39F\uFE0F| Rubbeln",
+        label="\U0001F39F\uFE0F| Rubbeln",
         style=discord.ButtonStyle.primary,
         custom_id="casino_drehen",
     )
@@ -417,23 +417,23 @@ async def auto_casino_setup():
 
         prize_lines = "\n".join(f"\u3000 {p['label']}" for p in CASINO_PRIZES)
         embed = discord.Embed(
-            title="\u1F39F\uFE0F Rubbellose",
+            title="\U0001F39F\uFE0F Rubbellose",
             description=(
                 f"{prize_lines}\n\n"
                 "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
-                f"\u1F6D2 **Kaufe ein Rubbellos** im Shop f\u00FCr **{RUBBELLOS_PREIS:,} $**.\n"
-                "\u1F39F\uFE0F **Dr\u00FCcke den Button** um dein Rubbellos einzul\u00F6sen.\n\n"
-                "\u1F4A1 *Rubbele alle 9 Felder frei \u2014 3\u00D7 dasselbe Symbol = Gewinn!*\n"
-                "\u1F3C6 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
+                f"\U0001F6D2 **Kaufe ein Rubbellos** im Shop f\u00FCr **{RUBBELLOS_PREIS:,} $**.\n"
+                "\U0001F39F\uFE0F **Dr\u00FCcke den Button** um dein Rubbellos einzul\u00F6sen.\n\n"
+                "\U0001F4A1 *Rubbele alle 9 Felder frei \u2014 3\u00D7 dasselbe Symbol = Gewinn!*\n"
+                "\U0001F3C6 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
             ),
             color=0xE67E22,
             timestamp=datetime.now(timezone.utc),
         )
         embed.set_author(
-            name="\u1F39F\uFE0F Paradise City Roleplay \u2014 Rubbellose",
+            name="\U0001F39F\uFE0F Paradise City Roleplay \u2014 Rubbellose",
             icon_url=bot.user.display_avatar.url,
         )
-        embed.set_footer(text="Paradise City Roleplay \u2022 Rubbellose | Viel Gl\u00FCck! \u1F340")
+        embed.set_footer(text="Paradise City Roleplay \u2022 Rubbellose | Viel Gl\u00FCck! \U0001F340")
         embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/rubbellos.jpg")
         view = CasinoView()
 
