@@ -1,115 +1,187 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# commands.py — Prefix Commands (!hallo, !testping, !botstatus, etc.)
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# misc_commands.py \u2014 Verschiedene Slash Commands
+#   /kartenkontrolle, /delete, /commands
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
-from helpers import is_admin, send_bot_status
-from ticket import TicketSelectView
-from handy import HandyView
+from helpers import is_admin, is_team
+
+# \u2500\u2500 /ping \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# Kein default_member_permissions \u2192 f\u00FCr alle Spieler sichtbar (Debug-Command)
+
+@bot.tree.command(name="ping", description="Pr\u00FCft ob der Bot erreichbar ist", guild=discord.Object(id=GUILD_ID))
+async def ping_cmd(interaction: discord.Interaction):
+    ms = round(bot.latency * 1000)
+    await interaction.response.send_message(f"\U0001F3D3 Pong! `{ms} ms`", ephemeral=True)
 
 
-@bot.command(name="hallo")
-async def hallo(ctx):
-    await ctx.send(f"Hallo, {ctx.author.display_name}! 👋")
+# \u2500\u2500 /kartenkontrolle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-
-@bot.command(name="testping")
-async def testping(ctx):
-    if not is_admin(ctx.author):
+@bot.tree.command(name="kartenkontrolle", description="[Team] Kartenkontrolle-Erinnerung per DM senden", guild=discord.Object(id=GUILD_ID))
+async def kartenkontrolle(interaction: discord.Interaction):
+    if not is_team(interaction.user):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
-    kanal = ctx.guild.get_channel(JOIN_LOG_CHANNEL_ID)
-    rolle = ctx.guild.get_role(MOD_ROLE_ID)
-    if kanal and rolle:
-        await kanal.send(f"{rolle.mention} Dies ist ein Test-Ping vom Bot!")
-    try:
-        await ctx.message.delete()
-    except Exception:
-        pass
+
+    await interaction.response.defer(ephemeral=True)
+
+    guild        = interaction.guild
+    channel_link = f"https://discord.com/channels/{guild.id}/{KARTENKONTROLLE_CHANNEL_ID}"
+
+    sent   = 0
+    failed = 0
+    for member in guild.members:
+        if member.bot:
+            continue
+        role_ids = [r.id for r in member.roles]
+        is_member_role = (
+            CITIZEN_ROLE_ID in role_ids
+            or any(r in role_ids for r in WAGE_ROLES)
+        )
+        if not is_member_role:
+            continue
+        try:
+            dm_embed = discord.Embed(
+                title="\U0001FAAA Kartenkontrolle",
+                description=(
+                    f"**Hallo {member.display_name}!**\n\n"
+                    f"Es findet gerade eine **Kartenkontrolle** statt.\n"
+                    f"Bitte begib dich in den Kanal:\n"
+                    f"[\U0001F517 Zur Kartenkontrolle]({channel_link})\n\n"
+                    f"*Diese Nachricht wurde automatisch durch das Team gesendet.*"
+                ),
+                color=LOG_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            dm_embed.set_footer(text="Paradise City Roleplay \u2022 Kartenkontrolle")
+            await member.send(embed=dm_embed)
+            sent += 1
+        except Exception:
+            failed += 1
+
+    await interaction.followup.send(
+        f"\u2705 Kartenkontrolle-DM gesendet!\n**Erfolgreich:** {sent} | **Fehlgeschlagen (DMs zu):** {failed}",
+        ephemeral=True
+    )
 
 
-@bot.command(name="botstatus")
-async def botstatus(ctx):
-    if not is_admin(ctx.author):
+# \u2500\u2500 /delete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="delete", description="[Team] L\u00F6scht Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(anzahl="Anzahl der zu l\u00F6schenden Nachrichten (max. 100)")
+async def delete_messages(interaction: discord.Interaction, anzahl: int):
+    if not is_team(interaction.user):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
-    await send_bot_status()
-    try:
-        await ctx.message.delete()
-    except Exception:
-        pass
+
+    if anzahl < 1 or anzahl > 100:
+        await interaction.response.send_message("\u274C Bitte eine Zahl zwischen 1 und 100 angeben.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    geloescht = await interaction.channel.purge(limit=anzahl)
+    await interaction.followup.send(
+        f"\u2705 **{len(geloescht)}** Nachrichten wurden gel\u00F6scht.",
+        ephemeral=True
+    )
 
 
-@bot.command(name="ticketsetup")
-async def ticketsetup(ctx):
-    if not is_admin(ctx.author):
+# \u2500\u2500 /anonym-nachricht \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+ANONYM_CHANNEL_ID = 1490890321276702723
+
+@bot.tree.command(name="anonym-nachricht", description="Sende eine komplett anonyme Nachricht", guild=discord.Object(id=GUILD_ID))
+@app_commands.describe(nachricht="Deine anonyme Nachricht")
+async def anonym_nachricht(interaction: discord.Interaction, nachricht: str):
+    if interaction.channel_id != ANONYM_CHANNEL_ID:
+        ziel = f"<#{ANONYM_CHANNEL_ID}>"
+        await interaction.response.send_message(
+            f"\u274c Dieser Command funktioniert nur in {ziel}.",
+            ephemeral=True
+        )
         return
-    channel = ctx.guild.get_channel(TICKET_SETUP_CHANNEL_ID)
-    if not channel:
-        await ctx.send("❌ Ticket-Kanal nicht gefunden!")
-        return
+
     embed = discord.Embed(
-        title="🎟 Support — Ticket erstellen",
-        description=(
-            "Benötigst du Hilfe oder möchtest ein Anliegen melden?\n\n"
-            "Wähle unten im Menü die passende Ticket-Art aus.\n"
-            "Unser Team wird sich schnellstmöglich um dich kümmern.\n\n"
-            "**Verfügbare Ticket-Arten:**\n"
-            "🎟 **Support** — Allgemeiner Support\n"
-            "🎟 **Highteam Ticket** — Direkter Kontakt zum Highteam\n"
-            "🎟 **Fraktions Bewerbung** — Bewirb dich für eine Fraktion\n"
-            "🎟 **Beschwerde Ticket** — Beschwerde einreichen\n"
-            "🎟 **Bug Report** — Fehler oder Bug melden"
-        ),
+        description=f"\U0001f575\ufe0f **Anonyme Nachricht:**\n\n{nachricht}",
+        color=0x2b2d31,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Anonyme Nachricht \u2022 Absender unbekannt")
+
+    await interaction.response.send_message("\u2705 Deine Nachricht wurde anonym gesendet.", ephemeral=True)
+    await interaction.channel.send(embed=embed)
+
+
+# \u2500\u2500 /server-info \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="server-info", description="Zeigt aktuelle Server-Statistiken an", guild=discord.Object(id=GUILD_ID))
+async def server_info(interaction: discord.Interaction):
+    g = interaction.guild
+
+    # Mitglieder
+    total_members = g.member_count
+    bots          = sum(1 for m in g.members if m.bot)
+    humans        = total_members - bots
+
+    # Kan\u00e4le
+    text_ch  = len(g.text_channels)
+    voice_ch = len(g.voice_channels)
+    cats     = len(g.categories)
+    total_ch = text_ch + voice_ch
+
+    # Rollen (ohne @everyone)
+    roles = len(g.roles) - 1
+
+    # Commands
+    cmds = len(bot.tree.get_commands(guild=discord.Object(id=g.id)))
+
+    # Server-Erstellungsdatum
+    created = g.created_at.strftime("%d.%m.%Y um %H:%M Uhr")
+
+    embed = discord.Embed(
+        title=f"\U0001f4ca {g.name} \u2014 Server-Info",
         color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
+        timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Paradise City Roleplay • Support-System")
-    await channel.send(embed=embed, view=TicketSelectView())
-    try:
-        await ctx.message.delete()
-    except Exception:
-        pass
+    if g.icon:
+        embed.set_thumbnail(url=g.icon.url)
 
-
-@bot.command(name="handysetup")
-async def handysetup(ctx):
-    """Postet das Handy-Embed erneut im Handy-Kanal. Nur für Admins."""
-    if not is_admin(ctx.author):
-        return
-    channel = ctx.guild.get_channel(HANDY_CHANNEL_ID)
-    if not channel:
-        await ctx.send("❌ Handy-Kanal nicht gefunden!")
-        return
-    try:
-        async for msg in channel.history(limit=20):
-            if msg.author.id == ctx.bot.user.id and msg.embeds:
-                for emb in msg.embeds:
-                    if emb.title and "Handy" in emb.title:
-                        try:
-                            await msg.delete()
-                        except Exception:
-                            pass
-                        break
-    except Exception:
-        pass
-    embed = discord.Embed(
-        title="📱 Handy — Einstellungen",
-        description=(
-            "Willkommen in deinen Handy-Einstellungen!\n\n"
-            "Hier kannst du deinen Notruf absetzen, deine Handynummer einsehen "
-            "und Social-Media-Apps installieren oder deinstallieren.\n\n"
-            "**🚨 Dispatch-Buttons** — Sende einen Notruf an die zuständige Einheit\n"
-            "**📱 Handy Nummer** — Zeigt deine persönliche LA-Nummer\n"
-            "**📱 Instagram / Parship** — Apps installieren & deinstallieren\n\n"
-            "⚠️ *Du benötigst das Item* `📱| Handy` *aus dem Shop, um diese Funktionen zu nutzen.*"
+    embed.add_field(
+        name="\U0001f465 Mitglieder",
+        value=(
+            f"Gesamt: **{total_members}**\n"
+            f"Spieler: **{humans}**\n"
+            f"Bots: **{bots}**"
         ),
-        color=0xE67E22,
-        timestamp=datetime.now(timezone.utc)
+        inline=True,
     )
-    embed.set_footer(text="Paradise City Roleplay • Handy-System")
-    await channel.send(embed=embed, view=HandyView())
-    try:
-        await ctx.message.delete()
-    except Exception:
-        pass
+    embed.add_field(
+        name="\U0001f4ac Kan\u00e4le",
+        value=(
+            f"Gesamt: **{total_ch}**\n"
+            f"Text: **{text_ch}**\n"
+            f"Voice: **{voice_ch}**\n"
+            f"Kategorien: **{cats}**"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="\U0001f6e1\ufe0f Rollen",
+        value=f"Gesamt: **{roles}**",
+        inline=True,
+    )
+    embed.add_field(
+        name="\u2753 Commands",
+        value=f"Registriert: **{cmds}**",
+        inline=True,
+    )
+    embed.add_field(
+        name="\U0001f4c5 Server erstellt",
+        value=created,
+        inline=True,
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Server-Info")
+
+    await interaction.response.send_message(embed=embed)
