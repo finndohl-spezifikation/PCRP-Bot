@@ -465,6 +465,19 @@ async def on_member_join(member):
                 await adder.send(content=adder.mention, embed=embed)
             except Exception:
                 pass
+        # Inhaber-Warnung
+        warn_embed = discord.Embed(
+            title="\u26A0\uFE0F Bot-Einladung \u2014 Aktivit\u00E4tswarnung",
+            description=(
+                f"\U0001F916 **Bot:** {member.mention} (`{member}` | `{member.id}`)\n"
+                f"\U0001F464 **Hinzugef\u00FCgt von:** {adder.mention if adder else 'Unbekannt'}\n"
+                f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>\n\n"
+                "Der Bot wurde automatisch gekickt."
+            ),
+            color=0xFF0000,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await _dm_inhaber(guild, warn_embed)
         return
 
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
@@ -621,3 +634,132 @@ async def on_member_join(member):
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} \U0001F4B5 (Willkommensbonus)"
     )
+
+
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# SERVER-SCHUTZ \u2014 Anti-Create / Anti-Delete / Anti-Bot
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+# IDs die der Bot selbst gel\u00F6scht hat \u2014 verhindert doppelte Inhaber-Warnung
+_bot_deleted_ids: set = set()
+
+
+async def _dm_inhaber(guild: discord.Guild, embed: discord.Embed):
+    """DM an alle Mitglieder mit Inhaber-Rolle."""
+    inhaber_role = guild.get_role(INHABER_ROLE_ID)
+    if not inhaber_role:
+        return
+    for member in inhaber_role.members:
+        try:
+            await member.send(embed=embed)
+        except Exception:
+            pass
+
+
+async def _get_audit_user(guild: discord.Guild, action: discord.AuditLogAction, target_id: int):
+    """Letzten Audit-Log-Eintrag f\u00FCr Ziel-ID suchen."""
+    try:
+        async for entry in guild.audit_logs(limit=10, action=action):
+            if entry.target.id == target_id:
+                return entry.user
+    except Exception:
+        pass
+    return None
+
+
+@bot.event
+async def on_guild_channel_create(channel: discord.abc.GuildChannel):
+    if channel.guild.id != GUILD_ID:
+        return
+    creator = await _get_audit_user(channel.guild, discord.AuditLogAction.channel_create, channel.id)
+    if creator and creator.id == bot.user.id:
+        return
+    _bot_deleted_ids.add(channel.id)
+    try:
+        await channel.delete(reason="\U0001F6AB Server-Schutz: Kanal-Erstellung nicht erlaubt")
+    except Exception:
+        _bot_deleted_ids.discard(channel.id)
+        return
+    if creator:
+        try:
+            embed = discord.Embed(
+                description=(
+                    "**NaNaNa \U0001F60E**\n"
+                    "Sowas macht nur mein Entwickler!\n\n"
+                    f"Der Kanal **{channel.name}** wurde sofort wieder gel\u00F6scht."
+                ),
+                color=0xE74C3C,
+            )
+            await creator.send(embed=embed)
+        except Exception:
+            pass
+
+
+@bot.event
+async def on_guild_role_create(role: discord.Role):
+    if role.guild.id != GUILD_ID:
+        return
+    creator = await _get_audit_user(role.guild, discord.AuditLogAction.role_create, role.id)
+    if creator and creator.id == bot.user.id:
+        return
+    _bot_deleted_ids.add(role.id)
+    try:
+        await role.delete(reason="\U0001F6AB Server-Schutz: Rollen-Erstellung nicht erlaubt")
+    except Exception:
+        _bot_deleted_ids.discard(role.id)
+        return
+    if creator:
+        try:
+            embed = discord.Embed(
+                description=(
+                    "**NaNaNa \U0001F60E**\n"
+                    "Sowas macht nur mein Entwickler!\n\n"
+                    f"Die Rolle **{role.name}** wurde sofort wieder gel\u00F6scht."
+                ),
+                color=0xE74C3C,
+            )
+            await creator.send(embed=embed)
+        except Exception:
+            pass
+
+
+@bot.event
+async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
+    if channel.guild.id != GUILD_ID:
+        return
+    if channel.id in _bot_deleted_ids:
+        _bot_deleted_ids.discard(channel.id)
+        return
+    deleter = await _get_audit_user(channel.guild, discord.AuditLogAction.channel_delete, channel.id)
+    embed = discord.Embed(
+        title="\u26A0\uFE0F Kanal gel\u00F6scht \u2014 Aktivit\u00E4tswarnung",
+        description=(
+            f"\U0001F4E2 Der Kanal **#{channel.name}** wurde gel\u00F6scht!\n\n"
+            f"\U0001F464 **Von:** {deleter.mention if deleter else 'Unbekannt'}\n"
+            f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
+        ),
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc),
+    )
+    await _dm_inhaber(channel.guild, embed)
+
+
+@bot.event
+async def on_guild_role_delete(role: discord.Role):
+    if role.guild.id != GUILD_ID:
+        return
+    if role.id in _bot_deleted_ids:
+        _bot_deleted_ids.discard(role.id)
+        return
+    deleter = await _get_audit_user(role.guild, discord.AuditLogAction.role_delete, role.id)
+    embed = discord.Embed(
+        title="\u26A0\uFE0F Rolle gel\u00F6scht \u2014 Aktivit\u00E4tswarnung",
+        description=(
+            f"\U0001F4E2 Die Rolle **{role.name}** wurde gel\u00F6scht!\n\n"
+            f"\U0001F464 **Von:** {deleter.mention if deleter else 'Unbekannt'}\n"
+            f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
+        ),
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc),
+    )
+    await _dm_inhaber(role.guild, embed)
