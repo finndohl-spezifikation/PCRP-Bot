@@ -91,8 +91,8 @@ class AusweisModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen"):
     async def on_submit(self, interaction: discord.Interaction):
         import traceback as _tb, logging as _log
         try:
-            member = interaction.user
-            guild  = interaction.guild or bot.get_guild(GUILD_ID)
+            guild      = interaction.guild or bot.get_guild(GUILD_ID)
+            member     = (guild.get_member(interaction.user.id) if guild else None) or interaction.user
 
             name_parts = self.vollstaendiger_name.value.strip().split(None, 1)
             vorname    = name_parts[0] if name_parts else "?"
@@ -116,7 +116,7 @@ class AusweisModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen"):
             }
             save_ausweis(ausweis_data)
 
-            if guild:
+            if guild and isinstance(member, discord.Member):
                 await _assign_charakter_rollen(member, guild, self.einreise_typ)
 
             embed = discord.Embed(
@@ -151,6 +151,34 @@ class AusweisModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen"):
                     )
                 except Exception:
                     pass
+
+
+# \u2500\u2500 DM-Button-Views (persistent) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class AusweisDMButton(discord.ui.Button):
+    def __init__(self, einreise_typ: str):
+        super().__init__(
+            label="\U0001F6C2 Ausweis ausf\u00FCllen",
+            style=discord.ButtonStyle.primary,
+            custom_id=f"ausweis_dm_{einreise_typ}",
+            emoji="\U0001FAAA"
+        )
+        self.einreise_typ = einreise_typ
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(AusweisModal(einreise_typ=self.einreise_typ))
+
+
+class AusweisDMLegalView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(AusweisDMButton("legal"))
+
+
+class AusweisDMIllegalView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(AusweisDMButton("illegal"))
 
 
 # \u2500\u2500 Admin-Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -288,8 +316,35 @@ class EinreiseSelect(discord.ui.Select):
             )
             return
 
-        typ = self.values[0]
-        await interaction.response.send_modal(AusweisModal(einreise_typ=typ))
+        typ      = self.values[0]
+        typ_name = "Legale Einreise"   if typ == "legal" else "Illegale Einreise"
+        typ_emoji= "\U0001F935"        if typ == "legal" else "\U0001F977"
+        view     = AusweisDMLegalView() if typ == "legal" else AusweisDMIllegalView()
+
+        dm_embed = discord.Embed(
+            title="\U0001FAAA Ausweis ausf\u00FCllen",
+            description=(
+                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+                f"\u27A4 Du hast **{typ_emoji} {typ_name}** gew\u00E4hlt.\n\n"
+                "Klicke auf den Button unten um deinen **Ausweis** auszuf\u00FCllen.\n"
+                "\u26A0\uFE0F Bitte gib echte Roleplay-Daten an."
+            ),
+            color=0x3498DB
+        )
+
+        try:
+            await member.send(embed=dm_embed, view=view)
+            await interaction.response.send_message(
+                "\u2705 Wir haben dir eine DM geschickt! \U0001F4EC\n"
+                "\u27A4 \u00D6ffne sie und klicke auf den Button um deinen Ausweis auszuf\u00FCllen.",
+                ephemeral=True
+            )
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                "\u274C Ich konnte dir keine DM senden.\n"
+                "\u27A4 Bitte aktiviere **DMs von Servermitgliedern** in deinen Datenschutzeinstellungen und versuche es erneut.",
+                ephemeral=True
+            )
 
 
 class EinreiseView(discord.ui.View):
@@ -470,4 +525,4 @@ async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Membe
 
     await interaction.response.send_modal(
         AusweisCreateModal(target=nutzer, einreise_typ=einreise_typ)
-                )
+    )
