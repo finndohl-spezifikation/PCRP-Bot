@@ -1,12 +1,12 @@
 """
-support_voice.py – Automatischer Voice-Support für Paradise City Roleplay
-────────────────────────────────────────────────────────────────────────────
-• Bot betritt den Warteraum wenn ein Spieler (mit Spieler-Rolle) beitritt
-• Spielt TTS-Ansage → dann Wartemusik → alle 30 Sek. TTS wiederholen
-• Lobby OFFEN  → Ansage + Wartemusik in Schleife
-• Lobby CLOSED → nur Ansage, keine Musik, alle 30 Sek. wiederholt
-• /support-lobby open|close  – Status umschalten (Admin / Mod)
-• /support-status             – Aktuellen Status anzeigen
+support_voice.py \u2013 Automatischer Voice-Support f\u00FCr Paradise City Roleplay
+\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+\u2022 Bot betritt den Warteraum wenn ein Spieler (mit Spieler-Rolle) beitritt
+\u2022 Spielt TTS-Ansage \u2192 dann Wartemusik \u2192 alle 30 Sek. TTS wiederholen
+\u2022 Lobby OFFEN  \u2192 Ansage + Wartemusik in Schleife
+\u2022 Lobby CLOSED \u2192 nur Ansage, keine Musik, alle 30 Sek. wiederholt
+\u2022 /support-lobby open|close  \u2013 Status umschalten (Admin / Mod)
+\u2022 /support-status             \u2013 Aktuellen Status anzeigen
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from discord import FFmpegPCMAudio, PCMVolumeTransformer
 
 from config import bot
 
-# ── Konfiguration ─────────────────────────────────────────────────────────
+# \u2500\u2500 Konfiguration \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 WARTERAUM_ID   = 1490882556269297716
 SPIELER_ROLLE  = 1490855722534310003
@@ -30,24 +30,24 @@ TTS_STIMME     = "de-DE-ConradNeural"
 MUSIK_VOL      = 0.25
 WIEDERHOL_SEK  = 30   # TTS alle X Sekunden wiederholen
 
-ADMIN_ROLE_ID  = 1490855702225485936
-MOD_ROLE_ID    = 1490855703370534965
+ADMIN_ROLE_ID  = 1490855650081636352
+MOD_ROLE_ID    = 1496147874256392202
 
 TTS_OFFEN = (
     "Willkommen im Support! "
-    "Ein Teammitglied wird sich in Kürze um dich kümmern. "
+    "Ein Teammitglied wird sich in K\u00FCrze um dich k\u00FCmmern. "
     "Bitte hab etwas Geduld."
 )
 TTS_CLOSED = (
-    "Der Sprach-Support ist aktuell nicht verfügbar. "
-    "Bitte erstelle ein Ticket oder versuche es später erneut."
+    "Der Sprach-Support ist aktuell nicht verf\u00FCgbar. "
+    "Bitte erstelle ein Ticket oder versuche es sp\u00E4ter erneut."
 )
 
-# ── Zustand ───────────────────────────────────────────────────────────────
+# \u2500\u2500 Zustand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 _STATUS_DATEI  = "support_lobby_status.json"
 _tts_cache: dict[str, str] = {}
-_voice_tasks: dict[int, asyncio.Task] = {}   # guild_id → laufender Loop-Task
+_voice_tasks: dict[int, asyncio.Task] = {}   # guild_id \u2192 laufender Loop-Task
 
 
 def _load_status() -> bool:
@@ -65,7 +65,7 @@ def _save_status(open: bool) -> None:
         with open(_STATUS_DATEI, "w") as f:
             json.dump({"open": open}, f)
     except Exception as e:
-        print(f"[support_voice] ⚠️ Status-Speicher-Fehler: {e}")
+        print(f"[support_voice] \u26A0\uFE0F Status-Speicher-Fehler: {e}")
 
 
 _lobby_open: bool = _load_status()
@@ -76,27 +76,27 @@ def set_lobby_status(offen: bool) -> None:
     global _lobby_open
     _lobby_open = offen
     _save_status(offen)
-    print(f"[support_voice] 🔄 Lobby-Status extern gesetzt: {'OFFEN' if offen else 'CLOSED'}")
+    print(f"[support_voice] \U0001F504 Lobby-Status extern gesetzt: {'OFFEN' if offen else 'CLOSED'}")
     if _EDGE_OK:
         asyncio.get_event_loop().create_task(_refresh_tts())
 
-# ── Pakete prüfen ─────────────────────────────────────────────────────────
+# \u2500\u2500 Pakete pr\u00FCfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 try:
     import edge_tts as _et  # noqa: F401
     _EDGE_OK = True
 except ImportError:
     _EDGE_OK = False
-    print("[support_voice] ⚠️  edge-tts fehlt – TTS deaktiviert")
+    print("[support_voice] \u26A0\uFE0F  edge-tts fehlt \u2013 TTS deaktiviert")
 
 try:
     import nacl as _nacl  # noqa: F401
     _NACL_OK = True
 except ImportError:
     _NACL_OK = False
-    print("[support_voice] ❌ PyNaCl fehlt – Voice deaktiviert!")
+    print("[support_voice] \u274C PyNaCl fehlt \u2013 Voice deaktiviert!")
 
-# ── TTS ───────────────────────────────────────────────────────────────────
+# \u2500\u2500 TTS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _gen_tts(key: str, text: str) -> Optional[str]:
     if not _EDGE_OK:
@@ -120,7 +120,7 @@ async def _refresh_tts() -> None:
     await _gen_tts("offen",  TTS_OFFEN)
     await _gen_tts("closed", TTS_CLOSED)
 
-# ── Audio-Hilfsfunktionen ─────────────────────────────────────────────────
+# \u2500\u2500 Audio-Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _play_tts_async(vc: discord.VoiceClient) -> None:
     """TTS abspielen und warten bis sie fertig ist."""
@@ -138,11 +138,11 @@ async def _play_tts_async(vc: discord.VoiceClient) -> None:
         vc.play(FFmpegPCMAudio(path), after=lambda e: done.set())
         await done.wait()
     except Exception as e:
-        print(f"[support_voice] ❌ TTS-Play-Fehler: {e}")
+        print(f"[support_voice] \u274C TTS-Play-Fehler: {e}")
         done.set()
 
 def _start_musik(vc: discord.VoiceClient) -> None:
-    """Musik einmalig starten (kein Loop — Loop läuft über den Task)."""
+    """Musik einmalig starten (kein Loop \u2014 Loop l\u00E4uft \u00FCber den Task)."""
     if not vc.is_connected() or vc.is_playing():
         return
     quelle = MUSIK_LOKAL if os.path.exists(MUSIK_LOKAL) else MUSIK_URL
@@ -152,21 +152,21 @@ def _start_musik(vc: discord.VoiceClient) -> None:
         else:
             audio = FFmpegPCMAudio(quelle)
         vc.play(PCMVolumeTransformer(audio, volume=MUSIK_VOL))
-        print(f"[support_voice] 🎵 Musik gestartet")
+        print(f"[support_voice] \U0001F3B5 Musik gestartet")
     except Exception as e:
-        print(f"[support_voice] ❌ Musik-Fehler: {e}")
+        print(f"[support_voice] \u274C Musik-Fehler: {e}")
 
-# ── Haupt-Loop pro Guild ──────────────────────────────────────────────────
+# \u2500\u2500 Haupt-Loop pro Guild \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _warteraum_loop(vc: discord.VoiceClient) -> None:
     """
-    Läuft solange Bot im Warteraum ist:
+    L\u00E4uft solange Bot im Warteraum ist:
     1. TTS abspielen
     2. Falls offen: Wartemusik starten
     3. 30 Sekunden warten
     4. Wiederholen ab 1.
     """
-    print("[support_voice] 🔄 Warteraum-Loop gestartet")
+    print("[support_voice] \U0001F504 Warteraum-Loop gestartet")
     try:
         while vc.is_connected():
             # TTS abspielen
@@ -188,14 +188,14 @@ async def _warteraum_loop(vc: discord.VoiceClient) -> None:
                 await asyncio.sleep(0.3)
 
     except asyncio.CancelledError:
-        print("[support_voice] 🔄 Loop abgebrochen")
+        print("[support_voice] \U0001F504 Loop abgebrochen")
     except Exception as e:
-        print(f"[support_voice] ❌ Loop-Fehler: {e}")
+        print(f"[support_voice] \u274C Loop-Fehler: {e}")
     finally:
         if vc.is_playing():
             vc.stop()
 
-# ── Verbindung & Loop verwalten ───────────────────────────────────────────
+# \u2500\u2500 Verbindung & Loop verwalten \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _handle_join(member: discord.Member, channel: discord.VoiceChannel) -> None:
     guild = member.guild
@@ -210,9 +210,9 @@ async def _handle_join(member: discord.Member, channel: discord.VoiceChannel) ->
                 await vc.move_to(channel)
         else:
             vc = await channel.connect()
-        print(f"[support_voice] ✅ Verbunden mit #{channel.name}")
+        print(f"[support_voice] \u2705 Verbunden mit #{channel.name}")
     except Exception as e:
-        print(f"[support_voice] ❌ Verbindungsfehler: {type(e).__name__}: {e}")
+        print(f"[support_voice] \u274C Verbindungsfehler: {type(e).__name__}: {e}")
         return
 
     # Loop starten
@@ -231,13 +231,13 @@ async def _disconnect(guild: discord.Guild) -> None:
         if vc.is_playing():
             vc.stop()
         await vc.disconnect()
-        print("[support_voice] 👋 Bot getrennt (Warteraum leer)")
+        print("[support_voice] \U0001F44B Bot getrennt (Warteraum leer)")
 
-# ── Musik herunterladen ───────────────────────────────────────────────────
+# \u2500\u2500 Musik herunterladen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _download_musik() -> None:
     if os.path.exists(MUSIK_LOKAL):
-        print("[support_voice] 🎵 Wartemusik bereits gecacht")
+        print("[support_voice] \U0001F3B5 Wartemusik bereits gecacht")
         return
     try:
         import aiohttp
@@ -247,21 +247,21 @@ async def _download_musik() -> None:
                     data = await resp.read()
                     with open(MUSIK_LOKAL, "wb") as f:
                         f.write(data)
-                    print(f"[support_voice] ✅ Wartemusik heruntergeladen ({len(data)//1024} KB)")
+                    print(f"[support_voice] \u2705 Wartemusik heruntergeladen ({len(data)//1024} KB)")
                 else:
-                    print(f"[support_voice] ❌ Musik-Download fehlgeschlagen: HTTP {resp.status}")
+                    print(f"[support_voice] \u274C Musik-Download fehlgeschlagen: HTTP {resp.status}")
     except Exception as e:
-        print(f"[support_voice] ❌ Musik-Download Fehler: {e}")
+        print(f"[support_voice] \u274C Musik-Download Fehler: {e}")
 
-# ── Listener ─────────────────────────────────────────────────────────────
+# \u2500\u2500 Listener \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.listen("on_ready")
 async def support_voice_on_ready() -> None:
-    print(f"[support_voice] 🟢 Bereit | PyNaCl={_NACL_OK} | edge-tts={_EDGE_OK} | Lobby={'OFFEN' if _lobby_open else 'CLOSED'}")
+    print(f"[support_voice] \U0001F7E2 Bereit | PyNaCl={_NACL_OK} | edge-tts={_EDGE_OK} | Lobby={'OFFEN' if _lobby_open else 'CLOSED'}")
     await _download_musik()
     if _EDGE_OK:
         await _refresh_tts()
-        print("[support_voice] ✅ TTS vorgeneriert")
+        print("[support_voice] \u2705 TTS vorgeneriert")
 
 @bot.listen("on_voice_state_update")
 async def support_voice_state(
@@ -276,7 +276,7 @@ async def support_voice_state(
     hat_rolle = SPIELER_ROLLE in rolle_ids
 
     if after.channel and after.channel.id == WARTERAUM_ID and hat_rolle:
-        print(f"[support_voice] 🎤 {member.display_name} betritt Warteraum | Lobby={'OFFEN' if _lobby_open else 'CLOSED'}")
+        print(f"[support_voice] \U0001F3A4 {member.display_name} betritt Warteraum | Lobby={'OFFEN' if _lobby_open else 'CLOSED'}")
         await _handle_join(member, after.channel)
         return
 
@@ -285,22 +285,22 @@ async def support_voice_state(
         if not humans:
             await _disconnect(member.guild)
 
-# ── /support-lobby ────────────────────────────────────────────────────────
+# \u2500\u2500 /support-lobby \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
     name="support-lobby",
-    description="Support-Lobby öffnen oder schließen (Admin / Mod)"
+    description="Support-Lobby \u00F6ffnen oder schlie\u00DFen (Admin / Mod)"
 )
-@discord.app_commands.describe(status="open = Lobby öffnen | close = Lobby schließen")
+@discord.app_commands.describe(status="open = Lobby \u00F6ffnen | close = Lobby schlie\u00DFen")
 @discord.app_commands.choices(status=[
-    discord.app_commands.Choice(name="🟢 Offen",       value="open"),
-    discord.app_commands.Choice(name="🔴 Geschlossen", value="close"),
+    discord.app_commands.Choice(name="\U0001F7E2 Offen",       value="open"),
+    discord.app_commands.Choice(name="\U0001F534 Geschlossen", value="close"),
 ])
 async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> None:
     global _lobby_open
 
     if not any(r.id in {ADMIN_ROLE_ID, MOD_ROLE_ID} for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     _lobby_open = status == "open"
@@ -308,18 +308,18 @@ async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> No
     if _EDGE_OK:
         await _refresh_tts()
 
-    print(f"[support_voice] 🔧 Lobby-Status geändert zu {'OFFEN' if _lobby_open else 'CLOSED'} von {interaction.user.display_name}")
+    print(f"[support_voice] \U0001F527 Lobby-Status ge\u00E4ndert zu {'OFFEN' if _lobby_open else 'CLOSED'} von {interaction.user.display_name}")
 
     farbe = 0x2ECC71 if _lobby_open else 0xE74C3C
-    titel = "🟢 Support-Lobby geöffnet" if _lobby_open else "🔴 Support-Lobby geschlossen"
-    text  = "Spieler werden begrüßt und hören Wartemusik." if _lobby_open else "Spieler werden über die Nicht-Verfügbarkeit informiert."
+    titel = "\U0001F7E2 Support-Lobby ge\u00F6ffnet" if _lobby_open else "\U0001F534 Support-Lobby geschlossen"
+    text  = "Spieler werden begr\u00FC\u00DFt und h\u00F6ren Wartemusik." if _lobby_open else "Spieler werden \u00FCber die Nicht-Verf\u00FCgbarkeit informiert."
 
     await interaction.response.send_message(
         embed=discord.Embed(title=titel, description=text, color=farbe),
         ephemeral=True
     )
 
-# ── /support-status ───────────────────────────────────────────────────────
+# \u2500\u2500 /support-status \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
     name="support-status",
@@ -327,12 +327,12 @@ async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> No
 )
 async def cmd_support_status(interaction: discord.Interaction) -> None:
     farbe = 0x2ECC71 if _lobby_open else 0xE74C3C
-    status_text = "🟢 **Offen** — Spieler werden begrüßt" if _lobby_open else "🔴 **Geschlossen** — Spieler werden abgewiesen"
+    status_text = "\U0001F7E2 **Offen** \u2014 Spieler werden begr\u00FC\u00DFt" if _lobby_open else "\U0001F534 **Geschlossen** \u2014 Spieler werden abgewiesen"
     embed = discord.Embed(
-        title="📞 Support-Lobby Status",
+        title="\U0001F4DE Support-Lobby Status",
         description=status_text,
         color=farbe
     )
-    embed.add_field(name="⏱️ TTS-Wiederholung", value=f"alle **{WIEDERHOL_SEK} Sekunden**", inline=True)
-    embed.add_field(name="🎵 Wartemusik", value="✅ Bereit" if os.path.exists(MUSIK_LOKAL) else "⬇️ Wird geladen...", inline=True)
+    embed.add_field(name="\u23F1\uFE0F TTS-Wiederholung", value=f"alle **{WIEDERHOL_SEK} Sekunden**", inline=True)
+    embed.add_field(name="\U0001F3B5 Wartemusik", value="\u2705 Bereit" if os.path.exists(MUSIK_LOKAL) else "\u2B07\uFE0F Wird geladen...", inline=True)
     await interaction.response.send_message(embed=embed, ephemeral=True)
