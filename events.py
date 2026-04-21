@@ -615,4 +615,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} \u1F4B5 (Willkommensbonus)"
-        )
+    )
