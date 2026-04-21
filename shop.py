@@ -10,7 +10,6 @@ from config import *
 from helpers import is_admin
 from economy_helpers import (
     load_economy, save_economy, get_user, load_shop, save_shop,
-    load_team_shop, save_team_shop,
     find_shop_item, find_inventory_item, normalize_item_name,
     has_citizen_or_wage, shop_item_autocomplete, channel_error,
     log_transaction
@@ -855,46 +854,35 @@ async def auto_shop_setup():
 # \u2500\u2500 /shop-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class ShopAddConfirmView(discord.ui.View):
-    def __init__(self, name: str, price: int | None, shop_key: str, allowed_role_id=None, for_team: bool = False):
+    def __init__(self, name: str, price: int, shop_key: str, allowed_role_id=None):
         super().__init__(timeout=60)
         self.name            = name
         self.price           = price
         self.shop_key        = shop_key
         self.allowed_role_id = allowed_role_id
-        self.for_team        = for_team
 
     @discord.ui.button(label="\u2705 Best\u00E4tigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        items = load_shop()
+        entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
+        if self.allowed_role_id:
+            entry["allowed_role"] = self.allowed_role_id
+        items.append(entry)
+        save_shop(items)
         for child in self.children:
             child.disabled = True
-
-        if self.for_team:
-            items = load_team_shop()
-            entry: dict = {"name": self.name}
-            if self.price is not None:
-                entry["price"] = self.price
-            items.append(entry)
-            save_team_shop(items)
-            shop_label = "\U0001F46E Team-Shop"
-        else:
-            items = load_shop()
-            entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
-            if self.allowed_role_id:
-                entry["allowed_role"] = self.allowed_role_id
-            items.append(entry)
-            save_shop(items)
-            shop_label = SHOPS[self.shop_key]["label"]
-
         rolle_info = ""
-        if self.allowed_role_id and not self.for_team:
+        if self.allowed_role_id:
             r = interaction.guild.get_role(self.allowed_role_id)
             rolle_info = f"\n**Nur f\u00FCr:** {r.mention if r else self.allowed_role_id}"
-
-        preis_info = f" f\u00FCr **{self.price:,} \U0001F4B5**" if self.price is not None else ""
+        shop_label = SHOPS[self.shop_key]["label"]
         await interaction.response.edit_message(
             embed=discord.Embed(
                 title="\u2705 Item hinzugef\u00FCgt",
-                description=f"**{self.name}**{preis_info} wurde zum **{shop_label}** hinzugef\u00FCgt.{rolle_info}",
+                description=(
+                    f"**{self.name}** f\u00FCr **{self.price:,} \U0001F4B5** wurde zum "
+                    f"**{shop_label}** hinzugef\u00FCgt.{rolle_info}"
+                ),
                 color=LOG_COLOR
             ),
             view=self
@@ -914,61 +902,46 @@ class ShopAddConfirmView(discord.ui.View):
         )
 
 
-# \u2500\u2500 /item-add (unified: kwik / baumarkt / schwarzmarkt / team) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 /shop-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
-    name="item-add",
-    description="[Shop] F\u00FCge ein Item zu einem Shop oder dem Team-Shop hinzu (Admin)",
+    name="shop-add",
+    description="[Shop] F\u00FCge ein neues Item zu einem Shop hinzu (Admin)",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     itemname="Name des Items",
-    shop="Ziel-Shop",
-    preis="Preis in $ (nicht ben\u00F6tigt f\u00FCr Team-Shop)",
-    rolle="(Optional) Nur diese Rolle kann das Item kaufen (nur Shop-Items)"
+    preis="Preis in $",
+    shop="Welcher Shop: kwik / baumarkt / schwarzmarkt",
+    rolle="(Optional) Nur diese Rolle kann das Item kaufen"
 )
 @app_commands.choices(shop=[
-    app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",      value="kwik"),
-    app_commands.Choice(name="\U0001F528 Baumarkt",           value="baumarkt"),
-    app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt", value="schwarzmarkt"),
-    app_commands.Choice(name="\U0001F46E Team-Shop",          value="team"),
+    app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",       value="kwik"),
+    app_commands.Choice(name="\U0001F528 Baumarkt",            value="baumarkt"),
+    app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt",  value="schwarzmarkt"),
 ])
-async def item_add(
+async def shop_add(
     interaction: discord.Interaction,
     itemname: str,
+    preis: int,
     shop: str,
-    preis: int = None,
     rolle: discord.Role = None
 ):
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
+    if preis <= 0:
+        await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
+        return
 
-    for_team = (shop == "team")
-
-    if not for_team:
-        if preis is None:
-            await interaction.response.send_message("\u274C F\u00FCr Shop-Items muss ein **Preis** angegeben werden.", ephemeral=True)
-            return
-        if preis <= 0:
-            await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
-            return
-
-    if for_team:
-        shop_label = "\U0001F46E Team-Shop"
-        preis_line = f"**Preis:** {preis:,} \U0001F4B5\n" if preis is not None else ""
-        rolle_info = ""
-    else:
-        shop_label = SHOPS[shop]["label"]
-        preis_line = f"**Preis:** {preis:,} \U0001F4B5\n"
-        rolle_info = f"\n**Nur f\u00FCr:** {rolle.mention}" if rolle else "\n**Rollenbeschr\u00E4nkung:** Keine"
-
+    shop_label = SHOPS[shop]["label"]
+    rolle_info = f"\n**Nur f\u00FCr:** {rolle.mention}" if rolle else "\n**Rollenbeschr\u00E4nkung:** Keine"
     embed = discord.Embed(
         title="\U0001F6D2 Neues Item hinzuf\u00FCgen?",
         description=(
             f"**Name:** {itemname}\n"
-            f"{preis_line}"
+            f"**Preis:** {preis:,} \U0001F4B5\n"
             f"**Shop:** {shop_label}"
             f"{rolle_info}\n\n"
             "Bitte best\u00E4tige das Hinzuf\u00FCgen."
@@ -977,11 +950,7 @@ async def item_add(
     )
     await interaction.response.send_message(
         embed=embed,
-        view=ShopAddConfirmView(
-            itemname, preis, shop if not for_team else "kwik",
-            rolle.id if rolle else None,
-            for_team=for_team
-        ),
+        view=ShopAddConfirmView(itemname, preis, shop, rolle.id if rolle else None),
         ephemeral=True
     )
 
