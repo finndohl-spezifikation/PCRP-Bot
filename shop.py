@@ -413,6 +413,155 @@ class ShopSelectView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=view)
 
 
+# \u2500\u2500 Channel-Embed Views (persistent, ein Button pro Shop) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+_SHOP_COLORS = {
+    "kwik":         0xF1C40F,
+    "baumarkt":     0xE67E22,
+    "schwarzmarkt": 0x2C2F33,
+}
+
+_SHOP_BANNERS = {
+    "kwik": (
+        "\U0001F3EA **Willkommen im Kwik-E-Markt!**\n"
+        "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+        "\u27A4 Hier findest du allt\u00E4gliche Waren des Lebens.\n"
+        "\u27A4 Lebensmittel, Getr\u00E4nke, Hygieneartikel und mehr.\n"
+        "\u27A4 Bezahlung nur mit **Bargeld** (\U0001F4B5).\n\n"
+        "Klicke auf den Button um den Shop zu \u00F6ffnen!"
+    ),
+    "baumarkt": (
+        "\U0001F528 **Willkommen im Baumarkt!**\n"
+        "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+        "\u27A4 Alles rund ums Bauen, Reparieren und Ausstatten.\n"
+        "\u27A4 Werkzeug, Materialien und Ausr\u00FCstung.\n"
+        "\u27A4 Bezahlung nur mit **Bargeld** (\U0001F4B5).\n\n"
+        "Klicke auf den Button um den Shop zu \u00F6ffnen!"
+    ),
+    "schwarzmarkt": (
+        "\U0001F575\uFE0F **Willkommen auf dem Schwarzmarkt.**\n"
+        "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+        "\u27A4 Hier gibt es Dinge, die man \u00F6ffentlich nicht findet.\n"
+        "\u27A4 Zugang nur f\u00FCr autorisierte Personen.\n"
+        "\u27A4 Bezahlung nur mit **Bargeld** (\U0001F4B5).\n\n"
+        "Klicke auf den Button wenn du Zugang hast."
+    ),
+}
+
+
+class ShopChannelButton(discord.ui.Button):
+    def __init__(self, shop_key: str):
+        cfg = SHOPS[shop_key]
+        labels = {
+            "kwik":         "\U0001F3EA Shop \u00F6ffnen",
+            "baumarkt":     "\U0001F528 Shop \u00F6ffnen",
+            "schwarzmarkt": "\U0001F575\uFE0F Shop \u00F6ffnen",
+        }
+        styles = {
+            "kwik":         discord.ButtonStyle.primary,
+            "baumarkt":     discord.ButtonStyle.primary,
+            "schwarzmarkt": discord.ButtonStyle.danger,
+        }
+        super().__init__(
+            label=labels[shop_key],
+            style=styles[shop_key],
+            custom_id=f"shop_open_{shop_key}",
+        )
+        self.shop_key = shop_key
+
+    async def callback(self, interaction: discord.Interaction):
+        shop_key = self.shop_key
+
+        if shop_key == "schwarzmarkt" and not _has_schwarzmarkt_access(interaction.user):
+            await interaction.response.send_message(
+                "\u274C Du hast keinen Zugang zum **Schwarzmarkt**.",
+                ephemeral=True
+            )
+            return
+
+        if not has_citizen_or_wage(interaction.user):
+            await interaction.response.send_message(
+                "\u274C Du ben\u00F6tigst eine g\u00FCltige Rolle um hier einkaufen zu k\u00F6nnen.",
+                ephemeral=True
+            )
+            return
+
+        embed, total_pages = _build_shop_embed(shop_key, interaction.user, page=0)
+        view = ShopPageView(shop_key, interaction.user, page=0, total_pages=total_pages)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+
+class ShopKwikChannelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ShopChannelButton("kwik"))
+
+
+class ShopBaumarktChannelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ShopChannelButton("baumarkt"))
+
+
+class ShopSchwarzmarktChannelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ShopChannelButton("schwarzmarkt"))
+
+
+_CHANNEL_VIEWS = {
+    "kwik":         ShopKwikChannelView,
+    "baumarkt":     ShopBaumarktChannelView,
+    "schwarzmarkt": ShopSchwarzmarktChannelView,
+}
+
+
+def _build_channel_embed(shop_key: str) -> discord.Embed:
+    embed = discord.Embed(
+        title=SHOPS[shop_key]["label"],
+        description=_SHOP_BANNERS[shop_key],
+        color=_SHOP_COLORS[shop_key],
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2014 Shop")
+    return embed
+
+
+# \u2500\u2500 /shop-setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(
+    name="shop-setup",
+    description="[Admin] Shop-Embeds in alle Shop-Kan\u00E4le posten",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.default_permissions(administrator=True)
+async def shop_setup(interaction: discord.Interaction):
+    if not _is_shop_admin(interaction.user):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    results = []
+    for shop_key, cfg in SHOPS.items():
+        ch = interaction.guild.get_channel(cfg["channel"])
+        if not ch:
+            results.append(f"\u274C **{cfg['label']}**: Channel nicht gefunden (`{cfg['channel']}`)")
+            continue
+        embed = _build_channel_embed(shop_key)
+        view  = _CHANNEL_VIEWS[shop_key]()
+        await ch.send(embed=embed, view=view)
+        results.append(f"\u2705 **{cfg['label']}** \u2192 {ch.mention}")
+
+    await interaction.followup.send(
+        embed=discord.Embed(
+            title="\U0001F6D2 Shop-Setup abgeschlossen",
+            description="\n".join(results),
+            color=LOG_COLOR,
+        ),
+        ephemeral=True
+    )
+
+
 # \u2500\u2500 /shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
