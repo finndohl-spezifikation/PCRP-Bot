@@ -181,6 +181,45 @@ async def items_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
+# \u2500\u2500 /items-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(
+    name="items-add",
+    description="[Team] F\u00FCge ein Item zum Team-Shop hinzu",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(itemname="Name des Items")
+async def items_add(interaction: discord.Interaction, itemname: str):
+    if not _is_team(interaction.user):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    itemname = itemname.strip()
+    if not itemname:
+        await interaction.response.send_message("\u274C Bitte einen g\u00FCltigen Namen angeben.", ephemeral=True)
+        return
+
+    items = load_team_shop()
+    if _find_team_item(items, itemname):
+        await interaction.response.send_message(
+            f"\u274C **{itemname}** existiert bereits im Team-Shop.", ephemeral=True
+        )
+        return
+
+    items.append({"name": itemname})
+    save_team_shop(items)
+
+    embed = discord.Embed(
+        title="\u2705 Item hinzugef\u00FCgt",
+        description=f"\u27A4 **{itemname}** wurde zum Team-Shop hinzugef\u00FCgt.",
+        color=0x2ECC71,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text=f"Hinzugef\u00FCgt von {interaction.user.display_name}")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 # \u2500\u2500 /items-delete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _team_item_autocomplete(
