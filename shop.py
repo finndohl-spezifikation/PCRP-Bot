@@ -72,19 +72,23 @@ def _item_shop(item: dict) -> str:
 _PAGE_SIZE = 15
 
 
-def _get_shop_items(shop_key: str, member: discord.Member) -> list:
+def _get_shop_items(shop_key: str, member: discord.Member, search: str = "") -> list:
     role_ids = {r.id for r in member.roles}
     is_adm   = ADMIN_ROLE_ID in role_ids
-    return [
+    items = [
         i for i in load_shop()
         if _item_shop(i) == shop_key
         and (is_adm or not i.get("allowed_role") or i.get("allowed_role") in role_ids)
     ]
+    if search:
+        s = search.lower()
+        items = [i for i in items if s in _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', i["name"]).strip().lower()]
+    return items
 
 
-def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0) -> tuple[discord.Embed, int]:
+def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0, search: str = "") -> tuple[discord.Embed, int]:
     shop     = SHOPS[shop_key]
-    filtered = _get_shop_items(shop_key, member)
+    filtered = _get_shop_items(shop_key, member, search=search)
     eco      = load_economy()
     ud       = get_user(eco, member.id)
     cash     = int(ud.get("cash", 0))
@@ -98,11 +102,16 @@ def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0) -> t
         clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', item['name']).strip()
         lines.append(f"\u27A4 **{clean}**\u3000\u2014\u3000`{item['price']:,} \U0001F4B5`")
 
-    sep  = "\u2015" * 22
-    desc = sep + "\n" + ("\n".join(lines) if lines else "*Dieser Shop ist aktuell leer.*") + "\n" + sep
+    sep         = "\u2015" * 22
+    empty_hint  = f"*Keine Ergebnisse f\u00FCr \u201E{search}\u201C.*" if search else "*Dieser Shop ist aktuell leer.*"
+    desc        = sep + "\n" + ("\n".join(lines) if lines else empty_hint) + "\n" + sep
+
+    title = f"{shop['emoji']}  {shop['label']}"
+    if search:
+        title += f"  \U0001F50D {search}"
 
     embed = discord.Embed(
-        title=f"{shop['emoji']}  {shop['label']}",
+        title=title,
         description=desc,
         color=_SHOP_EMBED_COLORS.get(shop_key, LOG_COLOR),
         timestamp=datetime.now(timezone.utc)
@@ -652,40 +661,96 @@ class CartCheckoutView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 
+# \u2500\u2500 Such-Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class SuchModal(discord.ui.Modal):
+    def __init__(self, shop_key: str):
+        super().__init__(title="\U0001F50D Shop durchsuchen")
+        self.shop_key = shop_key
+        self.suchbegriff = discord.ui.TextInput(
+            label="Suchbegriff",
+            placeholder="z.\u202FB. Fahrrad, Waffe, ...",
+            min_length=1,
+            max_length=40,
+            required=True
+        )
+        self.add_item(self.suchbegriff)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        term  = self.suchbegriff.value.strip()
+        embed, total_pages = _build_shop_embed(self.shop_key, interaction.user, page=0, search=term)
+        view  = ShopPageView(self.shop_key, interaction.user, page=0, total_pages=total_pages, search=term)
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
 # \u2500\u2500 Seiten-View (Bl\u00E4ttern + Kaufen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class ShopPageView(discord.ui.View):
-    def __init__(self, shop_key: str, member: discord.Member, page: int, total_pages: int):
+    def __init__(self, shop_key: str, member: discord.Member, page: int, total_pages: int, search: str = ""):
         super().__init__(timeout=120)
         self.shop_key    = shop_key
         self.member      = member
         self.page        = page
         self.total_pages = total_pages
+        self.search      = search
         self._rebuild()
 
     def _rebuild(self):
         self.clear_items()
-        page_items = _get_shop_items(self.shop_key, self.member)[
+        page_items = _get_shop_items(self.shop_key, self.member, search=self.search)[
             self.page * _PAGE_SIZE : (self.page + 1) * _PAGE_SIZE
         ]
         if page_items:
             self.add_item(BuyItemSelect(self.shop_key, page_items))
 
-        # "\u270F\uFE0F Direkt kaufen" Button \u2014 \u00F6ffnet Modal mit Itemname + Menge
+        # Row 2: \U0001F50D Suchen  |  \u270F\uFE0F Direkt kaufen  |  (optional) \u274C Suche l\u00F6schen
+        such_btn = discord.ui.Button(
+            label="Suchen",
+            emoji="\U0001F50D",
+            style=discord.ButtonStyle.secondary,
+            row=2
+        )
+        _shop_key  = self.shop_key
+        _search    = self.search
+
+        async def such_cb(interaction: discord.Interaction):
+            await interaction.response.send_modal(SuchModal(_shop_key))
+
+        such_btn.callback = such_cb
+        self.add_item(such_btn)
+
         direkt_btn = discord.ui.Button(
             label="\u270F\uFE0F Direkt kaufen",
             style=discord.ButtonStyle.primary,
             row=2
         )
-        shop_key = self.shop_key
 
         async def direkt_cb(interaction: discord.Interaction):
-            await interaction.response.send_modal(DirektkaufModal(shop_key))
+            await interaction.response.send_modal(DirektkaufModal(_shop_key))
 
         direkt_btn.callback = direkt_cb
         self.add_item(direkt_btn)
 
-        # "\U0001F6D2 Kasse" Button \u2014 nur sichtbar wenn Warenkorb bef\u00FCllt
+        if _search:
+            clear_btn = discord.ui.Button(
+                label="Suche l\u00F6schen",
+                emoji="\u274C",
+                style=discord.ButtonStyle.danger,
+                row=2
+            )
+
+            async def clear_such_cb(interaction: discord.Interaction):
+                self.search = ""
+                self.page   = 0
+                embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, 0, search="")
+                self.member = interaction.user
+                self._rebuild()
+                await interaction.response.edit_message(embed=embed, view=self)
+
+            clear_btn.callback = clear_such_cb
+            self.add_item(clear_btn)
+
+        # Row 3: \U0001F6D2 Kasse \u2014 nur sichtbar wenn Warenkorb bef\u00FCllt
         cart = _SHOP_CARTS.get(self.member.id, [])
         if cart:
             subtotal  = sum(c["price"] * c["qty"] for c in cart)
@@ -693,9 +758,8 @@ class ShopPageView(discord.ui.View):
             kasse_btn = discord.ui.Button(
                 label=f"\U0001F6D2 Kasse ({count}x \u2014 {subtotal:,} $)",
                 style=discord.ButtonStyle.success,
-                row=2
+                row=3
             )
-            member = self.member
 
             async def kasse_cb(interaction: discord.Interaction):
                 uid      = interaction.user.id
@@ -725,7 +789,8 @@ class ShopPageView(discord.ui.View):
             kasse_btn.callback = kasse_cb
             self.add_item(kasse_btn)
 
-        close_btn = discord.ui.Button(label="\u2716 Schlie\u00DFen", style=discord.ButtonStyle.danger, row=3)
+        # Row 4: \u2716 Schlie\u00DFen  |  \u25C0 Zur\u00FCck  |  Weiter \u25B6
+        close_btn = discord.ui.Button(label="\u2716 Schlie\u00DFen", style=discord.ButtonStyle.danger, row=4)
 
         async def close_cb(interaction: discord.Interaction):
             try:
@@ -737,19 +802,19 @@ class ShopPageView(discord.ui.View):
         close_btn.callback = close_cb
         self.add_item(close_btn)
 
-        prev = discord.ui.Button(label="\u25C0 Zur\u00FCck", style=discord.ButtonStyle.secondary, disabled=self.page <= 0, row=3)
-        next_ = discord.ui.Button(label="Weiter \u25B6", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1, row=3)
+        prev  = discord.ui.Button(label="\u25C0 Zur\u00FCck", style=discord.ButtonStyle.secondary, disabled=self.page <= 0, row=4)
+        next_ = discord.ui.Button(label="Weiter \u25B6",  style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1, row=4)
 
         async def prev_cb(interaction: discord.Interaction):
             self.page -= 1
-            embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+            embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page, search=self.search)
             self.member = interaction.user
             self._rebuild()
             await interaction.response.edit_message(embed=embed, view=self)
 
         async def next_cb(interaction: discord.Interaction):
             self.page += 1
-            embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+            embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page, search=self.search)
             self.member = interaction.user
             self._rebuild()
             await interaction.response.edit_message(embed=embed, view=self)
