@@ -4,6 +4,7 @@
 # Paradise City Roleplay Discord Bot
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
+import json
 from config import *
 from helpers import is_admin
 from economy_helpers import (
@@ -526,40 +527,54 @@ def _build_channel_embed(shop_key: str) -> discord.Embed:
     return embed
 
 
-# \u2500\u2500 /shop-setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Auto-Setup (wird von embed_manager aufgerufen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-@bot.tree.command(
-    name="shop-setup",
-    description="[Admin] Shop-Embeds in alle Shop-Kan\u00E4le posten",
-    guild=discord.Object(id=GUILD_ID)
-)
-@app_commands.default_permissions(administrator=True)
-async def shop_setup(interaction: discord.Interaction):
-    if not _is_shop_admin(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
+_SHOP_MSG_FILE = DATA_DIR / "shop_msg_ids.json"
 
-    await interaction.response.defer(ephemeral=True)
 
-    results = []
-    for shop_key, cfg in SHOPS.items():
-        ch = interaction.guild.get_channel(cfg["channel"])
-        if not ch:
-            results.append(f"\u274C **{cfg['label']}**: Channel nicht gefunden (`{cfg['channel']}`)")
-            continue
-        embed = _build_channel_embed(shop_key)
-        view  = _CHANNEL_VIEWS[shop_key]()
-        await ch.send(embed=embed, view=view)
-        results.append(f"\u2705 **{cfg['label']}** \u2192 {ch.mention}")
+def _load_shop_msg_ids() -> dict:
+    if _SHOP_MSG_FILE.exists():
+        try:
+            return json.load(open(_SHOP_MSG_FILE))
+        except Exception:
+            pass
+    return {}
 
-    await interaction.followup.send(
-        embed=discord.Embed(
-            title="\U0001F6D2 Shop-Setup abgeschlossen",
-            description="\n".join(results),
-            color=LOG_COLOR,
-        ),
-        ephemeral=True
-    )
+
+def _save_shop_msg_ids(ids: dict):
+    with open(_SHOP_MSG_FILE, "w") as f:
+        json.dump(ids, f)
+
+
+async def auto_shop_setup():
+    msg_ids = _load_shop_msg_ids()
+
+    for guild in bot.guilds:
+        for shop_key, cfg in SHOPS.items():
+            channel = guild.get_channel(cfg["channel"])
+            if not channel:
+                continue
+
+            embed = _build_channel_embed(shop_key)
+            view  = _CHANNEL_VIEWS[shop_key]()
+            mid   = msg_ids.get(shop_key)
+
+            if mid:
+                try:
+                    msg = await channel.fetch_message(int(mid))
+                    await msg.edit(embed=embed, view=view)
+                    print(f"[shop] Embed aktualisiert: {shop_key} in #{channel.name}")
+                    continue
+                except Exception:
+                    pass
+
+            try:
+                new_msg = await channel.send(embed=embed, view=view)
+                msg_ids[shop_key] = new_msg.id
+                _save_shop_msg_ids(msg_ids)
+                print(f"[shop] Embed gepostet: {shop_key} in #{channel.name}")
+            except Exception as e:
+                print(f"[shop] \u274C Fehler beim Posten ({shop_key}): {e}")
 
 
 # \u2500\u2500 /shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
