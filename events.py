@@ -66,7 +66,7 @@ async def on_ready():
                 log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
                 if log_ch:
                     embed = discord.Embed(
-                        title="\u1F528 Galaxy Bot gebannt",
+                        title="\U0001F528 Galaxy Bot gebannt",
                         description="Galaxy Bot wurde beim Start automatisch vom Server gebannt.",
                         color=MOD_COLOR,
                         timestamp=datetime.now(timezone.utc)
@@ -201,10 +201,10 @@ async def handle_counting(message):
         counting_state["last_user_id"] = message.author.id
         save_counting_state(counting_state)
         if number == 1000:
-            await message.add_reaction("\u1F3C6")
+            await message.add_reaction("\U0001F3C6")
             try:
                 await message.channel.send(
-                    f"\u1F389 **1000 erreicht!** Unglaublich! {message.author.mention} hat die **1000** geschafft!\n"
+                    f"\U0001F389 **1000 erreicht!** Unglaublich! {message.author.mention} hat die **1000** geschafft!\n"
                     f"Der Z\u00E4hler wird zur\u00FCckgesetzt. Fangt wieder bei **1** an!"
                 )
             except Exception:
@@ -240,7 +240,7 @@ async def on_message_delete(message):
     if not log_ch:
         return
     embed = discord.Embed(
-        title="\u1F5D1\uFE0F Nachricht gel\u00F6scht",
+        title="\U0001F5D1\uFE0F Nachricht gel\u00F6scht",
         description=(
             f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
             f"**Kanal:** {message.channel.mention}\n"
@@ -300,7 +300,7 @@ async def on_member_update(before, after):
     except Exception:
         pass
     embed = discord.Embed(
-        title="\u1F3AD Rollen ge\u00E4ndert",
+        title="\U0001F3AD Rollen ge\u00E4ndert",
         description=description,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -327,7 +327,7 @@ async def on_member_ban(guild, user):
     if banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
     embed = discord.Embed(
-        title="\u1F528 Mitglied gebannt",
+        title="\U0001F528 Mitglied gebannt",
         description=description,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -365,7 +365,7 @@ async def on_member_remove(member):
         description += f"\n**Von:** {mod.mention} (`{mod}`)"
     if reason:
         description += f"\n**Grund:** {reason}"
-    title = "\u1F462 Mitglied gekickt" if action == "gekickt" else "\u1F6AA Mitglied hat den Server verlassen"
+    title = "\U0001F462 Mitglied gekickt" if action == "gekickt" else "\U0001F6AA Mitglied hat den Server verlassen"
     embed = discord.Embed(
         title=title,
         description=description,
@@ -378,17 +378,17 @@ async def on_member_remove(member):
     if goodbye_ch:
         try:
             g_embed = discord.Embed(
-                title="\u1F4E4 Auf Wiedersehen!",
+                title="\U0001F4E4 Auf Wiedersehen!",
                 description=(
                     f"**{member.display_name}** hat **Paradise City Roleplay** verlassen.\n\n"
-                    f"Wir w\u00FCnschen dir alles Gute \u2014 du bist jederzeit willkommen zur\u00FCckzukehren! \u1F44B"
+                    f"Wir w\u00FCnschen dir alles Gute \u2014 du bist jederzeit willkommen zur\u00FCckzukehren! \U0001F44B"
                 ),
                 color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             g_embed.set_thumbnail(url=member.display_avatar.url)
-            g_embed.add_field(name="\u1F464 Mitglied", value=str(member), inline=True)
-            g_embed.add_field(name="\u1F194 ID",       value=str(member.id), inline=True)
+            g_embed.add_field(name="\U0001F464 Mitglied", value=str(member), inline=True)
+            g_embed.add_field(name="\U0001F194 ID",       value=str(member.id), inline=True)
             g_embed.set_footer(text=f"Paradise City Roleplay \u2022 Noch {guild.member_count} Mitglieder")
             await goodbye_ch.send(embed=g_embed)
         except Exception:
@@ -422,7 +422,7 @@ async def on_member_join(member):
                 log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
                 if log_ch:
                     embed = discord.Embed(
-                        title="\u1F528 Galaxy Bot gebannt",
+                        title="\U0001F528 Galaxy Bot gebannt",
                         description="Galaxy Bot hat versucht dem Server beizutreten und wurde automatisch gebannt.",
                         color=MOD_COLOR,
                         timestamp=datetime.now(timezone.utc)
@@ -519,13 +519,13 @@ async def on_member_join(member):
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
         if inviter:
             description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
-            description += f"**Gesamte Einladungen von {inviter.display_name}:** {inviter_uses} \u1F39F"
+            description += f"**Gesamte Einladungen von {inviter.display_name}:** {inviter_uses} \U0001F39F"
         elif via_vanity:
             description += "**Eingeladen von:** Vanity-URL (Server-Link)"
         else:
             description += "**Eingeladen von:** Unbekannt"
         embed = discord.Embed(
-            title="\u1F4E5 Neues Mitglied",
+            title="\U0001F4E5 Neues Mitglied",
             description=description,
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -567,7 +567,7 @@ async def on_member_join(member):
 
     try:
         embed = discord.Embed(
-            title="\u1F44B Willkommen auf Paradise City Roleplay!",
+            title="\U0001F44B Willkommen auf Paradise City Roleplay!",
             description=(
                 "> Willkommen auf **Paradise City Roleplay** \u2014 deinem PS4 GTA RP Server mit Ultimativem Spa\u00DF und Hochwertigem RP!\n\n"
                 "> Wir freuen uns dich bei uns zu haben und w\u00FCnschen dir viel Spa\u00DF auf unserem Server.\n\n"
@@ -585,7 +585,7 @@ async def on_member_join(member):
     if welcome_ch:
         try:
             w_embed = discord.Embed(
-                title="\u1F44B Willkommen auf Paradise City Roleplay!",
+                title="\U0001F44B Willkommen auf Paradise City Roleplay!",
                 description=(
                     f"Hey {member.mention}, herzlich willkommen auf **Paradise City Roleplay**!\n\n"
                     f"W\u00E4hle deine Einreiseart und erstelle deinen Ausweis um loszulegen."
@@ -594,8 +594,8 @@ async def on_member_join(member):
                 timestamp=datetime.now(timezone.utc)
             )
             w_embed.set_thumbnail(url=member.display_avatar.url)
-            w_embed.add_field(name="\u1F464 Mitglied", value=str(member), inline=True)
-            w_embed.add_field(name="\u1F194 ID", value=str(member.id), inline=True)
+            w_embed.add_field(name="\U0001F464 Mitglied", value=str(member), inline=True)
+            w_embed.add_field(name="\U0001F194 ID", value=str(member.id), inline=True)
             w_embed.set_footer(text=f"Paradise City Roleplay \u2022 Mitglied #{guild.member_count}")
             await welcome_ch.send(embed=w_embed)
         except Exception:
@@ -614,5 +614,5 @@ async def on_member_join(member):
         await log_money_action(
             guild,
             "Startguthaben vergeben",
-            f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} \u1F4B5 (Willkommensbonus)"
+            f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} \U0001F4B5 (Willkommensbonus)"
     )
