@@ -81,6 +81,13 @@ async def on_ready():
             except Exception as e:
                 await log_bot_error("Galaxy Bot Ban fehlgeschlagen", str(e), guild)
 
+    app_id = bot.user.id
+    invite = (
+        f"https://discord.com/api/oauth2/authorize"
+        f"?client_id={app_id}&permissions=8&scope=bot%20applications.commands"
+    )
+    print(f"Bot-ID / Invite-Link: {invite}")
+
     try:
         guild_obj = discord.Object(id=GUILD_ID)
         synced = await bot.tree.sync(guild=guild_obj)
