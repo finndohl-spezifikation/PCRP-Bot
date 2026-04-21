@@ -36,8 +36,18 @@ def get_user(data, user_id):
             "inventory": [],
             "custom_limit": None,
             "dispo": 0,
+            "_name": "",
         }
     return data[uid]
+
+
+def update_user_name(data, user_id, member):
+    """Speichert den Anzeigenamen des Spielers in den Economy-Daten."""
+    uid = str(user_id)
+    d = get_user(data, uid)
+    name = getattr(member, "display_name", None) or getattr(member, "name", "")
+    if name:
+        d["_name"] = name
 
 
 def reset_daily_if_needed(user_data):
@@ -53,6 +63,16 @@ def reset_daily_if_needed(user_data):
         user_data["daily_reset"]    = now.isoformat()
 
 
+# \u2500\u2500 Transaktions-Log \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+def log_transaction(user_data: dict, text: str, betrag: int):
+    """Speichert eine Transaktion im Verlauf (max. 5 Eintr\u00E4ge)."""
+    ts  = datetime.now(timezone.utc).strftime("%d.%m %H:%M")
+    log = user_data.setdefault("transaktionen", [])
+    log.append({"text": text, "betrag": betrag, "ts": ts})
+    user_data["transaktionen"] = log[-5:]
+
+
 # \u2500\u2500 Shop Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_shop():
@@ -65,6 +85,23 @@ def load_shop():
 def save_shop(items):
     with open(SHOP_FILE, "w", encoding="utf-8") as f:
         json.dump(items, f, indent=2, ensure_ascii=False)
+
+
+_TEAM_SHOP_FILE = DATA_DIR / "team_shop_data.json"
+
+
+def load_team_shop() -> list:
+    if _TEAM_SHOP_FILE.exists():
+        try:
+            return json.load(open(_TEAM_SHOP_FILE, encoding="utf-8"))
+        except Exception:
+            pass
+    return []
+
+
+def save_team_shop(items: list):
+    with open(_TEAM_SHOP_FILE, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
 
 
 # \u2500\u2500 Hidden Items Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
