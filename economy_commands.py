@@ -8,7 +8,8 @@ from config import *
 from helpers import is_admin
 from economy_helpers import (
     load_economy, save_economy, get_user, reset_daily_if_needed,
-    has_citizen_or_wage, betrag_autocomplete, log_money_action, channel_error
+    has_citizen_or_wage, betrag_autocomplete, log_money_action, channel_error,
+    log_transaction
 )
 
 
@@ -68,6 +69,7 @@ class EinzahlenModal(discord.ui.Modal, title="\U0001F3E6 Einzahlen"):
 
         user_data["cash"] -= betrag
         user_data["bank"] += betrag
+        log_transaction(user_data, "\U0001F3E6 Einzahlung", -betrag)
         save_economy(eco)
         await log_money_action(
             interaction.guild,
@@ -142,6 +144,7 @@ class AuszahlenModal(discord.ui.Modal, title="\U0001F4B8 Auszahlen"):
 
         user_data["bank"] -= betrag
         user_data["cash"] += betrag
+        log_transaction(user_data, "\U0001F4B8 Auszahlung", betrag)
         save_economy(eco)
         await log_money_action(
             interaction.guild,
@@ -214,6 +217,8 @@ class UeberweisungsBetragModal(discord.ui.Modal, title="\U0001F4B3 \u00DCberweis
 
         sender["bank"]   -= betrag
         receiver["bank"] += betrag
+        log_transaction(sender,   f"\U0001F4E4 \u00DCberweisung \u2192 {self.ziel.display_name}", -betrag)
+        log_transaction(receiver, f"\U0001F4E5 \u00DCberweisung \u2190 {interaction.user.display_name}", betrag)
         save_economy(eco)
         await log_money_action(
             interaction.guild,
@@ -403,6 +408,15 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
     embed.add_field(name="\U0001F4B0 Gesamt",   value=f"**{int(user_data['cash'])+int(user_data['bank']):,} $**",   inline=True)
     if dispo > 0:
         embed.add_field(name="\U0001F4CA Dispo", value=f"bis -{dispo:,} $", inline=True)
+
+    tx_log = user_data.get("transaktionen", [])
+    if tx_log:
+        lines = []
+        for t in reversed(tx_log):
+            sign = "+" if t["betrag"] >= 0 else ""
+            lines.append(f"`{t['ts']}` {t['text']}: **{sign}{t['betrag']:,} $**")
+        embed.add_field(name="\U0001F4CB Letzte Transaktionen", value="\n".join(lines), inline=False)
+
     embed.set_thumbnail(url=ziel.display_avatar.url)
     embed.set_footer(text="\U0001F3DB\uFE0F Maze Bank \u2022 Paradise City Roleplay")
 
