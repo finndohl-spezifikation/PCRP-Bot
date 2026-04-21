@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# events.py — Discord Events (on_ready, on_message, Logs, etc.)
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# events.py \u2014 Discord Events (on_ready, on_message, Logs, etc.)
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from helpers import is_admin, is_mod_or_admin, contains_vulgar, log_bot_error
@@ -16,7 +16,7 @@ from moderation import (
 )
 from ticket       import TicketSelectView, TicketActionView
 from handy        import HandyView
-from einreise     import EinreiseView, load_ausweis, save_ausweis
+from einreise     import EinreiseView, AusweisDMLegalView, AusweisDMIllegalView, load_ausweis, save_ausweis
 from casino       import CasinoView
 from dienst       import DienstUnifiedView
 from team_overview import TeamOverviewView
@@ -35,6 +35,8 @@ async def on_ready():
     bot.add_view(TicketActionView())
     bot.add_view(HandyView())
     bot.add_view(EinreiseView())
+    bot.add_view(AusweisDMLegalView())
+    bot.add_view(AusweisDMIllegalView())
     bot.add_view(CasinoView())
     bot.add_view(TeamOverviewView())
     bot.add_view(LottoView())
@@ -60,7 +62,7 @@ async def on_ready():
                 log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
                 if log_ch:
                     embed = discord.Embed(
-                        title="🔨 Galaxy Bot gebannt",
+                        title="\u1F528 Galaxy Bot gebannt",
                         description="Galaxy Bot wurde beim Start automatisch vom Server gebannt.",
                         color=MOD_COLOR,
                         timestamp=datetime.now(timezone.utc)
@@ -116,7 +118,7 @@ async def on_message(message):
         return
     member = message.author
 
-    # DMs haben kein Guild-Objekt — Server-Filter überspringen
+    # DMs haben kein Guild-Objekt \u2014 Server-Filter \u00FCberspringen
     if not message.guild:
         await bot.process_commands(message)
         return
@@ -125,7 +127,7 @@ async def on_message(message):
         await handle_counting(message)
         return
 
-    # Server-Inhaber hat volle Rechte — kein Mod-Filter
+    # Server-Inhaber hat volle Rechte \u2014 kein Mod-Filter
     if message.guild and member.id == message.guild.owner_id:
         await bot.process_commands(message)
         return
@@ -167,7 +169,7 @@ async def handle_counting(message):
             pass
         try:
             await message.channel.send(
-                f"❌ {message.author.mention} Nur Zahlen sind hier erlaubt! Der Zähler geht weiter bei **{counting_state['count'] + 1}**.",
+                f"\u274C {message.author.mention} Nur Zahlen sind hier erlaubt! Der Z\u00E4hler geht weiter bei **{counting_state['count'] + 1}**.",
                 delete_after=5
             )
         except Exception:
@@ -183,7 +185,7 @@ async def handle_counting(message):
             pass
         try:
             await message.channel.send(
-                f"❌ {message.author.mention} Du kannst nicht zweimal hintereinander zählen! Der Zähler steht bei **{counting_state['count']}**.",
+                f"\u274C {message.author.mention} Du kannst nicht zweimal hintereinander z\u00E4hlen! Der Z\u00E4hler steht bei **{counting_state['count']}**.",
                 delete_after=5
             )
         except Exception:
@@ -195,11 +197,11 @@ async def handle_counting(message):
         counting_state["last_user_id"] = message.author.id
         save_counting_state(counting_state)
         if number == 1000:
-            await message.add_reaction("🏆")
+            await message.add_reaction("\u1F3C6")
             try:
                 await message.channel.send(
-                    f"🎉 **1000 erreicht!** Unglaublich! {message.author.mention} hat die **1000** geschafft!\n"
-                    f"Der Zähler wird zurückgesetzt. Fangt wieder bei **1** an!"
+                    f"\u1F389 **1000 erreicht!** Unglaublich! {message.author.mention} hat die **1000** geschafft!\n"
+                    f"Der Z\u00E4hler wird zur\u00FCckgesetzt. Fangt wieder bei **1** an!"
                 )
             except Exception:
                 pass
@@ -207,7 +209,7 @@ async def handle_counting(message):
             counting_state["last_user_id"] = None
             save_counting_state(counting_state)
         else:
-            await message.add_reaction("✅")
+            await message.add_reaction("\u2705")
     else:
         counting_state["count"] = 0
         counting_state["last_user_id"] = None
@@ -218,8 +220,8 @@ async def handle_counting(message):
             pass
         try:
             await message.channel.send(
-                f"❌ {message.author.mention} Falsche Zahl! Erwartet wurde **{expected}**, nicht **{number}**.\n"
-                f"Der Zähler wurde zurückgesetzt. Fangt wieder bei **1** an!",
+                f"\u274C {message.author.mention} Falsche Zahl! Erwartet wurde **{expected}**, nicht **{number}**.\n"
+                f"Der Z\u00E4hler wurde zur\u00FCckgesetzt. Fangt wieder bei **1** an!",
                 delete_after=8
             )
         except Exception:
@@ -234,7 +236,7 @@ async def on_message_delete(message):
     if not log_ch:
         return
     embed = discord.Embed(
-        title="🗑️ Nachricht gelöscht",
+        title="\u1F5D1\uFE0F Nachricht gel\u00F6scht",
         description=(
             f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
             f"**Kanal:** {message.channel.mention}\n"
@@ -256,7 +258,7 @@ async def on_message_edit(before, after):
     if not log_ch:
         return
     embed = discord.Embed(
-        title="✏️ Nachricht bearbeitet",
+        title="\u270F\uFE0F Nachricht bearbeitet",
         description=(
             f"**Benutzer:** {before.author.mention} (`{before.author}`)\n"
             f"**Kanal:** {before.channel.mention}\n"
@@ -283,18 +285,18 @@ async def on_member_update(before, after):
         return
     description = f"**Benutzer:** {after.mention} (`{after}`)\n"
     if added:
-        description += f"**Hinzugefügt:** {', '.join(r.mention for r in added)}\n"
+        description += f"**Hinzugef\u00FCgt:** {', '.join(r.mention for r in added)}\n"
     if removed:
         description += f"**Entfernt:** {', '.join(r.mention for r in removed)}\n"
     try:
         async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.member_role_update):
             if entry.target.id == after.id:
-                description += f"**Geändert von:** {entry.user.mention} (`{entry.user}`)"
+                description += f"**Ge\u00E4ndert von:** {entry.user.mention} (`{entry.user}`)"
                 break
     except Exception:
         pass
     embed = discord.Embed(
-        title="🎭 Rollen geändert",
+        title="\u1F3AD Rollen ge\u00E4ndert",
         description=description,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -321,7 +323,7 @@ async def on_member_ban(guild, user):
     if banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
     embed = discord.Embed(
-        title="🔨 Mitglied gebannt",
+        title="\u1F528 Mitglied gebannt",
         description=description,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -359,7 +361,7 @@ async def on_member_remove(member):
         description += f"\n**Von:** {mod.mention} (`{mod}`)"
     if reason:
         description += f"\n**Grund:** {reason}"
-    title = "👢 Mitglied gekickt" if action == "gekickt" else "🚪 Mitglied hat den Server verlassen"
+    title = "\u1F462 Mitglied gekickt" if action == "gekickt" else "\u1F6AA Mitglied hat den Server verlassen"
     embed = discord.Embed(
         title=title,
         description=description,
@@ -372,18 +374,18 @@ async def on_member_remove(member):
     if goodbye_ch:
         try:
             g_embed = discord.Embed(
-                title="📤 Auf Wiedersehen!",
+                title="\u1F4E4 Auf Wiedersehen!",
                 description=(
                     f"**{member.display_name}** hat **Paradise City Roleplay** verlassen.\n\n"
-                    f"Wir wünschen dir alles Gute — du bist jederzeit willkommen zurückzukehren! 👋"
+                    f"Wir w\u00FCnschen dir alles Gute \u2014 du bist jederzeit willkommen zur\u00FCckzukehren! \u1F44B"
                 ),
                 color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             g_embed.set_thumbnail(url=member.display_avatar.url)
-            g_embed.add_field(name="👤 Mitglied", value=str(member), inline=True)
-            g_embed.add_field(name="🆔 ID",       value=str(member.id), inline=True)
-            g_embed.set_footer(text=f"Paradise City Roleplay • Noch {guild.member_count} Mitglieder")
+            g_embed.add_field(name="\u1F464 Mitglied", value=str(member), inline=True)
+            g_embed.add_field(name="\u1F194 ID",       value=str(member.id), inline=True)
+            g_embed.set_footer(text=f"Paradise City Roleplay \u2022 Noch {guild.member_count} Mitglieder")
             await goodbye_ch.send(embed=g_embed)
         except Exception:
             pass
@@ -416,7 +418,7 @@ async def on_member_join(member):
                 log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
                 if log_ch:
                     embed = discord.Embed(
-                        title="🔨 Galaxy Bot gebannt",
+                        title="\u1F528 Galaxy Bot gebannt",
                         description="Galaxy Bot hat versucht dem Server beizutreten und wurde automatisch gebannt.",
                         color=MOD_COLOR,
                         timestamp=datetime.now(timezone.utc)
@@ -426,7 +428,7 @@ async def on_member_join(member):
                 pass
             return
 
-        # Prüfen wer den Bot hinzugefügt hat
+        # Pr\u00FCfen wer den Bot hinzugef\u00FCgt hat
         adder = None
         try:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
@@ -436,7 +438,7 @@ async def on_member_join(member):
         except Exception:
             pass
 
-        # Server-Inhaber darf Bots hinzufügen
+        # Server-Inhaber darf Bots hinzuf\u00FCgen
         if adder and adder.id == guild.owner_id:
             return
 
@@ -448,7 +450,7 @@ async def on_member_join(member):
         if adder:
             try:
                 embed = discord.Embed(
-                    description="> Bots auf diesen Server hinzufügen ist für dich leider nicht erlaubt.",
+                    description="> Bots auf diesen Server hinzuf\u00FCgen ist f\u00FCr dich leider nicht erlaubt.",
                     color=MOD_COLOR
                 )
                 await adder.send(content=adder.mention, embed=embed)
@@ -459,7 +461,7 @@ async def on_member_join(member):
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
         embed = discord.Embed(
-            title="✅ Mitglied beigetreten",
+            title="\u2705 Mitglied beigetreten",
             description=f"**Benutzer:** {member.mention} (`{member}`)",
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -471,12 +473,12 @@ async def on_member_join(member):
     via_vanity   = False
     try:
         if not hasattr(guild, "fetch_invites"):
-            raise AttributeError("fetch_invites nicht verfügbar — Invites-Intent prüfen")
+            raise AttributeError("fetch_invites nicht verf\u00FCgbar \u2014 Invites-Intent pr\u00FCfen")
         new_invites    = await guild.fetch_invites()
         new_invite_map = {inv.code: inv for inv in new_invites}
         old_invite_map = invite_cache.get(guild.id, {})
 
-        # Falls Cache leer war (z.B. nach Neustart): Cache befüllen, Zuordnung nicht möglich
+        # Falls Cache leer war (z.B. nach Neustart): Cache bef\u00FCllen, Zuordnung nicht m\u00F6glich
         if old_invite_map:
             for code, new_inv in new_invite_map.items():
                 old_inv = old_invite_map.get(code)
@@ -491,7 +493,7 @@ async def on_member_join(member):
                         inviter_uses = (old_inv.uses or 0) + 1
                         break
 
-        # Vanity-URL prüfen
+        # Vanity-URL pr\u00FCfen
         if not inviter:
             try:
                 vanity = await guild.vanity_invite()
@@ -513,13 +515,13 @@ async def on_member_join(member):
         description = f"**Spieler:** {member.mention} (`{member}`)\n"
         if inviter:
             description += f"**Eingeladen von:** {inviter.mention} (`{inviter}`)\n"
-            description += f"**Gesamte Einladungen von {inviter.display_name}:** {inviter_uses} 🎟"
+            description += f"**Gesamte Einladungen von {inviter.display_name}:** {inviter_uses} \u1F39F"
         elif via_vanity:
             description += "**Eingeladen von:** Vanity-URL (Server-Link)"
         else:
             description += "**Eingeladen von:** Unbekannt"
         embed = discord.Embed(
-            title="📥 Neues Mitglied",
+            title="\u1F4E5 Neues Mitglied",
             description=description,
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -548,29 +550,29 @@ async def on_member_join(member):
             wiederherstellen.append(einreise_role)
         if wiederherstellen:
             try:
-                await member.add_roles(*wiederherstellen, reason="Wiederbeitritt — Rollen wiederhergestellt")
+                await member.add_roles(*wiederherstellen, reason="Wiederbeitritt \u2014 Rollen wiederhergestellt")
             except Exception:
                 pass
     else:
         rolle = guild.get_role(WHITELIST_ROLE_ID)
         if rolle:
             try:
-                await member.add_roles(rolle, reason="Autorole — Bewerber")
+                await member.add_roles(rolle, reason="Autorole \u2014 Bewerber")
             except Exception:
                 pass
 
     try:
         embed = discord.Embed(
-            title="👋 Willkommen auf Paradise City Roleplay!",
+            title="\u1F44B Willkommen auf Paradise City Roleplay!",
             description=(
-                "> Willkommen auf **Paradise City Roleplay** — deinem PS4 GTA RP Server mit Ultimativem Spaß und Hochwertigem RP!\n\n"
-                "> Wir freuen uns dich bei uns zu haben und wünschen dir viel Spaß auf unserem Server.\n\n"
-                "> Solltest du Hilfe benötigen, melde dich jederzeit über ein Support-Ticket in "
+                "> Willkommen auf **Paradise City Roleplay** \u2014 deinem PS4 GTA RP Server mit Ultimativem Spa\u00DF und Hochwertigem RP!\n\n"
+                "> Wir freuen uns dich bei uns zu haben und w\u00FCnschen dir viel Spa\u00DF auf unserem Server.\n\n"
+                "> Solltest du Hilfe ben\u00F6tigen, melde dich jederzeit \u00FCber ein Support-Ticket in "
                 f"<#{TICKET_CHANNEL_ID}>."
             ),
             color=0xE67E22
         )
-        embed.set_footer(text="Paradise City Roleplay • Willkommen!")
+        embed.set_footer(text="Paradise City Roleplay \u2022 Willkommen!")
         await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
@@ -579,18 +581,18 @@ async def on_member_join(member):
     if welcome_ch:
         try:
             w_embed = discord.Embed(
-                title="👋 Willkommen auf Paradise City Roleplay!",
+                title="\u1F44B Willkommen auf Paradise City Roleplay!",
                 description=(
                     f"Hey {member.mention}, herzlich willkommen auf **Paradise City Roleplay**!\n\n"
-                    f"Wähle deine Einreiseart und erstelle deinen Ausweis um loszulegen."
+                    f"W\u00E4hle deine Einreiseart und erstelle deinen Ausweis um loszulegen."
                 ),
                 color=0xE67E22,
                 timestamp=datetime.now(timezone.utc)
             )
             w_embed.set_thumbnail(url=member.display_avatar.url)
-            w_embed.add_field(name="👤 Mitglied", value=str(member), inline=True)
-            w_embed.add_field(name="🆔 ID", value=str(member.id), inline=True)
-            w_embed.set_footer(text=f"Paradise City Roleplay • Mitglied #{guild.member_count}")
+            w_embed.add_field(name="\u1F464 Mitglied", value=str(member), inline=True)
+            w_embed.add_field(name="\u1F194 ID", value=str(member.id), inline=True)
+            w_embed.set_footer(text=f"Paradise City Roleplay \u2022 Mitglied #{guild.member_count}")
             await welcome_ch.send(embed=w_embed)
         except Exception:
             pass
@@ -608,5 +610,5 @@ async def on_member_join(member):
         await log_money_action(
             guild,
             "Startguthaben vergeben",
-            f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} 💵 (Willkommensbonus)"
+            f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} \u1F4B5 (Willkommensbonus)"
     )
