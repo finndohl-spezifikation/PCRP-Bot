@@ -294,17 +294,10 @@ class KontostandView(discord.ui.View):
         )
 
 
-# \u2500\u2500 /lohn-abholen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Lohn-Logik (geteilt zwischen Panel-Button) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-@bot.tree.command(name="lohn-abholen", description="[Konto] Hole deinen st\u00FCndlichen Lohn ab", guild=discord.Object(id=GUILD_ID))
-async def lohn_abholen(interaction: discord.Interaction):
-    role_ids = [r.id for r in interaction.user.roles]
-    is_adm   = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
-
-    if not is_adm and interaction.channel.id != LOHN_CHANNEL_ID:
-        await interaction.response.send_message(channel_error(LOHN_CHANNEL_ID), ephemeral=True)
-        return
-
+async def _lohn_abholen_logic(interaction: discord.Interaction):
+    role_ids   = [r.id for r in interaction.user.roles]
     main_wages = [WAGE_ROLES[r] for r in role_ids if r in WAGE_ROLES]
     if len(main_wages) > 1:
         await interaction.response.send_message(
@@ -338,68 +331,87 @@ async def lohn_abholen(interaction: discord.Interaction):
             )
             return
 
-    user_data["bank"]      += total_wage
-    user_data["last_wage"]  = now.isoformat()
+    user_data["bank"]     += total_wage
+    user_data["last_wage"] = now.isoformat()
     save_economy(eco)
 
     embed = discord.Embed(
         title="\U0001F4B5 Lohn abgeholt!",
-        description=f"\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015",
+        description="\u2015" * 20,
         color=0x2ECC71,
         timestamp=now
     )
-    embed.add_field(name="\U0001F4B0 Lohn",    value=f"**+{total_wage:,} $**",        inline=True)
-    embed.add_field(name="\U0001F3E6 Konto",   value=f"{user_data['bank']:,} $",      inline=True)
-    embed.add_field(name="\u23F0 N\u00E4chster Lohn", value="in 1 Stunde",            inline=True)
+    embed.add_field(name="\U0001F4B0 Lohn",           value=f"**+{total_wage:,} $**",   inline=True)
+    embed.add_field(name="\U0001F3E6 Konto",          value=f"{user_data['bank']:,} $", inline=True)
+    embed.add_field(name="\u23F0 N\u00E4chster Lohn", value="in 1 Stunde",              inline=True)
     embed.set_thumbnail(url=interaction.user.display_avatar.url)
     embed.set_footer(text="\U0001F4BC Lohnb\u00FCro \u2022 Paradise City Roleplay")
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# \u2500\u2500 /konto \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Persistent-Panel: Lohn \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-@bot.tree.command(name="konto", description="[Konto] Zeigt den Kontostand an", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="(Nur Team) Mitglied dessen Kontostand abgerufen werden soll")
-async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = None):
-    role_ids  = [r.id for r in interaction.user.roles]
-    is_adm    = ADMIN_ROLE_ID in role_ids or INHABER_ROLE_ID in role_ids
-    is_team_m = is_adm or MOD_ROLE_ID in role_ids
+class LohnPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
-    if nutzer is not None:
-        if not is_team_m:
-            await interaction.response.send_message(
-                "\u274C Du hast keine Berechtigung, den Kontostand anderer Mitglieder abzurufen.",
-                ephemeral=True
-            )
-            return
-        ziel      = nutzer
-        show_btns = False
-    else:
-        if not is_team_m and interaction.channel.id != BANK_CHANNEL_ID:
-            await interaction.response.send_message(channel_error(BANK_CHANNEL_ID), ephemeral=True)
-            return
-        if not is_team_m and not has_citizen_or_wage(interaction.user):
-            await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
-            return
-        ziel      = interaction.user
-        show_btns = True
+    @discord.ui.button(
+        label="Lohn abholen",
+        emoji="\U0001F4B5",
+        style=discord.ButtonStyle.success,
+        custom_id="lohn_panel_abholen"
+    )
+    async def abholen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await _lohn_abholen_logic(interaction)
+
+
+@bot.tree.command(
+    name="setup-lohn-panel",
+    description="[Admin] Postet das Lohn-Panel in den Lohn-Kanal",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.default_permissions(administrator=True)
+async def setup_lohn_panel(interaction: discord.Interaction):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+    kanal = interaction.guild.get_channel(LOHN_CHANNEL_ID)
+    if not kanal:
+        await interaction.response.send_message("\u274C Kanal nicht gefunden.", ephemeral=True)
+        return
+    sep = "\u2015" * 22
+    embed = discord.Embed(
+        title="\U0001F4BC Lohnb\u00FCro",
+        description=(
+            sep + "\n"
+            "Klicke auf den Button um deinen st\u00FCndlichen Lohn abzuholen.\n"
+            "Du kannst deinen Lohn einmal pro Stunde abholen.\n"
+            + sep
+        ),
+        color=0x2ECC71,
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Lohnb\u00FCro")
+    await kanal.send(embed=embed, view=LohnPanelView())
+    await interaction.response.send_message("\u2705 Lohn-Panel gepostet.", ephemeral=True)
+
+
+# \u2500\u2500 Konto-Logik (geteilt zwischen Panel-Button) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+async def _konto_logic(interaction: discord.Interaction):
+    if not has_citizen_or_wage(interaction.user) and not any(
+        r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles
+    ):
+        await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
+        return
 
     eco       = load_economy()
-    user_data = get_user(eco, ziel.id)
+    user_data = get_user(eco, interaction.user.id)
     save_economy(eco)
 
-    dispo     = user_data.get("dispo", 0)
-    titel = "\U0001F4B3 Kontostand" if ziel.id == interaction.user.id else f"\U0001F4B3 Kontostand \u2014 {ziel.display_name}"
-    desc  = (
-        f"\U0001F4B5 **Bargeld:** {int(user_data['cash']):,} \U0001F4B5\n"
-        f"\U0001F3E6 **Konto:** {int(user_data['bank']):,} \U0001F4B5\n"
-        f"\U0001F4B0 **Gesamt:** {int(user_data['cash']) + int(user_data['bank']):,} \U0001F4B5"
-    )
-    if dispo > 0:
-        desc += f"\n\U0001F4CA **Dispo:** bis -{dispo:,} \U0001F4B5"
+    dispo = user_data.get("dispo", 0)
     embed = discord.Embed(
-        title=titel,
-        description=f"\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015",
+        title="\U0001F4B3 Online Banking",
+        description="\u2015" * 20,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
@@ -417,11 +429,55 @@ async def kontostand(interaction: discord.Interaction, nutzer: discord.Member = 
             lines.append(f"`{t['ts']}` {t['text']}: **{sign}{t['betrag']:,} $**")
         embed.add_field(name="\U0001F4CB Letzte Transaktionen", value="\n".join(lines), inline=False)
 
-    embed.set_thumbnail(url=ziel.display_avatar.url)
+    embed.set_thumbnail(url=interaction.user.display_avatar.url)
     embed.set_footer(text="\U0001F3DB\uFE0F Maze Bank \u2022 Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed, view=KontostandView(), ephemeral=True)
 
-    view = KontostandView() if show_btns else None
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+# \u2500\u2500 Persistent-Panel: Online Banking \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class KontoPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Online Banking \u00F6ffnen",
+        emoji="\U0001F3E6",
+        style=discord.ButtonStyle.primary,
+        custom_id="konto_panel_oeffnen"
+    )
+    async def oeffnen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await _konto_logic(interaction)
+
+
+@bot.tree.command(
+    name="setup-konto-panel",
+    description="[Admin] Postet das Online-Banking-Panel in den Konto-Kanal",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.default_permissions(administrator=True)
+async def setup_konto_panel(interaction: discord.Interaction):
+    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+    kanal = interaction.guild.get_channel(BANK_CHANNEL_ID)
+    if not kanal:
+        await interaction.response.send_message("\u274C Kanal nicht gefunden.", ephemeral=True)
+        return
+    sep = "\u2015" * 22
+    embed = discord.Embed(
+        title="\U0001F3E6 Online Banking",
+        description=(
+            sep + "\n"
+            "Klicke auf den Button um dein Online Banking aufzurufen.\n"
+            "Du siehst Bargeld, Kontostand, Gesamt und deine letzten Transaktionen.\n"
+            + sep
+        ),
+        color=0x3498DB,
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Maze Bank")
+    await kanal.send(embed=embed, view=KontoPanelView())
+    await interaction.response.send_message("\u2705 Online-Banking-Panel gepostet.", ephemeral=True)
 
 
 # \u2500\u2500 /money-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
