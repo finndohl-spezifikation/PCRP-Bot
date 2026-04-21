@@ -683,13 +683,12 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel):
     if creator:
         try:
             embed = discord.Embed(
-                description=(
-                    "**NaNaNa \U0001F60E**\n"
-                    "Sowas macht nur mein Entwickler!\n\n"
-                    f"Der Kanal **{channel.name}** wurde sofort wieder gel\u00F6scht."
-                ),
+                title="NaNaNa",
+                description=f"Der Kanal **{channel.name}** wurde sofort wieder gel\u00F6scht.",
                 color=0xE74C3C,
             )
+            embed.set_image(url="https://media1.giphy.com/media/v1.Y2lkPTZjMDliOTUycG5sa3UxbTBhdWRkbWtieTE4Z3J6aXE4MGpsdWFreXNjZ2Y3bXR0NSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9ZQ/iD6QiXTTAYrU5C3c89/giphy.gif")
+            embed.set_footer(text="Sowas macht nur mein Entwickler \U0001F60E")
             await creator.send(embed=embed)
         except Exception:
             pass
