@@ -20,7 +20,6 @@ async def ping_cmd(interaction: discord.Interaction):
 # \u2500\u2500 /kartenkontrolle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="kartenkontrolle", description="[Team] Kartenkontrolle-Erinnerung per DM senden", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
 async def kartenkontrolle(interaction: discord.Interaction):
     if not is_team(interaction.user):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
@@ -72,7 +71,6 @@ async def kartenkontrolle(interaction: discord.Interaction):
 
 @bot.tree.command(name="delete", description="[Team] L\u00F6scht Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(anzahl="Anzahl der zu l\u00F6schenden Nachrichten (max. 100)")
-@app_commands.default_permissions(manage_messages=True)
 async def delete_messages(interaction: discord.Interaction, anzahl: int):
     if not is_team(interaction.user):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
@@ -88,3 +86,76 @@ async def delete_messages(interaction: discord.Interaction, anzahl: int):
         f"\u2705 **{len(geloescht)}** Nachrichten wurden gel\u00F6scht.",
         ephemeral=True
     )
+
+
+# \u2500\u2500 /server-info \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(name="server-info", description="Zeigt aktuelle Server-Statistiken an", guild=discord.Object(id=GUILD_ID))
+async def server_info(interaction: discord.Interaction):
+    g = interaction.guild
+
+    # Mitglieder
+    total_members = g.member_count
+    bots          = sum(1 for m in g.members if m.bot)
+    humans        = total_members - bots
+
+    # Kan\u00e4le
+    text_ch  = len(g.text_channels)
+    voice_ch = len(g.voice_channels)
+    cats     = len(g.categories)
+    total_ch = text_ch + voice_ch
+
+    # Rollen (ohne @everyone)
+    roles = len(g.roles) - 1
+
+    # Commands
+    cmds = len(bot.tree.get_commands(guild=discord.Object(id=g.id)))
+
+    # Server-Erstellungsdatum
+    created = g.created_at.strftime("%d.%m.%Y um %H:%M Uhr")
+
+    embed = discord.Embed(
+        title=f"\U0001f4ca {g.name} \u2014 Server-Info",
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc),
+    )
+    if g.icon:
+        embed.set_thumbnail(url=g.icon.url)
+
+    embed.add_field(
+        name="\U0001f465 Mitglieder",
+        value=(
+            f"Gesamt: **{total_members}**\n"
+            f"Spieler: **{humans}**\n"
+            f"Bots: **{bots}**"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="\U0001f4ac Kan\u00e4le",
+        value=(
+            f"Gesamt: **{total_ch}**\n"
+            f"Text: **{text_ch}**\n"
+            f"Voice: **{voice_ch}**\n"
+            f"Kategorien: **{cats}**"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="\U0001f6e1\ufe0f Rollen",
+        value=f"Gesamt: **{roles}**",
+        inline=True,
+    )
+    embed.add_field(
+        name="\u2753 Commands",
+        value=f"Registriert: **{cmds}**",
+        inline=True,
+    )
+    embed.add_field(
+        name="\U0001f4c5 Server erstellt",
+        value=created,
+        inline=True,
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Server-Info")
+
+    await interaction.response.send_message(embed=embed)
