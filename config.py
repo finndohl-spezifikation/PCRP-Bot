@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# config.py — Imports, Konstanten, IDs, Regex, Feature-Flags
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# config.py \u2014 Imports, Konstanten, IDs, Regex, Feature-Flags
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 import os
 import io
@@ -20,12 +20,12 @@ import asyncio
 import traceback
 import aiohttp
 
-# Sicherheitscheck: Bot läuft NUR auf Railway, nie doppelt in Replit
+# Sicherheitscheck: Bot l\u00E4uft NUR auf Railway, nie doppelt in Replit
 if not os.environ.get("RAILWAY_ENVIRONMENT") and not os.environ.get("FORCE_LOCAL_RUN"):
     print("=" * 60)
     print("STOPP: Bot wurde NICHT gestartet.")
-    print("Dieser Bot läuft ausschließlich auf Railway.")
-    print("Bitte NICHT in Replit starten — nur auf Railway deployen!")
+    print("Dieser Bot l\u00E4uft ausschlie\u00DFlich auf Railway.")
+    print("Bitte NICHT in Replit starten \u2014 nur auf Railway deployen!")
     print("=" * 60)
     exit(0)
 
@@ -40,11 +40,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 bot_start_time = None
 invite_cache = {}
 
-ADMIN_ROLE_ID     = 1490855702225485936
-MOD_ROLE_ID       = 1490855703370534965
+ADMIN_ROLE_ID     = 1490855650081636352
+MOD_ROLE_ID       = 1496147874256392202
 INHABER_ROLE_ID   = 1490855647259136053
 WHITELIST_ROLE_ID  = 1490855725516460234   # Bewerber-Rolle (Autorole beim Beitritt)
-BEWERBER_ROLE_ID   = 1490855725516460234   # identisch, für lesbareren Code
+BEWERBER_ROLE_ID   = 1490855725516460234   # identisch, f\u00FCr lesbareren Code
 LOBBY_ROLE_ID     = 1490855714162475259
 
 LOBBY_CHANNEL_ID  = 1490882583909765190
@@ -83,7 +83,7 @@ TICKET_RATING_CHANNEL_ID = 1491788506404491336
 
 COUNTING_CHANNEL_ID = 1490882580487340044
 
-# ── Economy ──────────────────────────────────────────────────
+# \u2500\u2500 Economy \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 LOHNLISTE_CHANNEL_ID = 1490890346668888194
 LOHN_CHANNEL_ID      = 1490890348254200049
 BANK_CHANNEL_ID      = 1490890349382734044
@@ -105,28 +105,28 @@ ADDITIONAL_WAGE_ROLE_WAGE = 1200
 DAILY_LIMIT = 1_000_000
 
 BETRAG_CHOICES = [
-    app_commands.Choice(name="1.000 💵",       value=1_000),
-    app_commands.Choice(name="5.000 💵",       value=5_000),
-    app_commands.Choice(name="10.000 💵",      value=10_000),
-    app_commands.Choice(name="25.000 💵",      value=25_000),
-    app_commands.Choice(name="50.000 💵",      value=50_000),
-    app_commands.Choice(name="100.000 💵",     value=100_000),
-    app_commands.Choice(name="250.000 💵",     value=250_000),
-    app_commands.Choice(name="500.000 💵",     value=500_000),
-    app_commands.Choice(name="1.000.000 💵",   value=1_000_000),
+    app_commands.Choice(name="1.000 \U0001F4B5",       value=1_000),
+    app_commands.Choice(name="5.000 \U0001F4B5",       value=5_000),
+    app_commands.Choice(name="10.000 \U0001F4B5",      value=10_000),
+    app_commands.Choice(name="25.000 \U0001F4B5",      value=25_000),
+    app_commands.Choice(name="50.000 \U0001F4B5",      value=50_000),
+    app_commands.Choice(name="100.000 \U0001F4B5",     value=100_000),
+    app_commands.Choice(name="250.000 \U0001F4B5",     value=250_000),
+    app_commands.Choice(name="500.000 \U0001F4B5",     value=500_000),
+    app_commands.Choice(name="1.000.000 \U0001F4B5",   value=1_000_000),
 ]
 
 LIMIT_CHOICES = [
-    app_commands.Choice(name="1.000.000 💵",   value=1_000_000),
-    app_commands.Choice(name="2.000.000 💵",   value=2_000_000),
-    app_commands.Choice(name="3.000.000 💵",   value=3_000_000),
-    app_commands.Choice(name="4.000.000 💵",   value=4_000_000),
-    app_commands.Choice(name="5.000.000 💵",   value=5_000_000),
-    app_commands.Choice(name="6.000.000 💵",   value=6_000_000),
-    app_commands.Choice(name="7.000.000 💵",   value=7_000_000),
-    app_commands.Choice(name="8.000.000 💵",   value=8_000_000),
-    app_commands.Choice(name="9.000.000 💵",   value=9_000_000),
-    app_commands.Choice(name="10.000.000 💵",  value=10_000_000),
+    app_commands.Choice(name="1.000.000 \U0001F4B5",   value=1_000_000),
+    app_commands.Choice(name="2.000.000 \U0001F4B5",   value=2_000_000),
+    app_commands.Choice(name="3.000.000 \U0001F4B5",   value=3_000_000),
+    app_commands.Choice(name="4.000.000 \U0001F4B5",   value=4_000_000),
+    app_commands.Choice(name="5.000.000 \U0001F4B5",   value=5_000_000),
+    app_commands.Choice(name="6.000.000 \U0001F4B5",   value=6_000_000),
+    app_commands.Choice(name="7.000.000 \U0001F4B5",   value=7_000_000),
+    app_commands.Choice(name="8.000.000 \U0001F4B5",   value=8_000_000),
+    app_commands.Choice(name="9.000.000 \U0001F4B5",   value=9_000_000),
+    app_commands.Choice(name="10.000.000 \U0001F4B5",  value=10_000_000),
 ]
 
 # Persistenter Datenspeicher
@@ -147,7 +147,7 @@ HANDY_FILE           = DATA_DIR / "handy_numbers.json"
 CASINO_COOLDOWN_FILE = DATA_DIR / "casino_cooldown.json"
 SAVED_ROLES_FILE     = DATA_DIR / "saved_roles.json"
 
-# ── Casino Kanal-IDs ─────────────────────────────────────────
+# \u2500\u2500 Casino Kanal-IDs \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 CASINO_CHANNEL_ID     = 1490889784753782784
 CASINO_LOG_CHANNEL_ID = 1490878131240829028
 
@@ -167,11 +167,11 @@ AUSWEIS_CHANNEL_ID  = 1490882590012604538
 LEGAL_ROLE_ID       = 1490855729635135489
 ILLEGAL_ROLE_ID     = 1490855730767597738
 
-# ── Führerschein System ─────────────────────────────────────
+# \u2500\u2500 F\u00FChrerschein System \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 FUEHRERSCHEIN_ERSTELLEN_ROLE_ID = 1490855755296014446
 FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID = 1490855751797969039
 
-# ── Rechnungs-System ─────────────────────────────────────────
+# \u2500\u2500 Rechnungs-System \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 LAMD_ROLE_ID        = 1490855752712327210
 LAPD_ROLE_ID        = 1490855751797969039  # identisch mit FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID
 LACS_ROLE_ID        = 1490855754213753024
@@ -179,16 +179,16 @@ RECHNUNGEN_CHANNEL_ID = 1492314171373649983
 LSPD_ROLE_ID          = 1490855749008621659
 RECHNUNGEN_FILE     = DATA_DIR / "rechnungen_data.json"
 
-# ── Command-Berechtigungs-Rollen ─────────────────────────────
+# \u2500\u2500 Command-Berechtigungs-Rollen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 WARN_ROLE_ID        = 1490855711674994688  # /warn, /warn-list, /remove-warn
 SHOP_ADMIN_ROLE_ID  = 1490855717354213388  # /shop-add, /delete-item
 ITEM_MANAGE_ROLE_ID = 1490855718658510908  # /item-add, /remove-item
 MONEY_ADD_ROLE_1_ID = 1490855647259136053  # /money-add
 MONEY_ADD_ROLE_2_ID = 1490855648978669599  # /money-add
 
-# ── Handy System ─────────────────────────────────────────────
+# \u2500\u2500 Handy System \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 HANDY_CHANNEL_ID      = 1490890317199708160
-HANDY_ITEM_NAME       = "📱| Handy"
+HANDY_ITEM_NAME       = "\U0001F4F1| Handy"
 
 DISPATCH_MD_ROLE_ID   = 1490855752712327210
 DISPATCH_PD_ROLE_ID   = 1490855751797969039
@@ -219,7 +219,7 @@ VULGAR_WORDS = [
     "neger", "nigger", "wichsen", "schlampe", "nutte", "hure",
     "wixer", "drecksau", "scheisskopf", "pisser", "dreckssack",
     "mongo", "spast", "vollidiot", "schwachkopf", "dreckskerl",
-    "mistkerl", "penner", "hurenkind", "dummficker", "scheiß",
+    "mistkerl", "penner", "hurenkind", "dummficker", "schei\u00DF",
 ]
 
 spam_tracker     = {}
@@ -230,7 +230,7 @@ counting_handled = set()
 FEATURES = {
     "Discord Link Schutz":         True,
     "Link Filter (Memes)":         True,
-    "Vulgäre Wörter Filter":       True,
+    "Vulg\u00E4re W\u00F6rter Filter":       True,
     "Spam Schutz":                 True,
     "Nachrichten Log":             True,
     "Bearbeitungs Log":            True,
@@ -241,26 +241,26 @@ FEATURES = {
     "Fehler Logging":              True,
     "Rollen-Entfernung (Timeout)": True,
     "Ticket System":               True,
-    "Zähl-Kanal":                  True,
+    "Z\u00E4hl-Kanal":                  True,
     "Economy System":              True,
     "Handy System":                True,
 }
 
-# ── Event System ─────────────────────────────────────────────
+# \u2500\u2500 Event System \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 EVENT_ANNOUNCEMENT_CHANNEL_ID = 1490882564561567864
 EVENT_PING_ROLE_ID             = 1490855737130221598
 
-# ── Giveaway ─────────────────────────────────────────────────
+# \u2500\u2500 Giveaway \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 GIVEAWAY_CHANNEL_ID = 1490882565618536551
 
-# ── Kartenkontrolle ──────────────────────────────────────────
+# \u2500\u2500 Kartenkontrolle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 KARTENKONTROLLE_CHANNEL_ID = 1491116234459185162
 
-# ── Team Übersicht ────────────────────────────────────────────
+# \u2500\u2500 Team \u00DCbersicht \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 TEAM_OVERVIEW_CHANNEL_ID = 1490882570899030136
 DUTY_FILE = DATA_DIR / "duty_status.json"
 
-# Rollen die im Team-Embed angezeigt werden (nur IDs — Name kommt vom Server)
+# Rollen die im Team-Embed angezeigt werden (nur IDs \u2014 Name kommt vom Server)
 TEAM_ROLES = [
     1490855647259136053,
     1490855648978669599,
@@ -284,5 +284,5 @@ TEAM_ROLES = [
     1490855695912931329,
 ]
 
-# Set für schnelle Zugriffsprüfung (Button-Berechtigung)
+# Set f\u00FCr schnelle Zugriffspr\u00FCfung (Button-Berechtigung)
 TEAM_ROLE_IDS = set(TEAM_ROLES)
