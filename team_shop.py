@@ -4,14 +4,11 @@
 # Paradise City Roleplay Discord Bot
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-import json
 import re
 from config import *
-from economy_helpers import load_economy, save_economy, get_user
+from economy_helpers import load_economy, save_economy, get_user, load_team_shop, save_team_shop
 
 # \u2500\u2500 Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-_TEAM_SHOP_FILE = DATA_DIR / "team_shop_data.json"
 
 _PAGE_SIZE = 15
 
@@ -19,20 +16,6 @@ _PAGE_SIZE = 15
 def _is_team(member: discord.Member) -> bool:
     role_ids = {r.id for r in member.roles}
     return bool(role_ids & {ADMIN_ROLE_ID, MOD_ROLE_ID, SHOP_ADMIN_ROLE_ID})
-
-
-def load_team_shop() -> list:
-    if _TEAM_SHOP_FILE.exists():
-        try:
-            return json.load(open(_TEAM_SHOP_FILE, encoding="utf-8"))
-        except Exception:
-            pass
-    return []
-
-
-def save_team_shop(items: list):
-    with open(_TEAM_SHOP_FILE, "w", encoding="utf-8") as f:
-        json.dump(items, f, ensure_ascii=False, indent=2)
 
 
 def _find_team_item(items: list, query: str) -> dict | None:
@@ -196,45 +179,6 @@ async def items_cmd(interaction: discord.Interaction):
     embed, total_pages = _build_team_embed(page=0)
     view = TeamShopView(page=0, total_pages=total_pages)
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-
-# \u2500\u2500 /items-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-@bot.tree.command(
-    name="items-add",
-    description="[Team] F\u00FCge ein Item zum Team-Shop hinzu",
-    guild=discord.Object(id=GUILD_ID)
-)
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(itemname="Name des Items")
-async def items_add(interaction: discord.Interaction, itemname: str):
-    if not _is_team(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
-    itemname = itemname.strip()
-    if not itemname:
-        await interaction.response.send_message("\u274C Bitte einen g\u00FCltigen Namen angeben.", ephemeral=True)
-        return
-
-    items = load_team_shop()
-    if _find_team_item(items, itemname):
-        await interaction.response.send_message(
-            f"\u274C **{itemname}** existiert bereits im Team-Shop.", ephemeral=True
-        )
-        return
-
-    items.append({"name": itemname})
-    save_team_shop(items)
-
-    embed = discord.Embed(
-        title="\u2705 Item hinzugef\u00FCgt",
-        description=f"\u27A4 **{itemname}** wurde zum Team-Shop hinzugef\u00FCgt.",
-        color=0x2ECC71,
-        timestamp=datetime.now(timezone.utc),
-    )
-    embed.set_footer(text=f"Hinzugef\u00FCgt von {interaction.user.display_name}")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # \u2500\u2500 /items-delete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
