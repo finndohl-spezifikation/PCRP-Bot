@@ -401,20 +401,67 @@ class BuyItemSelect(discord.ui.Select):
             )
             options.append(opt)
         super().__init__(
-            placeholder="\U0001F6D2 Item kaufen \u2014 hier ausw\u00E4hlen...",
+            placeholder="\U0001F6D2 Items ausw\u00E4hlen (Mehrfachauswahl m\u00F6glich)...",
             min_values=1,
-            max_values=1,
+            max_values=len(options),
             options=options
         )
 
     async def callback(self, interaction: discord.Interaction):
-        item_name = self.values[0]
-        items     = load_shop()
-        item      = find_shop_item(items, item_name)
-        if not item:
-            await interaction.response.send_message("\u274C Item nicht mehr verf\u00FCgbar.", ephemeral=True)
+        if len(self.values) == 1:
+            items = load_shop()
+            item  = find_shop_item(items, self.values[0])
+            if not item:
+                await interaction.response.send_message("\u274C Item nicht mehr verf\u00FCgbar.", ephemeral=True)
+                return
+            await interaction.response.send_modal(BuyMengeModal(item, self.shop_key))
             return
-        await interaction.response.send_modal(BuyMengeModal(item, self.shop_key))
+
+        # Mehrfachauswahl: alle gew\u00E4hlten Items mit Menge 1 in den Warenkorb
+        items_db = load_shop()
+        uid      = interaction.user.id
+        cart     = _SHOP_CARTS.setdefault(uid, [])
+        added    = []
+        missing  = []
+
+        for name in self.values:
+            item = find_shop_item(items_db, name)
+            if not item:
+                missing.append(name)
+                continue
+            for entry in cart:
+                if entry["name"] == item["name"] and entry["shop"] == self.shop_key:
+                    entry["qty"] += 1
+                    break
+            else:
+                cart.append({"name": item["name"], "qty": 1, "price": item["price"], "shop": self.shop_key})
+            added.append(item["name"])
+
+        eco      = load_economy()
+        ud       = get_user(eco, uid)
+        cash     = int(ud.get("cash", 0))
+        subtotal = sum(c["price"] * c["qty"] for c in cart)
+
+        lines = []
+        for c in cart:
+            c_clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', c["name"]).strip()
+            lines.append(f"\u27A4 **{c_clean}** \u00D7 {c['qty']} \u2014 `{c['price'] * c['qty']:,} \U0001F4B5`")
+
+        sep   = "\u2015" * 22
+        embed = discord.Embed(
+            title="\U0001F6D2 Warenkorb",
+            description=sep + "\n" + "\n".join(lines) + "\n" + sep,
+            color=0x3498DB,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="\U0001F4B0 Zwischensumme", value=f"**{subtotal:,} $**", inline=True)
+        embed.add_field(name="\U0001F4B5 Dein Bargeld",  value=f"**{cash:,} $**",      inline=True)
+        if missing:
+            embed.add_field(name="\u26A0\uFE0F Nicht gefunden", value=", ".join(missing), inline=False)
+        if cash < subtotal:
+            embed.add_field(name="\u26A0\uFE0F Hinweis", value="Nicht genug Bargeld f\u00FCr den gesamten Warenkorb!", inline=False)
+        embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
+        await interaction.response.send_message(embed=embed, view=CartCheckoutView(uid, interaction.guild), ephemeral=True)
 
 
 # \u2500\u2500 Warenkorb-Checkout-View \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
