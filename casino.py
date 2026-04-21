@@ -1,130 +1,145 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# casino.py — Rubbellos-System (interaktives Rubbeln)
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# casino.py \u2014 Rubbellos-System (interaktives Rubbeln)
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from typing import Optional
 from config import *
 from helpers import log_bot_error
 from economy_helpers import (
-    load_economy, save_economy, get_user, load_shop, save_shop, normalize_item_name
+    load_economy, save_economy, get_user, load_shop, save_shop,
+    load_team_shop, normalize_item_name
 )
 
-RUBBELLOS_ITEM  = "🎟️| Rubbellos"
+RUBBELLOS_ITEM  = "\u1F39F\uFE0F| Rubbellos"
 RUBBELLOS_PREIS = 1_000
 
-# Speichert die letzte Rubbellos-Nachricht pro User für automatisches Löschen
+# Speichert die letzte Rubbellos-Nachricht pro User f\u00FCr automatisches L\u00F6schen
 _active_scratch_messages: dict[int, discord.WebhookMessage] = {}
 
 CASINO_PRIZES = [
     {
         "id":           "niete",
-        "label":        "❌  Niete",
-        "symbol":       "❌",
+        "label":        "\u274C  Niete",
+        "symbol":       "\u274C",
         "weight":       30,
         "typ":          "niete",
-        "beschreibung": "Leider eine **Niete** — vielleicht beim nächsten Mal!",
+        "beschreibung": "Leider eine **Niete** \u2014 vielleicht beim n\u00E4chsten Mal!",
     },
     {
         "id":           "geld1k",
-        "label":        "💵  1.000 $",
-        "symbol":       "💵 1K",
+        "label":        "\u1F4B5  1.000 $",
+        "symbol":       "\u1F4B5 1K",
         "weight":       10,
         "typ":          "geld",
         "betrag":       1_000,
-        "beschreibung": "**1.000 $** wurden auf dein Bankkonto überwiesen!",
+        "beschreibung": "**1.000 $** wurden auf dein Bankkonto \u00FCberwiesen!",
     },
     {
         "id":           "geld2500",
-        "label":        "💵  2.500 $",
-        "symbol":       "💵 2.5K",
+        "label":        "\u1F4B5  2.500 $",
+        "symbol":       "\u1F4B5 2.5K",
         "weight":       20,
         "typ":          "geld",
         "betrag":       2_500,
-        "beschreibung": "**2.500 $** wurden auf dein Bankkonto überwiesen!",
+        "beschreibung": "**2.500 $** wurden auf dein Bankkonto \u00FCberwiesen!",
     },
     {
         "id":           "geld5k",
-        "label":        "💰  5.000 $",
-        "symbol":       "💰 5K",
+        "label":        "\u1F4B0  5.000 $",
+        "symbol":       "\u1F4B0 5K",
         "weight":       5,
         "typ":          "geld",
         "betrag":       5_000,
-        "beschreibung": "**5.000 $** wurden auf dein Bankkonto überwiesen!",
+        "beschreibung": "**5.000 $** wurden auf dein Bankkonto \u00FCberwiesen!",
     },
     {
         "id":           "geld10k",
-        "label":        "💰  10.000 $",
-        "symbol":       "💰 10K",
+        "label":        "\u1F4B0  10.000 $",
+        "symbol":       "\u1F4B0 10K",
         "weight":       5,
         "typ":          "geld",
         "betrag":       10_000,
-        "beschreibung": "**10.000 $** wurden auf dein Bankkonto überwiesen!",
+        "beschreibung": "**10.000 $** wurden auf dein Bankkonto \u00FCberwiesen!",
     },
     {
         "id":           "geld25k",
-        "label":        "🤑  25.000 $",
-        "symbol":       "🤑 25K",
+        "label":        "\u1F911  25.000 $",
+        "symbol":       "\u1F911 25K",
         "weight":       2,
         "typ":          "geld",
         "betrag":       25_000,
-        "beschreibung": "**25.000 $** wurden auf dein Bankkonto überwiesen!",
+        "beschreibung": "**25.000 $** wurden auf dein Bankkonto \u00FCberwiesen!",
     },
     {
         "id":           "marlboro",
-        "label":        "🚬  10× Marlboro Rot",
-        "symbol":       "🚬",
+        "label":        "\u1F6AC  10\u00D7 Marlboro Rot",
+        "symbol":       "\u1F6AC",
         "weight":       8,
         "typ":          "item",
-        "item":         "🚬| Marlboro Rot",
+        "item":         "\u1F6AC| Marlboro Rot",
         "menge":        10,
-        "beschreibung": "**10× 🚬| Marlboro Rot** wurden deinem Inventar hinzugefügt!",
+        "beschreibung": "**10\u00D7 \u1F6AC| Marlboro Rot** wurden deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "efahrrad",
-        "label":        "🚲  Elektro Fahrrad",
-        "symbol":       "🚲",
+        "label":        "\u1F6B2  Elektro Fahrrad",
+        "symbol":       "\u1F6B2",
         "weight":       3,
         "typ":          "item",
-        "item":         "🚲| Elektro Fahrrad",
+        "item":         "\u1F6B2| Elektro Fahrrad",
         "menge":        1,
-        "beschreibung": "**1× 🚲| Elektro Fahrrad** wurde deinem Inventar hinzugefügt!",
+        "beschreibung": "**1\u00D7 \u1F6B2| Elektro Fahrrad** wurde deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "golfschlaeger",
-        "label":        "🏌️  Golfschläger",
-        "symbol":       "🏌️",
+        "label":        "\u1F3CC\uFE0F  Golfschl\u00E4ger",
+        "symbol":       "\u1F3CC\uFE0F",
         "weight":       7,
         "typ":          "item",
-        "item":         "🏌️| Golfschläger",
+        "item":         "\u1F3CC\uFE0F| Golfschl\u00E4ger",
         "menge":        1,
-        "beschreibung": "**1× 🏌️| Golfschläger** wurde deinem Inventar hinzugefügt!",
+        "beschreibung": "**1\u00D7 \u1F3CC\uFE0F| Golfschl\u00E4ger** wurde deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "lottolos",
-        "label":        "🎟  Lottoschein",
-        "symbol":       "🎟",
+        "label":        "\u1F39F  Lottoschein",
+        "symbol":       "\u1F39F",
         "weight":       5,
         "typ":          "item",
-        "item":         "🎟| Lottoschein",
+        "item":         "\u1F39F| Lottoschein",
         "menge":        1,
-        "beschreibung": "**1× 🎟| Lottoschein** wurde deinem Inventar hinzugefügt!",
+        "beschreibung": "**1\u00D7 \u1F39F| Lottoschein** wurde deinem Inventar hinzugef\u00FCgt!",
     },
     {
         "id":           "autohaus",
-        "label":        "🚘  20% Gutschein Autohaus",
-        "symbol":       "🚘",
+        "label":        "\u1F698  20% Gutschein Autohaus",
+        "symbol":       "\u1F698",
         "weight":       5,
         "typ":          "item",
-        "item":         "🚘| 20% Autohaus Gutschein",
+        "item":         "\u1F698| 20% Autohaus Gutschein",
         "menge":        1,
-        "beschreibung": "**1× 🚘| 20% Autohaus Gutschein** wurde deinem Inventar hinzugefügt!",
+        "beschreibung": "**1\u00D7 \u1F698| 20% Autohaus Gutschein** wurde deinem Inventar hinzugef\u00FCgt!",
     },
 ]
 
-# Alle verfügbaren Symbole für Felder — Niete-Symbol wird NICHT als Feld angezeigt
+# Alle verf\u00FCgbaren Symbole f\u00FCr Felder \u2014 Niete-Symbol wird NICHT als Feld angezeigt
 _ALL_SYMBOLS = [p["symbol"] for p in CASINO_PRIZES if p["typ"] != "niete"]
+
+
+def _resolve_prize_item(prize_name: str) -> str:
+    """Sucht den exakten Item-Namen zuerst im Team-Shop, dann im normalen Shop.
+    Gibt den gefundenen Namen zur\u00FCck, oder den Original-Namen falls nirgends gefunden.
+    Erstellt KEINE neuen Items."""
+    norm = normalize_item_name(prize_name)
+    for item in load_team_shop():
+        if normalize_item_name(item["name"]) == norm:
+            return item["name"]
+    for item in load_shop():
+        if normalize_item_name(item["name"]) == norm:
+            return item["name"]
+    return prize_name
 
 
 def _ensure_casino_shop_items():
@@ -142,16 +157,16 @@ def _pick_prize() -> dict:
 
 def _generate_card_values(prize: dict) -> list[str]:
     """
-    Erstellt 9 Feld-Symbole für das Rubbellos.
+    Erstellt 9 Feld-Symbole f\u00FCr das Rubbellos.
     Nur echte Gewinn-Symbole werden verwendet.
-    Gewinn: Gewinn-Symbol genau 3× + 6 andere Symbole (max. 2× gleich).
-    Niete:  9 Symbole, kein Symbol 3× vorhanden.
+    Gewinn: Gewinn-Symbol genau 3\u00D7 + 6 andere Symbole (max. 2\u00D7 gleich).
+    Niete:  9 Symbole, kein Symbol 3\u00D7 vorhanden.
     """
     from collections import Counter
 
     if prize["typ"] == "niete":
-        # Alle Symbole außer Niete als mögliche Füller, max 2× das gleiche
-        pool = [s for s in _ALL_SYMBOLS if s != "❌"]
+        # Alle Symbole au\u00DFer Niete als m\u00F6gliche F\u00FCller, max 2\u00D7 das gleiche
+        pool = [s for s in _ALL_SYMBOLS if s != "\u274C"]
         while True:
             cells = random.choices(pool, k=9)
             if max(Counter(cells).values()) <= 2:
@@ -162,7 +177,7 @@ def _generate_card_values(prize: dict) -> list[str]:
         while True:
             fillers = random.choices(others, k=6)
             cells   = [win_sym, win_sym, win_sym] + fillers
-            # Sicherstellen, dass kein anderes Symbol auch 3× vorkommt
+            # Sicherstellen, dass kein anderes Symbol auch 3\u00D7 vorkommt
             counts = Counter(fillers)
             if max(counts.values()) <= 2:
                 random.shuffle(cells)
@@ -181,32 +196,32 @@ def _build_scratch_embed(
     if done and prize:
         if prize["typ"] == "niete":
             color = 0xFF4444
-            title = "🎟️ Rubbellos — Leider Niete!"
+            title = "\u1F39F\uFE0F Rubbellos \u2014 Leider Niete!"
         else:
             color = 0x2ECC71
-            title = "🎟️ Rubbellos — Gewonnen!"
+            title = "\u1F39F\uFE0F Rubbellos \u2014 Gewonnen!"
         desc = (
-            f"🎯 **Ergebnis:** {prize['beschreibung']}"
+            f"\u1F3AF **Ergebnis:** {prize['beschreibung']}"
         )
     else:
         color = 0xE67E22
-        title = "🎟️ Rubbellos — Rubbele alle Felder frei!"
-        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} übrig — klick die 🎫 Buttons!"
+        title = "\u1F39F\uFE0F Rubbellos \u2014 Rubbele alle Felder frei!"
+        desc  = f"Noch **{remaining}** Feld{'er' if remaining != 1 else ''} \u00FCbrig \u2014 klick die \u1F3AB Buttons!"
 
     embed = discord.Embed(title=title, description=desc, color=color,
                           timestamp=datetime.now(timezone.utc))
     if member:
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"{member.display_name} • Nur du siehst diese Nachricht")
+        embed.set_footer(text=f"{member.display_name} \u2022 Nur du siehst diese Nachricht")
     return embed
 
 
-# ── Scratch-Button ────────────────────────────────────────────
+# \u2500\u2500 Scratch-Button \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class ScratchButton(discord.ui.Button):
     def __init__(self, index: int, row_num: int):
         super().__init__(
-            label="🎫",
+            label="\u1F3AB",
             style=discord.ButtonStyle.secondary,
             row=row_num,
             custom_id=f"scratch_cell:{index}:{uuid.uuid4().hex[:8]}",
@@ -218,7 +233,7 @@ class ScratchButton(discord.ui.Button):
 
         if interaction.user.id != view.owner_id:
             await interaction.response.send_message(
-                "❌ Das ist nicht dein Rubbellos!", ephemeral=True
+                "\u274C Das ist nicht dein Rubbellos!", ephemeral=True
             )
             return
 
@@ -278,8 +293,9 @@ async def _payout_and_log(interaction: discord.Interaction, prize: dict):
         save_economy(eco)
 
     elif prize["typ"] == "item":
+        resolved  = _resolve_prize_item(prize["item"])
         inventory = user_data.setdefault("inventory", [])
-        inventory.extend([prize["item"]] * prize["menge"])
+        inventory.extend([resolved] * prize["menge"])
         save_economy(eco)
 
     elif prize["typ"] == "sportwagen":
@@ -295,7 +311,7 @@ async def _payout_and_log(interaction: discord.Interaction, prize: dict):
             else (0xFF4444 if prize["typ"] == "niete" else 0xE67E22)
         )
         log_embed = discord.Embed(
-            title="🎟️ Rubbellos — Gewinn",
+            title="\u1F39F\uFE0F Rubbellos \u2014 Gewinn",
             description=(
                 f"**Spieler:** {member.mention} (`{member}`)\n"
                 f"**Gewinn:** {prize['label'].strip()}\n"
@@ -311,14 +327,14 @@ async def _payout_and_log(interaction: discord.Interaction, prize: dict):
             pass
 
 
-# ── Haupt-Button im Casino-Channel ────────────────────────────
+# \u2500\u2500 Haupt-Button im Casino-Channel \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class CasinoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="🎟️| Rubbeln",
+        label="\u1F39F\uFE0F| Rubbeln",
         style=discord.ButtonStyle.primary,
         custom_id="casino_drehen",
     )
@@ -327,7 +343,7 @@ class CasinoView(discord.ui.View):
 
         if not any(r.id == CITIZEN_ROLE_ID for r in member.roles):
             await interaction.response.send_message(
-                "❌ Du benötigst die **Bewohner**-Rolle um ein Rubbellos einzulösen.",
+                "\u274C Du ben\u00F6tigst die **Bewohner**-Rolle um ein Rubbellos einzul\u00F6sen.",
                 ephemeral=True,
             )
             return
@@ -343,8 +359,8 @@ class CasinoView(discord.ui.View):
         )
         if idx is None:
             await interaction.response.send_message(
-                f"❌ Du hast kein **{RUBBELLOS_ITEM}** in deinem Inventar.\n"
-                f"Kaufe eines im Shop für **{RUBBELLOS_PREIS:,} $**!",
+                f"\u274C Du hast kein **{RUBBELLOS_ITEM}** in deinem Inventar.\n"
+                f"Kaufe eines im Shop f\u00FCr **{RUBBELLOS_PREIS:,} $**!",
                 ephemeral=True,
             )
             return
@@ -353,7 +369,7 @@ class CasinoView(discord.ui.View):
         inventory.pop(idx)
         save_economy(eco)
 
-        # Alte Rubbellos-Nachricht dieses Users löschen
+        # Alte Rubbellos-Nachricht dieses Users l\u00F6schen
         if member.id in _active_scratch_messages:
             try:
                 await _active_scratch_messages[member.id].delete()
@@ -376,7 +392,7 @@ class CasinoView(discord.ui.View):
         _active_scratch_messages[member.id] = msg
 
 
-# ── Embed-Setup im Casino-Channel ─────────────────────────────
+# \u2500\u2500 Embed-Setup im Casino-Channel \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 _CASINO_MSG_FILE = DATA_DIR / "casino_msg.json"
 
@@ -399,25 +415,25 @@ async def auto_casino_setup():
         if not channel:
             continue
 
-        prize_lines = "\n".join(f"　 {p['label']}" for p in CASINO_PRIZES)
+        prize_lines = "\n".join(f"\u3000 {p['label']}" for p in CASINO_PRIZES)
         embed = discord.Embed(
-            title="🎟️ Rubbellose",
+            title="\u1F39F\uFE0F Rubbellose",
             description=(
                 f"{prize_lines}\n\n"
-                "──────────────────────\n"
-                f"🛒 **Kaufe ein Rubbellos** im Shop für **{RUBBELLOS_PREIS:,} $**.\n"
-                "🎟️ **Drücke den Button** um dein Rubbellos einzulösen.\n\n"
-                "💡 *Rubbele alle 9 Felder frei — 3× dasselbe Symbol = Gewinn!*\n"
-                "🏆 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
+                "\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n"
+                f"\u1F6D2 **Kaufe ein Rubbellos** im Shop f\u00FCr **{RUBBELLOS_PREIS:,} $**.\n"
+                "\u1F39F\uFE0F **Dr\u00FCcke den Button** um dein Rubbellos einzul\u00F6sen.\n\n"
+                "\u1F4A1 *Rubbele alle 9 Felder frei \u2014 3\u00D7 dasselbe Symbol = Gewinn!*\n"
+                "\u1F3C6 *Beim Sportwagen-Hauptgewinn bitte ein Ticket erstellen!*"
             ),
             color=0xE67E22,
             timestamp=datetime.now(timezone.utc),
         )
         embed.set_author(
-            name="🎟️ Paradise City Roleplay — Rubbellose",
+            name="\u1F39F\uFE0F Paradise City Roleplay \u2014 Rubbellose",
             icon_url=bot.user.display_avatar.url,
         )
-        embed.set_footer(text="Paradise City Roleplay • Rubbellose | Viel Glück! 🍀")
+        embed.set_footer(text="Paradise City Roleplay \u2022 Rubbellose | Viel Gl\u00FCck! \u1F340")
         embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/rubbellos.jpg")
         view = CasinoView()
 
