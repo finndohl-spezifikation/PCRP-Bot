@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# einreise.py — Einreise- & Ausweis-System
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# einreise.py \u2014 Einreise- & Ausweis-System
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from helpers import log_bot_error
 
 
-# ── Ausweis Helpers ──────────────────────────────────────────
+# \u2500\u2500 Ausweis Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_ausweis():
     if AUSWEIS_FILE.exists():
@@ -30,34 +30,36 @@ def generate_ausweisnummer():
 
 async def _assign_charakter_rollen(member: discord.Member, guild: discord.Guild,
                                     einreise_typ: str):
-    role_id = LEGAL_ROLE_ID if einreise_typ == "legal" else ILLEGAL_ROLE_ID
-    role    = guild.get_role(role_id)
-    if role:
-        try:
+    if not guild:
+        return
+    try:
+        role_id = LEGAL_ROLE_ID if einreise_typ == "legal" else ILLEGAL_ROLE_ID
+        role    = guild.get_role(role_id)
+        if role:
             await member.add_roles(role, reason=f"Einreise: {einreise_typ}")
-        except Exception:
-            pass
+    except Exception:
+        pass
 
-    rollen = [guild.get_role(rid) for rid in CHARAKTER_ROLLEN if guild.get_role(rid)]
-    if rollen:
-        try:
+    try:
+        rollen = [guild.get_role(rid) for rid in CHARAKTER_ROLLEN if guild.get_role(rid)]
+        if rollen:
             await member.add_roles(*rollen, reason="Charakter erstellt")
-        except Exception:
-            pass
+    except Exception:
+        pass
 
-    bewerber = guild.get_role(BEWERBER_ROLE_ID)
-    if bewerber and bewerber in member.roles:
-        try:
+    try:
+        bewerber = guild.get_role(BEWERBER_ROLE_ID)
+        if bewerber and bewerber in member.roles:
             await member.remove_roles(bewerber, reason="Ausweis erstellt")
-        except Exception:
-            pass
+    except Exception:
+        pass
 
 
-# ── Spieler-Modal ─────────────────────────────────────────────
+# \u2500\u2500 Spieler-Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-class AusweisModal(discord.ui.Modal, title="🪪 Ausweis erstellen"):
+class AusweisModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen"):
     vollstaendiger_name = discord.ui.TextInput(
-        label="Vollständiger Name (Vorname Nachname)",
+        label="Vollst\u00E4ndiger Name (Vorname Nachname)",
         placeholder="z.B. Max Mustermann",
         max_length=100,
     )
@@ -72,7 +74,7 @@ class AusweisModal(discord.ui.Modal, title="🪪 Ausweis erstellen"):
         max_length=3,
     )
     nationalitaet = discord.ui.TextInput(
-        label="Nationalität",
+        label="Nationalit\u00E4t",
         placeholder="z.B. Deutsch",
         max_length=50,
     )
@@ -95,7 +97,7 @@ class AusweisModal(discord.ui.Modal, title="🪪 Ausweis erstellen"):
         nachname   = name_parts[1] if len(name_parts) > 1 else "?"
 
         ausweisnummer = generate_ausweisnummer()
-        typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
+        typ_label     = "\U0001F935 Legale Einreise" if self.einreise_typ == "legal" else "\U0001F977 Illegale Einreise"
 
         ausweis_data = load_ausweis()
         ausweis_data[str(member.id)] = {
@@ -115,7 +117,7 @@ class AusweisModal(discord.ui.Modal, title="🪪 Ausweis erstellen"):
         await _assign_charakter_rollen(member, guild, self.einreise_typ)
 
         embed = discord.Embed(
-            title="🪪 Ausweis ausgestellt",
+            title="\U0001FAAA Ausweis ausgestellt",
             description="Dein Ausweis wurde erfolgreich erstellt!",
             color=0x000000,
             timestamp=datetime.now(timezone.utc),
@@ -123,21 +125,32 @@ class AusweisModal(discord.ui.Modal, title="🪪 Ausweis erstellen"):
         embed.add_field(name="Name",          value=f"{vorname} {nachname}",         inline=True)
         embed.add_field(name="Geburtsdatum",  value=str(self.geburtsdatum),           inline=True)
         embed.add_field(name="Alter",         value=str(self.alter),                  inline=True)
-        embed.add_field(name="Nationalität",  value=str(self.nationalitaet),         inline=True)
+        embed.add_field(name="Nationalit\u00E4t",  value=str(self.nationalitaet),         inline=True)
         embed.add_field(name="Wohnort",       value=str(self.wohnort),               inline=True)
         embed.add_field(name="Einreiseart",   value=typ_label,                        inline=True)
         embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",            inline=False)
         embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text="Paradise City Roleplay — Ausweis")
+        embed.set_footer(text="Paradise City Roleplay \u2014 Ausweis")
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        import traceback, logging
+        logging.error(f"[AusweisModal] on_submit Fehler: {error}\n{traceback.format_exc()}")
+        try:
+            await interaction.response.send_message(
+                "\u274C Beim Erstellen des Ausweises ist ein Fehler aufgetreten. Bitte versuche es erneut oder kontaktiere einen Admin.",
+                ephemeral=True
+            )
+        except Exception:
+            pass
 
-# ── Admin-Modal ───────────────────────────────────────────────
 
-class AusweisCreateModal(discord.ui.Modal, title="🪪 Ausweis erstellen (Team)"):
+# \u2500\u2500 Admin-Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class AusweisCreateModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen (Team)"):
     vollstaendiger_name = discord.ui.TextInput(
-        label="Vollständiger Name (Vorname Nachname)",
+        label="Vollst\u00E4ndiger Name (Vorname Nachname)",
         placeholder="z.B. Max Mustermann",
         max_length=100,
     )
@@ -152,7 +165,7 @@ class AusweisCreateModal(discord.ui.Modal, title="🪪 Ausweis erstellen (Team)"
         max_length=3,
     )
     nationalitaet = discord.ui.TextInput(
-        label="Nationalität / Herkunft",
+        label="Nationalit\u00E4t / Herkunft",
         placeholder="z.B. Deutsch",
         max_length=50,
     )
@@ -177,7 +190,7 @@ class AusweisCreateModal(discord.ui.Modal, title="🪪 Ausweis erstellen (Team)"
         nachname   = name_parts[1] if len(name_parts) > 1 else "?"
 
         ausweisnummer = generate_ausweisnummer()
-        typ_label     = "🤵 Legale Einreise" if self.einreise_typ == "legal" else "🥷 Illegale Einreise"
+        typ_label     = "\U0001F935 Legale Einreise" if self.einreise_typ == "legal" else "\U0001F977 Illegale Einreise"
 
         ausweis_data = load_ausweis()
         ausweis_data[str(member.id)] = {
@@ -198,7 +211,7 @@ class AusweisCreateModal(discord.ui.Modal, title="🪪 Ausweis erstellen (Team)"
         await _assign_charakter_rollen(member, guild, self.einreise_typ)
 
         embed = discord.Embed(
-            title="🪪 Ausweis erstellt",
+            title="\U0001FAAA Ausweis erstellt",
             color=0x000000,
             timestamp=datetime.now(timezone.utc),
         )
@@ -206,7 +219,7 @@ class AusweisCreateModal(discord.ui.Modal, title="🪪 Ausweis erstellen (Team)"
         embed.add_field(name="Name",          value=f"{vorname} {nachname}",                 inline=True)
         embed.add_field(name="Geburtsdatum",  value=str(self.geburtsdatum),                  inline=True)
         embed.add_field(name="Alter",         value=str(self.alter),                         inline=True)
-        embed.add_field(name="Nationalität",  value=str(self.nationalitaet),                inline=True)
+        embed.add_field(name="Nationalit\u00E4t",  value=str(self.nationalitaet),                inline=True)
         embed.add_field(name="Wohnort",       value=str(self.wohnort),                       inline=True)
         embed.add_field(name="Einreiseart",   value=typ_label,                               inline=True)
         embed.add_field(name="Ausweisnummer", value=f"`{ausweisnummer}`",                   inline=False)
@@ -214,27 +227,38 @@ class AusweisCreateModal(discord.ui.Modal, title="🪪 Ausweis erstellen (Team)"
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        import traceback, logging
+        logging.error(f"[AusweisCreateModal] on_submit Fehler: {error}\n{traceback.format_exc()}")
+        try:
+            await interaction.response.send_message(
+                "\u274C Beim Erstellen des Ausweises ist ein Fehler aufgetreten. Bitte versuche es erneut oder kontaktiere einen Admin.",
+                ephemeral=True
+            )
+        except Exception:
+            pass
 
-# ── Einreise Select Menu ─────────────────────────────────────
+
+# \u2500\u2500 Einreise Select Menu \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class EinreiseSelect(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(
                 label="Legale Einreise",
-                emoji="🤵",
+                emoji="\U0001F935",
                 value="legal",
                 description="Einreise als legaler Bewohner"
             ),
             discord.SelectOption(
                 label="Illegale Einreise",
-                emoji="🥷",
+                emoji="\U0001F977",
                 value="illegal",
                 description="Einreise als illegale Person"
             ),
         ]
         super().__init__(
-            placeholder="✈️ Wähle deine Einreiseart...",
+            placeholder="\u2708\uFE0F W\u00E4hle deine Einreiseart...",
             options=options,
             custom_id="einreise_select_main"
         )
@@ -245,7 +269,7 @@ class EinreiseSelect(discord.ui.Select):
 
         if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
             await interaction.response.send_message(
-                "❌ Du hast bereits eine Einreiseart gewählt. Eine Änderung ist nur durch den RP-Tod möglich.",
+                "\u274C Du hast bereits eine Einreiseart gew\u00E4hlt. Eine \u00C4nderung ist nur durch den RP-Tod m\u00F6glich.",
                 ephemeral=True
             )
             return
@@ -284,22 +308,20 @@ async def auto_einreise_setup():
             continue
 
         embed = discord.Embed(
-            title="✈️ Einreise — Paradise City Roleplay",
+            title="\u2708\uFE0F Einreise \u2014 Paradise City Roleplay",
             description=(
-                "🤵‍♂️ **Legale Einreise** 🤵‍♂️\n"
-                "Du wirst auf unserem Server als legale Person einreisen. "
-                "Als legaler Bewohner darfst du keine illegalen Aktivitäten ausführen.\n\n"
-                "🥷 **Illegale Einreise** 🥷\n"
-                "Du wirst auf unserem Server als illegale Person einreisen. "
-                "Du darfst keine staatlichen Berufe ausüben.\n\n"
-                "⚠️ **Hinweis** ⚠️\n"
-                "Eine Änderung der Einreiseart ist nur durch den RP-Tod deines Charakters möglich."
+                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+                "\U0001F935\u200D\u2642\uFE0F **Legale Einreise**\n"
+                "\u27A4 Du reist als **legale Person** ein. Keine illegalen Aktivit\u00E4ten erlaubt.\n\n"
+                "\U0001F977 **Illegale Einreise**\n"
+                "\u27A4 Du reist als **illegale Person** ein. Keine staatlichen Berufe m\u00F6glich.\n\n"
+                "\u26A0\uFE0F **Hinweis:** Eine \u00C4nderung der Einreiseart ist nur durch den RP-Tod deines Charakters m\u00F6glich."
             ),
-            color=LOG_COLOR,
+            color=0x3498DB,
             timestamp=datetime.now(timezone.utc)
         )
         embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg")
-        embed.set_footer(text="Paradise City Roleplay — Einreisesystem")
+        embed.set_footer(text="\u2708\uFE0F Einreise-System \u2022 Paradise City Roleplay")
         view = EinreiseView()
 
         mid = _load_einreise_msg_id()
@@ -320,7 +342,7 @@ async def auto_einreise_setup():
             await log_bot_error("auto_einreise_setup fehlgeschlagen", str(e), guild)
 
 
-# ── /ausweisen ────────────────────────────────────────────────
+# \u2500\u2500 /ausweisen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Ausweis eines anderen Spielers abrufen")
@@ -329,12 +351,12 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
     is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
 
     if CITIZEN_ROLE_ID not in role_ids and not is_team:
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     if interaction.channel.id != AUSWEIS_CHANNEL_ID and not is_team:
         await interaction.response.send_message(
-            f"❌ Diesen Command kannst du nur in <#{AUSWEIS_CHANNEL_ID}> benutzen.", ephemeral=True
+            f"\u274C Diesen Command kannst du nur in <#{AUSWEIS_CHANNEL_ID}> benutzen.", ephemeral=True
         )
         return
 
@@ -345,17 +367,17 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
 
     if not entry:
         msg = (
-            f"❌ **{target.display_name}** hat noch keinen Ausweis."
+            f"\u274C **{target.display_name}** hat noch keinen Ausweis."
             if target != interaction.user else
-            "❌ Du hast noch keinen Ausweis. Wähle zuerst deine Einreiseart und erstelle deinen Ausweis."
+            "\u274C Du hast noch keinen Ausweis. W\u00E4hle zuerst deine Einreiseart und erstelle deinen Ausweis."
         )
         await interaction.response.send_message(msg, ephemeral=True)
         return
 
-    typ_label = "🤵 Legale Einreise" if entry.get("einreise_typ") == "legal" else "🥷 Illegale Einreise"
+    typ_label = "\U0001F935 Legale Einreise" if entry.get("einreise_typ") == "legal" else "\U0001F977 Illegale Einreise"
 
     embed = discord.Embed(
-        title="🪪 Personalausweis",
+        title="\U0001FAAA Personalausweis",
         color=0x000000,
         timestamp=datetime.now(timezone.utc)
     )
@@ -363,23 +385,23 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
     embed.add_field(name="Name",          value=f"{entry['vorname']} {entry['nachname']}", inline=True)
     embed.add_field(name="Geburtsdatum",  value=entry["geburtsdatum"],                     inline=True)
     embed.add_field(name="Alter",         value=entry.get("alter", "?"),                   inline=True)
-    embed.add_field(name="Nationalität",  value=entry["nationalitaet"],                   inline=True)
+    embed.add_field(name="Nationalit\u00E4t",  value=entry["nationalitaet"],                   inline=True)
     embed.add_field(name="Wohnort",       value=entry["wohnort"],                          inline=True)
     embed.add_field(name="Einreiseart",   value=typ_label,                                 inline=True)
     embed.add_field(name="Ausweisnummer", value=f"`{entry['ausweisnummer']}`",            inline=False)
-    embed.set_footer(text="Paradise City Roleplay — Personalausweis")
+    embed.set_footer(text="Paradise City Roleplay \u2014 Personalausweis")
 
     await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
 
 
-# ── /ausweis-remove ───────────────────────────────────────────
+# \u2500\u2500 /ausweis-remove \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-@bot.tree.command(name="ausweis-remove", description="[Admin] Löscht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ausweis-remove", description="[Admin] L\u00F6scht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(administrator=True)
-@app_commands.describe(nutzer="Spieler dessen Ausweis gelöscht werden soll")
+@app_commands.describe(nutzer="Spieler dessen Ausweis gel\u00F6scht werden soll")
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
     if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     ausweis_data = load_ausweis()
@@ -387,7 +409,7 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 
     if uid not in ausweis_data:
         await interaction.response.send_message(
-            f"❌ {nutzer.mention} hat keinen Ausweis.", ephemeral=True
+            f"\u274C {nutzer.mention} hat keinen Ausweis.", ephemeral=True
         )
         return
 
@@ -395,10 +417,10 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
     save_ausweis(ausweis_data)
 
     embed = discord.Embed(
-        title="🗑️ Ausweis gelöscht",
+        title="\U0001F5D1\uFE0F Ausweis gel\u00F6scht",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
-            f"**Gelöscht von:** {interaction.user.mention}"
+            f"**Gel\u00F6scht von:** {interaction.user.mention}"
         ),
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -406,12 +428,12 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# ── /ausweis-create ───────────────────────────────────────────
+# \u2500\u2500 /ausweis-create \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-@bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis für einen Spieler", guild=discord.Object(id=GUILD_ID))
+@bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis f\u00FCr einen Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
-    nutzer="Spieler für den der Ausweis erstellt wird",
+    nutzer="Spieler f\u00FCr den der Ausweis erstellt wird",
     einreise_typ="Einreiseart des Spielers"
 )
 @app_commands.choices(einreise_typ=[
@@ -421,17 +443,17 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member,
                          einreise_typ: str = "legal"):
     if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     ausweis_data = load_ausweis()
     if str(nutzer.id) in ausweis_data:
         await interaction.response.send_message(
-            f"❌ {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove löschen.",
+            f"\u274C {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove l\u00F6schen.",
             ephemeral=True
         )
         return
 
     await interaction.response.send_modal(
         AusweisCreateModal(target=nutzer, einreise_typ=einreise_typ)
-            )
+        )
