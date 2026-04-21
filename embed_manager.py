@@ -26,6 +26,7 @@ async def setup_all_embeds():
     from human_labs_raub  import _hl_info_auto_setup
     from staatsbank_raub  import _sb_info_auto_setup
     from aktien        import aktien_setup
+    from shop          import auto_shop_setup
 
     _setups = [
         ("ticket",        auto_ticket_setup),
@@ -43,6 +44,7 @@ async def setup_all_embeds():
         ("human_labs",    _hl_info_auto_setup),
         ("staatsbank",    _sb_info_auto_setup),
         ("aktien",        aktien_setup),
+        ("shop",          auto_shop_setup),
     ]
 
     for name, fn in _setups:
