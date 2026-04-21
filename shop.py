@@ -5,12 +5,15 @@
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 import json
+import re as _re
 from config import *
 from helpers import is_admin
 from economy_helpers import (
     load_economy, save_economy, get_user, load_shop, save_shop,
+    load_team_shop, save_team_shop,
     find_shop_item, find_inventory_item, normalize_item_name,
-    has_citizen_or_wage, shop_item_autocomplete, channel_error
+    has_citizen_or_wage, shop_item_autocomplete, channel_error,
+    log_transaction
 )
 from handy import give_handy_channel_access
 
@@ -40,6 +43,15 @@ SHOPS = {
 }
 
 CHANNEL_TO_SHOP = {v["channel"]: k for k, v in SHOPS.items()}
+
+# user_id -> [{"name", "qty", "price", "shop"}]
+_SHOP_CARTS: dict[int, list] = {}
+
+_SHOP_EMBED_COLORS = {
+    "kwik":         0xF1C40F,
+    "baumarkt":     0xE67E22,
+    "schwarzmarkt": 0x2C2F33,
+}
 
 
 # \u2500\u2500 Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -74,27 +86,47 @@ def _get_shop_items(shop_key: str, member: discord.Member) -> list:
 def _build_shop_embed(shop_key: str, member: discord.Member, page: int = 0) -> tuple[discord.Embed, int]:
     shop     = SHOPS[shop_key]
     filtered = _get_shop_items(shop_key, member)
+    eco      = load_economy()
+    ud       = get_user(eco, member.id)
+    cash     = int(ud.get("cash", 0))
 
     total_pages = max(1, -(-len(filtered) // _PAGE_SIZE))
     page        = max(0, min(page, total_pages - 1))
     page_items  = filtered[page * _PAGE_SIZE : (page + 1) * _PAGE_SIZE]
 
+    lines = []
+    for item in page_items:
+        clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', item['name']).strip()
+        lines.append(f"\u27A4 **{clean}**\u3000\u2014\u3000`{item['price']:,} \U0001F4B5`")
+
+    sep  = "\u2015" * 22
+    desc = sep + "\n" + ("\n".join(lines) if lines else "*Dieser Shop ist aktuell leer.*") + "\n" + sep
+
     embed = discord.Embed(
-        title=shop["label"],
-        color=LOG_COLOR,
+        title=f"{shop['emoji']}  {shop['label']}",
+        description=desc,
+        color=_SHOP_EMBED_COLORS.get(shop_key, LOG_COLOR),
         timestamp=datetime.now(timezone.utc)
     )
 
-    if page_items:
-        lines = [f"**{item['name']}** \u2014 {item['price']:,} \U0001F4B5" for item in page_items]
-        embed.description = "\n".join(lines)
-    else:
-        embed.description = "*Dieser Shop ist aktuell leer.*"
+    embed.add_field(name="\U0001F4B5 Dein Bargeld", value=f"**{cash:,} $**", inline=True)
 
-    footer = "W\u00E4hle ein Item unten aus um es zu kaufen \u2022 Nur Bargeld"
+    cart     = _SHOP_CARTS.get(member.id, [])
+    subtotal = sum(c["price"] * c["qty"] for c in cart)
+    count    = sum(c["qty"] for c in cart)
+    if count > 0:
+        embed.add_field(
+            name="\U0001F6D2 Warenkorb",
+            value=f"**{count}x** \u2014 {subtotal:,} $",
+            inline=True
+        )
+    else:
+        embed.add_field(name="\U0001F6D2 Warenkorb", value="leer", inline=True)
+
+    footer = "Item w\u00E4hlen \u2022 Nur Bargeld"
     if total_pages > 1:
         footer += f"  |  Seite {page + 1}/{total_pages}"
-    embed.set_footer(text=footer)
+    embed.set_footer(text=f"{shop['emoji']} {footer}")
     return embed, total_pages
 
 
@@ -217,7 +249,49 @@ class BuyMengeModal(discord.ui.Modal):
         except ValueError:
             await interaction.response.send_message("\u274C Bitte eine g\u00FCltige Zahl eingeben.", ephemeral=True)
             return
-        await _execute_buy(interaction, self.item, menge, self.shop_key)
+
+        if menge < 1 or menge > 100:
+            await interaction.response.send_message("\u274C Menge muss zwischen **1** und **100** liegen.", ephemeral=True)
+            return
+
+        uid  = interaction.user.id
+        cart = _SHOP_CARTS.setdefault(uid, [])
+        for entry in cart:
+            if entry["name"] == self.item["name"] and entry["shop"] == self.shop_key:
+                entry["qty"] += menge
+                break
+        else:
+            cart.append({"name": self.item["name"], "qty": menge, "price": self.item["price"], "shop": self.shop_key})
+
+        eco      = load_economy()
+        ud       = get_user(eco, uid)
+        cash     = int(ud.get("cash", 0))
+        subtotal = sum(c["price"] * c["qty"] for c in cart)
+        count    = sum(c["qty"] for c in cart)
+
+        clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', self.item["name"]).strip()
+        lines = []
+        for c in cart:
+            c_clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', c["name"]).strip()
+            lines.append(f"\u27A4 **{c_clean}** \u00D7 {c['qty']} \u2014 `{c['price'] * c['qty']:,} \U0001F4B5`")
+
+        sep   = "\u2015" * 22
+        embed = discord.Embed(
+            title="\U0001F6D2 Warenkorb",
+            description=sep + "\n" + "\n".join(lines) + "\n" + sep,
+            color=0x3498DB,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="\U0001F4B0 Zwischensumme", value=f"**{subtotal:,} $**", inline=True)
+        embed.add_field(name="\U0001F4B5 Dein Bargeld",  value=f"**{cash:,} $**",      inline=True)
+        if cash < subtotal:
+            embed.add_field(
+                name="\u26A0\uFE0F Hinweis",
+                value="Nicht genug Bargeld f\u00FCr den gesamten Warenkorb!",
+                inline=False
+            )
+        embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
+        await interaction.response.send_message(embed=embed, view=CartCheckoutView(uid, interaction.guild), ephemeral=True)
 
 
 # \u2500\u2500 Direkt-Kauf-Modal (Itemname + Menge frei eintippen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -250,6 +324,10 @@ class DirektkaufModal(discord.ui.Modal, title="\u270F\uFE0F Direkt kaufen"):
             await interaction.response.send_message("\u274C Bitte eine g\u00FCltige Zahl als Menge eingeben.", ephemeral=True)
             return
 
+        if menge < 1 or menge > 100:
+            await interaction.response.send_message("\u274C Menge muss zwischen **1** und **100** liegen.", ephemeral=True)
+            return
+
         items = load_shop()
         item  = find_shop_item(items, self.item_input.value.strip())
         if not item:
@@ -260,7 +338,41 @@ class DirektkaufModal(discord.ui.Modal, title="\u270F\uFE0F Direkt kaufen"):
             )
             return
 
-        await _execute_buy(interaction, item, menge, self.shop_key)
+        uid  = interaction.user.id
+        cart = _SHOP_CARTS.setdefault(uid, [])
+        for entry in cart:
+            if entry["name"] == item["name"] and entry["shop"] == self.shop_key:
+                entry["qty"] += menge
+                break
+        else:
+            cart.append({"name": item["name"], "qty": menge, "price": item["price"], "shop": self.shop_key})
+
+        eco      = load_economy()
+        ud       = get_user(eco, uid)
+        cash     = int(ud.get("cash", 0))
+        subtotal = sum(c["price"] * c["qty"] for c in cart)
+        lines    = []
+        for c in cart:
+            c_clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', c["name"]).strip()
+            lines.append(f"\u27A4 **{c_clean}** \u00D7 {c['qty']} \u2014 `{c['price'] * c['qty']:,} \U0001F4B5`")
+
+        sep   = "\u2015" * 22
+        embed = discord.Embed(
+            title="\U0001F6D2 Warenkorb",
+            description=sep + "\n" + "\n".join(lines) + "\n" + sep,
+            color=0x3498DB,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="\U0001F4B0 Zwischensumme", value=f"**{subtotal:,} $**", inline=True)
+        embed.add_field(name="\U0001F4B5 Dein Bargeld",  value=f"**{cash:,} $**",      inline=True)
+        if cash < subtotal:
+            embed.add_field(
+                name="\u26A0\uFE0F Hinweis",
+                value="Nicht genug Bargeld f\u00FCr den gesamten Warenkorb!",
+                inline=False
+            )
+        embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
+        await interaction.response.send_message(embed=embed, view=CartCheckoutView(uid, interaction.guild), ephemeral=True)
 
 
 # \u2500\u2500 Item-Auswahl Select \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -306,6 +418,125 @@ class BuyItemSelect(discord.ui.Select):
         await interaction.response.send_modal(BuyMengeModal(item, self.shop_key))
 
 
+# \u2500\u2500 Warenkorb-Checkout-View \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class CartCheckoutView(discord.ui.View):
+    def __init__(self, user_id: int, guild):
+        super().__init__(timeout=180)
+        self.user_id = user_id
+        self.guild   = guild
+
+    @discord.ui.button(label="\u2705 Kaufen", style=discord.ButtonStyle.green)
+    async def checkout(self, interaction: discord.Interaction, button: discord.ui.Button):
+        uid  = interaction.user.id
+        cart = _SHOP_CARTS.get(uid, [])
+        if not cart:
+            embed = discord.Embed(
+                title="\U0001F6D2 Warenkorb leer",
+                description="Dein Warenkorb ist leer.",
+                color=0xE74C3C
+            )
+            for child in self.children:
+                child.disabled = True
+            await interaction.response.edit_message(embed=embed, view=self)
+            return
+
+        eco       = load_economy()
+        user_data = get_user(eco, uid)
+        is_adm    = ADMIN_ROLE_ID in {r.id for r in interaction.user.roles}
+
+        subtotal = sum(c["price"] * c["qty"] for c in cart)
+        if user_data["cash"] < subtotal:
+            await interaction.response.send_message(
+                f"\u274C Nicht genug **Bargeld**.\n"
+                f"**Summe:** {subtotal:,} \U0001F4B5 | **Bargeld:** {user_data['cash']:,} \U0001F4B5",
+                ephemeral=True
+            )
+            return
+
+        bought = []
+        errors = []
+        items  = load_shop()
+        actual_cost = 0
+
+        for entry in cart:
+            item = find_shop_item(items, entry["name"])
+            if not item:
+                errors.append(f"\u274C **{entry['name']}** nicht mehr verf\u00FCgbar")
+                continue
+
+            menge       = entry["qty"]
+            gesamtpreis = item["price"] * menge
+
+            if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME) and not is_adm:
+                today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
+                rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
+                rb_in_cart = sum(c["qty"] for c in cart if normalize_item_name(c["name"]) == normalize_item_name(_RUBBELLOS_NAME))
+                if rb_count + rb_in_cart > _RUBBELLOS_TAGESLIMIT:
+                    errors.append(f"\u274C Rubbellos-Tageslimit ({_RUBBELLOS_TAGESLIMIT}) erreicht")
+                    continue
+
+            user_data.setdefault("inventory", [])
+            user_data["cash"] -= gesamtpreis
+            actual_cost       += gesamtpreis
+            for _ in range(menge):
+                user_data["inventory"].append(item["name"])
+
+            if normalize_item_name(item["name"]) == normalize_item_name(_RUBBELLOS_NAME):
+                today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                rb_daily = user_data.get("rubbellos_daily", {"date": "", "count": 0})
+                rb_count = rb_daily["count"] if rb_daily.get("date") == today else 0
+                user_data["rubbellos_daily"] = {"date": today, "count": rb_count + menge}
+
+            clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', item["name"]).strip()
+            bought.append(f"\u2705 **{clean}** \u00D7 {menge} \u2014 {gesamtpreis:,} \U0001F4B5")
+
+        if bought:
+            names_summary = ", ".join(
+                _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', e["name"]).strip() + f" \u00D7{e['qty']}"
+                for e in cart
+            )[:50]
+            log_transaction(user_data, f"\U0001F6D2 Shop: {names_summary}", -actual_cost)
+
+            for entry in cart:
+                if normalize_item_name(entry["name"]) == normalize_item_name(HANDY_ITEM_NAME):
+                    await give_handy_channel_access(interaction.guild, interaction.user)
+
+            save_economy(eco)
+            _SHOP_CARTS.pop(uid, None)
+
+        lines = bought + errors
+        embed = discord.Embed(
+            title="\U0001F6D2 Kauf abgeschlossen" if bought else "\u274C Kauf fehlgeschlagen",
+            description="\n".join(lines) if lines else "Nichts gekauft.",
+            color=0x2ECC71 if bought else 0xE74C3C,
+            timestamp=datetime.now(timezone.utc)
+        )
+        if bought:
+            embed.add_field(
+                name="\U0001F4B5 Verbleibendes Bargeld",
+                value=f"**{user_data['cash']:,} $**",
+                inline=True
+            )
+        embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="\U0001F5D1\uFE0F Warenkorb leeren", style=discord.ButtonStyle.red)
+    async def clear_cart(self, interaction: discord.Interaction, button: discord.ui.Button):
+        _SHOP_CARTS.pop(interaction.user.id, None)
+        embed = discord.Embed(
+            title="\U0001F5D1\uFE0F Warenkorb geleert",
+            description="Dein Warenkorb wurde geleert.",
+            color=0xE74C3C
+        )
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(embed=embed, view=self)
+
+
 # \u2500\u2500 Seiten-View (Bl\u00E4ttern + Kaufen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class ShopPageView(discord.ui.View):
@@ -339,18 +570,60 @@ class ShopPageView(discord.ui.View):
         direkt_btn.callback = direkt_cb
         self.add_item(direkt_btn)
 
-        prev = discord.ui.Button(label="\u25C0 Zur\u00FCck", style=discord.ButtonStyle.secondary, disabled=self.page <= 0, row=2)
-        next_ = discord.ui.Button(label="Weiter \u25B6", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1, row=2)
+        # "\U0001F6D2 Kasse" Button \u2014 nur sichtbar wenn Warenkorb bef\u00FCllt
+        cart = _SHOP_CARTS.get(self.member.id, [])
+        if cart:
+            subtotal  = sum(c["price"] * c["qty"] for c in cart)
+            count     = sum(c["qty"] for c in cart)
+            kasse_btn = discord.ui.Button(
+                label=f"\U0001F6D2 Kasse ({count}x \u2014 {subtotal:,} $)",
+                style=discord.ButtonStyle.success,
+                row=2
+            )
+            member = self.member
+
+            async def kasse_cb(interaction: discord.Interaction):
+                uid      = interaction.user.id
+                cart_now = _SHOP_CARTS.get(uid, [])
+                eco      = load_economy()
+                ud       = get_user(eco, uid)
+                cash     = int(ud.get("cash", 0))
+                sub      = sum(c["price"] * c["qty"] for c in cart_now)
+                lines    = []
+                for c in cart_now:
+                    c_clean = _re.sub(r'<a?:[^:]+:\d+>\s*[|]\s*', '', c["name"]).strip()
+                    lines.append(f"\u27A4 **{c_clean}** \u00D7 {c['qty']} \u2014 `{c['price'] * c['qty']:,} \U0001F4B5`")
+                sep   = "\u2015" * 22
+                embed = discord.Embed(
+                    title="\U0001F6D2 Warenkorb",
+                    description=sep + "\n" + ("\n".join(lines) if lines else "Leer.") + "\n" + sep,
+                    color=0x3498DB,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                embed.add_field(name="\U0001F4B0 Zwischensumme", value=f"**{sub:,} $**", inline=True)
+                embed.add_field(name="\U0001F4B5 Dein Bargeld",  value=f"**{cash:,} $**", inline=True)
+                if cash < sub:
+                    embed.add_field(name="\u26A0\uFE0F Hinweis", value="Nicht genug Bargeld!", inline=False)
+                embed.set_footer(text="Paradise City Roleplay \u2022 Shop")
+                await interaction.response.send_message(embed=embed, view=CartCheckoutView(uid, interaction.guild), ephemeral=True)
+
+            kasse_btn.callback = kasse_cb
+            self.add_item(kasse_btn)
+
+        prev = discord.ui.Button(label="\u25C0 Zur\u00FCck", style=discord.ButtonStyle.secondary, disabled=self.page <= 0, row=3)
+        next_ = discord.ui.Button(label="Weiter \u25B6", style=discord.ButtonStyle.secondary, disabled=self.page >= self.total_pages - 1, row=3)
 
         async def prev_cb(interaction: discord.Interaction):
             self.page -= 1
             embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+            self.member = interaction.user
             self._rebuild()
             await interaction.response.edit_message(embed=embed, view=self)
 
         async def next_cb(interaction: discord.Interaction):
             self.page += 1
             embed, self.total_pages = _build_shop_embed(self.shop_key, interaction.user, self.page)
+            self.member = interaction.user
             self._rebuild()
             await interaction.response.edit_message(embed=embed, view=self)
 
@@ -577,69 +850,51 @@ async def auto_shop_setup():
                 print(f"[shop] \u274C Fehler beim Posten ({shop_key}): {e}")
 
 
-# \u2500\u2500 /shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-@bot.tree.command(
-    name="shop",
-    description="\u00D6ffne einen der Shops",
-    guild=discord.Object(id=GUILD_ID)
-)
-async def shop(interaction: discord.Interaction):
-    is_adm = ADMIN_ROLE_ID in {r.id for r in interaction.user.roles}
-    if not is_adm:
-        shop_key = CHANNEL_TO_SHOP.get(interaction.channel.id)
-        if not shop_key:
-            channels = ", ".join(f"<#{v['channel']}>" for v in SHOPS.values())
-            await interaction.response.send_message(
-                f"\u274C Der Shop ist nur in den Shop-Kan\u00E4len nutzbar: {channels}",
-                ephemeral=True
-            )
-            return
-
-    view = ShopSelectView(interaction.user)
-    await interaction.response.send_message(
-        embed=discord.Embed(
-            title="\U0001F6D2 Shop ausw\u00E4hlen",
-            description="W\u00E4hle unten aus, welchen Shop du \u00F6ffnen m\u00F6chtest.",
-            color=LOG_COLOR
-        ),
-        view=view,
-        ephemeral=True
-    )
 
 
 # \u2500\u2500 /shop-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class ShopAddConfirmView(discord.ui.View):
-    def __init__(self, name: str, price: int, shop_key: str, allowed_role_id=None):
+    def __init__(self, name: str, price: int | None, shop_key: str, allowed_role_id=None, for_team: bool = False):
         super().__init__(timeout=60)
         self.name            = name
         self.price           = price
         self.shop_key        = shop_key
         self.allowed_role_id = allowed_role_id
+        self.for_team        = for_team
 
     @discord.ui.button(label="\u2705 Best\u00E4tigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        items = load_shop()
-        entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
-        if self.allowed_role_id:
-            entry["allowed_role"] = self.allowed_role_id
-        items.append(entry)
-        save_shop(items)
         for child in self.children:
             child.disabled = True
+
+        if self.for_team:
+            items = load_team_shop()
+            entry: dict = {"name": self.name}
+            if self.price is not None:
+                entry["price"] = self.price
+            items.append(entry)
+            save_team_shop(items)
+            shop_label = "\U0001F46E Team-Shop"
+        else:
+            items = load_shop()
+            entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
+            if self.allowed_role_id:
+                entry["allowed_role"] = self.allowed_role_id
+            items.append(entry)
+            save_shop(items)
+            shop_label = SHOPS[self.shop_key]["label"]
+
         rolle_info = ""
-        if self.allowed_role_id:
+        if self.allowed_role_id and not self.for_team:
             r = interaction.guild.get_role(self.allowed_role_id)
             rolle_info = f"\n**Nur f\u00FCr:** {r.mention if r else self.allowed_role_id}"
-        shop_label = SHOPS[self.shop_key]["label"]
+
+        preis_info = f" f\u00FCr **{self.price:,} \U0001F4B5**" if self.price is not None else ""
         await interaction.response.edit_message(
             embed=discord.Embed(
                 title="\u2705 Item hinzugef\u00FCgt",
-                description=(
-                    f"**{self.name}** f\u00FCr **{self.price:,} \U0001F4B5** wurde zum "
-                    f"**{shop_label}** hinzugef\u00FCgt.{rolle_info}"
-                ),
+                description=f"**{self.name}**{preis_info} wurde zum **{shop_label}** hinzugef\u00FCgt.{rolle_info}",
                 color=LOG_COLOR
             ),
             view=self
@@ -659,44 +914,61 @@ class ShopAddConfirmView(discord.ui.View):
         )
 
 
+# \u2500\u2500 /item-add (unified: kwik / baumarkt / schwarzmarkt / team) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
 @bot.tree.command(
-    name="shop-add",
-    description="[Shop] F\u00FCge ein neues Item zu einem Shop hinzu (Admin)",
+    name="item-add",
+    description="[Shop] F\u00FCge ein Item zu einem Shop oder dem Team-Shop hinzu (Admin)",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     itemname="Name des Items",
-    preis="Preis in $",
-    shop="Welcher Shop: kwik / baumarkt / schwarzmarkt",
-    rolle="(Optional) Nur diese Rolle kann das Item kaufen"
+    shop="Ziel-Shop",
+    preis="Preis in $ (nicht ben\u00F6tigt f\u00FCr Team-Shop)",
+    rolle="(Optional) Nur diese Rolle kann das Item kaufen (nur Shop-Items)"
 )
 @app_commands.choices(shop=[
-    app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",  value="kwik"),
-    app_commands.Choice(name="\U0001F528 Baumarkt",       value="baumarkt"),
-    app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt",  value="schwarzmarkt"),
+    app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",      value="kwik"),
+    app_commands.Choice(name="\U0001F528 Baumarkt",           value="baumarkt"),
+    app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt", value="schwarzmarkt"),
+    app_commands.Choice(name="\U0001F46E Team-Shop",          value="team"),
 ])
-async def shop_add(
+async def item_add(
     interaction: discord.Interaction,
     itemname: str,
-    preis: int,
     shop: str,
+    preis: int = None,
     rolle: discord.Role = None
 ):
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
-    if preis <= 0:
-        await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
-        return
 
-    shop_label = SHOPS[shop]["label"]
-    rolle_info = f"\n**Nur f\u00FCr:** {rolle.mention}" if rolle else "\n**Rollenbeschr\u00E4nkung:** Keine"
+    for_team = (shop == "team")
+
+    if not for_team:
+        if preis is None:
+            await interaction.response.send_message("\u274C F\u00FCr Shop-Items muss ein **Preis** angegeben werden.", ephemeral=True)
+            return
+        if preis <= 0:
+            await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
+            return
+
+    if for_team:
+        shop_label = "\U0001F46E Team-Shop"
+        preis_line = f"**Preis:** {preis:,} \U0001F4B5\n" if preis is not None else ""
+        rolle_info = ""
+    else:
+        shop_label = SHOPS[shop]["label"]
+        preis_line = f"**Preis:** {preis:,} \U0001F4B5\n"
+        rolle_info = f"\n**Nur f\u00FCr:** {rolle.mention}" if rolle else "\n**Rollenbeschr\u00E4nkung:** Keine"
+
     embed = discord.Embed(
         title="\U0001F6D2 Neues Item hinzuf\u00FCgen?",
         description=(
             f"**Name:** {itemname}\n"
-            f"**Preis:** {preis:,} \U0001F4B5\n"
+            f"{preis_line}"
             f"**Shop:** {shop_label}"
             f"{rolle_info}\n\n"
             "Bitte best\u00E4tige das Hinzuf\u00FCgen."
@@ -705,7 +977,11 @@ async def shop_add(
     )
     await interaction.response.send_message(
         embed=embed,
-        view=ShopAddConfirmView(itemname, preis, shop, rolle.id if rolle else None),
+        view=ShopAddConfirmView(
+            itemname, preis, shop if not for_team else "kwik",
+            rolle.id if rolle else None,
+            for_team=for_team
+        ),
         ephemeral=True
     )
 
