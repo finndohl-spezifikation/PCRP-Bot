@@ -17,6 +17,7 @@ from moderation import (
 from ticket       import TicketSelectView, TicketActionView
 from handy        import HandyView
 from einreise     import EinreiseView, AusweisDMLegalView, AusweisDMIllegalView, load_ausweis, save_ausweis
+from shop         import ShopKwikChannelView, ShopBaumarktChannelView, ShopSchwarzmarktChannelView
 from casino       import CasinoView
 from dienst       import DienstUnifiedView
 from team_overview import TeamOverviewView
@@ -37,6 +38,9 @@ async def on_ready():
     bot.add_view(EinreiseView())
     bot.add_view(AusweisDMLegalView())
     bot.add_view(AusweisDMIllegalView())
+    bot.add_view(ShopKwikChannelView())
+    bot.add_view(ShopBaumarktChannelView())
+    bot.add_view(ShopSchwarzmarktChannelView())
     bot.add_view(CasinoView())
     bot.add_view(TeamOverviewView())
     bot.add_view(LottoView())
@@ -611,4 +615,4 @@ async def on_member_join(member):
             guild,
             "Startguthaben vergeben",
             f"**Spieler:** {member.mention}\n**Bank:** {START_CASH:,} \u1F4B5 (Willkommensbonus)"
-    )
+        )
