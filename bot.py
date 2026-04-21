@@ -65,6 +65,13 @@ except Exception as _e:
     raise
 
 try:
+    import team_shop            # /items, /items-add, /items-delete (Team-Shop)
+except Exception as _e:
+    import traceback; traceback.print_exc()
+    print(f"[FEHLER] team_shop konnte nicht geladen werden: {_e}")
+    raise
+
+try:
     import inventory            # /rucksack, /uebergeben, /verstecken, /use-item
 except Exception as _e:
     import traceback; traceback.print_exc()
