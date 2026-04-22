@@ -25,7 +25,7 @@ from config import bot
 WARTERAUM_ID   = 1490882556269297716
 SPIELER_ROLLE  = 1490855722534310003
 MUSIK_LOKAL    = "Bunte_Papiere.mp3"
-TTS_STIMME     = "de-DE-KatjaNeural"
+TTS_STIMME     = "de-DE-ConradNeural"
 MUSIK_VOL      = 0.25
 WIEDERHOL_SEK  = 20
 
@@ -33,14 +33,13 @@ ADMIN_ROLE_ID  = 1490855650081636352
 MOD_ROLE_ID    = 1496147874256392202
 
 TTS_OFFEN = (
-    "Herzlich willgomm'n bei der null eens neunzich, "
-    "den alden Gagbradzen ausm Gallzender! "
-    "Alle unsre Midiarbeider sind grade im Eensadz. "
-    "Bidde ham Se een'n Momend Geduld."
+    "Willkommen im Support! "
+    "Ein Supporter wurde bereits benachrichtigt und wird sich in K\u00FCrze um dich k\u00FCmmern. "
+    "Bitte habe noch etwas Geduld."
 )
 TTS_CLOSED = (
-    "Dud mir leed, mir ham heud geschlossn. "
-    "Bidde erstell'n Se een Digget, odder ruf'n Se schb\u00E4der nochemal an."
+    "Der Sprach-Support ist nicht verf\u00FCgbar, w\u00E4hrend die Lobby geschlossen ist. "
+    "Bitte nutze f\u00FCr dein Anliegen unseren Ticket-Support."
 )
 
 # \u2500\u2500 Zustand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
