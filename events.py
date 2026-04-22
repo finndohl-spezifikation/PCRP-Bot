@@ -149,7 +149,12 @@ async def on_message(message):
         await bot.process_commands(message)
         return
 
-    if not is_admin(member) and DISCORD_INVITE_RE.search(message.content):
+    _ist_inhaber = (
+        member.id == OWNER_ID
+        or member.id == message.guild.owner_id
+        or any(r.id == INHABER_ROLE_ID for r in getattr(member, 'roles', []))
+    )
+    if not _ist_inhaber and DISCORD_INVITE_RE.search(message.content):
         await handle_discord_invite(message)
         return
     if not is_mod_or_admin(member) and message.channel.id != MEMES_CHANNEL_ID:
@@ -1117,6 +1122,42 @@ async def on_guild_role_create(role: discord.Role):
             pass
 
 
+async def _strip_alle_rollen(guild: discord.Guild, member: discord.Member, grund: str):
+    """Entfernt alle Rollen eines Mitglieds sofort und benachrichtigt den Inhaber."""
+    if member is None or member.bot:
+        return
+    rollen_vorher = [r for r in member.roles if r != guild.default_role]
+    try:
+        await member.edit(roles=[], reason=f"\U0001F6AB Server-Schutz: {grund}")
+    except Exception:
+        return
+    warn_embed = discord.Embed(
+        title="\U0001F6A8 Sanktion \u2014 Alle Rollen entzogen",
+        description=(
+            f"\U0001F464 **Mitglied:** {member.mention} (`{member}` | `{member.id}`)\n"
+            f"\U0001F4CB **Grund:** {grund}\n"
+            f"\U0001F4E6 **Entzogene Rollen:** {', '.join(r.name for r in rollen_vorher) or '\u2014'}\n"
+            f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
+        ),
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc),
+    )
+    await _dm_inhaber(guild, warn_embed)
+    try:
+        dm_embed = discord.Embed(
+            title="\u26A0\uFE0F Sanktion",
+            description=(
+                f"Deine Aktion **\u201E{grund}\u201C** auf dem Server "
+                f"**{guild.name}** ist nicht erlaubt.\n"
+                "Dir wurden sofort **alle Rollen entzogen**."
+            ),
+            color=0xFF0000,
+        )
+        await member.send(embed=dm_embed)
+    except Exception:
+        pass
+
+
 @bot.event
 async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
     if channel.guild.id != GUILD_ID:
@@ -1125,17 +1166,31 @@ async def on_guild_channel_delete(channel: discord.abc.GuildChannel):
         _bot_deleted_ids.discard(channel.id)
         return
     deleter = await _get_audit_user(channel.guild, discord.AuditLogAction.channel_delete, channel.id)
-    embed = discord.Embed(
-        title="\u26A0\uFE0F Kanal gel\u00F6scht \u2014 Aktivit\u00E4tswarnung",
-        description=(
-            f"\U0001F4E2 Der Kanal **#{channel.name}** wurde gel\u00F6scht!\n\n"
-            f"\U0001F464 **Von:** {deleter.mention if deleter else 'Unbekannt'}\n"
-            f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
-        ),
-        color=0xFF0000,
-        timestamp=datetime.now(timezone.utc),
-    )
-    await _dm_inhaber(channel.guild, embed)
+    if deleter:
+        if deleter.id == bot.user.id:
+            return
+        if deleter.id == OWNER_ID or deleter.id == channel.guild.owner_id:
+            return
+        deleter_member = channel.guild.get_member(deleter.id)
+        if deleter_member and any(r.id == INHABER_ROLE_ID for r in deleter_member.roles):
+            return
+        await _strip_alle_rollen(
+            channel.guild,
+            deleter_member or channel.guild.get_member(deleter.id),
+            f"Kanal #{channel.name} gel\u00F6scht"
+        )
+    else:
+        embed = discord.Embed(
+            title="\u26A0\uFE0F Kanal gel\u00F6scht \u2014 T\u00E4ter unbekannt",
+            description=(
+                f"\U0001F4E2 Der Kanal **#{channel.name}** wurde gel\u00F6scht.\n"
+                f"\U0001F464 **Von:** Unbekannt\n"
+                f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
+            ),
+            color=0xFF0000,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await _dm_inhaber(channel.guild, embed)
 
 
 @bot.event
@@ -1146,14 +1201,28 @@ async def on_guild_role_delete(role: discord.Role):
         _bot_deleted_ids.discard(role.id)
         return
     deleter = await _get_audit_user(role.guild, discord.AuditLogAction.role_delete, role.id)
-    embed = discord.Embed(
-        title="\u26A0\uFE0F Rolle gel\u00F6scht \u2014 Aktivit\u00E4tswarnung",
-        description=(
-            f"\U0001F4E2 Die Rolle **{role.name}** wurde gel\u00F6scht!\n\n"
-            f"\U0001F464 **Von:** {deleter.mention if deleter else 'Unbekannt'}\n"
-            f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
-        ),
-        color=0xFF0000,
-        timestamp=datetime.now(timezone.utc),
-    )
-    await _dm_inhaber(role.guild, embed)
+    if deleter:
+        if deleter.id == bot.user.id:
+            return
+        if deleter.id == OWNER_ID or deleter.id == role.guild.owner_id:
+            return
+        deleter_member = role.guild.get_member(deleter.id)
+        if deleter_member and any(r.id == INHABER_ROLE_ID for r in deleter_member.roles):
+            return
+        await _strip_alle_rollen(
+            role.guild,
+            deleter_member or role.guild.get_member(deleter.id),
+            f"Rolle \u201E{role.name}\u201C gel\u00F6scht"
+        )
+    else:
+        embed = discord.Embed(
+            title="\u26A0\uFE0F Rolle gel\u00F6scht \u2014 T\u00E4ter unbekannt",
+            description=(
+                f"\U0001F4E2 Die Rolle **{role.name}** wurde gel\u00F6scht.\n"
+                f"\U0001F464 **Von:** Unbekannt\n"
+                f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
+            ),
+            color=0xFF0000,
+            timestamp=datetime.now(timezone.utc),
+        )
+        await _dm_inhaber(role.guild, embed)
