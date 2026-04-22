@@ -160,6 +160,14 @@ async def on_message(message):
         await handle_counting(message)
         return
 
+    # Echtzeit-Log: jede Nachricht erfassen
+    _preview = (message.content or '[kein Text]')[:120]
+    _dh.log_activity(
+        'NACHRICHT',
+        f'#{message.channel.name} | {message.author}: {_preview}',
+        message.author.id,
+    )
+
     # Server-Inhaber hat volle Rechte \u2014 kein Mod-Filter
     if message.guild and member.id == message.guild.owner_id:
         await bot.process_commands(message)
@@ -270,6 +278,11 @@ async def handle_counting(message):
 async def on_message_delete(message):
     if not message.guild or message.author.bot:
         return
+    _dh.log_activity(
+        'GEL\xd6SCHT',
+        f'#{message.channel.name} | {message.author}: {(message.content or "[kein Text]")[:120]}',
+        message.author.id,
+    )
     log_ch = message.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
     if not log_ch:
         return
@@ -292,6 +305,11 @@ async def on_message_edit(before, after):
         return
     if before.content == after.content:
         return
+    _dh.log_activity(
+        'BEARBEITET',
+        f'#{before.channel.name} | {before.author}: {(before.content or "[]")[:80]} \u2192 {(after.content or "[]")[:80]}',
+        before.author.id,
+    )
     log_ch = before.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
     if not log_ch:
         return
@@ -323,6 +341,13 @@ async def on_member_update(before, after):
         return
     # Dashboard: Member-Cache + Rollen-Log
     _dh.update_member(after)
+    # Warnung: Highteam-/Team-Rolle vergeben
+    for _r in added:
+        if _r.id in TEAM_ROLE_IDS:
+            _dh.log_warning(
+                '\u26a0\ufe0f Highteam-Rolle vergeben',
+                f'{after} ({after.id}) hat die Rolle **{_r.name}** erhalten.',
+            )
     _dh.log_activity("ROLLE",
         f"{after} \u2014 Rollen ge\xe4ndert: +[{', '.join(r.name for r in added)}] -[{', '.join(r.name for r in removed)}]",
         after.id)
@@ -365,6 +390,11 @@ async def on_member_ban(guild, user):
     description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
     if banner:
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
+    _dh.log_activity(
+        'BAN',
+        f'{user} ({user.id}) gebannt \u2014 Grund: {reason}' + (f' | Von: {banner}' if banner else ''),
+        user.id,
+    )
     embed = discord.Embed(
         title="\U0001F528 Mitglied gebannt",
         description=description,
@@ -399,6 +429,11 @@ async def on_member_remove(member):
                 return
     except Exception:
         pass
+    _dh.log_activity(
+        'KICK' if action == 'gekickt' else 'VERLASSEN',
+        f'{member} ({member.id}) {action}' + (f' | Von: {mod}' if mod else ''),
+        member.id,
+    )
     description = f"**Benutzer:** {member.mention} (`{member}`)\n**Aktion:** {action}"
     if mod:
         description += f"\n**Von:** {mod.mention} (`{mod}`)"
