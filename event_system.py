@@ -67,9 +67,8 @@ async def create_event_channel_flow(admin: discord.Member, guild: discord.Guild,
 
 
 @bot.tree.command(name="create-event", description="[Team] Erstellt ein neues Event", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
 async def create_event(interaction: discord.Interaction):
-    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
