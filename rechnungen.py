@@ -309,7 +309,6 @@ class MahnungView(TimedDisableView):
     description="[Beh\u00F6rde] Stelle eine Rechnung an einen Spieler aus",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler dem die Rechnung gestellt wird")
 async def rechnung_schreiben(interaction: discord.Interaction, nutzer: discord.Member):
     is_privileged = any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles)
@@ -397,9 +396,8 @@ class RechnungenPanelView(discord.ui.View):
     description="[Admin] Postet das Rechnungen-Panel in den Rechnungen-Kanal",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 async def setup_rechnungen_panel(interaction: discord.Interaction):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
     kanal = interaction.guild.get_channel(RECHNUNGEN_CHANNEL_ID)
@@ -427,7 +425,6 @@ async def setup_rechnungen_panel(interaction: discord.Interaction):
     description="[Beh\u00F6rde] F\u00FCge einer Rechnung eine Mahnung hinzu",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(nutzer="Spieler dessen Rechnung eine Mahnung erh\u00E4lt")
 async def mahnung_cmd(interaction: discord.Interaction, nutzer: discord.Member):
     is_privileged = any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles)
