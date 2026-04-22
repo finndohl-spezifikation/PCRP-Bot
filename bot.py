@@ -126,4 +126,11 @@ if not TOKEN:
     print("\u274C DISCORD_TOKEN ist nicht gesetzt!")
     exit(1)
 
+# Dashboard starten (l\u00e4uft im Hintergrund-Thread, kein permanenter RAM-Overhead)
+try:
+    from dashboard import start_dashboard
+    start_dashboard(bot, port=int(os.environ.get("DASHBOARD_PORT", "8080")))
+except Exception as _de:
+    print(f"[Dashboard] Konnte nicht gestartet werden: {_de}")
+
 bot.run(TOKEN)
