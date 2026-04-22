@@ -293,10 +293,6 @@ async def _call_loop():
 async def bingo_start(interaction: discord.Interaction, gewinn: str):
     global _game
 
-    role_ids = [r.id for r in interaction.user.roles]
-    if ADMIN_ROLE_ID not in role_ids and MOD_ROLE_ID not in role_ids:
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     if _game and not _game.get("ended"):
         await interaction.response.send_message(
