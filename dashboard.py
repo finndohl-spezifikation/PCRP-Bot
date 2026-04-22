@@ -13,11 +13,18 @@ from dashboard_hooks import (ACTIVITY_LOG_FILE, WARNINGS_LOG_FILE,
                               NOTES_FILE, BLACKLIST_FILE,
                               _read_json, _write_json, _lock, _now)
 
-DASH_PASSWORD  = "PCRP2026+"
-BANS_CACHE_FILE = DATA_DIR / "dashboard_bans.json"
+DASH_PASSWORD       = "PCRP2026+"
+DASH_ROLE_ID        = 1490855702225485936
+BANS_CACHE_FILE     = DATA_DIR / "dashboard_bans.json"
+
+# Verzeichnis sicherstellen
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.urandom(32)
+app.secret_key = os.environ.get("DASHBOARD_SECRET", "pcrp-dash-secret-2026")
+app.config["SESSION_PERMANENT"]        = False
+app.config["SESSION_COOKIE_SAMESITE"]  = "Lax"
+app.config["SESSION_COOKIE_HTTPONLY"]  = True
 
 _bot_ref = None
 _bot_loop = None
@@ -70,10 +77,27 @@ def index():
 def login():
     error = None
     if request.method == "POST":
-        if request.form.get("password") == DASH_PASSWORD:
-            session["logged_in"] = True
-            return redirect(url_for("dashboard"))
-        error = "Falsches Passwort"
+        pw       = request.form.get("password", "")
+        disc_id  = request.form.get("discord_id", "").strip()
+
+        if pw != DASH_PASSWORD:
+            error = "Falsches Passwort"
+        elif not disc_id.isdigit():
+            error = "Bitte eine g\u00fcltige Discord-ID eingeben"
+        else:
+            members = _read_json(MEMBERS_CACHE_FILE, {})
+            member  = members.get(disc_id)
+            if not member:
+                error = "Discord-ID nicht auf dem Server gefunden"
+            elif DASH_ROLE_ID not in (member.get("roles") or []):
+                error = "Du hast keine Berechtigung (fehlende Rolle)"
+            else:
+                session.permanent = False
+                session["logged_in"]    = True
+                session["discord_id"]   = disc_id
+                session["discord_name"] = member.get("name", disc_id)
+                return redirect(url_for("dashboard"))
+
     return render_template("login.html", error=error)
 
 
@@ -89,6 +113,13 @@ def logout():
 @login_required
 def dashboard():
     return render_template("dash.html")
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    traceback.print_exc()
+    return jsonify({"error": str(e)}), 500
 
 
 # \u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
