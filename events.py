@@ -7,6 +7,7 @@
 import base64
 from config import *
 from helpers import is_admin, is_mod_or_admin, contains_vulgar, log_bot_error
+import dashboard_hooks as _dh
 from economy_helpers import (
     load_economy, save_economy, get_user, load_hidden_items,
     counting_state, save_counting_state, VersteckRetrieveView, log_money_action
@@ -62,6 +63,21 @@ async def on_ready():
                 invite_cache[guild.id] = {inv.code: inv for inv in invites}
         except Exception:
             pass
+
+    # Dashboard: Mitglieder-Cache bef\u00fcllen
+    for guild in bot.guilds:
+        for m in guild.members:
+            if not m.bot:
+                _dh.update_member(m)
+        inv_map = invite_cache.get(guild.id, {})
+        _dh.update_invites({
+            code: {
+                "inviter_name": str(inv.inviter) if inv.inviter else "?",
+                "inviter_id":   str(inv.inviter.id) if inv.inviter else None,
+                "uses":         inv.uses,
+            }
+            for code, inv in inv_map.items() if hasattr(inv, 'inviter')
+        })
 
     GALAXY_BOT_ID = 270904126974590976
     for guild in bot.guilds:
@@ -305,6 +321,11 @@ async def on_member_update(before, after):
     removed = [r for r in before.roles if r not in after.roles]
     if not added and not removed:
         return
+    # Dashboard: Member-Cache + Rollen-Log
+    _dh.update_member(after)
+    _dh.log_activity("ROLLE",
+        f"{after} \u2014 Rollen ge\xe4ndert: +[{', '.join(r.name for r in added)}] -[{', '.join(r.name for r in removed)}]",
+        after.id)
     description = f"**Benutzer:** {after.mention} (`{after}`)\n"
     if added:
         description += f"**Hinzugef\u00FCgt:** {', '.join(r.mention for r in added)}\n"
@@ -487,6 +508,10 @@ async def on_member_join(member):
         )
         await _dm_inhaber(guild, warn_embed)
         return
+
+    # Dashboard: Mitglied-Cache aktualisieren
+    _dh.update_member(member)
+    _dh.log_activity("MITGLIED", f"{member} ({member.id}) ist dem Server beigetreten", member.id)
 
     member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
     if member_log_ch:
@@ -1037,6 +1062,14 @@ _bot_deleted_ids: set = set()
 
 async def _dm_inhaber(guild: discord.Guild, embed: discord.Embed):
     """DM an alle Mitglieder mit Inhaber-Rolle."""
+    # Dashboard: Aktivit\u00e4tswarnung aufzeichnen
+    try:
+        _dh.log_warning(
+            embed.title or "Warnung",
+            embed.description or "",
+        )
+    except Exception:
+        pass
     inhaber_role = guild.get_role(INHABER_ROLE_ID)
     if not inhaber_role:
         return
