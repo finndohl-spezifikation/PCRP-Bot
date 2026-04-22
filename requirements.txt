@@ -3,3 +3,4 @@ aiohttp
 PyNaCl
 edge-tts
 flask
+psutil
