@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 import tempfile
+import time
 from typing import Optional
 
 import discord
@@ -49,6 +50,8 @@ _STATUS_DATEI  = "support_lobby_status.json"
 _tts_cache: dict[str, str] = {}
 _voice_tasks: dict[int, asyncio.Task] = {}
 _musik_aktiv: dict[int, bool] = {}
+_musik_wall_start: dict[int, float] = {}   # wall-clock beim Start der aktuellen Musikwiedergabe
+_musik_seek_pos: dict[int, float] = {}     # gespeicherte Position beim letzten Stop (Sekunden)
 
 
 def _load_status() -> bool:
@@ -122,8 +125,16 @@ async def _refresh_tts() -> None:
 
 # \u2500\u2500 Audio-Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
+def _musik_pos_jetzt(guild_id: int) -> float:
+    """Aktuelle Abspielposition in der MP3 (Sekunden)."""
+    if guild_id not in _musik_wall_start:
+        return 0.0
+    return _musik_seek_pos.get(guild_id, 0.0) + (time.time() - _musik_wall_start[guild_id])
+
+
 async def _play_tts_async(vc: discord.VoiceClient) -> None:
-    """TTS abspielen. Wenn Lobby offen + Musik vorhanden: Stimme \u00FCber Musik mischen."""
+    """TTS abspielen. Wenn Lobby offen + Musik vorhanden: Stimme \u00FCber Musik mischen.
+    Die Musik setzt dabei an der aktuellen Position fort \u2014 kein Neustart."""
     key  = "offen" if _lobby_open else "closed"
     text = TTS_OFFEN if _lobby_open else TTS_CLOSED
     path = await _gen_tts(key, text)
@@ -136,10 +147,10 @@ async def _play_tts_async(vc: discord.VoiceClient) -> None:
             await asyncio.sleep(0.1)
 
         if _lobby_open and os.path.exists(MUSIK_LOKAL):
-            # FFmpeg: Musik (leise, loopend) + TTS mischen \u2014 Dauer = TTS-L\u00E4nge
+            pos = _musik_seek_pos.get(vc.guild.id, 0.0)
             source = FFmpegPCMAudio(
                 path,
-                before_options=f'-stream_loop -1 -i {MUSIK_LOKAL}',
+                before_options=f'-ss {pos:.2f} -stream_loop -1 -i {MUSIK_LOKAL}',
                 options=(
                     '-filter_complex "[0]volume=0.15[bg];[bg][1]amix=inputs=2'
                     ':duration=second:dropout_transition=0[mix]"'
@@ -149,8 +160,15 @@ async def _play_tts_async(vc: discord.VoiceClient) -> None:
         else:
             source = FFmpegPCMAudio(path)
 
+        tts_start = time.time()
         vc.play(source, after=lambda e: done.set())
         await done.wait()
+
+        # Position um TTS-Dauer vorw\u00E4rtssetzen
+        tts_dauer = time.time() - tts_start
+        guild_id = vc.guild.id
+        _musik_seek_pos[guild_id] = _musik_seek_pos.get(guild_id, 0.0) + tts_dauer
+
     except Exception as e:
         print(f"[support_voice] \u274C TTS-Play-Fehler: {e}")
         done.set()
@@ -164,12 +182,28 @@ def _musik_naechste(vc: discord.VoiceClient) -> None:
     if not os.path.exists(MUSIK_LOKAL):
         print(f"[support_voice] \u26A0\uFE0F Musikdatei nicht gefunden: {MUSIK_LOKAL}")
         return
+    guild_id = vc.guild.id
+    seek = _musik_seek_pos.get(guild_id, 0.0)
     try:
-        audio = PCMVolumeTransformer(FFmpegPCMAudio(MUSIK_LOKAL), volume=MUSIK_VOL)
-        vc.play(audio, after=lambda e: _musik_naechste(vc))
-        print("[support_voice] \U0001F3B5 Musik (Loop)")
+        opts = f'-ss {seek:.2f}' if seek > 0.1 else None
+        audio = PCMVolumeTransformer(
+            FFmpegPCMAudio(MUSIK_LOKAL, before_options=opts),
+            volume=MUSIK_VOL
+        )
+        _musik_wall_start[guild_id] = time.time()
+        vc.play(audio, after=lambda e: _on_musik_ende(vc))
+        print(f"[support_voice] \U0001F3B5 Musik ab {seek:.1f}s")
     except Exception as e:
         print(f"[support_voice] \u274C Musik-Fehler: {e}")
+
+
+def _on_musik_ende(vc: discord.VoiceClient) -> None:
+    """Song nat\u00FCrlich beendet \u2192 Position zur\u00FCcksetzen und von vorne."""
+    guild_id = vc.guild.id
+    _musik_seek_pos[guild_id] = 0.0
+    _musik_wall_start.pop(guild_id, None)
+    if _musik_aktiv.get(guild_id, False):
+        _musik_naechste(vc)
 
 
 def _start_musik_loop(vc: discord.VoiceClient) -> None:
@@ -180,6 +214,10 @@ def _start_musik_loop(vc: discord.VoiceClient) -> None:
 
 def _stop_musik_loop(guild_id: int) -> None:
     _musik_aktiv[guild_id] = False
+    # Aktuelle Position speichern
+    if guild_id in _musik_wall_start:
+        elapsed = time.time() - _musik_wall_start.pop(guild_id)
+        _musik_seek_pos[guild_id] = _musik_seek_pos.get(guild_id, 0.0) + elapsed
 
 # \u2500\u2500 Haupt-Loop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
@@ -308,7 +346,7 @@ async def support_voice_state(
 ])
 async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> None:
     global _lobby_open
-    if not any(r.id in {ADMIN_ROLE_ID, MOD_ROLE_ID} for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in {ADMIN_ROLE_ID, MOD_ROLE_ID} for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
     _lobby_open = status == "open"
