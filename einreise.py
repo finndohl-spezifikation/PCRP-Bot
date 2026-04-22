@@ -509,7 +509,7 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 ])
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member,
                          einreise_typ: str = "legal"):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
