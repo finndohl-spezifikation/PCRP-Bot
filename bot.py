@@ -129,8 +129,10 @@ if not TOKEN:
 # Dashboard starten (l\u00e4uft im Hintergrund-Thread, kein permanenter RAM-Overhead)
 try:
     from dashboard import start_dashboard
-    start_dashboard(bot, port=int(os.environ.get("DASHBOARD_PORT", "8080")))
+    _dash_port = int(os.environ.get("PORT") or os.environ.get("DASHBOARD_PORT") or "8080")
+    start_dashboard(bot, port=_dash_port)
 except Exception as _de:
+    import traceback; traceback.print_exc()
     print(f"[Dashboard] Konnte nicht gestartet werden: {_de}")
 
 bot.run(TOKEN)
