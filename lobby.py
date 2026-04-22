@@ -10,7 +10,7 @@ import support_voice as _sv
 
 @bot.tree.command(name="lobby-abstimmung", description="[LOBBY] Sendet eine Lobby-Abstimmung", guild=discord.Object(id=GUILD_ID))
 async def lobby_abstimmung(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in (LOBBY_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Lobby-Team verf\u00FCgbar.", ephemeral=True)
         return
 
@@ -61,7 +61,7 @@ async def lobby_abstimmung(interaction: discord.Interaction):
 
 @bot.tree.command(name="lobby-open", description="[LOBBY] \u00D6ffnet die Lobby", guild=discord.Object(id=GUILD_ID))
 async def lobby_open(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in (LOBBY_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Lobby-Team verf\u00FCgbar.", ephemeral=True)
         return
 
@@ -107,7 +107,7 @@ async def lobby_open(interaction: discord.Interaction):
 
 @bot.tree.command(name="lobby-close", description="[LOBBY] Schlie\u00DFt die Lobby", guild=discord.Object(id=GUILD_ID))
 async def lobby_close(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id == LOBBY_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in (LOBBY_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Lobby-Team verf\u00FCgbar.", ephemeral=True)
         return
 
