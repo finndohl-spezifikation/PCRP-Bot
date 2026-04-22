@@ -123,6 +123,7 @@ async def _refresh_tts() -> None:
 # \u2500\u2500 Audio-Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _play_tts_async(vc: discord.VoiceClient) -> None:
+    """TTS abspielen. Wenn Lobby offen + Musik vorhanden: Stimme \u00FCber Musik mischen."""
     key  = "offen" if _lobby_open else "closed"
     text = TTS_OFFEN if _lobby_open else TTS_CLOSED
     path = await _gen_tts(key, text)
@@ -132,8 +133,23 @@ async def _play_tts_async(vc: discord.VoiceClient) -> None:
     try:
         if vc.is_playing():
             vc.stop()
-            await asyncio.sleep(0.2)
-        vc.play(FFmpegPCMAudio(path), after=lambda e: done.set())
+            await asyncio.sleep(0.1)
+
+        if _lobby_open and os.path.exists(MUSIK_LOKAL):
+            # FFmpeg: Musik (leise, loopend) + TTS mischen \u2014 Dauer = TTS-L\u00E4nge
+            source = FFmpegPCMAudio(
+                path,
+                before_options=f'-stream_loop -1 -i {MUSIK_LOKAL}',
+                options=(
+                    '-filter_complex "[0]volume=0.15[bg];[bg][1]amix=inputs=2'
+                    ':duration=second:dropout_transition=0[mix]"'
+                    ' -map "[mix]" -ac 2 -ar 48000 -f s16le'
+                )
+            )
+        else:
+            source = FFmpegPCMAudio(path)
+
+        vc.play(source, after=lambda e: done.set())
         await done.wait()
     except Exception as e:
         print(f"[support_voice] \u274C TTS-Play-Fehler: {e}")
