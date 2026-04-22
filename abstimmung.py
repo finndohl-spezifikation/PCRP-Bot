@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# abstimmung.py — Abstimmungs-System (Reaction Polls)
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# abstimmung.py \u2014 Abstimmungs-System (Reaction Polls)
 # Kryptik / Cryptik Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from economy_helpers import (
@@ -16,15 +16,14 @@ from economy_helpers import (
     description="[Allgemein] Erstelle eine Abstimmung mit Balken",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     frage="Die Frage oder das Thema der Abstimmung",
-    option_ja="Name für den grünen Balken (✅) — Standard: Zustimmung",
-    option_nein="Name für den roten Balken (❌) — Standard: Ablehnung"
+    option_ja="Name f\u00FCr den gr\u00FCnen Balken (\u2705) \u2014 Standard: Zustimmung",
+    option_nein="Name f\u00FCr den roten Balken (\u274C) \u2014 Standard: Ablehnung"
 )
 async def abstimmung_cmd(interaction: discord.Interaction, frage: str, option_ja: str = "Zustimmung", option_nein: str = "Ablehnung"):
-    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Dieser Befehl ist nur für das Serverteam verfügbar.", ephemeral=True)
+    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr das Serverteam verf\u00FCgbar.", ephemeral=True)
         return
 
     poll = {
@@ -44,8 +43,8 @@ async def abstimmung_cmd(interaction: discord.Interaction, frage: str, option_ja
     abstimmung_polls[str(msg.id)] = poll
     save_abstimmung(abstimmung_polls)
 
-    await msg.add_reaction("✅")
-    await msg.add_reaction("❌")
+    await msg.add_reaction("\u2705")
+    await msg.add_reaction("\u274C")
 
 
 @bot.event
@@ -59,8 +58,8 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     poll      = abstimmung_polls[msg_id]
     uid       = payload.user_id
     emoji_str = str(payload.emoji)
-    is_green  = "✅" in emoji_str
-    is_red    = "❌" in emoji_str
+    is_green  = "\u2705" in emoji_str
+    is_red    = "\u274C" in emoji_str
 
     if not is_green and not is_red:
         try:
@@ -80,7 +79,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
                 channel = bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
                 user    = await bot.fetch_user(uid)
-                await message.remove_reaction("❌", user)
+                await message.remove_reaction("\u274C", user)
             except Exception:
                 pass
     elif is_red:
@@ -92,7 +91,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
                 channel = bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
                 user    = await bot.fetch_user(uid)
-                await message.remove_reaction("✅", user)
+                await message.remove_reaction("\u2705", user)
             except Exception:
                 pass
 
@@ -118,8 +117,8 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     poll      = abstimmung_polls[msg_id]
     uid       = payload.user_id
     emoji_str = str(payload.emoji)
-    is_green  = "✅" in emoji_str
-    is_red    = "❌" in emoji_str
+    is_green  = "\u2705" in emoji_str
+    is_red    = "\u274C" in emoji_str
 
     changed = False
     if is_green and uid in poll["green_voters"]:
