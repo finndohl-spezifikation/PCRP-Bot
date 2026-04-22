@@ -132,19 +132,19 @@ async function loadShops() {
   _shopData = data;
 
   const sel = $('shop-sel');
-  sel.innerHTML = '<option value="">Shop w\xe4hlen\u2026</option>' +
+  sel.innerHTML = '<option value="">Shop w\u00E4hlen\u2026</option>' +
     Object.keys(data).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
 
   $('shop-panels').innerHTML = Object.entries(data).map(([shop, info]) => `
     <div class="shop-section" id="shopsec-${btoa(shop).replace(/=/g,'')}">
-      <div class="shop-header">\U0001f3ea ${esc(shop)}</div>
+      <div class="shop-header">\u{1F3EA} ${esc(shop)}</div>
       <div class="shop-items">
         ${(info.items||[]).length ? (info.items||[]).map((item,i) => `
           <div class="shop-item-row">
             <span>${esc(item.name || item.emoji+' '+item.itemname || JSON.stringify(item))}</span>
             <div style="display:flex;gap:12px;align-items:center">
               <span class="item-price">$${fmt(item.preis||item.price||0)}</span>
-              <button class="btn-danger" onclick="deleteShopItem('${esc(shop)}',${i})">\U0001f5d1\ufe0f</button>
+              <button class="btn-danger" onclick="deleteShopItem('${esc(shop)}',${i})">\u{1F5D1}\uFE0F</button>
             </div>
           </div>`).join('') : '<div style="padding:12px 18px;color:var(--text-dim);font-size:13px">Keine Items</div>'}
       </div>
@@ -157,20 +157,20 @@ async function addShopItem() {
   const name  = $('shop-name').value.trim();
   const preis = $('shop-preis').value;
   const msg   = $('shop-msg');
-  if (!shop || !name || !preis) { msg.className='form-msg err'; msg.textContent='\u274c Bitte alle Felder ausf\xfcllen.'; return; }
+  if (!shop || !name || !preis) { msg.className='form-msg err'; msg.textContent='\u274C Bitte alle Felder ausf\u00FCllen.'; return; }
   const r = await api('/api/shop-item', { method:'POST', body: JSON.stringify({shop,emoji,name,preis:parseInt(preis)}) });
   if (r?.ok) {
-    msg.className='form-msg ok'; msg.textContent='\u2705 Item hinzugef\xfcgt!';
+    msg.className='form-msg ok'; msg.textContent='\u2705 Item hinzugef\u00FCgt!';
     $('shop-emoji').value=''; $('shop-name').value=''; $('shop-preis').value='';
     loadShops();
-  } else { msg.className='form-msg err'; msg.textContent='\u274c ' + (r?.error || 'Fehler'); }
+  } else { msg.className='form-msg err'; msg.textContent='\u274C ' + (r?.error || 'Fehler'); }
 }
 
 async function deleteShopItem(shop, idx) {
-  if (!confirm('Item wirklich l\xf6schen?')) return;
+  if (!confirm('Item wirklich l\u00F6schen?')) return;
   const r = await api('/api/shop-item', { method:'DELETE', body: JSON.stringify({shop, index:idx}) });
   if (r?.ok) loadShops();
-  else alert('Fehler beim L\xf6schen');
+  else alert('Fehler beim L\u00F6schen');
 }
 
 // \u2500\u2500 Bans \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -200,7 +200,7 @@ async function unbanUser(id, name) {
   if (!confirm(`${name} (${id}) wirklich entbannen?`)) return;
   const r = await api('/api/unban', { method:'POST', body: JSON.stringify({user_id:id}) });
   if (r?.ok) { alert('\u2705 Entbannt!'); loadBans(); }
-  else alert('\u274c Fehler beim Entbannen');
+  else alert('\u274C Fehler beim Entbannen');
 }
 
 // \u2500\u2500 Blacklist \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -214,8 +214,8 @@ async function loadBlacklist() {
       <td><span class="uid-small">${e.id||'\u2013'}</span></td>
       <td style="font-size:12px">${esc(e.reason||'\u2013')}</td>
       <td style="font-size:11px;color:var(--text-dim)">${esc(e.added_at||'\u2013')}</td>
-      <td><button class="btn-danger" onclick="deleteBlacklist(${i})">\U0001f5d1\ufe0f Entfernen</button></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="loading">Keine Eintr\xe4ge</td></tr>';
+      <td><button class="btn-danger" onclick="deleteBlacklist(${i})">\u{1F5D1}\uFE0F Entfernen</button></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="loading">Keine Eintr\u00E4ge</td></tr>';
 }
 
 async function addBlacklist() {
@@ -225,7 +225,7 @@ async function addBlacklist() {
   if (!name && !discId) { alert('Name oder Discord-ID erforderlich'); return; }
   const r = await api('/api/blacklist', { method:'POST', body: JSON.stringify({name, discord_id:discId, reason}) });
   if (r?.ok) { $('bl-name').value=''; $('bl-id').value=''; $('bl-reason').value=''; loadBlacklist(); }
-  else alert('\u274c Fehler');
+  else alert('\u274C Fehler');
 }
 
 async function deleteBlacklist(idx) {
@@ -263,7 +263,7 @@ function renderLogEntries(entries, containerId) {
     <div class="log-entry type-${e.type||''}">
       <div><span class="badge badge-orange" style="margin-right:8px">${e.type||'LOG'}</span>${esc(e.desc||'')}</div>
       ${e.user ? `<div class="uid-small">Nutzer: ${e.user}</div>` : ''}
-      <div class="log-time">\U0001f550 ${e.time}</div>
+      <div class="log-time">\u{1F550} ${e.time}</div>
     </div>`).join('');
 }
 
@@ -290,9 +290,9 @@ function renderWarningEntries(entries, containerId) {
   if (!entries || !entries.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px">Keine Warnungen</div>'; return; }
   el.innerHTML = entries.map(e => `
     <div class="warn-entry">
-      <div class="warn-entry-title">\U0001f6a8 ${esc(e.title||'Warnung')}</div>
+      <div class="warn-entry-title">\u{1F6A8} ${esc(e.title||'Warnung')}</div>
       <div style="font-size:13px;margin-top:4px;white-space:pre-line">${esc(e.desc||'')}</div>
-      <div class="log-time">\U0001f550 ${e.time}</div>
+      <div class="log-time">\u{1F550} ${e.time}</div>
     </div>`).join('');
 }
 
@@ -346,14 +346,14 @@ function filterNotes() {
   if (!entries.length) { $el.innerHTML = '<div style="color:var(--text-dim)">Keine Notizen</div>'; return; }
   $el.innerHTML = entries.map(([uid, d]) => `
     <div class="note-card">
-      <div class="note-user">\U0001f464 ${esc(d.name||uid)} <span class="uid-small">${uid}</span></div>
+      <div class="note-user">\u{1F464} ${esc(d.name||uid)} <span class="uid-small">${uid}</span></div>
       ${(d.notes||[]).map((n,i) => `
         <div class="note-entry">
           <div>
             <div>${esc(n.note)}</div>
-            <div class="note-time">\U0001f550 ${n.time||'\u2013'}</div>
+            <div class="note-time">\u{1F550} ${n.time||'\u2013'}</div>
           </div>
-          <button class="btn-danger" onclick="deleteNote('${uid}',${i})">\U0001f5d1\ufe0f</button>
+          <button class="btn-danger" onclick="deleteNote('${uid}',${i})">\u{1F5D1}\uFE0F</button>
         </div>`).join('')}
     </div>`).join('');
 }
@@ -364,11 +364,11 @@ async function addNote() {
   if (!uid || !note) { alert('ID und Notiz erforderlich'); return; }
   const r = await api('/api/notes', { method:'POST', body: JSON.stringify({user_id:uid, note}) });
   if (r?.ok) { $('note-uid').value=''; $('note-text').value=''; loadNotes(); }
-  else alert('\u274c Fehler');
+  else alert('\u274C Fehler');
 }
 
 async function deleteNote(uid, idx) {
-  if (!confirm('Notiz l\xf6schen?')) return;
+  if (!confirm('Notiz l\u00F6schen?')) return;
   const r = await api(`/api/notes/${uid}/${idx}`, { method:'DELETE' });
   if (r?.ok) loadNotes();
 }
@@ -389,7 +389,7 @@ async function loadStatus() {
   if (s.features && Object.keys(s.features).length) {
     fl.innerHTML = Object.entries(s.features).map(([name, f]) =>
       `<div class="feature-item ${f.ok?'feature-ok':'feature-err'}">
-        ${f.ok ? '\U0001f7e2' : '\U0001f534'} ${esc(name)}
+        ${f.ok ? '\u{1F7E2}' : '\u{1F534}'} ${esc(name)}
         ${!f.ok && f.err ? `<span style="font-size:11px;color:var(--text-dim)"> \u2014 ${esc(f.err)}</span>` : ''}
       </div>`).join('');
   } else {
