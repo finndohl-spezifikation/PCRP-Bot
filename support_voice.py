@@ -33,13 +33,14 @@ ADMIN_ROLE_ID  = 1490855650081636352
 MOD_ROLE_ID    = 1496147874256392202
 
 TTS_OFFEN = (
-    "Willkommen im Support! "
-    "Ein Teammitglied wird sich in K\u00FCrze um dich k\u00FCmmern. "
-    "Bitte hab etwas Geduld."
+    "Herzlich willgomm'n bei der null eens neunzich, "
+    "den alden Gagbradzen ausm Gallzender! "
+    "Alle unsre Midiarbeider sind grade im Eensadz. "
+    "Bidde ham Se een'n Momend Geduld."
 )
 TTS_CLOSED = (
-    "Der Sprach-Support ist aktuell nicht verf\u00FCgbar. "
-    "Bitte erstelle ein Ticket oder versuche es sp\u00E4ter erneut."
+    "Dud mir leed, mir ham heud geschlossn. "
+    "Bidde erstell'n Se een Digget, odder ruf'n Se schb\u00E4der nochemal an."
 )
 
 # \u2500\u2500 Zustand \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
