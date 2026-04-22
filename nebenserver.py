@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# nebenserver.py \u2014 Nebenserver Embed (\U0001F30D Import / Export \U0001F30D)
+# nebenserver.py \\u2014 Nebenserver Embed (\\U0001F30D Import / Export \\U0001F30D)
 # Paradise City Roleplay Discord Bot
 
 from config import *
@@ -23,18 +23,18 @@ def _save_data(data: dict):
 
 def _build_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="\U0001F30D Import / Export \U0001F30D",
+        title="\\U0001F30D Import / Export \\U0001F30D",
         description="Hier kannst du den Nebenserver **Import / Export** betreten.",
         color=LOG_COLOR,
     )
-    embed.set_footer(text="Paradise City Roleplay \u2022 Nebenserver")
+    embed.set_footer(text="Paradise City Roleplay \\u2022 Nebenserver")
     return embed
 
 
 def _build_view() -> discord.ui.View:
-    view = discord.ui.View(timeout=None)
+    view = discord.ui.View(timeout=INTERACTION_VIEW_TIMEOUT)
     view.add_item(discord.ui.Button(
-        label="\U0001F30D Server beitreten",
+        label="\\U0001F30D Server beitreten",
         url=NEBENSERVER_INVITE,
         style=discord.ButtonStyle.link
     ))
