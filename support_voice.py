@@ -25,7 +25,7 @@ from config import bot
 WARTERAUM_ID   = 1490882556269297716
 SPIELER_ROLLE  = 1490855722534310003
 MUSIK_LOKAL    = "Bunte_Papiere.mp3"
-TTS_STIMME     = "de-DE-ConradNeural"
+TTS_STIMME     = "de-DE-KatjaNeural"
 MUSIK_VOL      = 0.25
 WIEDERHOL_SEK  = 20
 
