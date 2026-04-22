@@ -3,1015 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paradise City Admin Dashboard</title>
+<title>Paradise City â€” Login</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --orange-1: #FF6B00;
-  --orange-2: #FF8C00;
-  --orange-3: #FFA500;
-  --orange-4: #FFB347;
-  --dark-bg:  #0f0f13;
-  --card-bg:  #1a1a24;
-  --card-border: rgba(255,107,0,0.25);
-  --text:     #f0f0f0;
-  --text-dim: #9090a0;
-  --danger:   #e74c3c;
-  --success:  #2ecc71;
-  --sidebar-w: 240px;
-}
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0d0f14;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    overflow: hidden;
+  }
 
-body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: var(--dark-bg);
-  color: var(--text);
-  display: flex;
-  min-height: 100vh;
-}
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 80%, rgba(99,102,241,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(139,92,246,0.15) 0%, transparent 60%);
+    pointer-events: none;
+  }
 
-/* â”€â”€ Sidebar â”€â”€ */
-.sidebar {
-  width: var(--sidebar-w);
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(180deg, #18080a 0%, #0f0f13 100%);
-  border-right: 1px solid var(--card-border);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 16px 16px;
-  border-bottom: 1px solid var(--card-border);
-}
-.sidebar-icon { font-size: 28px; }
-.sidebar-title {
-  font-weight: 700;
-  font-size: 14px;
-  background: linear-gradient(90deg, var(--orange-1), var(--orange-4));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.sidebar-sub { font-size: 11px; color: var(--text-dim); }
-.nav-list { list-style: none; padding: 10px 0; flex: 1; }
-.nav-item {
-  padding: 11px 18px;
-  font-size: 13.5px;
-  cursor: pointer;
-  border-left: 3px solid transparent;
-  transition: all .15s;
-  color: var(--text-dim);
-}
-.nav-item:hover { background: rgba(255,107,0,0.08); color: var(--text); }
-.nav-item.active {
-  border-left-color: var(--orange-1);
-  background: rgba(255,107,0,0.12);
-  color: var(--orange-3);
-  font-weight: 600;
-}
-.sidebar-footer { padding: 16px; border-top: 1px solid var(--card-border); }
-.btn-logout {
-  display: block;
-  text-align: center;
-  padding: 10px;
-  background: rgba(231,76,60,0.15);
-  border: 1px solid rgba(231,76,60,0.4);
-  border-radius: 8px;
-  color: #e74c3c;
-  text-decoration: none;
-  font-size: 13px;
-  transition: all .15s;
-}
-.btn-logout:hover { background: rgba(231,76,60,0.25); }
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 48px 44px;
+    width: 100%;
+    max-width: 420px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    position: relative;
+    z-index: 1;
+    animation: fadeUp .4s ease;
+  }
 
-/* â”€â”€ Main â”€â”€ */
-.main-content { flex: 1; padding: 28px 32px; overflow-x: hidden; }
-.section { display: none; }
-.section.active { display: block; }
-.section-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 20px;
-  background: linear-gradient(90deg, var(--orange-1), var(--orange-4));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(20px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
 
-/* â”€â”€ Cards â”€â”€ */
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 20px;
-}
-.card-title { font-size: 14px; font-weight: 600; color: var(--orange-3); margin-bottom: 14px; }
-.mt-20 { margin-top: 20px; }
-.mt-10 { margin-top: 10px; }
+  .logo {
+    text-align: center;
+    margin-bottom: 28px;
+  }
 
-/* â”€â”€ Stats â”€â”€ */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 14px;
-}
-.stat-card {
-  background: linear-gradient(135deg, #1a1a24, #1d0f00);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  padding: 18px 14px;
-  text-align: center;
-}
-.stat-val { font-size: 26px; font-weight: 700; color: var(--orange-3); }
-.stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .logo-icon {
+    display: inline-flex;
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+    margin-bottom: 18px;
+  }
 
-/* â”€â”€ Tables â”€â”€ */
-.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
-.search-input {
-  flex: 1;
-  min-width: 180px;
-  padding: 9px 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-}
-.search-input:focus { border-color: var(--orange-2); }
-.table-wrap { overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table th {
-  background: linear-gradient(90deg, rgba(255,107,0,0.2), rgba(255,140,0,0.1));
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 12px;
-  color: var(--orange-4);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-}
-.data-table td {
-  padding: 9px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  vertical-align: top;
-}
-.data-table tr:hover td { background: rgba(255,107,0,0.05); }
-.loading { color: var(--text-dim); font-style: italic; }
-.uid-small { font-size: 11px; color: var(--text-dim); }
+  h1 {
+    color: #fff;
+    font-size: 22px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: .3px;
+  }
 
-/* â”€â”€ Tabs â”€â”€ */
-.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.tab-btn {
-  padding: 8px 18px;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  background: var(--card-bg);
-  color: var(--text-dim);
-  cursor: pointer;
-  font-size: 13px;
-}
-.tab-btn.active {
-  background: linear-gradient(135deg, var(--orange-1), var(--orange-2));
-  color: #fff;
-  border-color: transparent;
-  font-weight: 600;
-}
+  .sub {
+    color: rgba(255,255,255,0.45);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 5px;
+    margin-bottom: 36px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
 
-/* â”€â”€ Forms â”€â”€ */
-.form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
-.form-input {
-  padding: 9px 12px;
-  background: #11111a;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  flex: 1;
-  min-width: 100px;
-}
-.form-input:focus { border-color: var(--orange-2); }
-.form-select {
-  padding: 9px 12px;
-  background: #11111a;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  min-width: 140px;
-}
-.form-msg { margin-top: 8px; font-size: 13px; }
-.form-msg.ok { color: var(--success); }
-.form-msg.err { color: var(--danger); }
+  .error {
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
 
-/* â”€â”€ Buttons â”€â”€ */
-.btn-primary {
-  padding: 9px 18px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  background: linear-gradient(135deg, var(--orange-1), var(--orange-2));
-  color: #fff;
-}
-.btn-primary:hover { opacity: .85; }
-.btn-secondary {
-  padding: 9px 14px;
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  background: var(--card-bg);
-  color: var(--text);
-}
-.btn-secondary:hover { border-color: var(--orange-2); }
-.btn-danger {
-  padding: 5px 12px;
-  border: 1px solid rgba(231,76,60,0.4);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  background: rgba(231,76,60,0.1);
-  color: var(--danger);
-}
-.btn-danger:hover { background: rgba(231,76,60,0.2); }
-.btn-success {
-  padding: 5px 12px;
-  border: 1px solid rgba(46,204,113,0.4);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  background: rgba(46,204,113,0.1);
-  color: var(--success);
-}
-.btn-success:hover { background: rgba(46,204,113,0.2); }
+  .field-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 11px;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
 
-/* â”€â”€ Log list â”€â”€ */
-.log-list { display: flex; flex-direction: column; gap: 6px; }
-.log-entry {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 13px;
-  border-left: 3px solid var(--orange-1);
-}
-.log-entry.type-GELD   { border-left-color: #2ecc71; }
-.log-entry.type-ITEM   { border-left-color: #3498db; }
-.log-entry.type-ROLLE  { border-left-color: #9b59b6; }
-.log-entry.type-BAN    { border-left-color: #e74c3c; }
-.log-entry.type-WARN   { border-left-color: #f39c12; }
-.log-entry.type-SERVER { border-left-color: #1abc9c; }
-.log-time { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
-.warn-entry {
-  background: var(--card-bg);
-  border: 1px solid rgba(231,76,60,0.3);
-  border-radius: 8px;
-  padding: 12px 16px;
-  border-left: 3px solid var(--danger);
-}
-.warn-entry-title { font-weight: 600; font-size: 13px; color: #ff6b6b; }
+  .input-wrap {
+    position: relative;
+    margin-bottom: 4px;
+  }
 
-/* â”€â”€ Shop panels â”€â”€ */
-.shop-section {
-  margin-top: 20px;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.shop-header {
-  padding: 12px 18px;
-  background: linear-gradient(90deg, rgba(255,107,0,0.2), transparent);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--orange-3);
-}
-.shop-item-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 18px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 13px;
-}
-.shop-item-row:last-child { border-bottom: none; }
-.item-price { color: var(--orange-3); font-weight: 600; }
+  .input-wrap input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
+    padding: 13px 16px 13px 46px;
+    outline: none;
+    transition: border-color .2s, background .2s;
+  }
 
-/* â”€â”€ Notes grid â”€â”€ */
-.notes-grid { display: flex; flex-direction: column; gap: 12px; }
-.note-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 10px;
-  padding: 14px 18px;
-}
-.note-user { font-weight: 600; color: var(--orange-3); margin-bottom: 8px; font-size: 14px; }
-.note-entry {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  font-size: 13px;
-}
-.note-entry:last-child { border-bottom: none; }
-.note-time { font-size: 11px; color: var(--text-dim); }
+  .input-wrap input::placeholder { color: rgba(255,255,255,0.25); }
 
-/* â”€â”€ Features grid â”€â”€ */
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-.feature-item {
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--card-border);
-}
-.feature-ok  { border-color: rgba(46,204,113,0.3); }
-.feature-err { border-color: rgba(231,76,60,0.3); }
+  .input-wrap input:focus {
+    border-color: rgba(99,102,241,0.6);
+    background: rgba(255,255,255,0.08);
+  }
 
-/* â”€â”€ Live badge â”€â”€ */
-.live-badge {
-  background: rgba(46,204,113,0.15);
-  border: 1px solid rgba(46,204,113,0.4);
-  color: var(--success);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-}
+  .input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 17px;
+    pointer-events: none;
+  }
 
-/* â”€â”€ Badges â”€â”€ */
-.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-.badge-red    { background: rgba(231,76,60,0.2); color: #e74c3c; }
-.badge-orange { background: rgba(255,107,0,0.2); color: var(--orange-3); }
+  .hint {
+    color: rgba(255,255,255,0.25);
+    font-size: 11px;
+    margin-top: 5px;
+    margin-bottom: 0;
+  }
 
-/* â”€â”€ Money â”€â”€ */
-.money     { color: var(--orange-3); font-weight: 600; }
-.money-neg { color: var(--danger); }
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: .3px;
+    transition: opacity .2s, transform .1s;
+    box-shadow: 0 6px 20px rgba(99,102,241,0.35);
+    margin-top: 24px;
+  }
 
-/* â”€â”€ Scrollbar â”€â”€ */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,107,0,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,107,0,0.5); }
+  .btn:hover  { opacity: .9; }
+  .btn:active { transform: scale(.98); }
+
+  .footer-note {
+    text-align: center;
+    color: rgba(255,255,255,0.2);
+    font-size: 11px;
+    margin-top: 28px;
+    letter-spacing: .3px;
+  }
 </style>
 </head>
 <body>
-
-<!-- SIDEBAR -->
-<nav class="sidebar">
-  <div class="sidebar-header">
-    <span class="sidebar-icon">&#x1F3D9;&#xFE0F;</span>
-    <div>
-      <div class="sidebar-title">Paradise City</div>
-      <div class="sidebar-sub">Admin Dashboard</div>
-    </div>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">&#x1F3D9;</div>
+    <h1>Paradise City</h1>
+    <p class="sub">Admin Dashboard</p>
   </div>
-  <ul class="nav-list">
-    <li class="nav-item active" onclick="goto('overview')">&#x1F4CA; &Uuml;bersicht</li>
-    <li class="nav-item" onclick="goto('economy')">&#x1F4B0; Kontost&auml;nde</li>
-    <li class="nav-item" onclick="goto('warns')">&#x26A0;&#xFE0F; Verwarnungen</li>
-    <li class="nav-item" onclick="goto('inventories')">&#x1F392; Inventare</li>
-    <li class="nav-item" onclick="goto('shops')">&#x1F3EA; Shop-Verwaltung</li>
-    <li class="nav-item" onclick="goto('bans')">&#x1F528; Gebannte Spieler</li>
-    <li class="nav-item" onclick="goto('blacklist')">&#x1F6AB; Blacklist</li>
-    <li class="nav-item" onclick="goto('logs')">&#x1F4CB; Echtzeit-Logs</li>
-    <li class="nav-item" onclick="goto('warnings')">&#x1F6A8; Aktivit&auml;tswarnungen</li>
-    <li class="nav-item" onclick="goto('invites')">&#x1F4E8; Einladungen</li>
-    <li class="nav-item" onclick="goto('players')">&#x1F465; Spielerliste</li>
-    <li class="nav-item" onclick="goto('notes')">&#x1F4DD; Notizen</li>
-    <li class="nav-item" onclick="goto('status')">&#x2699;&#xFE0F; Bot-Status</li>
-  </ul>
-  <div class="sidebar-footer">
-    <a href="/logout" class="btn-logout">&#x1F6AA; Ausloggen</a>
-  </div>
-</nav>
 
-<!-- MAIN CONTENT -->
-<main class="main-content">
+  {% if error %}
+  <div class="error">&#x274C; {{ error }}</div>
+  {% endif %}
 
-  <!-- UEBERSICHT -->
-  <section id="sec-overview" class="section active">
-    <h2 class="section-title">&#x1F4CA; &Uuml;bersicht</h2>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val" id="stat-members">&ndash;</div><div class="stat-label">Mitglieder</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-players">&ndash;</div><div class="stat-label">Spieler (B&uuml;rger)</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-bans">&ndash;</div><div class="stat-label">Gebannte</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-warns">&ndash;</div><div class="stat-label">Offene Warns</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-latency">&ndash;</div><div class="stat-label">Latenz</div></div>
-      <div class="stat-card"><div class="stat-val" id="stat-ram">&ndash;</div><div class="stat-label">RAM (MB)</div></div>
+  <form method="POST" action="/login">
+    <div class="field-label">Discord User ID</div>
+    <div class="input-wrap">
+      <span class="input-icon">&#x1F194;</span>
+      <input type="text" name="discord_id" placeholder="z.B. 123456789012345678" autofocus required inputmode="numeric" pattern="[0-9]+">
     </div>
-    <div class="card mt-20">
-      <div class="card-title">&#x1F6A8; Letzte Aktivit&auml;tswarnungen</div>
-      <div id="overview-warnings" class="log-list">Lade&hellip;</div>
+    <p class="hint">Rechtsklick auf deinen Namen in Discord &rarr; &bdquo;ID kopieren&ldquo;</p>
+
+    <div class="field-label">Passwort</div>
+    <div class="input-wrap">
+      <span class="input-icon">&#x1F512;</span>
+      <input type="password" name="password" placeholder="Passwort eingeben&#x2026;" required>
     </div>
-    <div class="card mt-20">
-      <div class="card-title">&#x1F4CB; Letzte Logs</div>
-      <div id="overview-logs" class="log-list">Lade&hellip;</div>
-    </div>
-  </section>
 
-  <!-- KONTOSTAENDE -->
-  <section id="sec-economy" class="section">
-    <h2 class="section-title">&#x1F4B0; Kontost&auml;nde</h2>
-    <div class="toolbar">
-      <input class="search-input" id="eco-search" placeholder="Suche nach Name / ID&hellip;" oninput="filterTable('eco-tbody','eco-search')">
-    </div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>ID</th><th>Kasse</th><th>Bank</th><th>Gesamt</th><th>Dispo</th><th>Schulden</th></tr></thead>
-        <tbody id="eco-tbody"><tr><td colspan="7" class="loading">Lade&hellip;</td></tr></tbody>
-      </table>
-    </div>
-  </section>
+    <button type="submit" class="btn">Einloggen</button>
+  </form>
 
-  <!-- VERWARNUNGEN -->
-  <section id="sec-warns" class="section">
-    <h2 class="section-title">&#x26A0;&#xFE0F; Verwarnungen</h2>
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab(this,'warn-panel','team-panel')">Spieler-Warns</button>
-      <button class="tab-btn" onclick="switchTab(this,'team-panel','warn-panel')">Team-Warns</button>
-    </div>
-    <div id="warn-panel">
-      <div class="toolbar"><input class="search-input" id="warn-search" placeholder="Suche&hellip;" oninput="filterTable('warn-tbody','warn-search')"></div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Name</th><th>ID</th><th>Anzahl</th><th>Verwarnungen</th></tr></thead>
-          <tbody id="warn-tbody"><tr><td colspan="4" class="loading">Lade&hellip;</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-    <div id="team-panel" style="display:none">
-      <div class="toolbar"><input class="search-input" id="teamwarn-search" placeholder="Suche&hellip;" oninput="filterTable('teamwarn-tbody','teamwarn-search')"></div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Name</th><th>ID</th><th>Anzahl</th><th>Verwarnungen</th></tr></thead>
-          <tbody id="teamwarn-tbody"><tr><td colspan="4" class="loading">Lade&hellip;</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- INVENTARE -->
-  <section id="sec-inventories" class="section">
-    <h2 class="section-title">&#x1F392; Inventare</h2>
-    <div class="toolbar"><input class="search-input" id="inv-search" placeholder="Suche nach Name&hellip;" oninput="filterTable('inv-tbody','inv-search')"></div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>ID</th><th>Inventar</th><th>Lager</th></tr></thead>
-        <tbody id="inv-tbody"><tr><td colspan="4" class="loading">Lade&hellip;</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- SHOP -->
-  <section id="sec-shops" class="section">
-    <h2 class="section-title">&#x1F3EA; Shop-Verwaltung</h2>
-    <div class="card">
-      <div class="card-title">&#x2795; Item hinzuf&uuml;gen</div>
-      <div class="form-row">
-        <select id="shop-sel" class="form-select"><option value="">Shop w&auml;hlen&hellip;</option></select>
-        <input id="shop-emoji" class="form-input" placeholder="Emoji (z.B. &#x1F52B;)">
-        <input id="shop-name" class="form-input" placeholder="Itemname">
-        <input id="shop-preis" class="form-input" type="number" placeholder="Preis ($)">
-        <button class="btn-primary" onclick="addShopItem()">Hinzuf&uuml;gen</button>
-      </div>
-      <div id="shop-msg" class="form-msg"></div>
-    </div>
-    <div id="shop-panels"></div>
-  </section>
-
-  <!-- BANS -->
-  <section id="sec-bans" class="section">
-    <h2 class="section-title">&#x1F528; Gebannte Spieler</h2>
-    <div class="toolbar">
-      <input class="search-input" id="ban-search" placeholder="Suche nach Name / ID&hellip;" oninput="filterTable('ban-tbody','ban-search')">
-      <button class="btn-secondary" onclick="refreshBans()">&#x1F504; Aktualisieren</button>
-    </div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>ID</th><th>Grund</th><th>Aktion</th></tr></thead>
-        <tbody id="ban-tbody"><tr><td colspan="4" class="loading">Lade&hellip;</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- BLACKLIST -->
-  <section id="sec-blacklist" class="section">
-    <h2 class="section-title">&#x1F6AB; Blacklist</h2>
-    <div class="card">
-      <div class="card-title">&#x2795; Eintrag hinzuf&uuml;gen</div>
-      <div class="form-row">
-        <input id="bl-name" class="form-input" placeholder="Name">
-        <input id="bl-id" class="form-input" placeholder="Discord ID">
-        <input id="bl-reason" class="form-input" placeholder="Grund">
-        <button class="btn-primary" onclick="addBlacklist()">Hinzuf&uuml;gen</button>
-      </div>
-    </div>
-    <div class="toolbar mt-10"><input class="search-input" id="bl-search" placeholder="Suche&hellip;" oninput="filterTable('bl-tbody','bl-search')"></div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>Discord ID</th><th>Grund</th><th>Hinzugef&uuml;gt</th><th>Aktion</th></tr></thead>
-        <tbody id="bl-tbody"><tr><td colspan="5" class="loading">Lade&hellip;</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- LOGS -->
-  <section id="sec-logs" class="section">
-    <h2 class="section-title">&#x1F4CB; Echtzeit-Logs</h2>
-    <div class="toolbar">
-      <input class="search-input" id="log-search" placeholder="Filtern&hellip;" oninput="filterLogs()">
-      <select class="form-select" id="log-type-filter" onchange="filterLogs()" style="width:160px">
-        <option value="">Alle Typen</option>
-        <option>GELD</option><option>ITEM</option><option>ROLLE</option>
-        <option>BAN</option><option>SHOP</option><option>BLACKLIST</option>
-        <option>MITGLIED</option><option>AUSWEIS</option><option>WARN</option>
-        <option>SERVER</option>
-      </select>
-      <span class="live-badge">&#x1F7E2; Live</span>
-    </div>
-    <div id="log-list" class="log-list" style="max-height:600px;overflow-y:auto">Lade&hellip;</div>
-  </section>
-
-  <!-- WARNUNGEN -->
-  <section id="sec-warnings" class="section">
-    <h2 class="section-title">&#x1F6A8; Aktivit&auml;tswarnungen</h2>
-    <div class="toolbar">
-      <input class="search-input" id="aw-search" placeholder="Suche&hellip;" oninput="filterWarnings()">
-      <span class="live-badge">&#x1F7E2; Live</span>
-    </div>
-    <div id="aw-list" class="log-list" style="max-height:600px;overflow-y:auto">Lade&hellip;</div>
-  </section>
-
-  <!-- EINLADUNGEN -->
-  <section id="sec-invites" class="section">
-    <h2 class="section-title">&#x1F4E8; Einladungen</h2>
-    <div class="toolbar"><input class="search-input" id="inv2-search" placeholder="Suche&hellip;" oninput="filterTable('inv2-tbody','inv2-search')"></div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Einladender</th><th>ID</th><th>Code</th><th>Nutzungen</th></tr></thead>
-        <tbody id="inv2-tbody"><tr><td colspan="4" class="loading">Lade&hellip;</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- SPIELERLISTE -->
-  <section id="sec-players" class="section">
-    <h2 class="section-title">&#x1F465; Spielerliste &mdash; B&uuml;rger</h2>
-    <div class="stat-card" style="margin-bottom:16px;display:inline-block;min-width:160px">
-      <div class="stat-val" id="player-count">&ndash;</div>
-      <div class="stat-label">Spieler gesamt</div>
-    </div>
-    <div class="toolbar"><input class="search-input" id="pl-search" placeholder="Suche&hellip;" oninput="filterTable('pl-tbody','pl-search')"></div>
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Name</th><th>Discord ID</th></tr></thead>
-        <tbody id="pl-tbody"><tr><td colspan="2" class="loading">Lade&hellip;</td></tr></tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- NOTIZEN -->
-  <section id="sec-notes" class="section">
-    <h2 class="section-title">&#x1F4DD; Notizen &uuml;ber Spieler</h2>
-    <div class="card">
-      <div class="card-title">&#x2795; Notiz hinzuf&uuml;gen</div>
-      <div class="form-row">
-        <input id="note-uid" class="form-input" placeholder="Discord ID">
-        <input id="note-text" class="form-input" placeholder="Notiz / Verhaltensauff&auml;lligkeit">
-        <button class="btn-primary" onclick="addNote()">Hinzuf&uuml;gen</button>
-      </div>
-    </div>
-    <div class="toolbar mt-10"><input class="search-input" id="note-search" placeholder="Suche&hellip;" oninput="filterNotes()"></div>
-    <div id="notes-list" class="notes-grid">Lade&hellip;</div>
-  </section>
-
-  <!-- STATUS -->
-  <section id="sec-status" class="section">
-    <h2 class="section-title">&#x2699;&#xFE0F; Bot-Status &amp; Services</h2>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-val" id="ss-ram">&ndash;</div><div class="stat-label">RAM (MB)</div></div>
-      <div class="stat-card"><div class="stat-val" id="ss-cpu">&ndash;</div><div class="stat-label">CPU %</div></div>
-      <div class="stat-card"><div class="stat-val" id="ss-disk">&ndash;</div><div class="stat-label">Disk %</div></div>
-      <div class="stat-card"><div class="stat-val" id="ss-lat">&ndash;</div><div class="stat-label">Latenz (ms)</div></div>
-      <div class="stat-card"><div class="stat-val" id="ss-uptime">&ndash;</div><div class="stat-label">Uptime</div></div>
-      <div class="stat-card"><div class="stat-val" id="ss-members">&ndash;</div><div class="stat-label">Mitglieder</div></div>
-    </div>
-    <div class="card mt-20">
-      <div class="card-title">&#x1F50C; Aktive Features</div>
-      <div id="features-list" class="features-grid">Lade&hellip;</div>
-    </div>
-  </section>
-
-</main>
-
-<script>
-/* Paradise City Admin Dashboard - Frontend JS */
-
-const $ = id => document.getElementById(id);
-const fmt = n => typeof n === 'number' ? n.toLocaleString('de-DE') : (n ?? '\u2013');
-const fmtMoney = n => (typeof n === 'number'
-  ? (n < 0
-    ? `<span class="money-neg">-$${Math.abs(n).toLocaleString('de-DE')}</span>`
-    : `<span class="money">$${n.toLocaleString('de-DE')}</span>`)
-  : '\u2013');
-
-function goto(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const sec = document.getElementById('sec-' + id);
-  if (sec) sec.classList.add('active');
-  const nav = [...document.querySelectorAll('.nav-item')].find(n => n.getAttribute('onclick')?.includes("'" + id + "'"));
-  if (nav) nav.classList.add('active');
-  loadSection(id);
-}
-
-function switchTab(btn, show, hide) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  $(show).style.display = '';
-  $(hide).style.display = 'none';
-}
-
-async function api(path, opts = {}) {
-  try {
-    const r = await fetch(path, { headers: {'Content-Type':'application/json'}, ...opts });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
-}
-
-function loadSection(id) {
-  ({
-    overview:    loadOverview,
-    economy:     loadEconomy,
-    warns:       loadWarns,
-    inventories: loadInventories,
-    shops:       loadShops,
-    bans:        loadBans,
-    blacklist:   loadBlacklist,
-    logs:        loadLogs,
-    warnings:    loadWarnings,
-    invites:     loadInvites,
-    players:     loadPlayers,
-    notes:       loadNotes,
-    status:      loadStatus,
-  }[id] || (() => {}))();
-}
-
-async function loadOverview() {
-  const [status, players, bans, warns, warnlog, logs] = await Promise.all([
-    api('/api/status'), api('/api/players'), api('/api/bans'),
-    api('/api/warns'), api('/api/warnings-log?limit=5'), api('/api/activity-log?limit=10'),
-  ]);
-  if (status) {
-    $('stat-members').textContent = fmt(status.members);
-    $('stat-latency').textContent = status.latency_ms ? status.latency_ms + ' ms' : '\u2013';
-    $('stat-ram').textContent = status.ram_mb ? status.ram_mb + ' MB' : '\u2013';
-  }
-  if (players) $('stat-players').textContent = fmt(players.count);
-  if (bans)    $('stat-bans').textContent    = fmt(bans.length);
-  if (warns)   $('stat-warns').textContent   = fmt(warns.reduce((s,w) => s + w.count, 0));
-  if (warnlog) renderWarningEntries(warnlog, 'overview-warnings');
-  if (logs)    renderLogEntries(logs, 'overview-logs');
-}
-
-async function loadEconomy() {
-  const rows = await api('/api/economy');
-  if (!rows) return;
-  $('eco-tbody').innerHTML = rows.length ? rows.map(r => `
-    <tr data-search="${(r.name+' '+r.id).toLowerCase()}">
-      <td><b>${esc(r.name)}</b></td>
-      <td><span class="uid-small">${r.id}</span></td>
-      <td>${fmtMoney(r.kasse)}</td>
-      <td>${fmtMoney(r.bank)}</td>
-      <td>${fmtMoney(r.gesamt)}</td>
-      <td>${fmtMoney(r.dispo)}</td>
-      <td>${r.schulden ? fmtMoney(-r.schulden) : '\u2013'}</td>
-    </tr>`).join('') : '<tr><td colspan="7" class="loading">Keine Daten</td></tr>';
-}
-
-async function loadWarns() {
-  const [w, tw] = await Promise.all([api('/api/warns'), api('/api/team-warns')]);
-  renderWarnTable(w, 'warn-tbody', 4);
-  renderWarnTable(tw, 'teamwarn-tbody', 4);
-}
-
-function renderWarnTable(rows, tbodyId, cols) {
-  if (!rows) return;
-  $(tbodyId).innerHTML = rows.length ? rows.map(r => `
-    <tr data-search="${(r.name+' '+r.id).toLowerCase()}">
-      <td><b>${esc(r.name)}</b></td>
-      <td><span class="uid-small">${r.id}</span></td>
-      <td><span class="badge badge-red">${r.count}</span></td>
-      <td style="font-size:12px;color:var(--text-dim)">${r.warns.map(w=>esc(w.grund||w.reason||JSON.stringify(w))).join(' | ')}</td>
-    </tr>`).join('') : `<tr><td colspan="${cols}" class="loading">Keine Verwarnungen</td></tr>`;
-}
-
-async function loadInventories() {
-  const rows = await api('/api/inventories');
-  if (!rows) return;
-  $('inv-tbody').innerHTML = rows.length ? rows.map(r => `
-    <tr data-search="${(r.name+' '+r.id).toLowerCase()}">
-      <td><b>${esc(r.name)}</b></td>
-      <td><span class="uid-small">${r.id}</span></td>
-      <td style="font-size:12px">${(r.inv||[]).join(', ') || '\u2013'}</td>
-      <td style="font-size:12px">${(r.lager||[]).join(', ') || '\u2013'}</td>
-    </tr>`).join('') : '<tr><td colspan="4" class="loading">Keine Inventare</td></tr>';
-}
-
-let _shopData = {};
-
-async function loadShops() {
-  const data = await api('/api/shops');
-  if (!data) return;
-  _shopData = data;
-  const sel = $('shop-sel');
-  sel.innerHTML = '<option value="">Shop w\u00E4hlen\u2026</option>' +
-    Object.keys(data).map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
-  $('shop-panels').innerHTML = Object.entries(data).map(([shop, info]) => `
-    <div class="shop-section">
-      <div class="shop-header">\u{1F3EA} ${esc(shop)}</div>
-      <div class="shop-items">
-        ${(info.items||[]).length ? (info.items||[]).map((item,i) => `
-          <div class="shop-item-row">
-            <span>${esc(item.name || (item.emoji||'') + ' ' + (item.itemname||'') || JSON.stringify(item))}</span>
-            <div style="display:flex;gap:12px;align-items:center">
-              <span class="item-price">$${fmt(item.preis||item.price||0)}</span>
-              <button class="btn-danger" onclick="deleteShopItem('${esc(shop)}',${i})">\u{1F5D1}\uFE0F</button>
-            </div>
-          </div>`).join('') : '<div style="padding:12px 18px;color:var(--text-dim);font-size:13px">Keine Items</div>'}
-      </div>
-    </div>`).join('');
-}
-
-async function addShopItem() {
-  const shop  = $('shop-sel').value;
-  const emoji = $('shop-emoji').value.trim();
-  const name  = $('shop-name').value.trim();
-  const preis = $('shop-preis').value;
-  const msg   = $('shop-msg');
-  if (!shop || !name || !preis) { msg.className='form-msg err'; msg.textContent='\u274C Bitte alle Felder ausf\u00FCllen.'; return; }
-  const r = await api('/api/shop-item', { method:'POST', body: JSON.stringify({shop,emoji,name,preis:parseInt(preis)}) });
-  if (r?.ok) {
-    msg.className='form-msg ok'; msg.textContent='\u2705 Item hinzugef\u00FCgt!';
-    $('shop-emoji').value=''; $('shop-name').value=''; $('shop-preis').value='';
-    loadShops();
-  } else { msg.className='form-msg err'; msg.textContent='\u274C ' + (r?.error || 'Fehler'); }
-}
-
-async function deleteShopItem(shop, idx) {
-  if (!confirm('Item wirklich l\u00F6schen?')) return;
-  const r = await api('/api/shop-item', { method:'DELETE', body: JSON.stringify({shop, index:idx}) });
-  if (r?.ok) loadShops();
-  else alert('Fehler beim L\u00F6schen');
-}
-
-async function loadBans() {
-  const bans = await api('/api/bans');
-  renderBans(bans || []);
-}
-
-function renderBans(bans) {
-  $('ban-tbody').innerHTML = bans.length ? bans.map(b => `
-    <tr data-search="${(b.name+' '+b.id).toLowerCase()}">
-      <td><b>${esc(b.name)}</b></td>
-      <td><span class="uid-small">${b.id}</span></td>
-      <td style="font-size:12px">${esc(b.reason||'\u2013')}</td>
-      <td><button class="btn-success" onclick="unbanUser('${b.id}','${esc(b.name)}')">\u2705 Entbannen</button></td>
-    </tr>`).join('') : '<tr><td colspan="4" class="loading">Keine gebannten Spieler</td></tr>';
-}
-
-async function refreshBans() {
-  $('ban-tbody').innerHTML = '<tr><td colspan="4" class="loading">Aktualisiere\u2026</td></tr>';
-  const bans = await api('/api/bans/refresh', { method:'POST' });
-  renderBans(bans || []);
-}
-
-async function unbanUser(id, name) {
-  if (!confirm(`${name} (${id}) wirklich entbannen?`)) return;
-  const r = await api('/api/unban', { method:'POST', body: JSON.stringify({user_id:id}) });
-  if (r?.ok) { alert('\u2705 Entbannt!'); loadBans(); }
-  else alert('\u274C Fehler beim Entbannen');
-}
-
-async function loadBlacklist() {
-  const bl = await api('/api/blacklist');
-  if (!bl) return;
-  $('bl-tbody').innerHTML = bl.length ? bl.map((e,i) => `
-    <tr data-search="${(e.name+' '+(e.id||'')).toLowerCase()}">
-      <td><b>${esc(e.name)}</b></td>
-      <td><span class="uid-small">${e.id||'\u2013'}</span></td>
-      <td style="font-size:12px">${esc(e.reason||'\u2013')}</td>
-      <td style="font-size:11px;color:var(--text-dim)">${esc(e.added_at||'\u2013')}</td>
-      <td><button class="btn-danger" onclick="deleteBlacklist(${i})">\u{1F5D1}\uFE0F Entfernen</button></td>
-    </tr>`).join('') : '<tr><td colspan="5" class="loading">Keine Eintr\u00E4ge</td></tr>';
-}
-
-async function addBlacklist() {
-  const name   = $('bl-name').value.trim();
-  const discId = $('bl-id').value.trim();
-  const reason = $('bl-reason').value.trim();
-  if (!name && !discId) { alert('Name oder Discord-ID erforderlich'); return; }
-  const r = await api('/api/blacklist', { method:'POST', body: JSON.stringify({name, discord_id:discId, reason}) });
-  if (r?.ok) { $('bl-name').value=''; $('bl-id').value=''; $('bl-reason').value=''; loadBlacklist(); }
-  else alert('\u274C Fehler');
-}
-
-async function deleteBlacklist(idx) {
-  if (!confirm('Eintrag wirklich entfernen?')) return;
-  const r = await api(`/api/blacklist/${idx}`, { method:'DELETE' });
-  if (r?.ok) loadBlacklist();
-}
-
-let _allLogs = [];
-
-async function loadLogs() {
-  const logs = await api('/api/activity-log?limit=200');
-  if (!logs) return;
-  _allLogs = logs;
-  filterLogs();
-}
-
-function filterLogs() {
-  const q    = ($('log-search')?.value || '').toLowerCase();
-  const type = $('log-type-filter')?.value || '';
-  const filtered = _allLogs.filter(e =>
-    (!type || e.type === type) &&
-    (!q || (e.desc||'').toLowerCase().includes(q) || (e.user||'').includes(q))
-  );
-  renderLogEntries(filtered, 'log-list');
-}
-
-function renderLogEntries(entries, containerId) {
-  const el = $(containerId);
-  if (!el) return;
-  if (!entries || !entries.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px">Keine Logs</div>'; return; }
-  el.innerHTML = entries.map(e => `
-    <div class="log-entry type-${e.type||''}">
-      <div><span class="badge badge-orange" style="margin-right:8px">${e.type||'LOG'}</span>${esc(e.desc||'')}</div>
-      ${e.user ? `<div class="uid-small">Nutzer: ${e.user}</div>` : ''}
-      <div class="log-time">\u{1F550} ${e.time}</div>
-    </div>`).join('');
-}
-
-let _allWarnings = [];
-
-async function loadWarnings() {
-  const w = await api('/api/warnings-log?limit=200');
-  if (!w) return;
-  _allWarnings = w;
-  filterWarnings();
-}
-
-function filterWarnings() {
-  const q = ($('aw-search')?.value || '').toLowerCase();
-  const filtered = _allWarnings.filter(e => !q || (e.title+e.desc).toLowerCase().includes(q));
-  renderWarningEntries(filtered, 'aw-list');
-}
-
-function renderWarningEntries(entries, containerId) {
-  const el = $(containerId);
-  if (!el) return;
-  if (!entries || !entries.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:13px">Keine Warnungen</div>'; return; }
-  el.innerHTML = entries.map(e => `
-    <div class="warn-entry">
-      <div class="warn-entry-title">\u{1F6A8} ${esc(e.title||'Warnung')}</div>
-      <div style="font-size:13px;margin-top:4px;white-space:pre-line">${esc(e.desc||'')}</div>
-      <div class="log-time">\u{1F550} ${e.time}</div>
-    </div>`).join('');
-}
-
-async function loadInvites() {
-  const data = await api('/api/invites');
-  if (!data) return;
-  const entries = Object.entries(data);
-  $('inv2-tbody').innerHTML = entries.length ? entries.map(([code, inv]) => `
-    <tr data-search="${(inv.inviter_name||inv.inviter||code).toLowerCase()}">
-      <td><b>${esc(inv.inviter_name || inv.inviter || '\u2013')}</b></td>
-      <td><span class="uid-small">${inv.inviter_id||'\u2013'}</span></td>
-      <td><code style="font-size:12px">${esc(code)}</code></td>
-      <td><span class="badge badge-orange">${inv.uses||0}</span></td>
-    </tr>`).join('') : '<tr><td colspan="4" class="loading">Keine Einladungsdaten</td></tr>';
-}
-
-async function loadPlayers() {
-  const data = await api('/api/players');
-  if (!data) return;
-  $('player-count').textContent = fmt(data.count);
-  const players = Object.entries(data.players || {});
-  $('pl-tbody').innerHTML = players.length ? players.map(([uid, m]) => `
-    <tr data-search="${(m.name||uid).toLowerCase()}">
-      <td><b>${esc(m.name||m.tag||uid)}</b></td>
-      <td><span class="uid-small">${uid}</span></td>
-    </tr>`).join('') : '<tr><td colspan="2" class="loading">Keine Spieler</td></tr>';
-}
-
-let _allNotes = {};
-
-async function loadNotes() {
-  const data = await api('/api/notes');
-  if (!data) return;
-  _allNotes = data;
-  filterNotes();
-}
-
-function filterNotes() {
-  const q = ($('note-search')?.value || '').toLowerCase();
-  const $el = $('notes-list');
-  const entries = Object.entries(_allNotes).filter(([uid, d]) =>
-    !q || (d.name||uid).toLowerCase().includes(q) ||
-    (d.notes||[]).some(n => (n.note||'').toLowerCase().includes(q))
-  );
-  if (!entries.length) { $el.innerHTML = '<div style="color:var(--text-dim)">Keine Notizen</div>'; return; }
-  $el.innerHTML = entries.map(([uid, d]) => `
-    <div class="note-card">
-      <div class="note-user">\u{1F464} ${esc(d.name||uid)} <span class="uid-small">${uid}</span></div>
-      ${(d.notes||[]).map((n,i) => `
-        <div class="note-entry">
-          <div>
-            <div>${esc(n.note)}</div>
-            <div class="note-time">\u{1F550} ${n.time||'\u2013'}</div>
-          </div>
-          <button class="btn-danger" onclick="deleteNote('${uid}',${i})">\u{1F5D1}\uFE0F</button>
-        </div>`).join('')}
-    </div>`).join('');
-}
-
-async function addNote() {
-  const uid  = $('note-uid').value.trim();
-  const note = $('note-text').value.trim();
-  if (!uid || !note) { alert('ID und Notiz erforderlich'); return; }
-  const r = await api('/api/notes', { method:'POST', body: JSON.stringify({user_id:uid, note}) });
-  if (r?.ok) { $('note-uid').value=''; $('note-text').value=''; loadNotes(); }
-  else alert('\u274C Fehler');
-}
-
-async function deleteNote(uid, idx) {
-  if (!confirm('Notiz l\u00F6schen?')) return;
-  const r = await api(`/api/notes/${uid}/${idx}`, { method:'DELETE' });
-  if (r?.ok) loadNotes();
-}
-
-async function loadStatus() {
-  const s = await api('/api/status');
-  if (!s) return;
-  $('ss-ram').textContent     = s.ram_mb + ' MB';
-  $('ss-cpu').textContent     = s.cpu_pct + '%';
-  $('ss-disk').textContent    = s.disk_pct + '%';
-  $('ss-lat').textContent     = s.latency_ms ? s.latency_ms + ' ms' : '\u2013';
-  $('ss-uptime').textContent  = s.uptime || '\u2013';
-  $('ss-members').textContent = fmt(s.members);
-  const fl = $('features-list');
-  if (s.features && Object.keys(s.features).length) {
-    fl.innerHTML = Object.entries(s.features).map(([name, f]) =>
-      `<div class="feature-item ${f.ok?'feature-ok':'feature-err'}">
-        ${f.ok ? '\u{1F7E2}' : '\u{1F534}'} ${esc(name)}
-        ${!f.ok && f.err ? `<span style="font-size:11px;color:var(--text-dim)"> \u2014 ${esc(f.err)}</span>` : ''}
-      </div>`).join('');
-  } else {
-    fl.innerHTML = '<div style="color:var(--text-dim)">Keine Feature-Daten</div>';
-  }
-}
-
-function filterTable(tbodyId, searchId) {
-  const q = ($(searchId)?.value || '').toLowerCase();
-  document.querySelectorAll(`#${tbodyId} tr[data-search]`).forEach(row => {
-    row.style.display = row.getAttribute('data-search').includes(q) ? '' : 'none';
-  });
-}
-
-function esc(str) {
-  if (str === null || str === undefined) return '';
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function autoRefresh() {
-  const active = document.querySelector('.section.active')?.id?.replace('sec-','');
-  if (active === 'logs')     loadLogs();
-  if (active === 'warnings') loadWarnings();
-  if (active === 'overview') loadOverview();
-  if (active === 'status')   loadStatus();
-  if (active === 'players')  loadPlayers();
-}
-
-setInterval(autoRefresh, 8000);
-loadSection('overview');
-</script>
+  <p class="footer-note">Nur f&uuml;r berechtigte Team-Mitglieder &mdash; Paradise City Roleplay</p>
+</div>
 </body>
 </html>
