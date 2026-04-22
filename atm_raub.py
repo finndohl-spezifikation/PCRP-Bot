@@ -1,4 +1,4 @@
- -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 # atm_raub.py \u2014 ATM-Raub System
 # Paradise City Roleplay Discord Bot
@@ -6,12 +6,12 @@
 #
 # Ablauf:
 #   1. Spieler sendet Foto im Bild-Kanal (ATM_BILD_CHANNEL_ID)
-#   2. Bot l\xf6scht Foto und schickt Spieler eine DM mit Auswahl:
+#   2. Bot l\u00F6scht Foto und schickt Spieler eine DM mit Auswahl:
 #      Welchen Gegenstand nutzt du? (Brecheisen / Plastiksprengstoff)
 #      \u2192 inkl. Hinweis: je nach Gegenstand 5 oder 10 Minuten Zeit
-#   3. Spieler w\xe4hlt Gegenstand \u2192 Bot postet Beweis-Embed im Team-Kanal
+#   3. Spieler w\u00E4hlt Gegenstand \u2192 Bot postet Beweis-Embed im Team-Kanal
 #   4. Alle LAPD-Beamten im Dienst erhalten eine DM
-#   5. Team dr\xfcckt Button \u2192 Ergebnis-DM an den Spieler
+#   5. Team dr\u00FCckt Button \u2192 Ergebnis-DM an den Spieler
 #      Erfolgreich \u2192 3.000$\u201310.000$ in Barbestand
 #      Fehlschlag  \u2192 Info-DM, kein Geld
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
@@ -40,8 +40,8 @@ ATM_IMAGE_URL        = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gt
 
 # Aufbrechmittel: key \u2192 Anzeigename, Minuten, Inventar-Suchbegriff
 ATM_ITEMS = {
-    "brecheisen":  {"label": "\U0001f527 Brecheisen",         "minuten": 10, "inv": "Brecheisen"},
-    "sprengstoff": {"label": "\U0001f4a3 Plastiksprengstoff",  "minuten": 5,  "inv": "Plastiksprengstoff"},
+    "brecheisen":  {"label": "\U0001F527 Brecheisen",         "minuten": 10, "inv": "Brecheisen"},
+    "sprengstoff": {"label": "\U0001F4A3 Plastiksprengstoff",  "minuten": 5,  "inv": "Plastiksprengstoff"},
 }
 
 # Verhindert Doppel-Einreichungen (user_id)
@@ -52,31 +52,31 @@ _pending_raids: set[int] = set()
 
 def build_atm_info_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="\U0001f3e7 ATM-Raub",
+        title="\U0001F3E7 ATM-Raub",
         description=(
-            "**\U0001f4b0 Beute:** 3.000$ \u2013 10.000$ *(zuf\xe4llig)*\\n"
-            "**\U0001f4cd Ort:** Alle ATMs im gesamten Staat erlaubt\\n"
-            "**\U0001f464 Spieler:** Ab **1 Person** m\xf6glich\\n"
-            "**\U0001f694 Beamte:** Mindestens **2 Officers** im Dienst"
+            "**\U0001F4B0 Beute:** 3.000$ \u2013 10.000$ *(zuf\u00E4llig)*\n"
+            "**\U0001F4CD Ort:** Alle ATMs im gesamten Staat erlaubt\n"
+            "**\U0001F464 Spieler:** Ab **1 Person** m\u00F6glich\n"
+            "**\U0001F694 Beamte:** Mindestens **2 Officers** im Dienst"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
-        name="\U0001f392 Ben\xf6tigte Items",
+        name="\U0001F392 Ben\u00F6tigte Items",
         value=(
-            f"\U0001f527 **Brecheisen** \u2192 10 Min.\\n\u2517 <#{1492976742497783818}>\\n\\n"
-            f"\U0001f4a3 **Plastiksprengstoff** \u2192 5 Min.\\n\u2517 <#{1492977067665526804}>"
+            f"\U0001F527 **Brecheisen** \u2192 10 Min.\n\u2517 <#{1492976742497783818}>\n\n"
+            f"\U0001F4A3 **Plastiksprengstoff** \u2192 5 Min.\n\u2517 <#{1492977067665526804}>"
         ),
         inline=True
     )
     embed.add_field(
-        name="\u26a1 Ablauf",
+        name="\u26A1 Ablauf",
         value=(
-            "1. Raub **In-Game** durchf\xfchren\\n"
-            f"2. Foto als Beweis in <#{ATM_BILD_CHANNEL_ID}> senden\\n"
-            "3. Gegenstand in der **DM ausw\xe4hlen**\\n"
-            "4. Team best\xe4tigt **Erfolg** oder **Fehlschlag**"
+            "1. Raub **In-Game** durchf\u00FChren\n"
+            f"2. Foto als Beweis in <#{ATM_BILD_CHANNEL_ID}> senden\n"
+            "3. Gegenstand in der **DM ausw\u00E4hlen**\n"
+            "4. Team best\u00E4tigt **Erfolg** oder **Fehlschlag**"
         ),
         inline=True
     )
@@ -94,17 +94,17 @@ def build_beweis_embed(
     item_minuten: int
 ) -> discord.Embed:
     embed = discord.Embed(
-        title="\U0001f3e7 ATM-Raub \u2014 Beweis eingereicht",
+        title="\U0001F3E7 ATM-Raub \u2014 Beweis eingereicht",
         description=(
-            f"{user.mention} hat einen **ATM-Raub** durchgef\xfchrt.\\n"
-            "\u23f3 Bitte Ergebnis best\xe4tigen."
+            f"{user.mention} hat einen **ATM-Raub** durchgef\u00FChrt.\n"
+            "\u23F3 Bitte Ergebnis best\u00E4tigen."
         ),
         color=0xFF8C00,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.add_field(name="\U0001f464 Spieler",    value=f"{user.mention}\\n`{user.display_name}`", inline=True)
-    embed.add_field(name="\U0001f527 Gegenstand", value=f"**{item_label}**",                       inline=True)
-    embed.add_field(name="\u23f1\ufe0f Zeit",       value=f"**{item_minuten} Minuten**",              inline=True)
+    embed.add_field(name="\U0001F464 Spieler",    value=f"{user.mention}\n`{user.display_name}`", inline=True)
+    embed.add_field(name="\U0001F527 Gegenstand", value=f"**{item_label}**",                       inline=True)
+    embed.add_field(name="\u23F1\uFE0F Zeit",       value=f"**{item_minuten} Minuten**",              inline=True)
     embed.set_image(url=bild_url)
     embed.set_footer(text="Paradise City Roleplay \u2022 ATM-System | Nur Team")
     return embed
@@ -122,21 +122,21 @@ def _build_result_embed(
 ) -> discord.Embed:
     if success:
         color = 0x00CC44
-        title = "\U0001f3e7 ATM-Raub \u2014 Erfolgreich \u2705"
+        title = "\U0001F3E7 ATM-Raub \u2014 Erfolgreich \u2705"
         desc  = f"{raeuber.mention} hat **{beute:,}$** erbeutet \u2192 **Barbestand**."
     else:
         color = 0xE74C3C
-        title = "\U0001f3e7 ATM-Raub \u2014 Fehlgeschlagen \u274c"
+        title = "\U0001F3E7 ATM-Raub \u2014 Fehlgeschlagen \u274C"
         desc  = f"{raeuber.mention} ist **gescheitert**. Festnahme, Verletzung oder Abbruch."
 
     embed = discord.Embed(title=title, description=desc, color=color,
                           timestamp=datetime.now(timezone.utc))
-    embed.add_field(name="\U0001f464 Spieler",       value=raeuber.mention,    inline=True)
-    embed.add_field(name="\u2705 Best\xe4tigt von", value=team_member.mention, inline=True)
+    embed.add_field(name="\U0001F464 Spieler",       value=raeuber.mention,    inline=True)
+    embed.add_field(name="\u2705 Best\u00E4tigt von", value=team_member.mention, inline=True)
     if item_label:
-        embed.add_field(name="\U0001f527 Gegenstand", value=item_label, inline=True)
+        embed.add_field(name="\U0001F527 Gegenstand", value=item_label, inline=True)
     if success:
-        embed.add_field(name="\U0001f4b0 Beute", value=f"**{beute:,}$**", inline=True)
+        embed.add_field(name="\U0001F4B0 Beute", value=f"**{beute:,}$**", inline=True)
     embed.set_image(url=bild_url)
     embed.set_footer(text="Paradise City Roleplay \u2022 ATM-System")
     return embed
@@ -151,7 +151,7 @@ class AtmRaubView(TimedDisableView):
         self.bild_url     = bild_url
         self.item_label   = item_label
         self.item_minuten = item_minuten
-        self.item_inv     = item_inv   # Inventar-Name f\xfcr R\xfcckgabe bei Fehlschlag
+        self.item_inv     = item_inv   # Inventar-Name f\u00FCr R\u00FCckgabe bei Fehlschlag
 
     def _check_team(self, interaction: discord.Interaction) -> bool:
         return bool({r.id for r in interaction.user.roles} & ATM_CONFIRM_ROLES)
@@ -159,12 +159,12 @@ class AtmRaubView(TimedDisableView):
     @discord.ui.button(label="\u2705  Erfolgreich", style=discord.ButtonStyle.success, custom_id="atm_raub:erfolg")
     async def erfolg_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274c Nur Team-Mitglieder k\xf6nnen best\xe4tigen.", ephemeral=True)
+            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
         if not raeuber:
-            await interaction.response.send_message("\u274c Spieler nicht mehr auf dem Server.", ephemeral=True)
+            await interaction.response.send_message("\u274C Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
         beute = random.randint(BEUTE_MIN, BEUTE_MAX)
@@ -177,10 +177,10 @@ class AtmRaubView(TimedDisableView):
         await log_money_action(
             interaction.guild,
             "ATM-Raub Beute",
-            f"{raeuber.mention} hat einen ATM ausgeraubt.\\n"
-            f"**Gegenstand:** {self.item_label}\\n"
-            f"**Beute:** {beute:,}$ \u2192 Barbestand\\n"
-            f"**Best\xe4tigt von:** {interaction.user.mention}"
+            f"{raeuber.mention} hat einen ATM ausgeraubt.\n"
+            f"**Gegenstand:** {self.item_label}\n"
+            f"**Beute:** {beute:,}$ \u2192 Barbestand\n"
+            f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
 
         for child in self.children:
@@ -198,17 +198,17 @@ class AtmRaubView(TimedDisableView):
 
         try:
             dm = discord.Embed(
-                title="\U0001f3e7 ATM-Raub \u2014 Erfolgreich! \U0001f4b0",
+                title="\U0001F3E7 ATM-Raub \u2014 Erfolgreich! \U0001F4B0",
                 description=(
-                    f"Dein ATM-Raub war **erfolgreich**!\\n\\n"
-                    f"**{beute:,}$** wurden in deinen **Barbestand** \xfcbertragen."
+                    f"Dein ATM-Raub war **erfolgreich**!\n\n"
+                    f"**{beute:,}$** wurden in deinen **Barbestand** \u00FCbertragen."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="\U0001f527 Gegenstand",    value=self.item_label,         inline=True)
-            dm.add_field(name="\U0001f4b5 Beute",          value=f"**{beute:,}$**",        inline=True)
-            dm.add_field(name="\U0001f4cd Gutgeschrieben", value="Barbestand (Cash)",      inline=True)
+            dm.add_field(name="\U0001F527 Gegenstand",    value=self.item_label,         inline=True)
+            dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute:,}$**",        inline=True)
+            dm.add_field(name="\U0001F4CD Gutgeschrieben", value="Barbestand (Cash)",      inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 ATM-System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
@@ -216,18 +216,18 @@ class AtmRaubView(TimedDisableView):
 
         _pending_raids.discard(self.raeuber_id)
 
-    @discord.ui.button(label="\u274c  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="atm_raub:fehlschlag")
+    @discord.ui.button(label="\u274C  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="atm_raub:fehlschlag")
     async def fehlschlag_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274c Nur Team-Mitglieder k\xf6nnen best\xe4tigen.", ephemeral=True)
+            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
         if not raeuber:
-            await interaction.response.send_message("\u274c Spieler nicht mehr auf dem Server.", ephemeral=True)
+            await interaction.response.send_message("\u274C Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
-        # Item zur\xfcck ins Inventar + Cooldown zur\xfccksetzen
+        # Item zur\u00FCck ins Inventar + Cooldown zur\u00FCcksetzen
         eco       = load_economy()
         user_data = get_user(eco, self.raeuber_id)
         user_data.setdefault("inventory", []).append(self.item_inv)
@@ -249,19 +249,19 @@ class AtmRaubView(TimedDisableView):
 
         try:
             dm = discord.Embed(
-                title="\U0001f3e7 ATM-Raub \u2014 Fehlgeschlagen \u274c",
+                title="\U0001F3E7 ATM-Raub \u2014 Fehlgeschlagen \u274C",
                 description=(
-                    "Dein ATM-Raub ist **fehlgeschlagen**.\\n\\n"
-                    "\u2022 \U0001f694 Festnahme durch LAPD\\n"
-                    "\u2022 \U0001f3e5 Verletzung / Tod\\n"
-                    "\u2022 \U0001f3f3\ufe0f Abbruch\\n\\n"
-                    f"Dein **{self.item_inv}** wurde dir zur\xfcckgegeben.\\n"
-                    "Du erh\xe4ltst **keine Beute**."
+                    "Dein ATM-Raub ist **fehlgeschlagen**.\n\n"
+                    "\u2022 \U0001F694 Festnahme durch LAPD\n"
+                    "\u2022 \U0001F3E5 Verletzung / Tod\n"
+                    "\u2022 \U0001F3F3\uFE0F Abbruch\n\n"
+                    f"Dein **{self.item_inv}** wurde dir zur\u00FCckgegeben.\n"
+                    "Du erh\u00E4ltst **keine Beute**."
                 ),
                 color=0xE74C3C,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="\U0001f527 Gegenstand", value=self.item_label, inline=True)
+            dm.add_field(name="\U0001F527 Gegenstand", value=self.item_label, inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 ATM-System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
@@ -273,10 +273,10 @@ class AtmRaubView(TimedDisableView):
 # \u2500\u2500 Gegenstand-Auswahl-View (per DM) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class GegenstandView(TimedDisableView):
-    """Wird dem Spieler per DM geschickt. Er w\xe4hlt seinen Gegenstand."""
+    """Wird dem Spieler per DM geschickt. Er w\u00E4hlt seinen Gegenstand."""
 
     def __init__(self, raeuber: discord.Member, img_bytes: bytes, img_filename: str, guild_id: int):
-        super().__init__(timeout=300)   # 5 Minuten Zeit zum Ausw\xe4hlen
+        super().__init__(timeout=300)   # 5 Minuten Zeit zum Ausw\u00E4hlen
         self.raeuber      = raeuber
         self.img_bytes    = img_bytes
         self.img_filename = img_filename
@@ -288,7 +288,7 @@ class GegenstandView(TimedDisableView):
 
     async def _submit(self, interaction: discord.Interaction, item_key: str):
         if self._done:
-            await interaction.response.send_message("\u23f3 Du hast bereits einen Gegenstand gew\xe4hlt.", ephemeral=True)
+            await interaction.response.send_message("\u23F3 Du hast bereits einen Gegenstand gew\u00E4hlt.", ephemeral=True)
             return
 
         item = ATM_ITEMS[item_key]
@@ -297,7 +297,7 @@ class GegenstandView(TimedDisableView):
         if not has_item(self.raeuber, item["inv"]):
             # Buttons NICHT deaktivieren \u2014 Spieler kann noch wechseln
             await interaction.response.send_message(
-                f"\u274c Du hast kein **{item['label']}** in deinem Inventar!\\n"
+                f"\u274C Du hast kein **{item['label']}** in deinem Inventar!\n"
                 f"Kaufe es zuerst im Shop und versuche es erneut.",
                 ephemeral=True
             )
@@ -312,12 +312,12 @@ class GegenstandView(TimedDisableView):
         for child in self.children:
             child.disabled = True
 
-        # Best\xe4tigungs-DM aktualisieren
+        # Best\u00E4tigungs-DM aktualisieren
         confirm_embed = discord.Embed(
-            title="\U0001f3e7 ATM-Raub \u2014 Beweis eingereicht \u2705",
+            title="\U0001F3E7 ATM-Raub \u2014 Beweis eingereicht \u2705",
             description=(
-                "Dein Beweis wurde erfolgreich eingereicht!\\n\\n"
-                f"**Gegenstand:** {item['label']} *(aus deinem Inventar entnommen)*\\n\\n"
+                "Dein Beweis wurde erfolgreich eingereicht!\n\n"
+                f"**Gegenstand:** {item['label']} *(aus deinem Inventar entnommen)*\n\n"
                 f"Du hast ab jetzt **{item['minuten']} Minuten** Zeit."
             ),
             color=0xFF8C00,
@@ -348,7 +348,7 @@ class GegenstandView(TimedDisableView):
                     item_inv=item["inv"]
                 )
                 sent_msg = await team_channel.send(file=file, embed=beweis_embed, view=view)
-                # Echte Attachment-URL f\xfcr das Ergebnis-Embed sichern
+                # Echte Attachment-URL f\u00FCr das Ergebnis-Embed sichern
                 if sent_msg.attachments:
                     bild_url = sent_msg.attachments[0].url
                     view.bild_url = bild_url
@@ -361,9 +361,9 @@ class GegenstandView(TimedDisableView):
                     if not member:
                         continue
                     cop_embed = discord.Embed(
-                        title="\U0001f694 LAPD \u2014 ATM-Raub gemeldet!",
+                        title="\U0001F694 LAPD \u2014 ATM-Raub gemeldet!",
                         description=(
-                            f"**Verd\xe4chtiger:** {self.raeuber.mention} (`{self.raeuber.display_name}`)\\n"
+                            f"**Verd\u00E4chtiger:** {self.raeuber.mention} (`{self.raeuber.display_name}`)\n"
                             f"**Gegenstand:** {item['label']}"
                         ),
                         color=0x1E90FF,
@@ -377,11 +377,11 @@ class GegenstandView(TimedDisableView):
                 except discord.Forbidden:
                     pass
 
-    @discord.ui.button(label="\U0001f527 Brecheisen (10 Min.)", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="\U0001F527 Brecheisen (10 Min.)", style=discord.ButtonStyle.primary)
     async def brecheisen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._submit(interaction, "brecheisen")
 
-    @discord.ui.button(label="\U0001f4a3 Plastiksprengstoff (5 Min.)", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="\U0001F4A3 Plastiksprengstoff (5 Min.)", style=discord.ButtonStyle.danger)
     async def sprengstoff_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._submit(interaction, "sprengstoff")
 
@@ -406,12 +406,12 @@ async def atm_bild_listener(message: discord.Message):
 
     user = message.author
 
-    # \u2500\u2500 Officer-Pflicht pr\xfcfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # \u2500\u2500 Officer-Pflicht pr\u00FCfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     on_duty_lapd = get_on_duty("lapd")
     if len(on_duty_lapd) < 2:
         try:
             await message.reply(
-                "\u274c F\xfcr einen ATM-Raub m\xfcssen mindestens **2 Officers** im Dienst sein.\\n"
+                "\u274C F\u00FCr einen ATM-Raub m\u00FCssen mindestens **2 Officers** im Dienst sein.\n"
                 f"Aktuell im Dienst: **{len(on_duty_lapd)}**",
                 delete_after=15
             )
@@ -423,7 +423,7 @@ async def atm_bild_listener(message: discord.Message):
             pass
         return
 
-    # \u2500\u2500 24h-Cooldown pr\xfcfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # \u2500\u2500 24h-Cooldown pr\u00FCfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     eco       = load_economy()
     user_data = get_user(eco, user.id)
     last_raid = user_data.get("atm_last_raid")
@@ -435,7 +435,7 @@ async def atm_bild_listener(message: discord.Message):
             minuten     = int(((86400 - vergangen) % 3600) / 60)
             try:
                 await message.reply(
-                    f"\u23f3 Du kannst erst in **{verbleibend}h {minuten}min** wieder einen ATM ausrauben.",
+                    f"\u23F3 Du kannst erst in **{verbleibend}h {minuten}min** wieder einen ATM ausrauben.",
                     delete_after=15
                 )
             except discord.Forbidden:
@@ -449,14 +449,14 @@ async def atm_bild_listener(message: discord.Message):
     if user.id in _pending_raids:
         try:
             await message.reply(
-                "\u23f3 Du hast bereits einen laufenden Raub eingereicht. Warte auf das Ergebnis.",
+                "\u23F3 Du hast bereits einen laufenden Raub eingereicht. Warte auf das Ergebnis.",
                 delete_after=10
             )
         except discord.Forbidden:
             pass
         return
 
-    # \u2500\u2500 Bild-Bytes sofort sichern (vor dem L\xf6schen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    # \u2500\u2500 Bild-Bytes sofort sichern (vor dem L\u00F6schen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     try:
         img_bytes    = await attachment.read()
         img_filename = attachment.filename or "beweis.jpg"
@@ -477,25 +477,25 @@ async def atm_bild_listener(message: discord.Message):
     # DM mit Gegenstand-Auswahl schicken
     try:
         dm_embed = discord.Embed(
-            title="\U0001f3e7 ATM-Raub \u2014 Gegenstand w\xe4hlen",
+            title="\U0001F3E7 ATM-Raub \u2014 Gegenstand w\u00E4hlen",
             description=(
-                "Dein Foto wurde empfangen!\\n\\n"
-                "**Mit welchem Gegenstand brichst du den ATM auf?**\\n"
-                "W\xe4hle unten einen der beiden Gegenst\xe4nde aus.\\n\\n"
-                "\u23f1\ufe0f **Je nach Gegenstand hast du 10 oder 5 Minuten Zeit.**\\n"
-                "Du hast **5 Minuten**, um hier auszuw\xe4hlen."
+                "Dein Foto wurde empfangen!\n\n"
+                "**Mit welchem Gegenstand brichst du den ATM auf?**\n"
+                "W\u00E4hle unten einen der beiden Gegenst\u00E4nde aus.\n\n"
+                "\u23F1\uFE0F **Je nach Gegenstand hast du 10 oder 5 Minuten Zeit.**\n"
+                "Du hast **5 Minuten**, um hier auszuw\u00E4hlen."
             ),
             color=0xFF8C00,
             timestamp=datetime.now(timezone.utc)
         )
         dm_embed.add_field(
-            name="\U0001f527 Brecheisen",
-            value="10 Minuten Zeit\\n\u2517 Kaufbar im Baumarkt",
+            name="\U0001F527 Brecheisen",
+            value="10 Minuten Zeit\n\u2517 Kaufbar im Baumarkt",
             inline=True
         )
         dm_embed.add_field(
-            name="\U0001f4a3 Plastiksprengstoff",
-            value="5 Minuten Zeit\\n\u2517 Kaufbar im Schwarzmarkt",
+            name="\U0001F4A3 Plastiksprengstoff",
+            value="5 Minuten Zeit\n\u2517 Kaufbar im Schwarzmarkt",
             inline=True
         )
         dm_embed.set_footer(text="Paradise City Roleplay \u2022 ATM-System")
@@ -508,7 +508,7 @@ async def atm_bild_listener(message: discord.Message):
         _pending_raids.discard(user.id)
         try:
             await message.channel.send(
-                f"{user.mention} \u274c Bitte \xf6ffne deine **DMs** damit du den Gegenstand ausw\xe4hlen kannst!",
+                f"{user.mention} \u274C Bitte \u00F6ffne deine **DMs** damit du den Gegenstand ausw\u00E4hlen kannst!",
                 delete_after=15
             )
         except discord.Forbidden:
@@ -545,7 +545,7 @@ async def _atm_info_auto_setup():
                 await channel.send(embed=embed)
                 print(f"[atm_raub] \u2705 Info-Embed gepostet in #{channel.name}")
         except Exception as e:
-            print(f"[atm_raub] \u274c Fehler: {e}")
+            print(f"[atm_raub] \u274C Fehler: {e}")
 
 
 @bot.listen("on_ready")
