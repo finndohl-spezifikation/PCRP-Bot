@@ -341,12 +341,6 @@ class CasinoView(discord.ui.View):
     async def casino_drehen(self, interaction: discord.Interaction, button: discord.ui.Button):
         member = interaction.user
 
-        if not any(r.id == CITIZEN_ROLE_ID for r in member.roles):
-            await interaction.response.send_message(
-                "\u274C Du ben\u00F6tigst die **Bewohner**-Rolle um ein Rubbellos einzul\u00F6sen.",
-                ephemeral=True,
-            )
-            return
 
         eco       = load_economy()
         user_data = get_user(eco, member.id)
