@@ -285,6 +285,12 @@ def consume_item(member, item_query: str) -> bool:
 # \u2500\u2500 Money Log Helper \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def log_money_action(guild: discord.Guild, title: str, description: str):
+    # Dashboard-Log
+    try:
+        import dashboard_hooks as _dh
+        _dh.log_activity("GELD", f"{title}: {description[:120]}")
+    except Exception:
+        pass
     ch = guild.get_channel(MONEY_LOG_CHANNEL_ID)
     if ch:
         embed = discord.Embed(
