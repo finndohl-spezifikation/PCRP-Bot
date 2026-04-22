@@ -35,15 +35,18 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         data = ticket_data.get(ch.id)
         if data and data["creator_id"] == member.id:
             await interaction.response.send_message(
-                "\u274C Du hast bereits ein offenes Ticket!", ephemeral=True
+                "\u274c Du hast bereits ein offenes Ticket!", ephemeral=True
             )
             return
 
     type_name   = TICKET_TYPE_NAMES.get(ticket_type, ticket_type)
     category_id = TICKET_TYPE_CATEGORIES.get(ticket_type, TICKET_CATEGORY_DEFAULT)
     category    = guild.get_channel(category_id)
-    admin_role  = guild.get_role(ADMIN_ROLE_ID)
-    mod_role    = guild.get_role(MOD_ROLE_ID)
+
+    staff_perm = discord.PermissionOverwrite(
+        view_channel=True, send_messages=True, read_message_history=True,
+        manage_channels=True, manage_messages=True
+    )
 
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -55,16 +58,11 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
             manage_channels=True, manage_messages=True
         ),
     }
-    if admin_role:
-        overwrites[admin_role] = discord.PermissionOverwrite(
-            view_channel=True, send_messages=True, read_message_history=True,
-            manage_channels=True, manage_messages=True
-        )
-    if mod_role:
-        overwrites[mod_role] = discord.PermissionOverwrite(
-            view_channel=True, send_messages=True, read_message_history=True,
-            manage_channels=True, manage_messages=True
-        )
+    # Alle Staff-Rollen erhalten vollen Zugriff (schlie\xdfen, zuweisen, lesen)
+    for role_id in TICKET_STAFF_ROLE_IDS:
+        role = guild.get_role(role_id)
+        if role:
+            overwrites[role] = staff_perm
 
     safe_name    = member.name[:15].lower().replace(" ", "-")
     channel_name = f"ticket-{ticket_type}-{safe_name}"
@@ -78,7 +76,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         )
     except Exception as e:
         await interaction.response.send_message(
-            "\u274C Ticket konnte nicht erstellt werden.", ephemeral=True
+            "\u274c Ticket konnte nicht erstellt werden.", ephemeral=True
         )
         await log_bot_error("Ticket erstellen fehlgeschlagen", str(e), guild)
         return
@@ -93,17 +91,17 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         "opened_at":    datetime.now(timezone.utc).isoformat(),
     }
 
-    team_mentions = ""
-    if admin_role:
-        team_mentions += admin_role.mention + " "
-    if mod_role:
-        team_mentions += mod_role.mention
+    # Nur Mod + Admin im Ping (nicht alle Staff-Rollen fluten)
+    _ping_ids = [MOD_ROLE_ID, ADMIN_ROLE_ID]
+    team_mentions = " ".join(
+        r.mention for rid in _ping_ids if (r := guild.get_role(rid))
+    )
 
     welcome_embed = discord.Embed(
-        title=f"\U0001F39F {type_name}",
+        title=f"\U0001f39f {type_name}",
         description=(
             f"Willkommen {member.mention}!\n\n"
-            f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstm\u00F6glich um dein Anliegen k\u00FCmmern.\n\n"
+            f"Dein Ticket wurde erfolgreich erstellt. Das Team wird sich schnellstm\xf6glich um dein Anliegen k\xfcmmern.\n\n"
             f"**Ticket-Typ:** {type_name}\n"
             f"**Erstellt von:** {member.mention}\n"
             f"**Erstellt am:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>"
@@ -119,7 +117,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     # \u2500\u2500 Crew Anfrage: Vorlage automatisch ins Ticket senden \u2500\u2500\u2500
     if ticket_type == "crew":
         crew_embed = discord.Embed(
-            title="\U0001F4CB Crew Anfrage \u2014 Vorlage",
+            title="\U0001f4cb Crew Anfrage \u2014 Vorlage",
             description=(
                 "Bitte gib Folgendes an:\n\n"
                 "**PSN Name:**\n\n"
@@ -138,7 +136,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     log_ch = guild.get_channel(TICKET_LOG_CHANNEL_ID)
     if log_ch:
         log_embed = discord.Embed(
-            title="\U0001F4C2 Ticket Ge\u00F6ffnet",
+            title="\U0001f4c2 Ticket Ge\xf6ffnet",
             description=(
                 f"**Benutzer:** {member.mention} (`{member}`)\n"
                 f"**Typ:** {type_name}\n"
@@ -154,15 +152,15 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
 class TicketSelect(discord.ui.Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Support",            emoji="\U0001F39F", value="support",    description="Allgemeiner Support"),
-            discord.SelectOption(label="Highteam Ticket",    emoji="\U0001F39F", value="highteam",   description="Direkter Kontakt zum Highteam"),
-            discord.SelectOption(label="Fraktions Bewerbung",emoji="\U0001F39F", value="fraktion",   description="Bewerbung f\u00FCr eine Fraktion"),
-            discord.SelectOption(label="Beschwerde Ticket",  emoji="\U0001F39F", value="beschwerde", description="Beschwerde einreichen"),
-            discord.SelectOption(label="Bug Report",          emoji="\U0001F39F", value="bug",        description="Fehler oder Bug melden"),
-            discord.SelectOption(label="Crew Anfrage",        emoji="\U0001F3AE", value="crew",       description="Crew-Anfrage \u00FCber Rockstar Social Club"),
+            discord.SelectOption(label="Support",            emoji="\U0001f39f", value="support",    description="Allgemeiner Support"),
+            discord.SelectOption(label="Highteam Ticket",    emoji="\U0001f39f", value="highteam",   description="Direkter Kontakt zum Highteam"),
+            discord.SelectOption(label="Fraktions Bewerbung",emoji="\U0001f39f", value="fraktion",   description="Bewerbung f\xfcr eine Fraktion"),
+            discord.SelectOption(label="Beschwerde Ticket",  emoji="\U0001f39f", value="beschwerde", description="Beschwerde einreichen"),
+            discord.SelectOption(label="Bug Report",          emoji="\U0001f39f", value="bug",        description="Fehler oder Bug melden"),
+            discord.SelectOption(label="Crew Anfrage",        emoji="\U0001f3ae", value="crew",       description="Crew-Anfrage \xfcber Rockstar Social Club"),
         ]
         super().__init__(
-            placeholder="\U0001F39F W\u00E4hle eine Ticket-Art aus...",
+            placeholder="\U0001f39f W\xe4hle eine Ticket-Art aus...",
             options=options,
             custom_id="ticket_select_main"
         )
@@ -180,7 +178,7 @@ class TicketSelectView(discord.ui.View):
 class AssignUserSelect(discord.ui.UserSelect):
     def __init__(self):
         super().__init__(
-            placeholder="Person ausw\u00E4hlen...",
+            placeholder="Person ausw\xe4hlen...",
             custom_id="ticket_assign_user_select",
             min_values=1,
             max_values=1
@@ -198,7 +196,7 @@ class AssignUserSelect(discord.ui.UserSelect):
             )
         except Exception as e:
             await interaction.response.send_message(
-                "\u274C Berechtigung konnte nicht gesetzt werden.", ephemeral=True
+                "\u274c Berechtigung konnte nicht gesetzt werden.", ephemeral=True
             )
             await log_bot_error("Ticket-Zuweisung fehlgeschlagen", str(e), interaction.guild)
             return
@@ -209,7 +207,7 @@ class AssignUserSelect(discord.ui.UserSelect):
 
         assign_embed = discord.Embed(
             description=(
-                f"\U0001F464 {user.mention} wurde dem Ticket zugewiesen.\n"
+                f"\U0001f464 {user.mention} wurde dem Ticket zugewiesen.\n"
                 f"**Zugewiesen von:** {interaction.user.mention}"
             ),
             color=LOG_COLOR,
@@ -233,23 +231,18 @@ class TicketActionView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Ticket schlie\u00DFen",
+        label="Ticket schlie\xdfen",
         style=discord.ButtonStyle.red,
-        emoji="\U0001F512",
+        emoji="\U0001f512",
         custom_id="ticket_close_btn"
     )
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_mod_or_admin(interaction.user):
-            await interaction.response.send_message(
-                "\u274C Nur Teammitglieder k\u00F6nnen Tickets schlie\u00DFen.", ephemeral=True
-            )
-            return
 
         channel = interaction.channel
         data    = ticket_data.get(channel.id)
         if not data:
             await interaction.response.send_message(
-                "\u274C Ticket-Daten nicht gefunden.", ephemeral=True
+                "\u274c Ticket-Daten nicht gefunden.", ephemeral=True
             )
             return
 
@@ -259,7 +252,7 @@ class TicketActionView(discord.ui.View):
         ticket_data[channel.id]["handler_id"] = interaction.user.id
 
         closing_embed = discord.Embed(
-            title="\U0001F512 Ticket wird geschlossen...",
+            title="\U0001f512 Ticket wird geschlossen...",
             description="Das Ticket wird in wenigen Sekunden geschlossen.",
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -287,9 +280,9 @@ class TicketActionView(discord.ui.View):
                         transcript_lines.append(f"[{ts}] {msg.author} [Embed-Titel]: {emb.title}")
                     if emb.description:
                         short = emb.description[:300].replace("\n", " ")
-                        transcript_lines.append(f"  \u21B3 {short}")
+                        transcript_lines.append(f"  \u21b3 {short}")
         except Exception:
-            transcript_lines.append("(Transkript konnte nicht vollst\u00E4ndig geladen werden)")
+            transcript_lines.append("(Transkript konnte nicht vollst\xe4ndig geladen werden)")
 
         transcript_text = "\n".join(transcript_lines)
         transcript_file = discord.File(
@@ -300,7 +293,7 @@ class TicketActionView(discord.ui.View):
         log_ch = interaction.guild.get_channel(TICKET_LOG_CHANNEL_ID)
         if log_ch:
             closed_embed = discord.Embed(
-                title="\U0001F4C1 Ticket Geschlossen",
+                title="\U0001f4c1 Ticket Geschlossen",
                 description=(
                     f"**Benutzer:** <@{data['creator_id']}> (`{data['creator_name']}`)\n"
                     f"**Typ:** {data['type_name']}\n"
@@ -317,7 +310,7 @@ class TicketActionView(discord.ui.View):
         if creator:
             try:
                 dm_embed = discord.Embed(
-                    title="\U0001F39F Dein Ticket wurde geschlossen",
+                    title="\U0001f39f Dein Ticket wurde geschlossen",
                     description=(
                         f"Dein **{data['type_name']}** auf **Paradise City Roleplay** wurde geschlossen.\n\n"
                         f"**Bearbeitet von:** {interaction.user.display_name}\n\n"
@@ -345,29 +338,24 @@ class TicketActionView(discord.ui.View):
         try:
             await channel.delete(reason="Ticket geschlossen")
         except Exception as e:
-            await log_bot_error("Ticket l\u00F6schen fehlgeschlagen", str(e), interaction.guild)
+            await log_bot_error("Ticket l\xf6schen fehlgeschlagen", str(e), interaction.guild)
 
     @discord.ui.button(
         label="Person zuweisen",
         style=discord.ButtonStyle.blurple,
-        emoji="\U0001F464",
+        emoji="\U0001f464",
         custom_id="ticket_assign_btn"
     )
     async def assign_person(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not is_mod_or_admin(interaction.user):
-            await interaction.response.send_message(
-                "\u274C Nur Teammitglieder k\u00F6nnen Personen zuweisen.", ephemeral=True
-            )
-            return
         assign_view = AssignView()
         await interaction.response.send_message(
-            "W\u00E4hle eine Person aus die dem Ticket zugewiesen werden soll:",
+            "W\xe4hle eine Person aus die dem Ticket zugewiesen werden soll:",
             view=assign_view,
             ephemeral=True
         )
 
 
-class CommentModal(discord.ui.Modal, title="\u2B50 Ticket Bewertung"):
+class CommentModal(discord.ui.Modal, title="\u2b50 Ticket Bewertung"):
     kommentar = discord.ui.TextInput(
         label="Wie war deine Erfahrung? (optional)",
         style=discord.TextStyle.long,
@@ -390,17 +378,17 @@ class CommentModal(discord.ui.Modal, title="\u2B50 Ticket Bewertung"):
         self.rating_view.rated = True
 
         stars        = self.stars
-        star_display = "\u2B50" * stars + "\u2606" * (5 - stars)
+        star_display = "\u2b50" * stars + "\u2606" * (5 - stars)
         comment_text = self.kommentar.value.strip() if self.kommentar.value else ""
 
         thank_desc = (
             f"Du hast **{star_display}** ({stars}/5) gegeben.\n\n"
             + (f"**Dein Kommentar:**\n{comment_text}\n\n" if comment_text else "")
-            + "Vielen Dank f\u00FCr dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
-            "Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gel\u00F6st."
+            + "Vielen Dank f\xfcr dein Feedback! Wir arbeiten stets daran unseren Support zu verbessern. "
+            "Wir hoffen dein Anliegen wurde zu deiner Zufriedenheit gel\xf6st."
         )
         thank_embed = discord.Embed(
-            title="\U0001F499 Danke f\u00FCr deine Bewertung!",
+            title="\U0001f499 Danke f\xfcr deine Bewertung!",
             description=thank_desc,
             color=LOG_COLOR,
             timestamp=datetime.now(timezone.utc)
@@ -419,7 +407,7 @@ class CommentModal(discord.ui.Modal, title="\u2B50 Ticket Bewertung"):
                 + (f"\n**Kommentar:** {comment_text}" if comment_text else "")
             )
             rating_embed = discord.Embed(
-                title="\u2B50 Ticket Bewertung",
+                title="\u2b50 Ticket Bewertung",
                 description=rating_desc,
                 color=LOG_COLOR,
                 timestamp=datetime.now(timezone.utc)
@@ -446,23 +434,23 @@ class RatingView(TimedDisableView):
         self.guild_ref    = guild
         self.rated        = False
 
-    @discord.ui.button(label="\u2B50 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
+    @discord.ui.button(label="\u2b50 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
     async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CommentModal(stars=1, rating_view=self))
 
-    @discord.ui.button(label="\u2B50 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
+    @discord.ui.button(label="\u2b50 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
     async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CommentModal(stars=2, rating_view=self))
 
-    @discord.ui.button(label="\u2B50 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
+    @discord.ui.button(label="\u2b50 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
     async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CommentModal(stars=3, rating_view=self))
 
-    @discord.ui.button(label="\u2B50 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
+    @discord.ui.button(label="\u2b50 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
     async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CommentModal(stars=4, rating_view=self))
 
-    @discord.ui.button(label="\u2B50 5", style=discord.ButtonStyle.green, custom_id="rating_5")
+    @discord.ui.button(label="\u2b50 5", style=discord.ButtonStyle.green, custom_id="rating_5")
     async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(CommentModal(stars=5, rating_view=self))
 
@@ -471,10 +459,10 @@ TICKET_IMG_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.w
 
 def _build_ticket_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="\U0001F39F\uFE0F Paradise City \u2014 Support System",
+        title="\U0001f39f\ufe0f Paradise City \u2014 Support System",
         description=(
-            "Ben\u00F6tigst du Hilfe oder hast ein Anliegen?\n"
-            "W\u00E4hle unten die passende Ticket-Art aus \u2014 unser Team meldet sich schnellstm\u00F6glich.\n"
+            "Ben\xf6tigst du Hilfe oder hast ein Anliegen?\n"
+            "W\xe4hle unten die passende Ticket-Art aus \u2014 unser Team meldet sich schnellstm\xf6glich.\n"
             "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501"
         ),
         color=LOG_COLOR,
@@ -482,38 +470,38 @@ def _build_ticket_embed() -> discord.Embed:
     )
 
     embed.add_field(
-        name="\U0001F39F\uFE0F Support",
+        name="\U0001f39f\ufe0f Support",
         value="> Allgemeiner Support bei Fragen & Problemen",
         inline=False,
     )
     embed.add_field(
-        name="\U0001F451 Highteam Ticket",
+        name="\U0001f451 Highteam Ticket",
         value="> Direkter Kontakt zum Highteam",
         inline=False,
     )
     embed.add_field(
-        name="\U0001F3DB\uFE0F Fraktions Bewerbung",
-        value="> Bewirb dich f\u00FCr eine Fraktion auf dem Server",
+        name="\U0001f3db\ufe0f Fraktions Bewerbung",
+        value="> Bewirb dich f\xfcr eine Fraktion auf dem Server",
         inline=False,
     )
     embed.add_field(
-        name="\U0001F4E2 Beschwerde Ticket",
+        name="\U0001f4e2 Beschwerde Ticket",
         value="> Melde eine Beschwerde gegen einen Spieler oder Mitarbeiter",
         inline=False,
     )
     embed.add_field(
-        name="\U0001F41B Bug Report",
+        name="\U0001f41b Bug Report",
         value="> Melde einen Fehler oder Bug im Roleplay",
         inline=False,
     )
     embed.add_field(
-        name="\U0001F3AE Crew Anfrage",
-        value="> Crew-Anfrage \u00FCber den Rockstar Social Club",
+        name="\U0001f3ae Crew Anfrage",
+        value="> Crew-Anfrage \xfcber den Rockstar Social Club",
         inline=False,
     )
 
     embed.set_thumbnail(url=TICKET_IMG_URL)
-    embed.set_footer(text="Paradise City Roleplay \u2022 Support-System | Nur ein Ticket gleichzeitig m\u00F6glich")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Support-System | Nur ein Ticket gleichzeitig m\xf6glich")
     return embed
 
 
@@ -522,13 +510,12 @@ TICKET_INFO_CHANNEL_ID = 1490885002030874775
 
 @bot.tree.command(
     name="setup-ticket",
-    description="[Admin] Ticket-Embed neu posten (l\u00F6scht altes und postet aktuelles)",
+    description="[Admin] Ticket-Embed neu posten (l\xf6scht altes und postet aktuelles)",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 async def cmd_setup_ticket(interaction: discord.Interaction):
     if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        await interaction.response.send_message("\u274c Kein Zugriff.", ephemeral=True)
         return
 
     await interaction.response.defer(ephemeral=True)
@@ -543,7 +530,7 @@ async def cmd_setup_ticket(interaction: discord.Interaction):
             channels.append(ch)
 
     if not channels:
-        await interaction.followup.send("\u274C Kein Ticket-Channel gefunden.", ephemeral=True)
+        await interaction.followup.send("\u274c Kein Ticket-Channel gefunden.", ephemeral=True)
         return
 
     for ch in channels:
@@ -555,7 +542,7 @@ async def cmd_setup_ticket(interaction: discord.Interaction):
                             await msg.delete()
                             break
         except Exception as e:
-            await log_bot_error("setup-ticket: L\u00F6schen fehlgeschlagen", str(e), guild)
+            await log_bot_error("setup-ticket: L\xf6schen fehlgeschlagen", str(e), guild)
 
         try:
             await ch.send(embed=_build_ticket_embed(), view=TicketSelectView())
@@ -564,11 +551,11 @@ async def cmd_setup_ticket(interaction: discord.Interaction):
             await log_bot_error("setup-ticket: Senden fehlgeschlagen", str(e), guild)
 
     if posted == 0:
-        await interaction.followup.send("\u274C Embed konnte nicht gesendet werden.", ephemeral=True)
+        await interaction.followup.send("\u274c Embed konnte nicht gesendet werden.", ephemeral=True)
         return
 
     await interaction.followup.send(
-        f"\u2705 Ticket-Embed in {posted} Kanal{'\u00E4' if posted != 1 else 'a'}len neu gepostet.",
+        f"\u2705 Ticket-Embed in {posted} Kanal{'\xe4' if posted != 1 else 'a'}len neu gepostet.",
         ephemeral=True
     )
 
@@ -665,16 +652,16 @@ async def auto_lohnliste_setup():
             print(f"Lohnliste bereits vorhanden in #{channel.name} \u2014 kein erneutes Posten.")
             continue
         desc = (
-            f"<@&1490855796932739093>\n**1.500 \U0001F4B5 St\u00FCndlich**\n\n"
-            f"<@&1490855789844234310>\n**2.500 \U0001F4B5 St\u00FCndlich**\n\n"
-            f"<@&1490855790913785886>\n**3.500 \U0001F4B5 St\u00FCndlich**\n\n"
-            f"<@&1490855791953973421>\n**4.500 \U0001F4B5 St\u00FCndlich**\n\n"
-            f"<@&1490855792671461478>\n**5.500 \U0001F4B5 St\u00FCndlich**\n\n"
-            f"<@&1490855793694871595>\n**6.500 \U0001F4B5 St\u00FCndlich**\n\n"
-            f"<@&1490855795360006246>\n**1.200 \U0001F4B5 St\u00FCndlich** *(Zusatzlohn)*"
+            f"<@&1490855796932739093>\n**1.500 \U0001f4b5 St\xfcndlich**\n\n"
+            f"<@&1490855789844234310>\n**2.500 \U0001f4b5 St\xfcndlich**\n\n"
+            f"<@&1490855790913785886>\n**3.500 \U0001f4b5 St\xfcndlich**\n\n"
+            f"<@&1490855791953973421>\n**4.500 \U0001f4b5 St\xfcndlich**\n\n"
+            f"<@&1490855792671461478>\n**5.500 \U0001f4b5 St\xfcndlich**\n\n"
+            f"<@&1490855793694871595>\n**6.500 \U0001f4b5 St\xfcndlich**\n\n"
+            f"<@&1490855795360006246>\n**1.200 \U0001f4b5 St\xfcndlich** *(Zusatzlohn)*"
         )
         embed = discord.Embed(
-            title="\U0001F4B5 Lohnliste \U0001F4B5",
+            title="\U0001f4b5 Lohnliste \U0001f4b5",
             description=desc,
             color=LOG_COLOR
         )
