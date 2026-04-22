@@ -466,7 +466,6 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
 # \u2500\u2500 /ausweis-remove \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="ausweis-remove", description="[Admin] L\u00F6scht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler dessen Ausweis gel\u00F6scht werden soll")
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
     if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
@@ -500,7 +499,6 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 # \u2500\u2500 /ausweis-create \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis f\u00FCr einen Spieler", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     nutzer="Spieler f\u00FCr den der Ausweis erstellt wird",
     einreise_typ="Einreiseart des Spielers"
@@ -511,7 +509,7 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 ])
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member,
                          einreise_typ: str = "legal"):
-    if not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
