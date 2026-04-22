@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# team_overview.py — Team Übersicht mit On/Off Duty System
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# team_overview.py \u2014 Team \u00DCbersicht mit On/Off Duty System
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 
 
-# ── Datei-Helpers ─────────────────────────────────────────────
+# \u2500\u2500 Datei-Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def load_duty():
     if DUTY_FILE.exists():
@@ -21,7 +21,7 @@ def save_duty(data):
         json.dump(data, f, indent=2)
 
 
-# ── Embed Builder ─────────────────────────────────────────────
+# \u2500\u2500 Embed Builder \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     on_duty_set = set(duty_data.get("on_duty", []))
@@ -43,10 +43,10 @@ def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
         lines.append(f"\n**{role.name}**")
         for m in sorted(mitglieder, key=lambda x: x.display_name.lower()):
             if m.id in on_duty_set:
-                lines.append(f"> {m.mention} 🟢")
+                lines.append(f"> {m.mention} \U0001F7E2")
                 on_count  += 1
             else:
-                lines.append(f"> {m.mention} 🔴")
+                lines.append(f"> {m.mention} \U0001F534")
                 off_count += 1
             gesamt += 1
         lines.append("")
@@ -54,21 +54,21 @@ def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     beschreibung = "\n".join(lines)
     beschreibung += (
         "\n\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
-        f"👥 **Insgesamt:** {gesamt} Teammitglieder\n"
-        f"🟢 **On Duty:** {on_count}  ·  🔴 **Off Duty:** {off_count}"
+        f"\U0001F465 **Insgesamt:** {gesamt} Teammitglieder\n"
+        f"\U0001F7E2 **On Duty:** {on_count}  \u00B7  \U0001F534 **Off Duty:** {off_count}"
     )
 
     embed = discord.Embed(
-        title="🏆 Team Übersicht — Paradise City Roleplay",
+        title="\U0001F3C6 Team \u00DCbersicht \u2014 Paradise City Roleplay",
         description=beschreibung,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Paradise City Roleplay • Team-Übersicht | Zuletzt aktualisiert")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Team-\u00DCbersicht | Zuletzt aktualisiert")
     return embed
 
 
-# ── Persistent View ───────────────────────────────────────────
+# \u2500\u2500 Persistent View \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 class TeamOverviewView(discord.ui.View):
     def __init__(self):
@@ -87,14 +87,14 @@ class TeamOverviewView(discord.ui.View):
 
     @discord.ui.button(
         label="On Duty",
-        emoji="📱",
+        emoji="\U0001F4F1",
         style=discord.ButtonStyle.success,
         custom_id="team_on_duty",
     )
     async def on_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_team(interaction.user):
             await interaction.response.send_message(
-                "❌ Nur Teammitglieder können ihren Dienststatus ändern.",
+                "\u274C Nur Teammitglieder k\u00F6nnen ihren Dienststatus \u00E4ndern.",
                 ephemeral=True,
             )
             return
@@ -106,20 +106,20 @@ class TeamOverviewView(discord.ui.View):
             save_duty(duty_data)
 
         await interaction.response.send_message(
-            "✅ Du bist jetzt **🟢 On Duty**.", ephemeral=True
+            "\u2705 Du bist jetzt **\U0001F7E2 On Duty**.", ephemeral=True
         )
         await self._update_embed(interaction)
 
     @discord.ui.button(
         label="Off Duty",
-        emoji="📵",
+        emoji="\U0001F4F5",
         style=discord.ButtonStyle.danger,
         custom_id="team_off_duty",
     )
     async def off_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._is_team(interaction.user):
             await interaction.response.send_message(
-                "❌ Nur Teammitglieder können ihren Dienststatus ändern.",
+                "\u274C Nur Teammitglieder k\u00F6nnen ihren Dienststatus \u00E4ndern.",
                 ephemeral=True,
             )
             return
@@ -131,12 +131,12 @@ class TeamOverviewView(discord.ui.View):
             save_duty(duty_data)
 
         await interaction.response.send_message(
-            "✅ Du bist jetzt **🔴 Off Duty**.", ephemeral=True
+            "\u2705 Du bist jetzt **\U0001F534 Off Duty**.", ephemeral=True
         )
         await self._update_embed(interaction)
 
 
-# ── Auto Setup ────────────────────────────────────────────────
+# \u2500\u2500 Auto Setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def auto_team_setup():
     for guild in bot.guilds:
@@ -158,12 +158,12 @@ async def auto_team_setup():
             except Exception:
                 pass
 
-        # Altes Embed suchen und löschen
+        # Altes Embed suchen und l\u00F6schen
         try:
             async for msg in channel.history(limit=20):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
-                        if emb.title and "Team Übersicht" in emb.title:
+                        if emb.title and "Team \u00DCbersicht" in emb.title:
                             try:
                                 await msg.delete()
                             except Exception:
@@ -182,19 +182,18 @@ async def auto_team_setup():
             print(f"[team_overview] Fehler: {e}")
 
 
-# ── Slash Command: /team-refresh ──────────────────────────────
+# \u2500\u2500 Slash Command: /team-refresh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
     name="team-refresh",
-    description="[Team] Aktualisiert die Team-Übersicht manuell",
+    description="[Team] Aktualisiert die Team-\u00DCbersicht manuell",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(manage_messages=True)
 async def team_refresh(interaction: discord.Interaction):
-    if not any(r.id in TEAM_ROLE_IDS for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+    if interaction.user.id != OWNER_ID and not any(r.id in TEAM_ROLE_IDS | {INHABER_ROLE_ID} for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     await interaction.response.defer(ephemeral=True)
     await auto_team_setup()
-    await interaction.followup.send("✅ Team-Übersicht wurde aktualisiert.", ephemeral=True)
+    await interaction.followup.send("\u2705 Team-\u00DCbersicht wurde aktualisiert.", ephemeral=True)
