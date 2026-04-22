@@ -1,4 +1,4 @@
-/* Paradise City Admin Dashboard \u2014 Orange Gradient Theme */
+/* Paradise City Admin Dashboard â€” Orange Gradient Theme */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,7 +19,7 @@
 
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg); color: var(--text); }
 
-/* \u2500\u2500 Login \u2500\u2500 */
+/* â”€â”€ Login â”€â”€ */
 .login-body {
   display: flex; align-items: center; justify-content: center; min-height: 100vh;
   background: radial-gradient(ellipse at center, #1a0a00 0%, #0f0f13 70%);
@@ -46,10 +46,10 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
   color: #fff; transition: opacity .2s; }
 .btn-login:hover { opacity: .85; }
 
-/* \u2500\u2500 Layout \u2500\u2500 */
+/* â”€â”€ Layout â”€â”€ */
 .dash-body { display: flex; min-height: 100vh; }
 
-/* \u2500\u2500 Sidebar \u2500\u2500 */
+/* â”€â”€ Sidebar â”€â”€ */
 .sidebar {
   width: var(--sidebar-w); flex-shrink: 0; display: flex; flex-direction: column;
   background: linear-gradient(180deg, #18080a 0%, #0f0f13 100%);
@@ -75,7 +75,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
   border-radius: 8px; color: #e74c3c; text-decoration: none; font-size: 13px; transition: all .15s; }
 .btn-logout:hover { background: rgba(231,76,60,0.25); }
 
-/* \u2500\u2500 Main \u2500\u2500 */
+/* â”€â”€ Main â”€â”€ */
 .main-content { flex: 1; padding: 28px 32px; overflow-x: hidden; }
 .section { display: none; }
 .section.active { display: block; }
@@ -83,14 +83,14 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
   background: linear-gradient(90deg, var(--orange-1), var(--orange-4));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-/* \u2500\u2500 Cards \u2500\u2500 */
+/* â”€â”€ Cards â”€â”€ */
 .card { background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 12px; padding: 20px; }
 .card-title { font-size: 14px; font-weight: 600; color: var(--orange-3); margin-bottom: 14px; }
 .mt-20 { margin-top: 20px; }
 .mt-10 { margin-top: 10px; }
 
-/* \u2500\u2500 Stats \u2500\u2500 */
+/* â”€â”€ Stats â”€â”€ */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .stat-card { background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 12px; padding: 18px 14px; text-align: center;
@@ -98,7 +98,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
 .stat-val { font-size: 26px; font-weight: 700; color: var(--orange-3); }
 .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
 
-/* \u2500\u2500 Tables \u2500\u2500 */
+/* â”€â”€ Tables â”€â”€ */
 .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 .search-input { flex: 1; min-width: 180px; padding: 9px 14px;
   background: var(--card-bg); border: 1px solid var(--card-border);
@@ -115,14 +115,14 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
 .loading { color: var(--text-dim); font-style: italic; }
 .uid-small { font-size: 11px; color: var(--text-dim); }
 
-/* \u2500\u2500 Tabs \u2500\u2500 */
+/* â”€â”€ Tabs â”€â”€ */
 .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
 .tab-btn { padding: 8px 18px; border: 1px solid var(--card-border); border-radius: 8px;
   background: var(--card-bg); color: var(--text-dim); cursor: pointer; font-size: 13px; }
 .tab-btn.active { background: linear-gradient(135deg, var(--orange-1), var(--orange-2));
   color: #fff; border-color: transparent; font-weight: 600; }
 
-/* \u2500\u2500 Forms \u2500\u2500 */
+/* â”€â”€ Forms â”€â”€ */
 .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
 .form-input { padding: 9px 12px; background: #11111a;
   border: 1px solid var(--card-border); border-radius: 8px;
@@ -135,7 +135,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
 .form-msg.ok { color: var(--success); }
 .form-msg.err { color: var(--danger); }
 
-/* \u2500\u2500 Buttons \u2500\u2500 */
+/* â”€â”€ Buttons â”€â”€ */
 .btn-primary { padding: 9px 18px; border: none; border-radius: 8px; cursor: pointer;
   font-size: 13px; font-weight: 600;
   background: linear-gradient(135deg, var(--orange-1), var(--orange-2)); color: #fff; }
@@ -150,7 +150,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
   cursor: pointer; font-size: 12px; background: rgba(46,204,113,0.1); color: var(--success); }
 .btn-success:hover { background: rgba(46,204,113,0.2); }
 
-/* \u2500\u2500 Log list \u2500\u2500 */
+/* â”€â”€ Log list â”€â”€ */
 .log-list { display: flex; flex-direction: column; gap: 6px; }
 .log-entry { background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 8px; padding: 10px 14px; font-size: 13px;
@@ -166,7 +166,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
   border-radius: 8px; padding: 12px 16px; border-left: 3px solid var(--danger); }
 .warn-entry-title { font-weight: 600; font-size: 13px; color: #ff6b6b; }
 
-/* \u2500\u2500 Shop panels \u2500\u2500 */
+/* â”€â”€ Shop panels â”€â”€ */
 .shop-section { margin-top: 20px; background: var(--card-bg);
   border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
 .shop-header { padding: 12px 18px; background: linear-gradient(90deg, rgba(255,107,0,0.2), transparent);
@@ -177,7 +177,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
 .shop-item-row:last-child { border-bottom: none; }
 .item-price { color: var(--orange-3); font-weight: 600; }
 
-/* \u2500\u2500 Notes grid \u2500\u2500 */
+/* â”€â”€ Notes grid â”€â”€ */
 .notes-grid { display: flex; flex-direction: column; gap: 12px; }
 .note-card { background: var(--card-bg); border: 1px solid var(--card-border);
   border-radius: 10px; padding: 14px 18px; }
@@ -187,7 +187,7 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
 .note-entry:last-child { border-bottom: none; }
 .note-time { font-size: 11px; color: var(--text-dim); }
 
-/* \u2500\u2500 Features grid \u2500\u2500 */
+/* â”€â”€ Features grid â”€â”€ */
 .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
 .feature-item { padding: 10px 14px; border-radius: 8px; font-size: 13px;
   display: flex; align-items: center; gap: 8px;
@@ -195,25 +195,25 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--dark-bg
 .feature-ok  { border-color: rgba(46,204,113,0.3); }
 .feature-err { border-color: rgba(231,76,60,0.3); }
 
-/* \u2500\u2500 Live badge \u2500\u2500 */
+/* â”€â”€ Live badge â”€â”€ */
 .live-badge { background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.4);
   color: var(--success); padding: 5px 12px; border-radius: 20px; font-size: 12px; }
 
-/* \u2500\u2500 Badges \u2500\u2500 */
+/* â”€â”€ Badges â”€â”€ */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 4px;
   font-size: 11px; font-weight: 600; }
 .badge-red { background: rgba(231,76,60,0.2); color: #e74c3c; }
 .badge-orange { background: rgba(255,107,0,0.2); color: var(--orange-3); }
 
-/* \u2500\u2500 Money \u2500\u2500 */
+/* â”€â”€ Money â”€â”€ */
 .money { color: var(--orange-3); font-weight: 600; }
 .money-neg { color: var(--danger); }
 
-/* \u2500\u2500 Scrollbar \u2500\u2500 */
+/* â”€â”€ Scrollbar â”€â”€ */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,107,0,0.3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,107,0,0.5); }
 
-/* \u2500\u2500 Hidden \u2500\u2500 */
+/* â”€â”€ Hidden â”€â”€ */
 .hidden { display: none !important; }
