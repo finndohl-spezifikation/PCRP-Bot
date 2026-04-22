@@ -428,24 +428,7 @@ async def on_member_join(member):
     guild = member.guild
 
     if member.bot:
-        GALAXY_BOT_ID = 270904126974590976
-        if member.id == GALAXY_BOT_ID:
-            try:
-                await guild.ban(member, reason="Galaxy Bot ist auf diesem Server nicht erlaubt", delete_message_days=0)
-                log_ch = guild.get_channel(BOT_LOG_CHANNEL_ID)
-                if log_ch:
-                    embed = discord.Embed(
-                        title="\U0001F528 Galaxy Bot gebannt",
-                        description="Galaxy Bot hat versucht dem Server beizutreten und wurde automatisch gebannt.",
-                        color=MOD_COLOR,
-                        timestamp=datetime.now(timezone.utc)
-                    )
-                    await log_ch.send(embed=embed)
-            except Exception:
-                pass
-            return
-
-        # Pr\u00FCfen wer den Bot hinzugef\u00FCgt hat
+        # Wer hat den Bot hinzugef\u00FCgt? (Audit-Log)
         adder = None
         try:
             async for entry in guild.audit_logs(limit=5, action=discord.AuditLogAction.bot_add):
@@ -455,32 +438,44 @@ async def on_member_join(member):
         except Exception:
             pass
 
-        # Server-Inhaber darf Bots hinzuf\u00FCgen
-        if adder and adder.id == guild.owner_id:
-            return
+        # Nur der Inhaber (Rolle oder OWNER_ID) darf Bots hinzuf\u00FCgen
+        if adder:
+            if adder.id == OWNER_ID or adder.id == guild.owner_id:
+                return
+            adder_member = guild.get_member(adder.id)
+            if adder_member and any(r.id == INHABER_ROLE_ID for r in adder_member.roles):
+                return
 
-        # Alle anderen: Bot wird gekickt
+        # Jeder andere Bot wird sofort gebannt
         try:
-            await member.kick(reason="Bots sind auf diesem Server nicht erlaubt")
+            await guild.ban(member, reason="\U0001F6AB Nicht autorisierter Bot \u2014 automatisch gebannt", delete_message_days=0)
         except Exception:
             pass
+
+        # DM an den T\u00E4ter (falls bekannt)
         if adder:
             try:
                 embed = discord.Embed(
-                    description="> Bots auf diesen Server hinzuf\u00FCgen ist f\u00FCr dich leider nicht erlaubt.",
-                    color=MOD_COLOR
+                    title="\u26A0\uFE0F Nicht erlaubt",
+                    description=(
+                        f"Du hast versucht den Bot **{member}** auf den Server hinzuzuf\u00FCgen.\n"
+                        "Das ist auf diesem Server **nicht erlaubt** \u2014 nur der Inhaber darf Bots hinzuf\u00FCgen.\n"
+                        f"Der Bot wurde automatisch **gebannt**."
+                    ),
+                    color=0xFF0000,
                 )
-                await adder.send(content=adder.mention, embed=embed)
+                await adder.send(embed=embed)
             except Exception:
                 pass
-        # Inhaber-Warnung
+
+        # DM-Warnung an den Inhaber
         warn_embed = discord.Embed(
-            title="\u26A0\uFE0F Bot-Einladung \u2014 Aktivit\u00E4tswarnung",
+            title="\u26A0\uFE0F Bot-Einladung erkannt",
             description=(
-                f"\U0001F916 **Bot:** {member.mention} (`{member}` | `{member.id}`)\n"
-                f"\U0001F464 **Hinzugef\u00FCgt von:** {adder.mention if adder else 'Unbekannt'}\n"
+                f"\U0001F916 **Bot:** `{member}` (`{member.id}`)\n"
+                f"\U0001F464 **Hinzugef\u00FCgt von:** {adder.mention + ' (`' + str(adder.id) + '`)' if adder else 'Unbekannt'}\n"
                 f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>\n\n"
-                "Der Bot wurde automatisch gekickt."
+                "\U0001F6AB Der Bot wurde automatisch **gebannt**."
             ),
             color=0xFF0000,
             timestamp=datetime.now(timezone.utc),
@@ -1065,6 +1060,10 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel):
     creator = await _get_audit_user(channel.guild, discord.AuditLogAction.channel_create, channel.id)
     if creator and creator.id == bot.user.id:
         return
+    if creator and (creator.id == OWNER_ID or creator.id == channel.guild.owner_id):
+        return
+    if creator and any(r.id == INHABER_ROLE_ID for r in getattr(creator, 'roles', [])):
+        return
     _bot_deleted_ids.add(channel.id)
     try:
         await channel.delete(reason="\U0001F6AB Server-Schutz: Kanal-Erstellung nicht erlaubt")
@@ -1092,6 +1091,10 @@ async def on_guild_role_create(role: discord.Role):
         return
     creator = await _get_audit_user(role.guild, discord.AuditLogAction.role_create, role.id)
     if creator and creator.id == bot.user.id:
+        return
+    if creator and (creator.id == OWNER_ID or creator.id == role.guild.owner_id):
+        return
+    if creator and any(r.id == INHABER_ROLE_ID for r in getattr(creator, 'roles', [])):
         return
     _bot_deleted_ids.add(role.id)
     try:
