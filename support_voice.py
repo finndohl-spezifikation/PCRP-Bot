@@ -25,6 +25,7 @@ from config import bot
 WARTERAUM_ID   = 1490882556269297716
 SPIELER_ROLLE  = 1490855722534310003
 MUSIK_LOKAL    = "Bunte_Papiere.mp3"
+MUSIK_URL      = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev/Bunte_Papiere.mp3"
 TTS_STIMME     = "de-DE-KatjaNeural"
 MUSIK_VOL      = 0.25
 WIEDERHOL_SEK  = 20
@@ -233,8 +234,29 @@ async def _disconnect(guild: discord.Guild) -> None:
 
 # \u2500\u2500 Listener \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
+async def _download_musik() -> None:
+    if os.path.exists(MUSIK_LOKAL):
+        print("[support_voice] \U0001F3B5 Musikdatei bereits vorhanden")
+        return
+    print(f"[support_voice] \u2B07\uFE0F Lade Musik herunter von: {MUSIK_URL}")
+    try:
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            async with session.get(MUSIK_URL, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                if resp.status == 200:
+                    data = await resp.read()
+                    with open(MUSIK_LOKAL, "wb") as f:
+                        f.write(data)
+                    print(f"[support_voice] \u2705 Musik heruntergeladen ({len(data)//1024} KB)")
+                else:
+                    print(f"[support_voice] \u274C Download fehlgeschlagen: HTTP {resp.status}")
+    except Exception as e:
+        print(f"[support_voice] \u274C Download-Fehler: {e}")
+
+
 @bot.listen("on_ready")
 async def support_voice_on_ready() -> None:
+    await _download_musik()
     musik_ok = os.path.exists(MUSIK_LOKAL)
     print(f"[support_voice] \U0001F7E2 Bereit | PyNaCl={_NACL_OK} | edge-tts={_EDGE_OK} | Lobby={'OFFEN' if _lobby_open else 'CLOSED'} | Musik={'\u2705' if musik_ok else '\u274C nicht gefunden'}")
     if _EDGE_OK:
