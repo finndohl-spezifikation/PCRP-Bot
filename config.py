@@ -40,6 +40,30 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 bot_start_time = None
 invite_cache = {}
 
+INTERACTION_VIEW_TIMEOUT = int(os.environ.get("INTERACTION_VIEW_TIMEOUT", "300"))
+
+
+class TimedDisableView(discord.ui.View):
+    def __init__(self, timeout: int = INTERACTION_VIEW_TIMEOUT):
+        super().__init__(timeout=timeout)
+        self.message = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        self.message = interaction.message
+        return True
+
+    async def on_timeout(self):
+        for item in self.children:
+            if hasattr(item, "disabled"):
+                item.disabled = True
+
+        message = getattr(self, "message", None)
+        if message is not None:
+            try:
+                await message.edit(view=self)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                pass
+
 ADMIN_ROLE_ID     = 1490855650081636352
 MOD_ROLE_ID       = 1496147874256392202
 INHABER_ROLE_ID   = 1490855647259136053
