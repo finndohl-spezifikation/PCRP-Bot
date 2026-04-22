@@ -68,6 +68,17 @@ OWNER_ID          = 1411796740243456092   # Server-Inhaber \u2014 immer alle Rec
 ADMIN_ROLE_ID     = 1490855650081636352
 MOD_ROLE_ID       = 1496147874256392202
 INHABER_ROLE_ID   = 1490855647259136053
+DASH_ROLE_ID      = 1490855702225485936   # Highteam / Dashboard-Zugang
+TICKET_MOD_ROLE_ID = 1490855703370534965  # Rolle mit Ticket-Zugriff
+
+# Alle Rollen die Tickets sehen, schlie\xdfen und zuweisen d\xfcrfen
+TICKET_STAFF_ROLE_IDS = {
+    INHABER_ROLE_ID,
+    ADMIN_ROLE_ID,
+    MOD_ROLE_ID,
+    DASH_ROLE_ID,
+    TICKET_MOD_ROLE_ID,
+}
 WHITELIST_ROLE_ID  = 1490855725516460234   # Bewerber-Rolle (Autorole beim Beitritt)
 BEWERBER_ROLE_ID   = 1490855725516460234   # identisch, f\u00FCr lesbareren Code
 LOBBY_ROLE_ID     = 1490855714162475259
