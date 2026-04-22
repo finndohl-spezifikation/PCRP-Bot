@@ -21,10 +21,6 @@ async def ping_cmd(interaction: discord.Interaction):
 
 @bot.tree.command(name="kartenkontrolle", description="[Team] Kartenkontrolle-Erinnerung per DM senden", guild=discord.Object(id=GUILD_ID))
 async def kartenkontrolle(interaction: discord.Interaction):
-    if not is_team(interaction.user):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     await interaction.response.defer(ephemeral=True)
 
     guild        = interaction.guild
@@ -72,10 +68,6 @@ async def kartenkontrolle(interaction: discord.Interaction):
 @bot.tree.command(name="delete", description="[Team] L\u00F6scht Nachrichten im Kanal", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(anzahl="Anzahl der zu l\u00F6schenden Nachrichten (max. 100)")
 async def delete_messages(interaction: discord.Interaction, anzahl: int):
-    if not is_team(interaction.user):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     if anzahl < 1 or anzahl > 100:
         await interaction.response.send_message("\u274C Bitte eine Zahl zwischen 1 und 100 angeben.", ephemeral=True)
         return
