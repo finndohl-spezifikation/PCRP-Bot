@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# bingo.py — Wöchentliches Bingo-System
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# bingo.py \u2014 W\xf6chentliches Bingo-System
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from __future__ import annotations
 import asyncio
@@ -17,13 +17,13 @@ BINGO_JOIN_SECONDS  = 300          # 5 Minuten Beitrittszeit
 BINGO_CALL_INTERVAL = 20           # Sekunden zwischen zwei Zahlen
 BINGO_GRACE_SECONDS = 60           # Schonfrist nach letzter Zahl
 BINGO_MIN           = 1
-BINGO_MAX           = 75           # Zahlenpool 1–75
-BINGO_SIZE          = 4            # 4×4 Karte = 16 Felder
+BINGO_MAX           = 75           # Zahlenpool 1\u201375
+BINGO_SIZE          = 4            # 4\xd74 Karte = 16 Felder
 
 _game: dict | None = None          # Globaler Spielstand (ein Spiel gleichzeitig)
 
 
-# ── Hilfsfunktionen ───────────────────────────────────────────────────────────
+# \u2500\u2500 Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _make_card() -> list[list[int]]:
     pool = random.sample(range(BINGO_MIN, BINGO_MAX + 1), BINGO_SIZE * BINGO_SIZE)
@@ -32,7 +32,7 @@ def _make_card() -> list[list[int]]:
 
 def _card_embed(view: BingoCardView) -> discord.Embed:
     called_set = _game["called_set"] if _game else set()
-    prize      = _game["prize"]      if _game else "—"
+    prize      = _game["prize"]      if _game else "\u2014"
     called_lst = _game["called"]     if _game else []
     last       = called_lst[-1]      if called_lst else None
 
@@ -42,40 +42,40 @@ def _card_embed(view: BingoCardView) -> discord.Embed:
         for c in range(BINGO_SIZE):
             n = view.card[r][c]
             if view.marked[r][c]:
-                parts.append(f"✓{n:02d}")
+                parts.append(f"\u2713{n:02d}")
             elif n in called_set:
-                parts.append(f"●{n:02d}")
+                parts.append(f"\u25cf{n:02d}")
             else:
-                parts.append(f"○{n:02d}")
+                parts.append(f"\u25cb{n:02d}")
         rows.append("  ".join(parts))
-    grid = "```\n" + "\n".join(rows) + "\n```"
+    grid = "```\\n" + "\\n".join(rows) + "\\n```"
 
     embed = discord.Embed(
-        title="🎱 Dein Bingo-Feld",
+        title="\U0001f3b1 Dein Bingo-Feld",
         description=grid,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
     embed.add_field(
-        name="🔢 Letzte Zahl",
-        value=f"**{last}**" if last else "—",
+        name="\U0001f522 Letzte Zahl",
+        value=f"**{last}**" if last else "\u2014",
         inline=True,
     )
-    embed.add_field(name="🏆 Gewinn", value=prize, inline=True)
+    embed.add_field(name="\U0001f3c6 Gewinn", value=prize, inline=True)
     embed.add_field(
-        name=f"📋 Zahlen ({len(called_lst)})",
-        value=(" · ".join(str(x) for x in called_lst) or "—")[:1024],
+        name=f"\U0001f4cb Zahlen ({len(called_lst)})",
+        value=(" \xb7 ".join(str(x) for x in called_lst) or "\u2014")[:1024],
         inline=False,
     )
-    embed.set_footer(text="✓ = markiert  ●  = aufgerufen, noch nicht markiert  ○ = ausstehend")
+    embed.set_footer(text="\u2713 = markiert  \u25cf  = aufgerufen, noch nicht markiert  \u25cb = ausstehend")
     return embed
 
 
-# ── View & Buttons ────────────────────────────────────────────────────────────
+# \u2500\u2500 View & Buttons \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-class BingoCardView(discord.ui.View):
+class BingoCardView(TimedDisableView):
     def __init__(self, user_id: int, card: list[list[int]]):
-        super().__init__(timeout=None)
+        super().__init__(timeout=INTERACTION_VIEW_TIMEOUT)
         self.user_id = user_id
         self.card    = card
         self.marked  = [[False] * BINGO_SIZE for _ in range(BINGO_SIZE)]
@@ -90,7 +90,7 @@ class BingoCardView(discord.ui.View):
                 marked = self.marked[r][c]
                 called = n in called_set
                 if marked:
-                    style, label, disabled = discord.ButtonStyle.success, f"✓{n}", True
+                    style, label, disabled = discord.ButtonStyle.success, f"\u2713{n}", True
                 elif called:
                     style, label, disabled = discord.ButtonStyle.primary, str(n), False
                 else:
@@ -136,24 +136,24 @@ class BingoButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id != self._vref.user_id:
             await interaction.response.send_message(
-                "❌ Das ist nicht deine Karte!", ephemeral=True
+                "\u274c Das ist nicht deine Karte!", ephemeral=True
             )
             return
 
         if not _game or _game.get("ended"):
             await interaction.response.send_message(
-                "❌ Kein aktives Bingo-Spiel.", ephemeral=True
+                "\u274c Kein aktives Bingo-Spiel.", ephemeral=True
             )
             return
 
         if self._n not in _game["called_set"]:
             await interaction.response.send_message(
-                f"❌ Die Zahl **{self._n}** wurde noch nicht aufgerufen!", ephemeral=True
+                f"\u274c Die Zahl **{self._n}** wurde noch nicht aufgerufen!", ephemeral=True
             )
             return
 
         if self._vref.marked[self._r][self._c]:
-            await interaction.response.send_message("✅ Bereits markiert!", ephemeral=True)
+            await interaction.response.send_message("\u2705 Bereits markiert!", ephemeral=True)
             return
 
         self._vref.marked[self._r][self._c] = True
@@ -166,7 +166,7 @@ class BingoButton(discord.ui.Button):
             await _declare_winner(interaction.user)
 
 
-# ── Gewinn-Handling ───────────────────────────────────────────────────────────
+# \u2500\u2500 Gewinn-Handling \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _declare_winner(user: discord.User | discord.Member):
     global _game
@@ -179,11 +179,11 @@ async def _declare_winner(user: discord.User | discord.Member):
 
     if channel:
         embed = discord.Embed(
-            title="🎉 BINGO! Wir haben einen Gewinner!",
+            title="\U0001f389 BINGO! Wir haben einen Gewinner!",
             description=(
-                f"🏆 **{user.display_name}** hat das wöchentliche Bingo gewonnen!\n\n"
-                f"**Gewinn:** {prize}\n\n"
-                f"Herzlichen Glückwunsch! 🎊"
+                f"\U0001f3c6 **{user.display_name}** hat das w\xf6chentliche Bingo gewonnen!\\n\\n"
+                f"**Gewinn:** {prize}\\n\\n"
+                f"Herzlichen Gl\xfcckwunsch! \U0001f38a"
             ),
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
@@ -192,10 +192,10 @@ async def _declare_winner(user: discord.User | discord.Member):
 
     try:
         dm = discord.Embed(
-            title="🎉 Glückwunsch — Du hast gewonnen!",
+            title="\U0001f389 Gl\xfcckwunsch \u2014 Du hast gewonnen!",
             description=(
-                f"Du hast das wöchentliche **Bingo** gewonnen! 🎊\n\n"
-                f"**Gewinn:** {prize}\n\n"
+                f"Du hast das w\xf6chentliche **Bingo** gewonnen! \U0001f38a\\n\\n"
+                f"**Gewinn:** {prize}\\n\\n"
                 f"Melde dich beim Team um deinen Gewinn abzuholen!"
             ),
             color=0x2ECC71,
@@ -209,7 +209,7 @@ async def _declare_winner(user: discord.User | discord.Member):
         _game["task"].cancel()
 
 
-# ── Zahlen-Aufruf-Loop ────────────────────────────────────────────────────────
+# \u2500\u2500 Zahlen-Aufruf-Loop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _call_loop():
     global _game
@@ -241,14 +241,14 @@ async def _call_loop():
         if _game.get("ended"):
             return
 
-    # Alle Zahlen aufgerufen — 60 Sekunden Schonfrist für letzte Klicks
+    # Alle Zahlen aufgerufen \u2014 60 Sekunden Schonfrist f\xfcr letzte Klicks
     if not _game or _game.get("ended"):
         return
 
     channel = bot.get_channel(BINGO_CHANNEL_ID)
     if channel:
         await channel.send(
-            f"🎱 Alle Zahlen wurden aufgerufen!\n"
+            f"\U0001f3b1 Alle Zahlen wurden aufgerufen!\\n"
             f"Ihr habt noch **{BINGO_GRACE_SECONDS} Sekunden** um eure letzten Felder anzuklicken!"
         )
 
@@ -257,7 +257,7 @@ async def _call_loop():
     if not _game or _game.get("ended"):
         return
 
-    # Erst prüfen ob jemand Bingo hat (Klicks während Schonfrist)
+    # Erst pr\xfcfen ob jemand Bingo hat (Klicks w\xe4hrend Schonfrist)
     bingo_uids = [
         uid for uid, view in _game["views"].items() if view.has_bingo()
     ]
@@ -269,7 +269,7 @@ async def _call_loop():
             await _declare_winner(member)
             return
 
-    # Kein Bingo — Spieler mit den meisten markierten Feldern gewinnt
+    # Kein Bingo \u2014 Spieler mit den meisten markierten Feldern gewinnt
     if _game["views"]:
         best_uid = max(_game["views"], key=lambda uid: _game["views"][uid].marked_count())
         guild  = bot.get_guild(GUILD_ID)
@@ -282,11 +282,11 @@ async def _call_loop():
         _game["ended"] = True
 
 
-# ── /bingo Command ────────────────────────────────────────────────────────────
+# \u2500\u2500 /bingo Command \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
     name="bingo",
-    description="[Admin/Mod] Startet das wöchentliche Bingo-Spiel",
+    description="[Admin/Mod] Startet das w\xf6chentliche Bingo-Spiel",
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.default_permissions(manage_messages=True)
@@ -296,34 +296,34 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
 
     role_ids = [r.id for r in interaction.user.roles]
     if ADMIN_ROLE_ID not in role_ids and MOD_ROLE_ID not in role_ids:
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
         return
 
     if _game and not _game.get("ended"):
         await interaction.response.send_message(
-            "❌ Es läuft bereits ein Bingo-Spiel!", ephemeral=True
+            "\u274c Es l\xe4uft bereits ein Bingo-Spiel!", ephemeral=True
         )
         return
 
     await interaction.response.send_message(
-        "✅ Bingo-Ankündigung wird gesendet...", ephemeral=True
+        "\u2705 Bingo-Ank\xfcndigung wird gesendet...", ephemeral=True
     )
 
     channel = bot.get_channel(BINGO_CHANNEL_ID)
     if not channel:
-        await interaction.followup.send("❌ Bingo-Kanal nicht gefunden.", ephemeral=True)
+        await interaction.followup.send("\u274c Bingo-Kanal nicht gefunden.", ephemeral=True)
         return
 
     embed = discord.Embed(
-        title="🎱 Das wöchentliche Bingo hat begonnen!",
+        title="\U0001f3b1 Das w\xf6chentliche Bingo hat begonnen!",
         description=(
-            f"Reagiere mit ✅ um mitzuspielen!\n\n"
-            f"**🏆 Gewinn:** {gewinn}\n\n"
-            f"⏳ Eintragungszeit: **5 Minuten**\n"
-            f"Danach erhältst du dein persönliches Bingo-Feld per DM.\n"
-            f"Der Bot ruft alle **20 Sekunden** eine neue Zahl auf — "
-            f"klicke sie auf deiner Karte an um sie zu markieren!\n\n"
-            f"**Wer zuerst eine vollständige Reihe, Spalte oder Diagonale hat, gewinnt! 🎉**"
+            f"Reagiere mit \u2705 um mitzuspielen!\\n\\n"
+            f"**\U0001f3c6 Gewinn:** {gewinn}\\n\\n"
+            f"\u23f3 Eintragungszeit: **5 Minuten**\\n"
+            f"Danach erh\xe4ltst du dein pers\xf6nliches Bingo-Feld per DM.\\n"
+            f"Der Bot ruft alle **20 Sekunden** eine neue Zahl auf \u2014 "
+            f"klicke sie auf deiner Karte an um sie zu markieren!\\n\\n"
+            f"**Wer zuerst eine vollst\xe4ndige Reihe, Spalte oder Diagonale hat, gewinnt! \U0001f389**"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc),
@@ -334,7 +334,7 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
         content=f"<@&{BINGO_ROLE_ID}>",
         embed=embed,
     )
-    await announce_msg.add_reaction("✅")
+    await announce_msg.add_reaction("\u2705")
 
     _game = {
         "prize":      gewinn,
@@ -346,7 +346,7 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
         "task":       None,
     }
 
-    # ── 5 Minuten Beitrittszeit ──
+    # \u2500\u2500 5 Minuten Beitrittszeit \u2500\u2500
     await asyncio.sleep(BINGO_JOIN_SECONDS)
 
     if _game.get("ended"):
@@ -361,19 +361,19 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
 
     participants: list[discord.User] = []
     for reaction in announce_msg.reactions:
-        if str(reaction.emoji) == "✅":
+        if str(reaction.emoji) == "\u2705":
             async for u in reaction.users():
                 if not u.bot:
                     participants.append(u)
             break
 
     if not participants:
-        await channel.send("😔 Niemand hat sich für das Bingo eingetragen. Runde abgebrochen.")
+        await channel.send("\U0001f614 Niemand hat sich f\xfcr das Bingo eingetragen. Runde abgebrochen.")
         _game["ended"] = True
         return
 
     await channel.send(
-        f"🎱 **{len(participants)} Spieler** nehmen teil! "
+        f"\U0001f3b1 **{len(participants)} Spieler** nehmen teil! "
         f"Bingo-Felder werden jetzt per DM versendet..."
     )
 
@@ -386,11 +386,11 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
         try:
             dm_msg = await user.send(
                 content=(
-                    f"🎱 **Dein Bingo-Feld ist da!**\n"
-                    f"Gewinn: **{gewinn}**\n\n"
-                    f"Sobald eine Zahl aufgerufen wird leuchtet sie **blau** auf — "
-                    f"klicke sie um sie zu markieren!\n"
-                    f"Wer zuerst eine vollständige **Reihe, Spalte oder Diagonale** hat, gewinnt!"
+                    f"\U0001f3b1 **Dein Bingo-Feld ist da!**\\n"
+                    f"Gewinn: **{gewinn}**\\n\\n"
+                    f"Sobald eine Zahl aufgerufen wird leuchtet sie **blau** auf \u2014 "
+                    f"klicke sie um sie zu markieren!\\n"
+                    f"Wer zuerst eine vollst\xe4ndige **Reihe, Spalte oder Diagonale** hat, gewinnt!"
                 ),
                 embed=_card_embed(view),
                 view=view,
@@ -401,17 +401,17 @@ async def bingo_start(interaction: discord.Interaction, gewinn: str):
 
     if dm_failed:
         await channel.send(
-            f"⚠️ Konnte keine DM senden an: {', '.join(dm_failed)} (DMs deaktiviert)"
+            f"\u26a0\ufe0f Konnte keine DM senden an: {', '.join(dm_failed)} (DMs deaktiviert)"
         )
 
     if not _game["messages"]:
-        await channel.send("❌ Keine DMs konnten verschickt werden. Bingo abgebrochen.")
+        await channel.send("\u274c Keine DMs konnten verschickt werden. Bingo abgebrochen.")
         _game["ended"] = True
         return
 
     await channel.send(
-        "✅ Alle Felder verschickt — das Spiel beginnt jetzt! "
-        "Erste Zahl in **20 Sekunden**... 🎱"
+        "\u2705 Alle Felder verschickt \u2014 das Spiel beginnt jetzt! "
+        "Erste Zahl in **20 Sekunden**... \U0001f3b1"
     )
 
     task = bot.loop.create_task(_call_loop())
