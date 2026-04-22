@@ -10,7 +10,7 @@ from economy_helpers import has_item, consume_item, load_economy, save_economy, 
 IC_ACTIONS_CHANNEL_ID = 1490882589014364250
 
 ERSTE_HILFE_ITEM = "Erste Hilfe Koffer"
-ORTUNG_ITEM      = "Ortungsger\xe4t"
+ORTUNG_ITEM      = "Ortungsger\u00E4t"
 FESSELN_ITEM     = "Handfesseln"
 
 
@@ -28,7 +28,7 @@ def _in_ic_channel(interaction: discord.Interaction) -> bool:
 
 @bot.tree.command(
     name="erste-hilfe",
-    description="Erste Hilfe leisten \u2014 ben\xf6tigt \u2695\ufe0f| Erste Hilfe Koffer im Inventar",
+    description="Erste Hilfe leisten \u2014 ben\u00F6tigt \u2695\uFE0F| Erste Hilfe Koffer im Inventar",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
@@ -37,27 +37,27 @@ def _in_ic_channel(interaction: discord.Interaction) -> bool:
 async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
     if not _in_ic_channel(interaction):
         await interaction.response.send_message(
-            f"\u274c Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
+            f"\u274C Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
         )
         return
     if not _hat_buerger_rolle(interaction.user):
         await interaction.response.send_message(
-            "\u274c Du ben\xf6tigst die B\xfcrger-Rolle um diesen Command zu nutzen.", ephemeral=True
+            "\u274C Du ben\u00F6tigst die B\u00FCrger-Rolle um diesen Command zu nutzen.", ephemeral=True
         )
         return
     if not has_item(interaction.user, ERSTE_HILFE_ITEM):
         await interaction.response.send_message(
-            "\u274c Du ben\xf6tigst einen **\u2695\ufe0f| Erste Hilfe Koffer** aus dem Shop!", ephemeral=True
+            "\u274C Du ben\u00F6tigst einen **\u2695\uFE0F| Erste Hilfe Koffer** aus dem Shop!", ephemeral=True
         )
         return
 
     consume_item(interaction.user, ERSTE_HILFE_ITEM)
 
     embed = discord.Embed(
-        title="\u2695\ufe0f Erste Hilfe",
+        title="\u2695\uFE0F Erste Hilfe",
         description=(
-            f"{interaction.user.mention} leistet **{ziel.mention}** erste Hilfe!\\n\\n"
-            f"\u23f0 **{ziel.display_name}** muss sich innerhalb der n\xe4chsten **15 Minuten** "
+            f"{interaction.user.mention} leistet **{ziel.mention}** erste Hilfe!\n\n"
+            f"\u23F0 **{ziel.display_name}** muss sich innerhalb der n\u00E4chsten **15 Minuten** "
             f"von einem **Medic behandeln** lassen!"
         ),
         color=0x2ECC71,
@@ -72,7 +72,7 @@ async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
 
 @bot.tree.command(
     name="ortung",
-    description="Spieler orten \u2014 ben\xf6tigt \U0001f4bb| Ortungsger\xe4t im Inventar",
+    description="Spieler orten \u2014 ben\u00F6tigt \U0001F4BB| Ortungsger\u00E4t im Inventar",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
@@ -81,27 +81,27 @@ async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
 async def ortung(interaction: discord.Interaction, ziel: discord.Member):
     if not _in_ic_channel(interaction):
         await interaction.response.send_message(
-            f"\u274c Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
+            f"\u274C Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
         )
         return
     if not _hat_buerger_rolle(interaction.user):
         await interaction.response.send_message(
-            "\u274c Du ben\xf6tigst die B\xfcrger-Rolle um diesen Command zu nutzen.", ephemeral=True
+            "\u274C Du ben\u00F6tigst die B\u00FCrger-Rolle um diesen Command zu nutzen.", ephemeral=True
         )
         return
     if not has_item(interaction.user, ORTUNG_ITEM):
         await interaction.response.send_message(
-            "\u274c Du ben\xf6tigst ein **\U0001f4bb| Ortungsger\xe4t** aus dem Shop!", ephemeral=True
+            "\u274C Du ben\u00F6tigst ein **\U0001F4BB| Ortungsger\u00E4t** aus dem Shop!", ephemeral=True
         )
         return
 
     consume_item(interaction.user, ORTUNG_ITEM)
 
     embed = discord.Embed(
-        title="\U0001f4bb Ortung aktiv",
+        title="\U0001F4BB Ortung aktiv",
         description=(
-            f"{interaction.user.mention} hat **{ziel.mention}** geortet!\\n\\n"
-            f"\U0001f4cd Der Standort von **{ziel.display_name}** ist bekannt."
+            f"{interaction.user.mention} hat **{ziel.mention}** geortet!\n\n"
+            f"\U0001F4CD Der Standort von **{ziel.display_name}** ist bekannt."
         ),
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
@@ -119,31 +119,31 @@ class EntfesselnView(TimedDisableView):
         self.fesseler_id = fesseler_id
         self.target_id   = target_id
 
-    @discord.ui.button(label="\U0001f513 Entfesseln", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="\U0001F513 Entfesseln", style=discord.ButtonStyle.green)
     async def entfesseln(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.fesseler_id:
             await interaction.response.send_message(
-                "\u274c Nur derjenige der gefesselt hat kann auch entfesseln!", ephemeral=True
+                "\u274C Nur derjenige der gefesselt hat kann auch entfesseln!", ephemeral=True
             )
             return
 
         eco       = load_economy()
         user_data = get_user(eco, self.fesseler_id)
-        user_data.setdefault("inventory", []).append("\u26d3\ufe0f| Handfesseln")
+        user_data.setdefault("inventory", []).append("\u26D3\uFE0F| Handfesseln")
         eco[str(self.fesseler_id)] = user_data
         save_economy(eco)
 
         button.disabled = True
-        button.label    = "\U0001f513 Entfesselt"
+        button.label    = "\U0001F513 Entfesselt"
 
         target  = interaction.guild.get_member(self.target_id)
         fesseler = interaction.guild.get_member(self.fesseler_id)
         embed = discord.Embed(
-            title="\U0001f513 Entfesselt",
+            title="\U0001F513 Entfesselt",
             description=(
                 f"{interaction.user.mention} hat "
-                f"**{target.mention if target else 'den Spieler'}** entfesselt!\\n\\n"
-                f"Die Handfesseln wurden zur\xfcck ins Inventar von "
+                f"**{target.mention if target else 'den Spieler'}** entfesselt!\n\n"
+                f"Die Handfesseln wurden zur\u00FCck ins Inventar von "
                 f"{fesseler.mention if fesseler else 'dem Fesseler'} gelegt."
             ),
             color=0x2ECC71,
@@ -159,7 +159,7 @@ class EntfesselnView(TimedDisableView):
 
 @bot.tree.command(
     name="fesseln",
-    description="Spieler fesseln \u2014 ben\xf6tigt \u26d3\ufe0f| Handfesseln im Inventar",
+    description="Spieler fesseln \u2014 ben\u00F6tigt \u26D3\uFE0F| Handfesseln im Inventar",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
@@ -168,27 +168,27 @@ class EntfesselnView(TimedDisableView):
 async def fesseln(interaction: discord.Interaction, ziel: discord.Member):
     if not _in_ic_channel(interaction):
         await interaction.response.send_message(
-            f"\u274c Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
+            f"\u274C Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
         )
         return
     if not _hat_buerger_rolle(interaction.user):
         await interaction.response.send_message(
-            "\u274c Du ben\xf6tigst die B\xfcrger-Rolle um diesen Command zu nutzen.", ephemeral=True
+            "\u274C Du ben\u00F6tigst die B\u00FCrger-Rolle um diesen Command zu nutzen.", ephemeral=True
         )
         return
     if not has_item(interaction.user, FESSELN_ITEM):
         await interaction.response.send_message(
-            "\u274c Du ben\xf6tigst **\u26d3\ufe0f| Handfesseln** aus dem Shop!", ephemeral=True
+            "\u274C Du ben\u00F6tigst **\u26D3\uFE0F| Handfesseln** aus dem Shop!", ephemeral=True
         )
         return
 
     consume_item(interaction.user, FESSELN_ITEM)
 
     embed = discord.Embed(
-        title="\u26d3\ufe0f Gefesselt",
+        title="\u26D3\uFE0F Gefesselt",
         description=(
-            f"{interaction.user.mention} hat **{ziel.mention}** gefesselt!\\n\\n"
-            f"\U0001f512 **{ziel.display_name}** ist jetzt gefesselt und kann sich nicht bewegen."
+            f"{interaction.user.mention} hat **{ziel.mention}** gefesselt!\n\n"
+            f"\U0001F512 **{ziel.display_name}** ist jetzt gefesselt und kann sich nicht bewegen."
         ),
         color=0xE74C3C,
         timestamp=datetime.now(timezone.utc)
