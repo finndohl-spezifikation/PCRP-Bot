@@ -139,14 +139,6 @@ async def cmd_vorschlag_annehmen(
     vorschlag: str,
     grund: str = "Kein Grund angegeben"
 ):
-    admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-    mod_role   = interaction.guild.get_role(MOD_ROLE_ID)
-    if not any(r in interaction.user.roles for r in [admin_role, mod_role] if r):
-        await interaction.response.send_message(
-            "\u274c Du hast keine Berechtigung.", ephemeral=True
-        )
-        return
-
     channel = interaction.guild.get_channel(VORSCHLAG_CHANNEL_ID)
     if not channel:
         await interaction.response.send_message(
@@ -209,14 +201,6 @@ async def cmd_vorschlag_ablehnen(
     vorschlag: str,
     grund: str = "Kein Grund angegeben"
 ):
-    admin_role = interaction.guild.get_role(ADMIN_ROLE_ID)
-    mod_role   = interaction.guild.get_role(MOD_ROLE_ID)
-    if not any(r in interaction.user.roles for r in [admin_role, mod_role] if r):
-        await interaction.response.send_message(
-            "\u274c Du hast keine Berechtigung.", ephemeral=True
-        )
-        return
-
     channel = interaction.guild.get_channel(VORSCHLAG_CHANNEL_ID)
     if not channel:
         await interaction.response.send_message(
