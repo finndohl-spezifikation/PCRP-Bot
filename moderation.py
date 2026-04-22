@@ -1,60 +1,64 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# moderation.py — Auto-Moderation (Spam, Links, Vulgäre Sprache)
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# moderation.py \u2014 Auto-Moderation (Spam, Links, Vulg\u00E4re Sprache)
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from helpers import is_admin, is_mod_or_admin, log_bot_error, apply_timeout_restrictions
 
 
 async def handle_discord_invite(message):
-    member = message.author
-    guild  = message.guild
-    grund  = "Fremden Discord-Link gesendet"
+    member  = message.author
+    guild   = message.guild
+    inhalt  = message.content[:300]
+
+    # 1) Nachricht sofort l\u00f6schen
     try:
         await message.delete()
     except Exception as e:
-        await log_bot_error("Nachricht löschen (Discord Link)", str(e), guild)
+        await log_bot_error("Nachricht l\u00f6schen (Discord Link)", str(e), guild)
+
+    # 2) DM an den T\u00e4ter
     try:
         dm_embed = discord.Embed(
-            title="🚫 Du wurdest permanent gebannt",
+            title="\U0001F6AB Link gel\u00f6scht",
             description=(
-                f"**Server:** {guild.name}\n"
-                f"**Grund:** {grund}\n\n"
-                "Du hast einen fremden Discord-Einladungslink gesendet, was gegen unsere Serverregeln verstößt.\n"
-                "Bei Fragen wende dich an den Support."
+                f"**Server:** {guild.name}\n\n"
+                "Du hast einen Einladungslink zu einem **fremden Discord-Server** gesendet.\n"
+                "Das ist auf diesem Server nicht erlaubt \u2014 deine Nachricht wurde sofort gel\u00f6scht."
             ),
             color=MOD_COLOR,
-            timestamp=datetime.now(timezone.utc)
+            timestamp=datetime.now(timezone.utc),
         )
-        dm_embed.set_footer(text="Paradise City Roleplay • Moderation")
+        dm_embed.set_footer(text="Paradise City Roleplay \u2022 Moderation")
         await member.send(embed=dm_embed)
     except Exception:
         pass
-    ban_status = "⏳ Ban wird ausgeführt..."
+
+    # 3) Aktivit\u00e4tswarnung per DM an den Inhaber
     try:
-        await guild.ban(member, reason=grund, delete_message_days=1)
-        ban_status = "✅ Gebannt"
-    except Exception as e:
-        ban_status = f"❌ Ban fehlgeschlagen: {e}"
-        await log_bot_error("Ban fehlgeschlagen (Discord Link)", str(e), guild)
-    log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
-    if log_ch:
-        embed = discord.Embed(
-            title="🔨 Moderation — Discord Link Ban",
-            description=(
-                f"**Benutzer:** {member.mention} (`{member}`)\n"
-                f"**Status:** {ban_status}\n"
-                f"**Grund:** {grund}\n"
-                f"**Kanal:** {message.channel.mention}\n"
-                f"**Nachricht:** {message.content[:300]}"
-            ),
-            color=MOD_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
-        embed.set_footer(text="Paradise City Roleplay • Moderation")
-        await log_ch.send(embed=embed)
+        owner = await guild.fetch_member(OWNER_ID)
+    except Exception:
+        owner = None
+    if owner:
+        try:
+            warn_embed = discord.Embed(
+                title="\u26A0\uFE0F Aktivit\u00e4tswarnung \u2014 Fremder Discord-Link",
+                description=(
+                    f"\U0001F464 **Benutzer:** {member.mention} (`{member}` | `{member.id}`)\n"
+                    f"\U0001F4E2 **Kanal:** {message.channel.mention}\n"
+                    f"\U0001F4DD **Nachricht:** {inhalt}\n"
+                    f"\U0001F552 **Zeitpunkt:** <t:{int(datetime.now(timezone.utc).timestamp())}:F>\n\n"
+                    "\U0001F5D1\uFE0F Die Nachricht wurde automatisch gel\u00f6scht."
+                ),
+                color=0xFF0000,
+                timestamp=datetime.now(timezone.utc),
+            )
+            warn_embed.set_footer(text="Paradise City Roleplay \u2022 Server-Schutz")
+            await owner.send(embed=warn_embed)
+        except Exception:
+            pass
 
 
 async def handle_link_outside_memes(message):
@@ -64,7 +68,7 @@ async def handle_link_outside_memes(message):
         pass
     try:
         await message.channel.send(
-            f"{message.author.mention} Bitte sende Links ausschließlich im <#{MEMES_CHANNEL_ID}> Kanal",
+            f"{message.author.mention} Bitte sende Links ausschlie\u00DFlich im <#{MEMES_CHANNEL_ID}> Kanal",
             delete_after=6
         )
     except Exception:
@@ -79,8 +83,8 @@ async def handle_vulgar_message(message):
     try:
         embed = discord.Embed(
             description=(
-                "> **Verwarnung:** Du hast einen vulgären Ausdruck verwendet.\n\n"
-                "> Bitte beachte unsere Serverregeln. Bei weiteren Verstößen folgen Konsequenzen."
+                "> **Verwarnung:** Du hast einen vulg\u00E4ren Ausdruck verwendet.\n\n"
+                "> Bitte beachte unsere Serverregeln. Bei weiteren Verst\u00F6\u00DFen folgen Konsequenzen."
             ),
             color=MOD_COLOR
         )
@@ -90,7 +94,7 @@ async def handle_vulgar_message(message):
     log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
         embed = discord.Embed(
-            title="🔨 Moderation — Vulgäre Sprache",
+            title="\U0001F528 Moderation \u2014 Vulg\u00E4re Sprache",
             description=(
                 f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
                 f"**Kanal:** {message.channel.mention}\n"
@@ -99,7 +103,7 @@ async def handle_vulgar_message(message):
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.set_footer(text="Paradise City Roleplay • Moderation")
+        embed.set_footer(text="Paradise City Roleplay \u2022 Moderation")
         await log_ch.send(embed=embed)
 
 
@@ -123,7 +127,7 @@ async def check_spam(message):
         )
         try:
             embed = discord.Embed(
-                description="> Du wurdest aufgrund von wiederholtem Spammen für **10 Minuten** stummgeschaltet.",
+                description="> Du wurdest aufgrund von wiederholtem Spammen f\u00FCr **10 Minuten** stummgeschaltet.",
                 color=MOD_COLOR
             )
             await message.author.send(content=message.author.mention, embed=embed)
@@ -131,10 +135,10 @@ async def check_spam(message):
             pass
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
-            timeout_status = "✅ Timeout erteilt (10min)" if timeout_ok else "❌ Timeout fehlgeschlagen — Berechtigung prüfen!"
+            timeout_status = "\u2705 Timeout erteilt (10min)" if timeout_ok else "\u274C Timeout fehlgeschlagen \u2014 Berechtigung pr\u00FCfen!"
             rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
             embed = discord.Embed(
-                title="🔨 Moderation — Timeout (Spam)",
+                title="\U0001F528 Moderation \u2014 Timeout (Spam)",
                 description=(
                     f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
                     f"**Timeout:** {timeout_status}\n"
@@ -144,7 +148,7 @@ async def check_spam(message):
                 color=MOD_COLOR,
                 timestamp=datetime.now(timezone.utc)
             )
-            embed.set_footer(text="Paradise City Roleplay • Moderation")
+            embed.set_footer(text="Paradise City Roleplay \u2022 Moderation")
             await log_ch.send(embed=embed)
     elif count >= 5 and user_id not in spam_warned:
         spam_tracker[user_id] = []
@@ -157,7 +161,7 @@ async def check_spam(message):
             embed = discord.Embed(
                 description=(
                     "> **Verwarnung:** Bitte vermeide es zu spammen.\n\n"
-                    "> Bei Wiederholung erhältst du einen 10 Minuten Timeout."
+                    "> Bei Wiederholung erh\u00E4ltst du einen 10 Minuten Timeout."
                 ),
                 color=MOD_COLOR
             )
