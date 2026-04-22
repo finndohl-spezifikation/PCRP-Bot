@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from functools import wraps
 from flask import (Flask, render_template_string, redirect, url_for, request,
-                   session, jsonify, abort)
+                   session, jsonify, abort, send_from_directory)
 
 from config import (DATA_DIR, ECONOMY_FILE, SHOP_FILE, WARNS_FILE,
                     TEAM_WARNS_FILE, GUILD_ID, CITIZEN_ROLE_ID,
@@ -70,6 +70,16 @@ def index():
     if session.get("logged_in"):
         return redirect(url_for("dashboard"))
     return redirect(url_for("login"))
+
+
+# \u2500\u2500 Datei-Download (kein Login n\xf6tig) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+import os as _os
+_EXPORT_DIR = _os.path.join(_os.path.dirname(__file__), 'exports', 'dateien')
+
+@app.route("/dl/<path:filename>")
+def download_file(filename):
+    safe = _os.path.basename(filename)
+    return send_from_directory(_EXPORT_DIR, safe, as_attachment=True)
 
 
 @app.route("/login", methods=["GET", "POST"])
