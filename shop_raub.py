@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# shop_raub.py — Shop-Raub System
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# shop_raub.py \u2014 Shop-Raub System
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 #
 # Ablauf:
 #   1. Spieler sendet Foto im Bild-Kanal (SHOP_RAUB_BILD_CHANNEL_ID)
-#   2. Bot löscht das Foto, postet Beweis-Embed im Team-Kanal
-#   3. Team bestätigt Erfolg oder Fehlschlag
-#      Erfolgreich → 10.000 / 20.000 / 35.000 $ (zufällig)
-#      Fehlschlag  → Info-DM, kein Geld
+#   2. Bot l\xf6scht das Foto, postet Beweis-Embed im Team-Kanal
+#   3. Team best\xe4tigt Erfolg oder Fehlschlag
+#      Erfolgreich \u2192 10.000 / 20.000 / 35.000 $ (zuf\xe4llig)
+#      Fehlschlag  \u2192 Info-DM, kein Geld
 #   4. 24h-Cooldown pro Spieler
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 import io
 import random
@@ -21,11 +21,11 @@ from economy_helpers import (
 )
 from dienst import get_on_duty
 
-# ── Konstanten ────────────────────────────────────────────────
+# \u2500\u2500 Konstanten \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 SHOP_RAUB_INFO_CHANNEL_ID = 1490894310118392012   # Info-Embed beim Start
 SHOP_RAUB_BILD_CHANNEL_ID = 1490894311389134858   # Spieler sendet Foto hier
-SHOP_RAUB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News — Beweis + Buttons
+SHOP_RAUB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News \u2014 Beweis + Buttons
 
 BEUTE_MIN = 12_000
 BEUTE_MAX = 22_000
@@ -38,57 +38,57 @@ SHOP_RAUB_IMAGE_URL = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gti
 _pending_shop_raids: set[int] = set()
 
 
-# ── Info-Embed (automatisch beim Start) ───────────────────────
+# \u2500\u2500 Info-Embed (automatisch beim Start) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def build_shop_raub_info_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🏪 Shop-Raub",
+        title="\U0001f3ea Shop-Raub",
         description=(
-            "Raube einen der Shops in Los Angeles aus und kassiere deine Beute!\n\n"
-            "**📍 Ort:** Shops in **Los Angeles**\n"
-            "**👥 Spieler:** **2–3 Personen** empfohlen\n"
-            "**🚔 Beamte:** Mindestens **2 Officers** im Dienst\n"
-            "**⏱️ Dauer:** **15 Minuten**\n"
-            "**💰 Beute:** zwischen **12.000 $** und **22.000 $** *(zufällig)*"
+            "Raube einen der Shops in Los Angeles aus und kassiere deine Beute!\\n\\n"
+            "**\U0001f4cd Ort:** Shops in **Los Angeles**\\n"
+            "**\U0001f465 Spieler:** **2\u20133 Personen** empfohlen\\n"
+            "**\U0001f694 Beamte:** Mindestens **2 Officers** im Dienst\\n"
+            "**\u23f1\ufe0f Dauer:** **15 Minuten**\\n"
+            "**\U0001f4b0 Beute:** zwischen **12.000 $** und **22.000 $** *(zuf\xe4llig)*"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     embed.add_field(
-        name="⚡ Ablauf",
+        name="\u26a1 Ablauf",
         value=(
-            "1. Raub **In-Game** mit 2–3 Spielern starten\n"
-            f"2. Foto als Beweis in <#{SHOP_RAUB_BILD_CHANNEL_ID}> senden\n"
-            "3. Team bestätigt **Erfolg** oder **Fehlschlag**"
+            "1. Raub **In-Game** mit 2\u20133 Spielern starten\\n"
+            f"2. Foto als Beweis in <#{SHOP_RAUB_BILD_CHANNEL_ID}> senden\\n"
+            "3. Team best\xe4tigt **Erfolg** oder **Fehlschlag**"
         ),
         inline=False
     )
     embed.set_image(url=SHOP_RAUB_IMAGE_URL)
-    embed.set_footer(text="Paradise City Roleplay • Shop-Raub System")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Shop-Raub System")
     return embed
 
 
 
-# ── Beweis-Embed (Team News) ──────────────────────────────────
+# \u2500\u2500 Beweis-Embed (Team News) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
     embed = discord.Embed(
-        title="🏪 Shop-Raub — Beweis eingereicht",
+        title="\U0001f3ea Shop-Raub \u2014 Beweis eingereicht",
         description=(
-            f"{user.mention} hat einen **Shop-Raub** durchgeführt.\n"
-            "⏳ Bitte Ergebnis bestätigen."
+            f"{user.mention} hat einen **Shop-Raub** durchgef\xfchrt.\\n"
+            "\u23f3 Bitte Ergebnis best\xe4tigen."
         ),
         color=0xFF8C00,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.add_field(name="👤 Spieler",  value=f"{user.mention}\n`{user.display_name}`", inline=True)
-    embed.add_field(name="⏱️ Dauer",    value="**15 Minuten**",                          inline=True)
+    embed.add_field(name="\U0001f464 Spieler",  value=f"{user.mention}\\n`{user.display_name}`", inline=True)
+    embed.add_field(name="\u23f1\ufe0f Dauer",    value="**15 Minuten**",                          inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay • Shop-Raub System | Nur Team")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Shop-Raub System | Nur Team")
     return embed
 
 
-# ── Ergebnis-Embed ────────────────────────────────────────────
+# \u2500\u2500 Ergebnis-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_result_embed(
     raeuber: discord.Member,
@@ -99,44 +99,44 @@ def _build_result_embed(
 ) -> discord.Embed:
     if success:
         color = 0x00CC44
-        title = "🏪 Shop-Raub — Erfolgreich ✅"
-        desc  = f"{raeuber.mention} hat **{beute:,}$** erbeutet → **Barbestand**."
+        title = "\U0001f3ea Shop-Raub \u2014 Erfolgreich \u2705"
+        desc  = f"{raeuber.mention} hat **{beute:,}$** erbeutet \u2192 **Barbestand**."
     else:
         color = 0xE74C3C
-        title = "🏪 Shop-Raub — Fehlgeschlagen ❌"
+        title = "\U0001f3ea Shop-Raub \u2014 Fehlgeschlagen \u274c"
         desc  = f"{raeuber.mention} ist **gescheitert**. Festnahme, Verletzung oder Abbruch."
 
     embed = discord.Embed(title=title, description=desc, color=color,
                           timestamp=datetime.now(timezone.utc))
-    embed.add_field(name="👤 Spieler",       value=raeuber.mention,    inline=True)
-    embed.add_field(name="✅ Bestätigt von", value=team_member.mention, inline=True)
+    embed.add_field(name="\U0001f464 Spieler",       value=raeuber.mention,    inline=True)
+    embed.add_field(name="\u2705 Best\xe4tigt von", value=team_member.mention, inline=True)
     if success:
-        embed.add_field(name="💰 Beute", value=f"**{beute:,}$**", inline=True)
+        embed.add_field(name="\U0001f4b0 Beute", value=f"**{beute:,}$**", inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay • Shop-Raub System")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Shop-Raub System")
     return embed
 
 
-# ── Team-Button-View ──────────────────────────────────────────
+# \u2500\u2500 Team-Button-View \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-class ShopRaubView(discord.ui.View):
+class ShopRaubView(TimedDisableView):
     def __init__(self, raeuber_id: int, bild_url: str):
-        super().__init__(timeout=None)
+        super().__init__(timeout=INTERACTION_VIEW_TIMEOUT)
         self.raeuber_id = raeuber_id
         self.bild_url   = bild_url
 
     def _check_team(self, interaction: discord.Interaction) -> bool:
         return bool({r.id for r in interaction.user.roles} & SHOP_RAUB_CONFIRM_ROLES)
 
-    @discord.ui.button(label="✅  Erfolgreich", style=discord.ButtonStyle.success, custom_id="shop_raub:erfolg")
+    @discord.ui.button(label="\u2705  Erfolgreich", style=discord.ButtonStyle.success, custom_id="shop_raub:erfolg")
     async def erfolg_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("❌ Nur Team-Mitglieder können bestätigen.", ephemeral=True)
+            await interaction.response.send_message("\u274c Nur Team-Mitglieder k\xf6nnen best\xe4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
         if not raeuber:
-            await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
+            await interaction.response.send_message("\u274c Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
         beute = random.randint(BEUTE_MIN, BEUTE_MAX)
@@ -149,9 +149,9 @@ class ShopRaubView(discord.ui.View):
         await log_money_action(
             interaction.guild,
             "Shop-Raub Beute",
-            f"{raeuber.mention} hat einen Shop ausgeraubt.\n"
-            f"**Beute:** {beute:,}$ → Barbestand\n"
-            f"**Bestätigt von:** {interaction.user.mention}"
+            f"{raeuber.mention} hat einen Shop ausgeraubt.\\n"
+            f"**Beute:** {beute:,}$ \u2192 Barbestand\\n"
+            f"**Best\xe4tigt von:** {interaction.user.mention}"
         )
 
         for child in self.children:
@@ -161,40 +161,40 @@ class ShopRaubView(discord.ui.View):
             view=self
         )
         await interaction.response.send_message(
-            f"✅ Raub von {raeuber.mention} als **Erfolgreich** markiert.", ephemeral=True
+            f"\u2705 Raub von {raeuber.mention} als **Erfolgreich** markiert.", ephemeral=True
         )
 
         try:
             dm = discord.Embed(
-                title="🏪 Shop-Raub — Erfolgreich! 💰",
+                title="\U0001f3ea Shop-Raub \u2014 Erfolgreich! \U0001f4b0",
                 description=(
-                    f"Dein Shop-Raub war **erfolgreich**!\n\n"
-                    f"**{beute:,}$** wurden in deinen **Barbestand** übertragen."
+                    f"Dein Shop-Raub war **erfolgreich**!\\n\\n"
+                    f"**{beute:,}$** wurden in deinen **Barbestand** \xfcbertragen."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="💵 Beute",          value=f"**{beute:,}$**",  inline=True)
-            dm.add_field(name="📍 Gutgeschrieben", value="Barbestand (Cash)", inline=True)
-            dm.set_footer(text="Paradise City Roleplay • Shop-Raub System")
+            dm.add_field(name="\U0001f4b5 Beute",          value=f"**{beute:,}$**",  inline=True)
+            dm.add_field(name="\U0001f4cd Gutgeschrieben", value="Barbestand (Cash)", inline=True)
+            dm.set_footer(text="Paradise City Roleplay \u2022 Shop-Raub System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
             pass
 
         _pending_shop_raids.discard(self.raeuber_id)
 
-    @discord.ui.button(label="❌  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="shop_raub:fehlschlag")
+    @discord.ui.button(label="\u274c  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="shop_raub:fehlschlag")
     async def fehlschlag_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("❌ Nur Team-Mitglieder können bestätigen.", ephemeral=True)
+            await interaction.response.send_message("\u274c Nur Team-Mitglieder k\xf6nnen best\xe4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
         if not raeuber:
-            await interaction.response.send_message("❌ Spieler nicht mehr auf dem Server.", ephemeral=True)
+            await interaction.response.send_message("\u274c Spieler nicht mehr auf dem Server.", ephemeral=True)
             return
 
-        # Cooldown zurücksetzen bei Fehlschlag
+        # Cooldown zur\xfccksetzen bei Fehlschlag
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
         user_data["shop_raub_last_raid"] = None
@@ -207,23 +207,23 @@ class ShopRaubView(discord.ui.View):
             view=self
         )
         await interaction.response.send_message(
-            f"✅ Raub von {raeuber.mention} als **Fehlschlag** markiert.", ephemeral=True
+            f"\u2705 Raub von {raeuber.mention} als **Fehlschlag** markiert.", ephemeral=True
         )
 
         try:
             dm = discord.Embed(
-                title="🏪 Shop-Raub — Fehlgeschlagen ❌",
+                title="\U0001f3ea Shop-Raub \u2014 Fehlgeschlagen \u274c",
                 description=(
-                    "Dein Shop-Raub ist **fehlgeschlagen**.\n\n"
-                    "• 🚔 Festnahme durch LAPD\n"
-                    "• 🏥 Verletzung / Tod\n"
-                    "• 🏳️ Abbruch\n\n"
-                    "Du erhältst **keine Beute**."
+                    "Dein Shop-Raub ist **fehlgeschlagen**.\\n\\n"
+                    "\u2022 \U0001f694 Festnahme durch LAPD\\n"
+                    "\u2022 \U0001f3e5 Verletzung / Tod\\n"
+                    "\u2022 \U0001f3f3\ufe0f Abbruch\\n\\n"
+                    "Du erh\xe4ltst **keine Beute**."
                 ),
                 color=0xE74C3C,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.set_footer(text="Paradise City Roleplay • Shop-Raub System")
+            dm.set_footer(text="Paradise City Roleplay \u2022 Shop-Raub System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
             pass
@@ -231,7 +231,7 @@ class ShopRaubView(discord.ui.View):
         _pending_shop_raids.discard(self.raeuber_id)
 
 
-# ── on_message — Foto-Erkennung ───────────────────────────────
+# \u2500\u2500 on_message \u2014 Foto-Erkennung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.listen("on_message")
 async def shop_raub_bild_listener(message: discord.Message):
@@ -251,12 +251,12 @@ async def shop_raub_bild_listener(message: discord.Message):
 
     user = message.author
 
-    # ── Officer-Pflicht prüfen ─────────────────────────────────
+    # \u2500\u2500 Officer-Pflicht pr\xfcfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     on_duty_lapd = get_on_duty("lapd")
     if len(on_duty_lapd) < 2:
         try:
             await message.reply(
-                "❌ Für einen Shop-Raub müssen mindestens **2 Officers** im Dienst sein.\n"
+                "\u274c F\xfcr einen Shop-Raub m\xfcssen mindestens **2 Officers** im Dienst sein.\\n"
                 f"Aktuell im Dienst: **{len(on_duty_lapd)}**",
                 delete_after=15
             )
@@ -268,7 +268,7 @@ async def shop_raub_bild_listener(message: discord.Message):
             pass
         return
 
-    # ── 24h-Cooldown prüfen ────────────────────────────────────
+    # \u2500\u2500 24h-Cooldown pr\xfcfen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     eco       = load_economy()
     user_data = get_user(eco, user.id)
     last_raid = user_data.get("shop_raub_last_raid")
@@ -280,7 +280,7 @@ async def shop_raub_bild_listener(message: discord.Message):
             minuten     = int(((86400 - vergangen) % 3600) / 60)
             try:
                 await message.reply(
-                    f"⏳ Du kannst erst in **{verbleibend}h {minuten}min** wieder einen Shop ausrauben.",
+                    f"\u23f3 Du kannst erst in **{verbleibend}h {minuten}min** wieder einen Shop ausrauben.",
                     delete_after=15
                 )
             except discord.Forbidden:
@@ -294,14 +294,14 @@ async def shop_raub_bild_listener(message: discord.Message):
     if user.id in _pending_shop_raids:
         try:
             await message.reply(
-                "⏳ Du hast bereits einen laufenden Raub eingereicht. Warte auf das Ergebnis.",
+                "\u23f3 Du hast bereits einen laufenden Raub eingereicht. Warte auf das Ergebnis.",
                 delete_after=10
             )
         except discord.Forbidden:
             pass
         return
 
-    # ── Bild-Bytes sofort sichern ──────────────────────────────
+    # \u2500\u2500 Bild-Bytes sofort sichern \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     try:
         img_bytes    = await attachment.read()
         img_filename = attachment.filename or "beweis.jpg"
@@ -310,7 +310,7 @@ async def shop_raub_bild_listener(message: discord.Message):
 
     _pending_shop_raids.add(user.id)
 
-    # ── 24h-Cooldown setzen ────────────────────────────────────
+    # \u2500\u2500 24h-Cooldown setzen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     user_data["shop_raub_last_raid"] = datetime.now(timezone.utc).isoformat()
     save_economy(eco)
 
@@ -319,7 +319,7 @@ async def shop_raub_bild_listener(message: discord.Message):
     except discord.Forbidden:
         pass
 
-    # ── Beweis ins Team-Channel (Bild + Embed + Buttons) ───────
+    # \u2500\u2500 Beweis ins Team-Channel (Bild + Embed + Buttons) \u2500\u2500\u2500\u2500\u2500\u2500\u2500
     team_channel = message.guild.get_channel(SHOP_RAUB_TEAM_CHANNEL_ID)
     if not team_channel:
         _pending_shop_raids.discard(user.id)
@@ -334,32 +334,32 @@ async def shop_raub_bild_listener(message: discord.Message):
         bild_url      = sent_msg.attachments[0].url
         view.bild_url = bild_url
 
-    # ── Bestätigungs-DM an Spieler ─────────────────────────────
+    # \u2500\u2500 Best\xe4tigungs-DM an Spieler \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     try:
         dm = discord.Embed(
-            title="🏪 Shop-Raub — Beweis eingereicht ✅",
+            title="\U0001f3ea Shop-Raub \u2014 Beweis eingereicht \u2705",
             description=(
-                "Dein Beweis wurde erfolgreich eingereicht!\n\n"
+                "Dein Beweis wurde erfolgreich eingereicht!\\n\\n"
                 "Du hast ab jetzt **15 Minuten** Zeit."
             ),
             color=0xFF8C00,
             timestamp=datetime.now(timezone.utc)
         )
-        dm.set_footer(text="Paradise City Roleplay • Shop-Raub System")
+        dm.set_footer(text="Paradise City Roleplay \u2022 Shop-Raub System")
         await user.send(embed=dm)
     except discord.Forbidden:
         pass
 
-    # ── LAPD benachrichtigen ───────────────────────────────────
+    # \u2500\u2500 LAPD benachrichtigen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     for uid_str in on_duty_lapd:
         try:
             member = message.guild.get_member(int(uid_str))
             if not member:
                 continue
             cop_embed = discord.Embed(
-                title="🚔 LAPD — Shop-Raub gemeldet!",
+                title="\U0001f694 LAPD \u2014 Shop-Raub gemeldet!",
                 description=(
-                    f"**Verdächtiger:** {user.mention} (`{user.display_name}`)"
+                    f"**Verd\xe4chtiger:** {user.mention} (`{user.display_name}`)"
                 ),
                 color=0x1E90FF,
                 timestamp=datetime.now(timezone.utc)
@@ -367,13 +367,13 @@ async def shop_raub_bild_listener(message: discord.Message):
             cop_embed.set_thumbnail(url=user.display_avatar.url)
             if bild_url:
                 cop_embed.set_image(url=bild_url)
-            cop_embed.set_footer(text="Paradise City Roleplay • LAPD")
+            cop_embed.set_footer(text="Paradise City Roleplay \u2022 LAPD")
             await member.send(embed=cop_embed)
         except discord.Forbidden:
             pass
 
 
-# ── Auto-Setup beim Start ─────────────────────────────────────
+# \u2500\u2500 Auto-Setup beim Start \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _shop_raub_info_auto_setup():
     for guild in bot.guilds:
@@ -398,16 +398,15 @@ async def _shop_raub_info_auto_setup():
         try:
             if existing_msg:
                 await existing_msg.edit(embed=embed)
-                print(f"[shop_raub] ✅ Info-Embed aktualisiert in #{channel.name}")
+                print(f"[shop_raub] \u2705 Info-Embed aktualisiert in #{channel.name}")
             else:
                 await channel.send(embed=embed)
-                print(f"[shop_raub] ✅ Info-Embed gepostet in #{channel.name}")
+                print(f"[shop_raub] \u2705 Info-Embed gepostet in #{channel.name}")
         except Exception as e:
-            print(f"[shop_raub] ❌ Fehler beim Senden: {e}")
+            print(f"[shop_raub] \u274c Fehler beim Senden: {e}")
 
 
 @bot.listen("on_ready")
 async def shop_raub_on_ready():
     await _shop_raub_info_auto_setup()
-
 
