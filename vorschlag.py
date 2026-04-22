@@ -129,7 +129,6 @@ async def vorschlag_autocomplete(
     description="Nimm einen Vorschlag an. (Admin/Mod)",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     vorschlag="W\xe4hle den Vorschlag aus",
     grund="Begr\xfcndung (optional)"
@@ -200,7 +199,6 @@ async def cmd_vorschlag_annehmen(
     description="Lehne einen Vorschlag ab. (Admin/Mod)",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(manage_messages=True)
 @app_commands.describe(
     vorschlag="W\xe4hle den Vorschlag aus",
     grund="Begr\xfcndung (optional)"
