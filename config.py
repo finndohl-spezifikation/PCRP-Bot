@@ -64,6 +64,7 @@ class TimedDisableView(discord.ui.View):
             except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                 pass
 
+OWNER_ID          = 1411796740243456092   # Server-Inhaber \u2014 immer alle Rechte
 ADMIN_ROLE_ID     = 1490855650081636352
 MOD_ROLE_ID       = 1496147874256392202
 INHABER_ROLE_ID   = 1490855647259136053
