@@ -370,9 +370,8 @@ class LohnPanelView(discord.ui.View):
     description="[Admin] Postet das Lohn-Panel in den Lohn-Kanal",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 async def setup_lohn_panel(interaction: discord.Interaction):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
     kanal = interaction.guild.get_channel(LOHN_CHANNEL_ID)
@@ -455,9 +454,8 @@ class KontoPanelView(discord.ui.View):
     description="[Admin] Postet das Online-Banking-Panel in den Konto-Kanal",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 async def setup_konto_panel(interaction: discord.Interaction):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
     kanal = interaction.guild.get_channel(BANK_CHANNEL_ID)
@@ -483,10 +481,9 @@ async def setup_konto_panel(interaction: discord.Interaction):
 # \u2500\u2500 /money-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="money-add", description="[Admin] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -522,10 +519,9 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 # \u2500\u2500 /remove-money \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="remove-money", description="[Admin] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -592,10 +588,9 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
 # \u2500\u2500 /dispo \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(name="dispo", description="[Admin] Setzt das Dispo-Limit eines Spielers", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", betrag="Maximales Minus-Limit in $ (0 = kein Dispo)")
 async def dispo_cmd(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -654,11 +649,10 @@ _RAUB_CHOICES = [
 ]
 
 @bot.tree.command(name="raub-cooldown", description="[Admin] Entfernt den 24h Raub-Cooldown eines Spielers", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler dessen Raub-Cooldown zur\u00FCckgesetzt werden soll", raub="Welcher Raub-Cooldown?")
 @app_commands.choices(raub=_RAUB_CHOICES)
 async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.Member, raub: app_commands.Choice[str]):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
+    if interaction.user.id != OWNER_ID and not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
@@ -715,7 +709,6 @@ async def _nur_inhaber(interaction: discord.Interaction) -> bool:
     description="[Inhaber] Setzt Bargeld & Bank auf 0 \u2014 einzeln oder alle Spieler",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Einzelner Spieler (leer = ALLE zur\u00FCcksetzen)")
 async def money_reset(interaction: discord.Interaction, nutzer: discord.Member = None):
     if not await _nur_inhaber(interaction):
@@ -768,7 +761,6 @@ async def money_reset(interaction: discord.Interaction, nutzer: discord.Member =
     description="[Inhaber] Leert Inventar & Lager \u2014 einzeln oder alle Spieler",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Einzelner Spieler (leer = ALLE zur\u00FCcksetzen)")
 async def inventar_reset(interaction: discord.Interaction, nutzer: discord.Member = None):
     if not await _nur_inhaber(interaction):
@@ -826,7 +818,6 @@ async def inventar_reset(interaction: discord.Interaction, nutzer: discord.Membe
     description="[Inhaber] Setzt ALLE Kontost\u00E4nde + Inventare aller Spieler auf 0",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 async def hard_reset(interaction: discord.Interaction):
     if not await _nur_inhaber(interaction):
         await interaction.response.send_message(
