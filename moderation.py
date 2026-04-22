@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-# moderation.py \u2014 Auto-Moderation (Spam, Links, Vulg\u00E4re Sprache)
+# moderation.py \u2014 Auto-Moderation (Spam, Links, Vulg\xe4re Sprache)
 # Paradise City Roleplay Discord Bot
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
 from helpers import is_admin, is_mod_or_admin, log_bot_error, apply_timeout_restrictions
+import dashboard_hooks as _dh
 
 
 async def handle_discord_invite(message):
@@ -19,6 +20,15 @@ async def handle_discord_invite(message):
     except Exception as e:
         await log_bot_error("Nachricht l\u00f6schen (Discord Link)", str(e), guild)
 
+    _dh.log_warning(
+        '\U0001F517 Fremder Discord-Link',
+        f'{member} (`{member.id}`) hat in #{message.channel.name} einen fremden Server-Link gesendet: {inhalt}',
+    )
+    _dh.log_activity(
+        'LINK',
+        f'{member} sendete fremden Link in #{message.channel.name}: {inhalt[:100]}',
+        member.id,
+    )
     # 2) DM an den T\u00e4ter
     try:
         dm_embed = discord.Embed(
@@ -68,7 +78,7 @@ async def handle_link_outside_memes(message):
         pass
     try:
         await message.channel.send(
-            f"{message.author.mention} Bitte sende Links ausschlie\u00DFlich im <#{MEMES_CHANNEL_ID}> Kanal",
+            f"{message.author.mention} Bitte sende Links ausschlie\xdflich im <#{MEMES_CHANNEL_ID}> Kanal",
             delete_after=6
         )
     except Exception:
@@ -83,8 +93,8 @@ async def handle_vulgar_message(message):
     try:
         embed = discord.Embed(
             description=(
-                "> **Verwarnung:** Du hast einen vulg\u00E4ren Ausdruck verwendet.\n\n"
-                "> Bitte beachte unsere Serverregeln. Bei weiteren Verst\u00F6\u00DFen folgen Konsequenzen."
+                "> **Verwarnung:** Du hast einen vulg\xe4ren Ausdruck verwendet.\n\n"
+                "> Bitte beachte unsere Serverregeln. Bei weiteren Verst\xf6\xdfen folgen Konsequenzen."
             ),
             color=MOD_COLOR
         )
@@ -94,7 +104,7 @@ async def handle_vulgar_message(message):
     log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
         embed = discord.Embed(
-            title="\U0001F528 Moderation \u2014 Vulg\u00E4re Sprache",
+            title="\U0001f528 Moderation \u2014 Vulg\xe4re Sprache",
             description=(
                 f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
                 f"**Kanal:** {message.channel.mention}\n"
@@ -127,7 +137,7 @@ async def check_spam(message):
         )
         try:
             embed = discord.Embed(
-                description="> Du wurdest aufgrund von wiederholtem Spammen f\u00FCr **10 Minuten** stummgeschaltet.",
+                description="> Du wurdest aufgrund von wiederholtem Spammen f\xfcr **10 Minuten** stummgeschaltet.",
                 color=MOD_COLOR
             )
             await message.author.send(content=message.author.mention, embed=embed)
@@ -135,10 +145,10 @@ async def check_spam(message):
             pass
         log_ch = message.guild.get_channel(MOD_LOG_CHANNEL_ID)
         if log_ch:
-            timeout_status = "\u2705 Timeout erteilt (10min)" if timeout_ok else "\u274C Timeout fehlgeschlagen \u2014 Berechtigung pr\u00FCfen!"
+            timeout_status = "\u2705 Timeout erteilt (10min)" if timeout_ok else "\u274c Timeout fehlgeschlagen \u2014 Berechtigung pr\xfcfen!"
             rollen_status  = f"Entfernt: {', '.join(r.name for r in roles_removed)}" if roles_removed else "Keine Rollen entfernt"
             embed = discord.Embed(
-                title="\U0001F528 Moderation \u2014 Timeout (Spam)",
+                title="\U0001f528 Moderation \u2014 Timeout (Spam)",
                 description=(
                     f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
                     f"**Timeout:** {timeout_status}\n"
@@ -161,7 +171,7 @@ async def check_spam(message):
             embed = discord.Embed(
                 description=(
                     "> **Verwarnung:** Bitte vermeide es zu spammen.\n\n"
-                    "> Bei Wiederholung erh\u00E4ltst du einen 10 Minuten Timeout."
+                    "> Bei Wiederholung erh\xe4ltst du einen 10 Minuten Timeout."
                 ),
                 color=MOD_COLOR
             )
