@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# server_schutz.py — Schutz vor unbefugten Server-Änderungen
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# server_schutz.py \u2014 Schutz vor unbefugten Server-\u00C4nderungen
 # Paradise City Roleplay Discord Bot
 #
-# Überwacht: Kanal-/Kategorie-Erstellung, -Bearbeitung, -Löschung
-#            Rollen-Erstellung, -Bearbeitung, -Löschung
+# \u00DCberwacht: Kanal-/Kategorie-Erstellung, -Bearbeitung, -L\u00F6schung
+#            Rollen-Erstellung, -Bearbeitung, -L\u00F6schung
 #
 # Erlaubt NUR: Server-Inhaber & Bot-Owner
-# Bei unbefugter Aktion: sofort rückgängig + Mod-Log
-# ══════════════════════════════════════════════════════════════
+# Bei unbefugter Aktion: sofort r\u00FCckg\u00E4ngig + Mod-Log
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 import asyncio
 from config import *
@@ -29,7 +29,9 @@ async def _get_owner_id() -> int | None:
 
 
 def _ist_berechtigt(user_id: int, guild: discord.Guild) -> bool:
-    """Gibt True zurück wenn der User Server-Inhaber oder Bot-Owner ist."""
+    """Gibt True zur\u00FCck wenn der User Server-Inhaber, Bot-Owner oder OWNER_ID ist."""
+    if user_id == OWNER_ID:
+        return True
     if user_id == guild.owner_id:
         return True
     if _bot_owner_id and user_id == _bot_owner_id:
@@ -38,7 +40,7 @@ def _ist_berechtigt(user_id: int, guild: discord.Guild) -> bool:
 
 
 async def _audit_user(guild: discord.Guild, action: discord.AuditLogAction) -> discord.Member | None:
-    """Liest den letzten Audit-Log-Eintrag für die gegebene Aktion."""
+    """Liest den letzten Audit-Log-Eintrag f\u00FCr die gegebene Aktion."""
     try:
         async for entry in guild.audit_logs(limit=1, action=action):
             return entry.user
@@ -59,27 +61,27 @@ async def _log_verstoss(
     if not log_ch:
         return
 
-    status = "✅ Automatisch rückgängig gemacht" if rueckgaengig else "⚠️ Konnte nicht rückgängig gemacht werden"
+    status = "\u2705 Automatisch r\u00FCckg\u00E4ngig gemacht" if rueckgaengig else "\u26A0\uFE0F Konnte nicht r\u00FCckg\u00E4ngig gemacht werden"
 
     embed = discord.Embed(
-        title="🚨 Unbefugte Server-Änderung erkannt",
+        title="\U0001F6A8 Unbefugte Server-\u00C4nderung erkannt",
         description=(
             f"**Aktion:** {aktion}\n"
             f"**Ziel:** {ziel}\n"
-            f"**Ausgeführt von:** {user.mention if user else 'Unbekannt'}\n\n"
+            f"**Ausgef\u00FChrt von:** {user.mention if user else 'Unbekannt'}\n\n"
             f"**Status:** {status}\n\n"
-            "Nur der Server-Inhaber und der Bot-Owner dürfen diese Aktion ausführen."
+            "Nur der Server-Inhaber und der Bot-Owner d\u00FCrfen diese Aktion ausf\u00FChren."
         ),
         color=0xFF0000,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Paradise City Roleplay • Server-Schutz")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Server-Schutz")
     await log_ch.send(embed=embed)
 
 
-# ══════════════════════════════════════════════════════════════
-# Kanal / Kategorie — ERSTELLT
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Kanal / Kategorie \u2014 ERSTELLT
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 @bot.listen("on_guild_channel_create")
 async def schutz_kanal_erstellt(channel: discord.abc.GuildChannel):
@@ -105,9 +107,9 @@ async def schutz_kanal_erstellt(channel: discord.abc.GuildChannel):
     await _log_verstoss(guild, user, f"{typ} erstellt", f"**#{name}**", ok)
 
 
-# ══════════════════════════════════════════════════════════════
-# Kanal / Kategorie — GELÖSCHT
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Kanal / Kategorie \u2014 GEL\u00D6SCHT
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 @bot.listen("on_guild_channel_delete")
 async def schutz_kanal_geloescht(channel: discord.abc.GuildChannel):
@@ -124,15 +126,15 @@ async def schutz_kanal_geloescht(channel: discord.abc.GuildChannel):
     typ = "Kategorie" if isinstance(channel, discord.CategoryChannel) else "Kanal"
     await _log_verstoss(
         guild, user,
-        f"{typ} gelöscht",
+        f"{typ} gel\u00F6scht",
         f"**#{channel.name}**",
-        False,  # Löschen kann nicht rückgängig gemacht werden
+        False,  # L\u00F6schen kann nicht r\u00FCckg\u00E4ngig gemacht werden
     )
 
 
-# ══════════════════════════════════════════════════════════════
-# Kanal / Kategorie — BEARBEITET
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Kanal / Kategorie \u2014 BEARBEITET
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 @bot.listen("on_guild_channel_update")
 async def schutz_kanal_bearbeitet(before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
@@ -155,9 +157,9 @@ async def schutz_kanal_bearbeitet(before: discord.abc.GuildChannel, after: disco
     )
 
 
-# ══════════════════════════════════════════════════════════════
-# Rolle — ERSTELLT
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Rolle \u2014 ERSTELLT
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 @bot.listen("on_guild_role_create")
 async def schutz_rolle_erstellt(role: discord.Role):
@@ -182,9 +184,9 @@ async def schutz_rolle_erstellt(role: discord.Role):
     await _log_verstoss(guild, user, "Rolle erstellt", f"**@{name}**", ok)
 
 
-# ══════════════════════════════════════════════════════════════
-# Rolle — GELÖSCHT
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Rolle \u2014 GEL\u00D6SCHT
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 @bot.listen("on_guild_role_delete")
 async def schutz_rolle_geloescht(role: discord.Role):
@@ -198,12 +200,12 @@ async def schutz_rolle_geloescht(role: discord.Role):
     if user and _ist_berechtigt(user.id, guild):
         return
 
-    await _log_verstoss(guild, user, "Rolle gelöscht", f"**@{role.name}**", False)
+    await _log_verstoss(guild, user, "Rolle gel\u00F6scht", f"**@{role.name}**", False)
 
 
-# ══════════════════════════════════════════════════════════════
-# Rolle — BEARBEITET
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Rolle \u2014 BEARBEITET
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 @bot.listen("on_guild_role_update")
 async def schutz_rolle_bearbeitet(before: discord.Role, after: discord.Role):
