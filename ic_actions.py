@@ -5,17 +5,33 @@
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
-from economy_helpers import has_item, consume_item, load_economy, save_economy, get_user
+from economy_helpers import has_item, consume_item, load_economy, save_economy, get_user, has_sim_karte
 
 IC_ACTIONS_CHANNEL_ID = 1490882589014364250
 
 ERSTE_HILFE_ITEM = "Erste Hilfe Koffer"
-ORTUNG_ITEM      = "Ortungsger\u00E4t"
+ORTUNG_ITEM      = "Ortungsger\u00e4t"
 FESSELN_ITEM     = "Handfesseln"
+
+# Staatliche Fraktionen die das Ortungsger\u00e4t nutzen d\u00fcrfen
+STAATLICHE_FRAKTION_IDS = {
+    LAPD_ROLE_ID,
+    LSPD_ROLE_ID,
+    LAMD_ROLE_ID,
+    LACS_ROLE_ID,
+}
 
 
 def _hat_buerger_rolle(member) -> bool:
     return any(r.id == CITIZEN_ROLE_ID for r in member.roles)
+
+
+def _hat_staatliche_fraktion(member) -> bool:
+    return any(r.id in STAATLICHE_FRAKTION_IDS for r in member.roles)
+
+
+def _hat_handy_an(member) -> bool:
+    return any(r.id == HANDY_AN_ROLE_ID for r in member.roles)
 
 
 def _in_ic_channel(interaction: discord.Interaction) -> bool:
@@ -72,36 +88,61 @@ async def erste_hilfe(interaction: discord.Interaction, ziel: discord.Member):
 
 @bot.tree.command(
     name="ortung",
-    description="Spieler orten \u2014 ben\u00F6tigt \U0001F4BB| Ortungsger\u00E4t im Inventar",
+    description="Spieler orten \u2014 ben\u00f6tigt \U0001f4bb| Ortungsger\u00e4t + staatliche Fraktion",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.describe(
-    ziel="Spieler den du ortest"
+    ziel="Spieler den du orten m\u00f6chtest"
 )
 async def ortung(interaction: discord.Interaction, ziel: discord.Member):
     if not _in_ic_channel(interaction):
         await interaction.response.send_message(
-            f"\u274C Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
-        )
-        return
-    if not _hat_buerger_rolle(interaction.user):
-        await interaction.response.send_message(
-            "\u274C Du ben\u00F6tigst die B\u00FCrger-Rolle um diesen Command zu nutzen.", ephemeral=True
-        )
-        return
-    if not has_item(interaction.user, ORTUNG_ITEM):
-        await interaction.response.send_message(
-            "\u274C Du ben\u00F6tigst ein **\U0001F4BB| Ortungsger\u00E4t** aus dem Shop!", ephemeral=True
+            f"\u274c Dieser Command ist nur in <#{IC_ACTIONS_CHANNEL_ID}> nutzbar.", ephemeral=True
         )
         return
 
+    # Nur staatliche Fraktionen d\u00fcrfen orten
+    if not _hat_staatliche_fraktion(interaction.user):
+        await interaction.response.send_message(
+            "\u274c Die Ortung ist nur staatlichen Fraktionen (LAPD / LSPD / LAMD / LACS) erlaubt.",
+            ephemeral=True
+        )
+        return
+
+    # Ortungsger\u00e4t erforderlich
+    if not has_item(interaction.user, ORTUNG_ITEM):
+        await interaction.response.send_message(
+            "\u274c Du ben\u00f6tigst ein **\U0001f4bb| Ortungsger\u00e4t** aus dem Shop!",
+            ephemeral=True
+        )
+        return
+
+    # Ziel muss eine SIM-Karte im Inventar haben
+    if not has_sim_karte(ziel):
+        await interaction.response.send_message(
+            f"\u274c **{ziel.display_name}** besitzt keine SIM-Karte \u2014 Ortung nicht m\u00f6glich.\n"
+            "\u2139\ufe0f Eine verbrauchte oder gewechselte SIM-Karte ist nicht mehr auffindbar.",
+            ephemeral=True
+        )
+        return
+
+    # Ziel muss Handy eingeschaltet haben
+    if not _hat_handy_an(ziel):
+        await interaction.response.send_message(
+            f"\u274c **{ziel.display_name}** hat sein Handy ausgeschaltet \u2014 Ortung nicht m\u00f6glich.",
+            ephemeral=True
+        )
+        return
+
+    # Alle Checks bestanden \u2192 Ortungsger\u00e4t verbrauchen
     consume_item(interaction.user, ORTUNG_ITEM)
 
     embed = discord.Embed(
-        title="\U0001F4BB Ortung aktiv",
+        title="\U0001f4bb Ortung erfolgreich",
         description=(
             f"{interaction.user.mention} hat **{ziel.mention}** geortet!\n\n"
-            f"\U0001F4CD Der Standort von **{ziel.display_name}** ist bekannt."
+            f"\U0001f4cd Der Standort von **{ziel.display_name}** ist bekannt.\n\n"
+            f"\u2139\ufe0f *Das Ortungsger\u00e4t wurde verbraucht.*"
         ),
         color=0xE67E22,
         timestamp=datetime.now(timezone.utc)
