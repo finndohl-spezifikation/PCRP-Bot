@@ -207,7 +207,7 @@ async def kokain_setup_cmd(interaction: discord.Interaction):
 async def weed_setup_cmd(interaction: discord.Interaction):
     role_ids = {r.id for r in interaction.user.roles}
     if not (role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID, TICKET_MOD_ROLE_ID}):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
         return
     await interaction.response.defer(ephemeral=True)
     import weed as _weed
