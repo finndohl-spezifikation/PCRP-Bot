@@ -450,13 +450,12 @@ async def _koka_setup():
                     break
         except Exception:
             pass
+        if existing:
+            print(f"[kokain] \u2139\ufe0f Info-Embed bereits vorhanden in #{channel.name}")
+            continue
         try:
-            if existing:
-                await existing.edit(embed=embed, view=view)
-                print(f"[kokain] \u2705 Info-Embed aktualisiert in #{channel.name}")
-            else:
-                await channel.send(embed=embed, view=view)
-                print(f"[kokain] \u2705 Info-Embed gepostet in #{channel.name}")
+            await channel.send(embed=embed, view=view)
+            print(f"[kokain] \u2705 Info-Embed gepostet in #{channel.name}")
         except Exception as e:
             print(f"[kokain] \u274c Fehler beim Embed-Setup: {e}")
 
