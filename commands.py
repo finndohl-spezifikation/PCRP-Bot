@@ -179,7 +179,7 @@ async def server_info(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-# â”€â”€ /kokain-setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- /kokain-setup ---------------------------------------------
 
 @bot.tree.command(
     name="kokain-setup",
@@ -189,15 +189,15 @@ async def server_info(interaction: discord.Interaction):
 async def kokain_setup_cmd(interaction: discord.Interaction):
     role_ids = {r.id for r in interaction.user.roles}
     if not (role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID, TICKET_MOD_ROLE_ID}):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
         return
     await interaction.response.defer(ephemeral=True)
     import kokain as _kokain
     await _kokain._koka_setup()
-    await interaction.followup.send("âœ… Kokain Info-Embed gesendet.", ephemeral=True)
+    await interaction.followup.send("\u2705 Kokain Info-Embed gesendet.", ephemeral=True)
 
 
-# â”€â”€ /weed-setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- /weed-setup -----------------------------------------------
 
 @bot.tree.command(
     name="weed-setup",
@@ -207,7 +207,7 @@ async def kokain_setup_cmd(interaction: discord.Interaction):
 async def weed_setup_cmd(interaction: discord.Interaction):
     role_ids = {r.id for r in interaction.user.roles}
     if not (role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID, TICKET_MOD_ROLE_ID}):
-        await interaction.response.send_message("âŒ Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
         return
     await interaction.response.defer(ephemeral=True)
     import weed as _weed
