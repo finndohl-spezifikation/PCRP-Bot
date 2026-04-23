@@ -475,7 +475,17 @@ async def auto_kokain_setup():
     await _koka_setup()
 
 
+@bot.tree.command(name="kokain-setup", description="Sendet das Kokain Info-Embed in den Kanal (nur Highteam)")
+async def kokain_setup_cmd(interaction: discord.Interaction):
+    role_ids = {r.id for r in interaction.user.roles}
+    if not (role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID, TICKET_MOD_ROLE_ID}):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    await _koka_setup()
+    await interaction.followup.send("\u2705 Kokain Info-Embed gesendet.", ephemeral=True)
+
+
 @bot.listen("on_ready")
 async def kokain_on_ready():
-    bot.add_view(KokaInfoView())          # Persistent View registrieren
-    bot.loop.create_task(_koka_setup())   # Embed-Setup unabh\xe4ngig starten
+    bot.add_view(KokaInfoView())   # Persistent View registrieren
