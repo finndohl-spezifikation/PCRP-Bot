@@ -211,5 +211,5 @@ async def weed_setup_cmd(interaction: discord.Interaction):
         return
     await interaction.response.defer(ephemeral=True)
     import weed as _weed
-    await _weed._weed_setup()
-    await interaction.followup.send("\u2705 Weed Info-Embed gesendet.", ephemeral=True)
+    result = await _weed._weed_setup()
+    await interaction.followup.send(result, ephemeral=True)
