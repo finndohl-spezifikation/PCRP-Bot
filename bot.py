@@ -105,22 +105,70 @@ import help_embed               # Automatisches Command-\u00DCbersicht Embed
 import ic_actions               # /erste-hilfe, /ortung, /fesseln
 import ping_roles               # Ping-Rollen Auswahl-Embed
 import team_overview           # Team \u00DCbersicht mit On/Off Duty
-import boost                   # Boost Belohnungen Embed
-import lotto                   # Lotto-System
-import bingo                   # W\u00F6chentliches Bingo-System
-import startinfo               # "Wo starte ich?" Embed
-import starterpaket            # Starter Paket Embed
-import vorschlag               # Vorschlag-System
-import auto_geben              # Fahrzeug-Vergabe-System
-import atm_raub               # ATM-Raub System
-import shop_raub              # Shop-Raub System
-import raubueberfall          # Raub\u00FCberfall System
-import human_labs_raub        # Humane Labs Raub\u00FCberfall System
-import staatsbank_raub        # Staatsbank Raub\u00FCberfall System
-import kokain                # Kokain-Herstellungs-System
-import aktien                 # Aktienmarkt-System
-import kanal_sperre           # /kanal-sperre, /kanal-entsperren
-import nebenserver            # Nebenserver Import/Export Embed
+try:
+    import boost
+except Exception as _e:
+    print(f"[WARNING] boost konnte nicht geladen werden: {_e}")
+try:
+    import lotto
+except Exception as _e:
+    print(f"[WARNING] lotto konnte nicht geladen werden: {_e}")
+try:
+    import bingo
+except Exception as _e:
+    print(f"[WARNING] bingo konnte nicht geladen werden: {_e}")
+try:
+    import startinfo
+except Exception as _e:
+    print(f"[WARNING] startinfo konnte nicht geladen werden: {_e}")
+try:
+    import starterpaket
+except Exception as _e:
+    print(f"[WARNING] starterpaket konnte nicht geladen werden: {_e}")
+try:
+    import vorschlag
+except Exception as _e:
+    print(f"[WARNING] vorschlag konnte nicht geladen werden: {_e}")
+try:
+    import auto_geben
+except Exception as _e:
+    print(f"[WARNING] auto_geben konnte nicht geladen werden: {_e}")
+try:
+    import atm_raub
+except Exception as _e:
+    print(f"[WARNING] atm_raub konnte nicht geladen werden: {_e}")
+try:
+    import shop_raub
+except Exception as _e:
+    print(f"[WARNING] shop_raub konnte nicht geladen werden: {_e}")
+try:
+    import raubueberfall
+except Exception as _e:
+    print(f"[WARNING] raubueberfall konnte nicht geladen werden: {_e}")
+try:
+    import human_labs_raub
+except Exception as _e:
+    print(f"[WARNING] human_labs_raub konnte nicht geladen werden: {_e}")
+try:
+    import staatsbank_raub
+except Exception as _e:
+    print(f"[WARNING] staatsbank_raub konnte nicht geladen werden: {_e}")
+try:
+    import kokain
+except Exception as _e:
+    print(f"[WARNING] kokain konnte nicht geladen werden: {_e}")
+try:
+    import aktien
+except Exception as _e:
+    print(f"[WARNING] aktien konnte nicht geladen werden: {_e}")
+try:
+    import kanal_sperre
+except Exception as _e:
+    print(f"[WARNING] kanal_sperre konnte nicht geladen werden: {_e}")
+try:
+    import nebenserver
+except Exception as _e:
+    print(f"[WARNING] nebenserver konnte nicht geladen werden: {_e}")
 
 try:
     import server_schutz      # Schutz vor unbefugten Kanal/Rollen-\u00C4nderungen
