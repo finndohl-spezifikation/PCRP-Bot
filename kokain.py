@@ -328,9 +328,10 @@ class KokaAktionView(discord.ui.View):
         bot.loop.create_task(_liefern())
 
 
-# \u2500\u2500 Foto-Erkennung \u2014 wird aus events.py aufgerufen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 on_message \u2014 Foto-Erkennung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-async def handle_koka_foto(message: discord.Message):
+@bot.listen("on_message")
+async def koka_bild_listener(message: discord.Message):
     if message.author.bot:
         return
     if message.channel.id != KOKA_BILD_CHANNEL_ID:
