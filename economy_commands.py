@@ -371,9 +371,6 @@ class LohnPanelView(discord.ui.View):
     guild=discord.Object(id=GUILD_ID),
 )
 async def setup_lohn_panel(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and (interaction.guild is None or interaction.user.id != interaction.guild.owner_id) and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
     kanal = interaction.guild.get_channel(LOHN_CHANNEL_ID)
     if not kanal:
         await interaction.response.send_message("\u274C Kanal nicht gefunden.", ephemeral=True)
@@ -455,9 +452,6 @@ class KontoPanelView(discord.ui.View):
     guild=discord.Object(id=GUILD_ID),
 )
 async def setup_konto_panel(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and (interaction.guild is None or interaction.user.id != interaction.guild.owner_id) and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
     kanal = interaction.guild.get_channel(BANK_CHANNEL_ID)
     if not kanal:
         await interaction.response.send_message("\u274C Kanal nicht gefunden.", ephemeral=True)
@@ -483,10 +477,6 @@ async def setup_konto_panel(interaction: discord.Interaction):
 @bot.tree.command(name="money-add", description="[Admin] F\u00FCge einem Spieler Geld hinzu", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def money_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if interaction.user.id != OWNER_ID and (interaction.guild is None or interaction.user.id != interaction.guild.owner_id) and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
     if betrag <= 0:
         await interaction.response.send_message("\u274C Betrag muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
         return
@@ -521,10 +511,6 @@ async def money_add(interaction: discord.Interaction, nutzer: discord.Member, be
 @bot.tree.command(name="remove-money", description="[Admin] Entferne Geld von einem Spieler", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Betrag in $")
 async def remove_money(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if interaction.user.id != OWNER_ID and (interaction.guild is None or interaction.user.id != interaction.guild.owner_id) and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
     if betrag <= 0:
         await interaction.response.send_message("\u274C Betrag muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
         return
@@ -589,10 +575,6 @@ async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, li
 @bot.tree.command(name="dispo", description="[Admin] Setzt das Dispo-Limit eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", betrag="Maximales Minus-Limit in $ (0 = kein Dispo)")
 async def dispo_cmd(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if interaction.user.id != OWNER_ID and (interaction.guild is None or interaction.user.id != interaction.guild.owner_id) and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
     if betrag < 0:
         await interaction.response.send_message("\u274C Betrag muss 0 oder gr\u00F6\u00DFer sein.", ephemeral=True)
         return
@@ -651,10 +633,6 @@ _RAUB_CHOICES = [
 @app_commands.describe(nutzer="Spieler dessen Raub-Cooldown zur\u00FCckgesetzt werden soll", raub="Welcher Raub-Cooldown?")
 @app_commands.choices(raub=_RAUB_CHOICES)
 async def raub_cooldown_reset(interaction: discord.Interaction, nutzer: discord.Member, raub: app_commands.Choice[str]):
-    if interaction.user.id != OWNER_ID and (interaction.guild is None or interaction.user.id != interaction.guild.owner_id) and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
     eco       = load_economy()
     user_data = get_user(eco, nutzer.id)
 
