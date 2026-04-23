@@ -475,7 +475,7 @@ async def auto_kokain_setup():
     await _koka_setup()
 
 
-@bot.tree.command(name="kokain-setup", description="Sendet das Kokain Info-Embed in den Kanal (nur Highteam)")
+@bot.tree.command(name="kokain-setup", description="[Team] Sendet das Kokain Info-Embed in den Kanal", guild=discord.Object(id=GUILD_ID))
 async def kokain_setup_cmd(interaction: discord.Interaction):
     role_ids = {r.id for r in interaction.user.roles}
     if not (role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID, TICKET_MOD_ROLE_ID}):
