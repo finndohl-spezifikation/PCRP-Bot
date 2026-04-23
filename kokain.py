@@ -397,10 +397,13 @@ async def koka_bild_listener(message: discord.Message):
     if message.channel.id != KOKA_BILD_CHANNEL_ID:
         return
 
+    IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
     has_image = any(
-        att.content_type and att.content_type.startswith("image/")
+        (att.content_type and att.content_type.startswith("image/"))
+        or att.filename.lower().endswith(IMAGE_EXTS)
         for att in message.attachments
     )
+    print(f"[kokain] Foto-Listener: {message.author} | Anh\xe4nge: {[a.filename for a in message.attachments]} | has_image={has_image}")
     if not has_image:
         return
 
@@ -409,7 +412,9 @@ async def koka_bild_listener(message: discord.Message):
 
     try:
         await message.delete()
+        print(f"[kokain] Foto gel\xf6scht von {user}")
     except discord.Forbidden:
+        print(f"[kokain] Foto konnte nicht gel\xf6scht werden (keine Berechtigung)")
         pass
 
     cd_blaetter = _cd_remaining(user.id, "koka_blaetter_cd", KOKA_BLAETTER_CD_SECS)
@@ -453,8 +458,9 @@ async def koka_bild_listener(message: discord.Message):
     try:
         dm = await user.create_dm()
         await dm.send(embed=embed, view=view)
-    except Exception:
-        pass
+        print(f"[kokain] \u2705 DM gesendet an {user}")
+    except Exception as e:
+        print(f"[kokain] \u274c DM fehlgeschlagen an {user}: {e}")
 
     await _log(
         guild,
