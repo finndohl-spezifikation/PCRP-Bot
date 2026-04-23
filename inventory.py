@@ -7,9 +7,9 @@
 from config import *
 from helpers import is_admin
 from economy_helpers import (
-    load_economy, save_economy, get_user, load_shop,
+    load_economy, save_economy, get_user, load_shop, load_team_shop,
     find_shop_item, find_inventory_item, normalize_item_name,
-    has_citizen_or_wage, shop_item_autocomplete, inventory_item_autocomplete,
+    has_citizen_or_wage, shop_item_autocomplete, all_shops_item_autocomplete, inventory_item_autocomplete,
     load_hidden_items, save_hidden_items, VersteckRetrieveView, channel_error
 )
 from handy import give_handy_channel_access
@@ -469,28 +469,22 @@ async def use_item(interaction: discord.Interaction, item: str, menge: int = 1):
 
 # /item-add (Admin only)
 @bot.tree.command(name="item-add", description="[Admin] Gib einem Spieler ein Item", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     nutzer="Spieler",
     itemname="Itemname (muss im Shop vorhanden sein)",
     menge="Anzahl (Standard: 1)",
 )
-@app_commands.autocomplete(itemname=shop_item_autocomplete)
+@app_commands.autocomplete(itemname=all_shops_item_autocomplete)
 async def item_add(interaction: discord.Interaction, nutzer: discord.Member, itemname: str, menge: int = 1):
-    if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
     if menge < 1:
         await interaction.response.send_message("\u274C Menge muss mindestens 1 sein.", ephemeral=True)
         return
 
-    shop_items = load_shop()
-    shop_item  = find_shop_item(shop_items, itemname)
+    shop_item = find_shop_item(load_shop(), itemname) or find_shop_item(load_team_shop(), itemname)
     if not shop_item:
         await interaction.response.send_message(
-            f"\u274C Das Item **{itemname}** existiert nicht im Shop.\n"
-            f"Es k\u00F6nnen nur vorhandene Shop-Items vergeben werden. Nutze `/shop` um alle Items zu sehen.",
+            f"\u274C Das Item **{itemname}** existiert in keinem Shop.\n"
+            f"Es k\u00F6nnen nur vorhandene Shop-Items vergeben werden.",
             ephemeral=True
         )
         return
@@ -522,13 +516,8 @@ async def item_add(interaction: discord.Interaction, nutzer: discord.Member, ite
 
 # /remove-item (Admin only)
 @bot.tree.command(name="remove-item", description="[Admin] Entferne ein Item aus dem Inventar eines Spielers", guild=discord.Object(id=GUILD_ID))
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(nutzer="Spieler", itemname="Itemname")
 async def remove_item(interaction: discord.Interaction, nutzer: discord.Member, itemname: str):
-    if not any(r.id in (ITEM_MANAGE_ROLE_ID, ADMIN_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
-
     eco       = load_economy()
     user_data = get_user(eco, nutzer.id)
     inventory = user_data.get("inventory", [])
