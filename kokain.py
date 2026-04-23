@@ -232,13 +232,18 @@ class KokaAktionView(discord.ui.View):
         self.guild_id    = guild_id
         self.cd_blaetter = cd_blaetter
         self.cd_kokain   = cd_kokain
-        # Buttons direkt deaktivieren falls auf Cooldown
+        # Buttons deaktivieren und Label mit verbleibender Zeit zeigen
         for child in self.children:
-            if hasattr(child, "callback"):
-                if child.callback.__name__ == "blaetter_btn" and cd_blaetter > 0:
-                    child.disabled = True
-                if child.callback.__name__ == "kokain_btn" and cd_kokain > 0:
-                    child.disabled = True
+            if not hasattr(child, "callback"):
+                continue
+            if child.callback.__name__ == "blaetter_btn" and cd_blaetter > 0:
+                m, s = divmod(cd_blaetter, 60)
+                child.label    = f"\U0001f33f Kokabl\xe4tter sammeln  (CD: {m}m {s}s)"
+                child.disabled = True
+            if child.callback.__name__ == "kokain_btn" and cd_kokain > 0:
+                m, s = divmod(cd_kokain, 60)
+                child.label    = f"\u2697\ufe0f Kokain herstellen  (CD: {m}m {s}s)"
+                child.disabled = True
 
     def _get_guild(self) -> discord.Guild | None:
         return bot.get_guild(self.guild_id)
@@ -425,13 +430,21 @@ async def koka_bild_listener(message: discord.Message):
             pass
         return
 
+    desc = (
+        f"**{user.display_name}**, was m\xf6chtest du tun?\n\n"
+        "\U0001f33f **Kokabl\xe4tter sammeln** \u2014 5 Min. \xb7 50\u2013150 Bl\xe4tter\n"
+        "\u2697\ufe0f **Kokain herstellen** \u2014 25 Bl\xe4tter \xb7 15 Min. \xb7 500g Kokain"
+    )
+    if cd_blaetter > 0:
+        mb, sb = divmod(cd_blaetter, 60)
+        desc += f"\n\n\u23f3 Kokabl\xe4tter noch auf Cooldown: **{mb}m {sb}s**"
+    if cd_kokain > 0:
+        mk, sk = divmod(cd_kokain, 60)
+        desc += f"\n\u23f3 Herstellung noch auf Cooldown: **{mk}m {sk}s**"
+
     embed = discord.Embed(
         title="\U0001f33f Kokain-System",
-        description=(
-            f"**{user.display_name}**, was m\xf6chtest du tun?\n\n"
-            "\U0001f33f **Kokabl\xe4tter sammeln** \u2014 5 Min. \xb7 50\u2013150 Bl\xe4tter\n"
-            "\u2697\ufe0f **Kokain herstellen** \u2014 25 Bl\xe4tter \xb7 15 Min. \xb7 500g Kokain"
-        ),
+        description=desc,
         color=0xFF6B00,
     )
     embed.set_footer(text="Paradise City Roleplay \u2022 Kokain-System")
