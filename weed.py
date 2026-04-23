@@ -272,9 +272,8 @@ def _build_weed_info_embed() -> discord.Embed:
             f"> Ernte nach **10 Min.**: {WEED_GRAMM_MIN}\u2013{WEED_GRAMM_MAX}g Weed\n"
             "> Du bekommst eine **DM** bei Fertigstellung\n\n"
             "**\U0001F4B0 Verkauf**\n"
-            f"> **{WEED_PREIS_PRO_GRAMM}$ Schwarzgeld** pro Gramm\n"
-            f"> Max. **{WEED_GRAMM_MAX * WEED_PREIS_PRO_GRAMM:,}$** pro Runde\n\n"
-            f"\U0001F4B0 Druecke **Weed verkaufen** um dein Weed gegen Schwarzgeld einzutauschen."
+            f"> **{WEED_PREIS_PRO_GRAMM}$ Schwarzgeld** pro Gramm\n\n"
+            f"\U0001F4B0 Dr\u00FCcke **Weed verkaufen** um dein Weed gegen Schwarzgeld einzutauschen."
         ),
         timestamp=datetime.now(timezone.utc),
     )
