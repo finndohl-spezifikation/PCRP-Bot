@@ -432,41 +432,48 @@ async def koka_bild_listener(message: discord.Message):
 # \u2500\u2500 on_ready \u2014 Info-Embed automatisch setzen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _koka_setup():
+    print(f"[kokain] _koka_setup gestartet, warte auf ready...")
     await bot.wait_until_ready()
-    for guild in bot.guilds:
-        channel = guild.get_channel(KOKA_INFO_CHANNEL_ID)
-        if not channel:
-            # Fallback: direkt per API holen
-            try:
-                channel = await bot.fetch_channel(KOKA_INFO_CHANNEL_ID)
-            except Exception:
-                print(f"[kokain] \u274c Info-Kanal {KOKA_INFO_CHANNEL_ID} nicht gefunden")
-                continue
+    print(f"[kokain] Bot ready. Guilds: {[g.name for g in bot.guilds]}")
 
-        embed = _build_info_embed()
-        view  = KokaInfoView()
+    # Kanal direkt per API holen (umgeht Cache-Probleme)
+    channel = None
+    try:
+        channel = await bot.fetch_channel(KOKA_INFO_CHANNEL_ID)
+        print(f"[kokain] Info-Kanal gefunden: #{channel.name}")
+    except Exception as e:
+        print(f"[kokain] \u274c Info-Kanal {KOKA_INFO_CHANNEL_ID} nicht erreichbar: {e}")
+        return
 
-        # Alte Bot-Embeds mit diesem Titel l\xf6schen, dann frisch senden
-        try:
-            async for msg in channel.history(limit=50):
-                if msg.author.id == bot.user.id and msg.embeds:
-                    for emb in msg.embeds:
-                        if emb.title and "Kokain Herstellung" in emb.title:
-                            try:
-                                await msg.delete()
-                            except Exception:
-                                pass
-        except Exception:
-            pass
+    embed = _build_info_embed()
+    view  = KokaInfoView()
 
-        try:
-            await channel.send(embed=embed, view=view)
-            print(f"[kokain] \u2705 Info-Embed gepostet in #{channel.name}")
-        except Exception as e:
-            print(f"[kokain] \u274c Fehler beim Embed-Setup: {e}")
+    # Alte Bot-Embeds l\xf6schen
+    try:
+        async for msg in channel.history(limit=50):
+            if msg.author.id == bot.user.id and msg.embeds:
+                for emb in msg.embeds:
+                    if emb.title and "Kokain Herstellung" in emb.title:
+                        try:
+                            await msg.delete()
+                            print(f"[kokain] \U0001f5d1\ufe0f Altes Embed gel\xf6scht")
+                        except Exception as e:
+                            print(f"[kokain] L\xf6schen fehlgeschlagen: {e}")
+    except Exception as e:
+        print(f"[kokain] History-Fehler (ignoriert): {e}")
+
+    try:
+        await channel.send(embed=embed, view=view)
+        print(f"[kokain] \u2705 Info-Embed erfolgreich gesendet in #{channel.name}")
+    except Exception as e:
+        print(f"[kokain] \u274c Senden fehlgeschlagen: {e}")
+
+
+async def auto_kokain_setup():
+    """Wird vom embed_manager beim Start aufgerufen."""
+    await _koka_setup()
 
 
 @bot.listen("on_ready")
 async def kokain_on_ready():
     bot.add_view(KokaInfoView())   # Persistent View nach Neustart registrieren
-    await _koka_setup()
