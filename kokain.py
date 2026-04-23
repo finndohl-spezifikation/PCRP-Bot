@@ -15,7 +15,7 @@ KOKA_BLAETTER_CD_SECS    = 5 * 60
 KOKA_KOKAIN_CD_SECS      = 15 * 60
 KOKA_BLAETTER_MIN        = 50
 KOKA_BLAETTER_MAX        = 150
-KOKA_BLAETTER_PRO_RUNDE  = 25
+KOKA_BLAETTER_PRO_RUNDE  = 35
 KOKAIN_WERT              = 2_950
 
 ITEM_BLAETTER_DEFAULT    = "Kokabl\xe4tter"
@@ -338,7 +338,7 @@ async def koka_bild_listener(message: discord.Message):
         description=(
             f"{user.mention}, was m\xf6chtest du tun?\n\n"
             "\U0001f33f **Kokabl\xe4tter sammeln** \u2014 5 Min. Cooldown \xb7 50\u2013150 Bl\xe4tter\n"
-            "\u2697\ufe0f **Kokain herstellen** \u2014 15 Min. Cooldown \xb7 25 Bl\xe4tter n\xf6tig \xb7 250g Kokain"
+            "\u2697\ufe0f **Kokain herstellen** \u2014 15 Min. Cooldown \xb7 35 Bl\xe4tter n\xf6tig \xb7 250g Kokain"
         ),
         color=0xFF6B00,
     )
@@ -367,7 +367,7 @@ def _build_info_embed() -> discord.Embed:
             "\U0001f3b2 Du erh\xe4ltst zuf\xe4llig **50 \u2013 150 Kokabl\xe4tter**\n\n"
             "**Schritt 2 \u2014 \u2697\ufe0f Kokain herstellen**\n"
             f"\U0001f4f8 Schicke ein Foto in <#{KOKA_BILD_CHANNEL_ID}>\n"
-            "\U0001f33f Voraussetzung: **25 Kokabl\xe4tter**\n"
+            "\U0001f33f Voraussetzung: **35 Kokabl\xe4tter**\n"
             "\u23f3 Herstellungszeit: **15 Minuten**\n"
             "\U0001f48a Ergebnis: **250g Kokain** \u2014 Wert: **2.950 $ Schwarzgeld**\n\n"
             "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
