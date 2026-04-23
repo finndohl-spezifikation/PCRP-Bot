@@ -443,7 +443,3 @@ async def auto_kokain_setup():
     """Wird vom embed_manager beim Start aufgerufen."""
     await _koka_setup()
 
-
-@bot.listen("on_ready")
-async def kokain_on_ready():
-    bot.add_view(KokaInfoView())   # Persistent View registrieren
