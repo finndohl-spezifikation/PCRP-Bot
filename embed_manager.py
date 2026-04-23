@@ -27,7 +27,6 @@ async def setup_all_embeds():
     from staatsbank_raub  import _sb_info_auto_setup
     from aktien        import aktien_setup
     from shop          import auto_shop_setup
-    from kokain        import auto_kokain_setup
 
     _setups = [
         ("ticket",        auto_ticket_setup),
@@ -46,7 +45,6 @@ async def setup_all_embeds():
         ("staatsbank",    _sb_info_auto_setup),
         ("aktien",        aktien_setup),
         ("shop",          auto_shop_setup),
-        ("kokain",        auto_kokain_setup),
     ]
 
     for name, fn in _setups:
