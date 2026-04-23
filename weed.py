@@ -21,7 +21,7 @@ ITEM_WEED_SAMEN_DEFAULT = "Weed Samen"
 ITEM_WEED_DEFAULT       = "Weed"
 
 
-# â”€â”€ Hilfsfunktionen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Hilfsfunktionen ------------------------------------------
 
 def _shop_name_weed(query: str, default: str) -> str:
     try:
@@ -102,7 +102,7 @@ async def _log_weed(guild, title: str, desc: str):
             pass
 
 
-# â”€â”€ Persistent View: Weed verkaufen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Persistent View: Weed verkaufen --------------------------
 
 class WeedInfoView(discord.ui.View):
     def __init__(self):
@@ -137,7 +137,7 @@ class WeedInfoView(discord.ui.View):
             f"{user.mention} hat **{gramm}g Weed** \u2192 **{total_sg:,}$ Schwarzgeld**")
 
 
-# â”€â”€ on_message â€” Foto startet Anbau direkt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- on_message: Foto startet Anbau direkt --------------------
 
 @bot.listen("on_message")
 async def weed_bild_listener(message: discord.Message):
@@ -257,29 +257,24 @@ async def weed_bild_listener(message: discord.Message):
     bot.loop.create_task(_ernten())
 
 
-# â”€â”€ Info-Embed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Info-Embed ------------------------------------------------
 
 def _build_weed_info_embed() -> discord.Embed:
     emb = discord.Embed(
         title="\U0001F331 Weed Anbau",
         color=0x2ECC71,
         description=(
-            "\u2501" * 32 + "\n\n"
             "**\U0001F4E6 Voraussetzung**\n"
-            f"\u2503 **{WEED_SAMEN_PRO_RUNDE}x Weed Samen** pro Anbau-Runde\n"
-            "\u2503 Erh\u00E4ltlich auf dem **Schwarzmarkt**\n\n"
+            f"> **{WEED_SAMEN_PRO_RUNDE}x Weed Samen** (Schwarzmarkt)\n\n"
             "**\U0001F4F8 Ablauf**\n"
-            f"\u2503 Schicke ein Foto in <#{WEED_BILD_CHANNEL_ID}>\n"
-            f"\u2503 Der Anbau startet **automatisch** \u2014 kein Button n\u00F6tig\n"
-            f"\u2503 Ernte: zuf\u00E4llig **{WEED_GRAMM_MIN}\u2013{WEED_GRAMM_MAX}g Weed** nach **10 Min.**\n"
-            "\u2503 Du bekommst eine **DM** wenn die Ernte fertig ist\n\n"
+            f"> Foto in <#{WEED_BILD_CHANNEL_ID}> schicken\n"
+            "> Anbau startet **automatisch**\n"
+            f"> Ernte nach **10 Min.**: {WEED_GRAMM_MIN}\u2013{WEED_GRAMM_MAX}g Weed\n"
+            "> Du bekommst eine **DM** bei Fertigstellung\n\n"
             "**\U0001F4B0 Verkauf**\n"
-            f"\u2503 **{WEED_PREIS_PRO_GRAMM}\u00A0$ Schwarzgeld** pro Gramm\n"
-            f"\u2503 Maximal: **{WEED_GRAMM_MAX * WEED_PREIS_PRO_GRAMM:,}\u00A0$** pro Runde\n"
-            "\u2503 Nur f\u00FCr Nutzer mit der **Illegalen Rolle**\n\n"
-            "\u2501" * 32 + "\n"
-            "\U0001F4B0 Dr\u00FCcke **Weed verkaufen** um dein Weed direkt\n"
-            f"in Schwarzgeld umzutauschen *({WEED_PREIS_PRO_GRAMM}\u00A0$ pro Gramm)*"
+            f"> **{WEED_PREIS_PRO_GRAMM}$ Schwarzgeld** pro Gramm\n"
+            f"> Max. **{WEED_GRAMM_MAX * WEED_PREIS_PRO_GRAMM:,}$** pro Runde\n\n"
+            f"\U0001F4B0 Druecke **Weed verkaufen** um dein Weed gegen Schwarzgeld einzutauschen."
         ),
         timestamp=datetime.now(timezone.utc),
     )
