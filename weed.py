@@ -287,14 +287,11 @@ def _build_weed_info_embed() -> discord.Embed:
     return emb
 
 
-async def _weed_setup():
-    await bot.wait_until_ready()
-    await asyncio.sleep(3)
+async def _weed_setup() -> str:
     try:
         channel = await bot.fetch_channel(WEED_INFO_CHANNEL_ID)
     except Exception as e:
-        print(f"[weed] Info-Kanal nicht erreichbar: {e}")
-        return
+        return f"\u274C Kanal nicht erreichbar (ID {WEED_INFO_CHANNEL_ID}): {e}"
 
     try:
         async for msg in channel.history(limit=50):
@@ -309,9 +306,13 @@ async def _weed_setup():
 
     try:
         await channel.send(embed=_build_weed_info_embed(), view=WeedInfoView())
+        return "\u2705 Weed Info-Embed gesendet."
     except Exception as e:
-        print(f"[weed] Senden fehlgeschlagen: {e}")
+        return f"\u274C Senden fehlgeschlagen: {e}"
 
 
 async def auto_weed_setup():
-    await _weed_setup()
+    await bot.wait_until_ready()
+    await asyncio.sleep(3)
+    result = await _weed_setup()
+    print(f"[weed] {result}")
