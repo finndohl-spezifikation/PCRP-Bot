@@ -136,16 +136,16 @@ class KokaInfoView(discord.ui.View):
                 "\u274c Du hast kein **Kokain 250g** im Inventar.", ephemeral=True)
             return
         ud["inventory"] = [i for i in inv if nk not in normalize_item_name(i)]
-        sg = _shop_name(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
-        ud["inventory"].extend([sg] * len(hits))
+        sg    = _shop_name(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
+        total = len(hits) * KOKAIN_WERT
+        ud["inventory"].extend([sg] * total)
         eco[str(user.id)] = ud
         save_economy(eco)
-        total = len(hits) * KOKAIN_WERT
         await interaction.response.send_message(
             f"\u2705 **{len(hits)}\xd7 250g Kokain** verkauft!\n"
-            f"\U0001f4b0 **{total:,}$ Schwarzgeld** ins Inventar.", ephemeral=True)
+            f"\U0001f4b0 **{total:,}\xd7 Schwarzgeld** ins Inventar.", ephemeral=True)
         await _log(interaction.guild, "\U0001f4b0 Kokain verkauft",
-            f"{user.mention} hat **{len(hits)}\xd7 250g** \u2192 **{total:,}$ Schwarzgeld**")
+            f"{user.mention} hat **{len(hits)}\xd7 250g** \u2192 **{total:,}\xd7 Schwarzgeld**")
 
 
 # \u2500\u2500 Tempor\xe4re View: Auswahl nach Foto-Einreichung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
