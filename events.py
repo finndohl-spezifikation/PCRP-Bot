@@ -27,11 +27,6 @@ from lotto        import LottoView, lotto_draw_loop
 from embed_manager import setup_all_embeds
 from rechnungen   import RechnungenPanelView
 from economy_commands import LohnPanelView, KontoPanelView
-try:
-    from kokain import handle_koka_foto as _handle_koka_foto, KOKA_BILD_CHANNEL_ID as _KOKA_BILD_CH
-except Exception:
-    _handle_koka_foto = None
-    _KOKA_BILD_CH = None
 
 
 
@@ -163,11 +158,6 @@ async def on_message(message):
 
     if message.channel.id == COUNTING_CHANNEL_ID:
         await handle_counting(message)
-        return
-
-    # Kokain-Foto-Kanal
-    if _handle_koka_foto and _KOKA_BILD_CH and message.channel.id == _KOKA_BILD_CH:
-        await _handle_koka_foto(message)
         return
 
     # Echtzeit-Log: jede Nachricht erfassen
