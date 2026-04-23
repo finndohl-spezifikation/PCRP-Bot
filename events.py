@@ -27,10 +27,15 @@ from lotto        import LottoView, lotto_draw_loop
 from embed_manager import setup_all_embeds
 from rechnungen   import RechnungenPanelView
 from economy_commands import LohnPanelView, KontoPanelView
+
 try:
     from kokain import KokaInfoView as _KokaInfoView
 except Exception:
     _KokaInfoView = None
+try:
+    from weed import WeedInfoView as _WeedInfoView
+except Exception:
+    _WeedInfoView = None
 
 
 
@@ -58,6 +63,8 @@ async def on_ready():
     bot.add_view(KontoPanelView())
     if _KokaInfoView:
         bot.add_view(_KokaInfoView())
+    if _WeedInfoView:
+        bot.add_view(_WeedInfoView())
 
     for entry in load_hidden_items():
         bot.add_view(VersteckRetrieveView(entry["id"], entry["owner_id"]))
@@ -285,7 +292,7 @@ async def on_message_delete(message):
     if not message.guild or message.author.bot:
         return
     _dh.log_activity(
-        'GEL\xd6SCHT',
+        'GELÃ–SCHT',
         f'#{message.channel.name} | {message.author}: {(message.content or "[kein Text]")[:120]}',
         message.author.id,
     )
@@ -313,7 +320,7 @@ async def on_message_edit(before, after):
         return
     _dh.log_activity(
         'BEARBEITET',
-        f'#{before.channel.name} | {before.author}: {(before.content or "[]")[:80]} \u2192 {(after.content or "[]")[:80]}',
+        f'#{before.channel.name} | {before.author}: {(before.content or "[]")[:80]} â†’ {(after.content or "[]")[:80]}',
         before.author.id,
     )
     log_ch = before.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
@@ -351,11 +358,11 @@ async def on_member_update(before, after):
     for _r in added:
         if _r.id in TEAM_ROLE_IDS:
             _dh.log_warning(
-                '\u26a0\ufe0f Highteam-Rolle vergeben',
+                'âš ï¸ Highteam-Rolle vergeben',
                 f'{after} ({after.id}) hat die Rolle **{_r.name}** erhalten.',
             )
     _dh.log_activity("ROLLE",
-        f"{after} \u2014 Rollen ge\xe4ndert: +[{', '.join(r.name for r in added)}] -[{', '.join(r.name for r in removed)}]",
+        f"{after} â€” Rollen geÃ¤ndert: +[{', '.join(r.name for r in added)}] -[{', '.join(r.name for r in removed)}]",
         after.id)
     description = f"**Benutzer:** {after.mention} (`{after}`)\n"
     if added:
@@ -398,7 +405,7 @@ async def on_member_ban(guild, user):
         description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
     _dh.log_activity(
         'BAN',
-        f'{user} ({user.id}) gebannt \u2014 Grund: {reason}' + (f' | Von: {banner}' if banner else ''),
+        f'{user} ({user.id}) gebannt â€” Grund: {reason}' + (f' | Von: {banner}' if banner else ''),
         user.id,
     )
     embed = discord.Embed(
