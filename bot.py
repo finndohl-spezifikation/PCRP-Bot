@@ -454,30 +454,13 @@ async def koka_bild_listener(message: discord.Message):
     )
     embed.set_footer(text="Paradise City Roleplay \u2022 Kokain-System")
 
-    try:
-        view = KokaAktionView(user.id, guild.id, cd_blaetter, cd_kokain)
-    except Exception as e:
-        print(f"[kokain] \u274c View-Erstellung fehlgeschlagen: {e}")
-        return
-
-    dm_ok = False
+    view = KokaAktionView(user.id, guild.id, cd_blaetter, cd_kokain)
     try:
         dm = await user.create_dm()
         await dm.send(embed=embed, view=view)
-        dm_ok = True
         print(f"[kokain] \u2705 DM gesendet an {user}")
     except Exception as e:
         print(f"[kokain] \u274c DM fehlgeschlagen an {user}: {e}")
-
-    if not dm_ok:
-        try:
-            err_msg = await message.channel.send(
-                f"{user.mention} \u274c Deine DMs sind deaktiviert! "
-                f"Bitte erlaube DMs von Servermitgliedern und schicke erneut ein Foto.",
-                delete_after=15,
-            )
-        except Exception:
-            pass
 
     await _log(
         guild,
