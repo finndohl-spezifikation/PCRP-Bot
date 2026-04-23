@@ -432,27 +432,33 @@ async def koka_bild_listener(message: discord.Message):
 # \u2500\u2500 on_ready \u2014 Info-Embed automatisch setzen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _koka_setup():
+    await bot.wait_until_ready()
     for guild in bot.guilds:
         channel = guild.get_channel(KOKA_INFO_CHANNEL_ID)
         if not channel:
-            continue
+            # Fallback: direkt per API holen
+            try:
+                channel = await bot.fetch_channel(KOKA_INFO_CHANNEL_ID)
+            except Exception:
+                print(f"[kokain] \u274c Info-Kanal {KOKA_INFO_CHANNEL_ID} nicht gefunden")
+                continue
+
         embed = _build_info_embed()
         view  = KokaInfoView()
-        existing = None
+
+        # Alte Bot-Embeds mit diesem Titel l\xf6schen, dann frisch senden
         try:
             async for msg in channel.history(limit=50):
                 if msg.author.id == bot.user.id and msg.embeds:
                     for emb in msg.embeds:
                         if emb.title and "Kokain Herstellung" in emb.title:
-                            existing = msg
-                            break
-                if existing:
-                    break
+                            try:
+                                await msg.delete()
+                            except Exception:
+                                pass
         except Exception:
             pass
-        if existing:
-            print(f"[kokain] \u2139\ufe0f Info-Embed bereits vorhanden in #{channel.name}")
-            continue
+
         try:
             await channel.send(embed=embed, view=view)
             print(f"[kokain] \u2705 Info-Embed gepostet in #{channel.name}")
