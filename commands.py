@@ -177,17 +177,3 @@ async def server_info(interaction: discord.Interaction):
     embed.set_footer(text="Paradise City Roleplay \u2022 Server-Info")
 
     await interaction.response.send_message(embed=embed)
-
-
-# \u2500\u2500 /kokain-setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-@bot.tree.command(name="kokain-setup", description="[Team] Sendet das Kokain Info-Embed in den Kanal", guild=discord.Object(id=GUILD_ID))
-async def kokain_setup_cmd(interaction: discord.Interaction):
-    role_ids = {r.id for r in interaction.user.roles}
-    if not (role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID, TICKET_MOD_ROLE_ID}):
-        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
-        return
-    await interaction.response.defer(ephemeral=True)
-    import kokain as _kokain
-    await _kokain._koka_setup()
-    await interaction.followup.send("\u2705 Kokain Info-Embed gesendet.", ephemeral=True)
