@@ -345,6 +345,26 @@ async def shop_item_autocomplete(
     return choices[:25]
 
 
+async def all_shops_item_autocomplete(
+    interaction: discord.Interaction,
+    current: str
+):
+    import re
+    items = load_shop() + load_team_shop()
+    current_lower = current.lower()
+    seen = set()
+    choices = []
+    for item in items:
+        name = item["name"]
+        if name in seen:
+            continue
+        seen.add(name)
+        display = re.sub(r'<a?:[^:]+:\d+>\s*', '', name).strip()
+        if current_lower == "" or current_lower in name.lower() or current_lower in display.lower():
+            choices.append(app_commands.Choice(name=display[:100], value=name[:100]))
+    return choices[:25]
+
+
 # \u2500\u2500 Inventar-Item Autocomplete \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def inventory_item_autocomplete(
