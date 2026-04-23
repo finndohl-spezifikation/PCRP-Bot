@@ -27,6 +27,10 @@ from lotto        import LottoView, lotto_draw_loop
 from embed_manager import setup_all_embeds
 from rechnungen   import RechnungenPanelView
 from economy_commands import LohnPanelView, KontoPanelView
+try:
+    from kokain import KokaInfoView as _KokaInfoView
+except Exception:
+    _KokaInfoView = None
 
 
 
@@ -52,6 +56,8 @@ async def on_ready():
     bot.add_view(RechnungenPanelView())
     bot.add_view(LohnPanelView())
     bot.add_view(KontoPanelView())
+    if _KokaInfoView:
+        bot.add_view(_KokaInfoView())
 
     for entry in load_hidden_items():
         bot.add_view(VersteckRetrieveView(entry["id"], entry["owner_id"]))
