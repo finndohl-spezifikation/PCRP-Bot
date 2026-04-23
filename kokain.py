@@ -225,153 +225,162 @@ class KokaInfoView(discord.ui.View):
 
 # \u2500\u2500 Tempor\xe4re View: Auswahl nach Foto-Einreichung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-class KokaAktionSelect(discord.ui.Select):
-    def __init__(self, author_id: int, guild_id: int, cd_blaetter: int, cd_kokain: int):
-        self.author_id = author_id
-        self.guild_id  = guild_id
-
-        options = []
-        if cd_blaetter == 0:
-            options.append(discord.SelectOption(
-                label="\U0001f33f Kokabl\xe4tter sammeln  (5 Min.)",
-                value="blaetter",
-                description="50\u2013150 Kokabl\xe4tter ernten",
-            ))
-        if cd_kokain == 0:
-            options.append(discord.SelectOption(
-                label="\u2697\ufe0f Kokain herstellen  (15 Min.)",
-                value="kokain",
-                description="25 Kokabl\xe4tter \u2192 500g Kokain",
-            ))
-
-        super().__init__(
-            placeholder="Was m\xf6chtest du tun?",
-            min_values=1,
-            max_values=1,
-            options=options,
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.author_id:
-            await interaction.response.send_message("\u274c Das ist nicht deine Auswahl!", ephemeral=True)
-            return
-
-        user  = interaction.user
-        guild = bot.get_guild(self.guild_id)
-        wahl  = self.values[0]
-
-        self.disabled = True
-        try:
-            await interaction.message.edit(view=self.view)
-        except Exception:
-            pass
-
-        if wahl == "blaetter":
-            cd = _cd_remaining(user.id, "koka_blaetter_cd", KOKA_BLAETTER_CD_SECS)
-            if cd > 0:
-                m, s = divmod(cd, 60)
-                await interaction.response.send_message(
-                    f"\u23f3 Du kannst erst in **{m}m {s}s** wieder Kokabl\xe4tter sammeln.",
-                    ephemeral=True,
-                )
-                return
-
-            menge = random.randint(KOKA_BLAETTER_MIN, KOKA_BLAETTER_MAX)
-            _set_cd(user.id, "koka_blaetter_cd")
-
-            await interaction.response.send_message(
-                f"\U0001f33f Du sammelst **Kokabl\xe4tter...**\n"
-                f"\u23f3 Komm in **5 Minuten** zur\xfcck \u2013 du erh\xe4ltst **{menge} Kokabl\xe4tter**!",
-                ephemeral=True,
-            )
-
-            if guild:
-                await _log(guild, "\U0001f33f Kokabl\xe4tter sammeln gestartet",
-                    f"{user.mention} (`{user}`) sammelt **{menge} Kokabl\xe4tter** \u2014 fertig in 5 Min.")
-
-            async def _liefern_blaetter():
-                await asyncio.sleep(KOKA_BLAETTER_CD_SECS)
-                item_name = _shop_name(ITEM_BLAETTER_DEFAULT, ITEM_BLAETTER_DEFAULT)
-                _add_items(user.id, item_name, menge)
-                try:
-                    dm = await user.create_dm()
-                    await dm.send(
-                        f"\u2705 **Kokabl\xe4tter geerntet!**\n"
-                        f"\U0001f33f **{menge} Kokabl\xe4tter** wurden deinem Inventar hinzugef\xfcgt."
-                    )
-                except Exception:
-                    pass
-                if guild:
-                    await _log(guild, "\u2705 Kokabl\xe4tter erhalten",
-                        f"{user.mention} (`{user}`) hat **{menge} Kokabl\xe4tter** ins Inventar bekommen.")
-
-            bot.loop.create_task(_liefern_blaetter())
-
-        elif wahl == "kokain":
-            cd = _cd_remaining(user.id, "koka_kokain_cd", KOKA_KOKAIN_CD_SECS)
-            if cd > 0:
-                m, s = divmod(cd, 60)
-                await interaction.response.send_message(
-                    f"\u23f3 Du kannst erst in **{m}m {s}s** wieder Kokain herstellen.",
-                    ephemeral=True,
-                )
-                return
-
-            vorrat = _count_item(user.id, ITEM_BLAETTER_DEFAULT)
-            if vorrat < KOKA_BLAETTER_PRO_RUNDE:
-                await interaction.response.send_message(
-                    f"\u274c Nicht genug Kokabl\xe4tter!\n"
-                    f"\U0001f33f Vorhanden: **{vorrat}** \xb7 Ben\xf6tigt: **{KOKA_BLAETTER_PRO_RUNDE}**",
-                    ephemeral=True,
-                )
-                return
-
-            if not _consume_n(user.id, ITEM_BLAETTER_DEFAULT, KOKA_BLAETTER_PRO_RUNDE):
-                await interaction.response.send_message(
-                    "\u274c Fehler beim Entnehmen der Kokabl\xe4tter. Bitte erneut versuchen.",
-                    ephemeral=True,
-                )
-                return
-
-            _set_cd(user.id, "koka_kokain_cd")
-
-            await interaction.response.send_message(
-                f"\u2697\ufe0f **Kokain wird hergestellt...**\n"
-                f"\U0001f33f **{KOKA_BLAETTER_PRO_RUNDE} Kokabl\xe4tter** entnommen.\n"
-                f"\u23f3 Komm in **15 Minuten** zur\xfcck \u2013 du erh\xe4ltst **500g Kokain**!",
-                ephemeral=True,
-            )
-
-            if guild:
-                await _log(guild, "\u2697\ufe0f Kokain Herstellung gestartet",
-                    f"{user.mention} (`{user}`) stellt **500g Kokain** her \u2014 "
-                    f"fertig in 15 Min. ({KOKA_BLAETTER_PRO_RUNDE} Bl\xe4tter entnommen)")
-
-            async def _liefern_kokain():
-                await asyncio.sleep(KOKA_KOKAIN_CD_SECS)
-                item_name = _shop_name(ITEM_KOKAIN_DEFAULT, ITEM_KOKAIN_DEFAULT)
-                _add_items(user.id, item_name, 1)
-                try:
-                    dm = await user.create_dm()
-                    await dm.send(
-                        f"\u2705 **Kokain hergestellt!**\n"
-                        f"\U0001f48a **500g Kokain** wurde deinem Inventar hinzugef\xfcgt.\n"
-                        f"\U0001f4b0 Wert: **{KOKAIN_WERT:,}$ Schwarzgeld** \u2014 "
-                        f"verkaufe es \xfcber den Info-Kanal!"
-                    )
-                except Exception:
-                    pass
-                if guild:
-                    await _log(guild, "\u2705 Kokain hergestellt",
-                        f"{user.mention} (`{user}`) hat **500g Kokain** ins Inventar bekommen.")
-
-            bot.loop.create_task(_liefern_kokain())
-
-
 class KokaAktionView(discord.ui.View):
     def __init__(self, author_id: int, guild_id: int, cd_blaetter: int, cd_kokain: int):
         super().__init__(timeout=120)
-        self.add_item(KokaAktionSelect(author_id, guild_id, cd_blaetter, cd_kokain))
+        self.author_id   = author_id
+        self.guild_id    = guild_id
+        self.cd_blaetter = cd_blaetter
+        self.cd_kokain   = cd_kokain
+        # Buttons direkt deaktivieren falls auf Cooldown
+        for child in self.children:
+            if hasattr(child, "callback"):
+                if child.callback.__name__ == "blaetter_btn" and cd_blaetter > 0:
+                    child.disabled = True
+                if child.callback.__name__ == "kokain_btn" and cd_kokain > 0:
+                    child.disabled = True
+
+    def _get_guild(self) -> discord.Guild | None:
+        return bot.get_guild(self.guild_id)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("\u274c Das ist nicht dein Foto!", ephemeral=True)
+            return False
+        return True
+
+    def _disable_all(self):
+        for child in self.children:
+            child.disabled = True
+
+    # \u2500\u2500 Button A: Kokabl\xe4tter sammeln \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    @discord.ui.button(
+        label="\U0001f33f Kokabl\xe4tter sammeln  (5 Min.)",
+        style=discord.ButtonStyle.success,
+    )
+    async def blaetter_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user  = interaction.user
+        guild = self._get_guild()
+
+        cd = _cd_remaining(user.id, "koka_blaetter_cd", KOKA_BLAETTER_CD_SECS)
+        if cd > 0:
+            m, s = divmod(cd, 60)
+            await interaction.response.send_message(
+                f"\u23f3 Du kannst erst in **{m}m {s}s** wieder Kokabl\xe4tter sammeln.",
+                ephemeral=True,
+            )
+            return
+
+        menge = random.randint(KOKA_BLAETTER_MIN, KOKA_BLAETTER_MAX)
+        _set_cd(user.id, "koka_blaetter_cd")
+
+        await interaction.response.send_message(
+            f"\U0001f33f Du sammelst **Kokabl\xe4tter...**\n"
+            f"\u23f3 Komm in **5 Minuten** zur\xfcck \u2013 du erh\xe4ltst **{menge} Kokabl\xe4tter**!",
+            ephemeral=True,
+        )
+        self._disable_all()
+        try:
+            await interaction.message.edit(view=self)
+        except Exception:
+            pass
+
+        if guild:
+            await _log(guild, "\U0001f33f Kokabl\xe4tter sammeln gestartet",
+                f"{user.mention} (`{user}`) sammelt **{menge} Kokabl\xe4tter** \u2014 fertig in 5 Min.")
+
+        async def _liefern_blaetter():
+            await asyncio.sleep(KOKA_BLAETTER_CD_SECS)
+            item_name = _shop_name(ITEM_BLAETTER_DEFAULT, ITEM_BLAETTER_DEFAULT)
+            _add_items(user.id, item_name, menge)
+            try:
+                dm = await user.create_dm()
+                await dm.send(
+                    f"\u2705 **Kokabl\xe4tter geerntet!**\n"
+                    f"\U0001f33f **{menge} Kokabl\xe4tter** wurden deinem Inventar hinzugef\xfcgt."
+                )
+            except Exception:
+                pass
+            if guild:
+                await _log(guild, "\u2705 Kokabl\xe4tter erhalten",
+                    f"{user.mention} (`{user}`) hat **{menge} Kokabl\xe4tter** ins Inventar bekommen.")
+
+        bot.loop.create_task(_liefern_blaetter())
+
+    # \u2500\u2500 Button B: Kokain herstellen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+    @discord.ui.button(
+        label="\u2697\ufe0f Kokain herstellen  (15 Min.)",
+        style=discord.ButtonStyle.danger,
+    )
+    async def kokain_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user  = interaction.user
+        guild = self._get_guild()
+
+        cd = _cd_remaining(user.id, "koka_kokain_cd", KOKA_KOKAIN_CD_SECS)
+        if cd > 0:
+            m, s = divmod(cd, 60)
+            await interaction.response.send_message(
+                f"\u23f3 Du kannst erst in **{m}m {s}s** wieder Kokain herstellen.",
+                ephemeral=True,
+            )
+            return
+
+        vorrat = _count_item(user.id, ITEM_BLAETTER_DEFAULT)
+        if vorrat < KOKA_BLAETTER_PRO_RUNDE:
+            await interaction.response.send_message(
+                f"\u274c Nicht genug Kokabl\xe4tter!\n"
+                f"\U0001f33f Vorhanden: **{vorrat}** \xb7 Ben\xf6tigt: **{KOKA_BLAETTER_PRO_RUNDE}**",
+                ephemeral=True,
+            )
+            return
+
+        if not _consume_n(user.id, ITEM_BLAETTER_DEFAULT, KOKA_BLAETTER_PRO_RUNDE):
+            await interaction.response.send_message(
+                "\u274c Fehler beim Entnehmen der Kokabl\xe4tter. Bitte erneut versuchen.",
+                ephemeral=True,
+            )
+            return
+
+        _set_cd(user.id, "koka_kokain_cd")
+
+        await interaction.response.send_message(
+            f"\u2697\ufe0f **Kokain wird hergestellt...**\n"
+            f"\U0001f33f **{KOKA_BLAETTER_PRO_RUNDE} Kokabl\xe4tter** entnommen.\n"
+            f"\u23f3 Komm in **15 Minuten** zur\xfcck \u2013 du erh\xe4ltst **500g Kokain**!",
+            ephemeral=True,
+        )
+        self._disable_all()
+        try:
+            await interaction.message.edit(view=self)
+        except Exception:
+            pass
+
+        if guild:
+            await _log(guild, "\u2697\ufe0f Kokain Herstellung gestartet",
+                f"{user.mention} (`{user}`) stellt **500g Kokain** her \u2014 "
+                f"fertig in 15 Min. ({KOKA_BLAETTER_PRO_RUNDE} Bl\xe4tter entnommen)")
+
+        async def _liefern_kokain():
+            await asyncio.sleep(KOKA_KOKAIN_CD_SECS)
+            item_name = _shop_name(ITEM_KOKAIN_DEFAULT, ITEM_KOKAIN_DEFAULT)
+            _add_items(user.id, item_name, 1)
+            try:
+                dm = await user.create_dm()
+                await dm.send(
+                    f"\u2705 **Kokain hergestellt!**\n"
+                    f"\U0001f48a **500g Kokain** wurde deinem Inventar hinzugef\xfcgt.\n"
+                    f"\U0001f4b0 Wert: **{KOKAIN_WERT:,}$ Schwarzgeld** \u2014 "
+                    f"verkaufe es \xfcber den Info-Kanal!"
+                )
+            except Exception:
+                pass
+            if guild:
+                await _log(guild, "\u2705 Kokain hergestellt",
+                    f"{user.mention} (`{user}`) hat **500g Kokain** ins Inventar bekommen.")
+
+        bot.loop.create_task(_liefern_kokain())
 
 
 # \u2500\u2500 on_message \u2014 Foto-Erkennung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
