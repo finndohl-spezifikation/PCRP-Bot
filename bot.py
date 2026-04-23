@@ -162,6 +162,10 @@ try:
 except Exception as _e:
     print(f"[WARNING] kokain konnte nicht geladen werden: {_e}")
 try:
+    import weed
+except Exception as _e:
+    print(f"[WARNING] weed konnte nicht geladen werden: {_e}")
+try:
     import kanal_sperre
 except Exception as _e:
     print(f"[WARNING] kanal_sperre konnte nicht geladen werden: {_e}")
