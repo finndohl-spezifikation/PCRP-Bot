@@ -167,12 +167,11 @@ class KokaAktionView(discord.ui.View):
         user  = interaction.user
         guild = bot.get_guild(self.guild_id)
 
-        menge = random.randint(KOKA_BLAETTER_MIN, KOKA_BLAETTER_MAX)
         _set_foto_cd(user.id, KOKA_BLAETTER_CD_SECS)
 
         await interaction.response.send_message(
             f"\U0001f33f **Kokabl\xe4tter sammeln gestartet!**\n"
-            f"\u23f3 In **5 Minuten** erh\xe4ltst du **{menge} Kokabl\xe4tter**.\n"
+            f"\u23f3 In **5 Minuten** erh\xe4ltst du deine Kokabl\xe4tter.\n"
             f"\U0001f4f8 Erst danach kannst du wieder ein Foto schicken.",
             ephemeral=True,
         )
@@ -182,13 +181,21 @@ class KokaAktionView(discord.ui.View):
             pass
 
         await _log(guild, "\U0001f33f Sammeln gestartet",
-            f"{user.mention} sammelt **{menge} Kokabl\xe4tter** \u2014 fertig in 5 Min.")
+            f"{user.mention} sammelt Kokabl\xe4tter \u2014 fertig in 5 Min.")
 
         async def _liefern():
+            menge = random.randint(KOKA_BLAETTER_MIN, KOKA_BLAETTER_MAX)
             await asyncio.sleep(KOKA_BLAETTER_CD_SECS)
             _add_items(user.id, _shop_name(ITEM_BLAETTER_DEFAULT, ITEM_BLAETTER_DEFAULT), menge)
             await _log(guild, "\u2705 Kokabl\xe4tter erhalten",
                 f"{user.mention} hat **{menge} Kokabl\xe4tter** erhalten.")
+            try:
+                await user.send(
+                    f"\U0001f33f **Ernte abgeschlossen!**\n"
+                    f"Du hast **{menge} Kokabl\xe4tter** erhalten und sie wurden deinem Inventar hinzugef\xfcgt."
+                )
+            except Exception:
+                pass
         bot.loop.create_task(_liefern())
 
     @discord.ui.button(label="\u2697\ufe0f Kokain herstellen  (15 Min.)", style=discord.ButtonStyle.danger)
@@ -232,6 +239,14 @@ class KokaAktionView(discord.ui.View):
             _add_items(user.id, _shop_name(ITEM_KOKAIN_DEFAULT, ITEM_KOKAIN_DEFAULT), 1)
             await _log(guild, "\u2705 Kokain hergestellt",
                 f"{user.mention} hat **500g Kokain** erhalten.")
+            try:
+                await user.send(
+                    f"\u2697\ufe0f **Herstellung abgeschlossen!**\n"
+                    f"**500g Kokain** wurde deinem Inventar hinzugef\xfcgt.\n"
+                    f"\U0001f4b0 Du kannst es jetzt im Kokain-Kanal verkaufen *(2.950 $ Schwarzgeld)*."
+                )
+            except Exception:
+                pass
         bot.loop.create_task(_liefern())
 
 
@@ -284,11 +299,14 @@ async def koka_bild_listener(message: discord.Message):
         try:
             await message.channel.send(
                 f"{user.mention} \u23f3 Du bist noch **{m}m {s}s** auf Cooldown!",
-                delete_after=15,
+                delete_after=5,
             )
         except Exception:
             pass
         return
+
+    await _log(guild, "\U0001f4f8 Foto eingereicht",
+        f"{user.mention} hat ein Foto in <#{KOKA_BILD_CHANNEL_ID}> eingereicht.")
 
     embed = discord.Embed(
         title="\U0001f33f Kokain-System",
