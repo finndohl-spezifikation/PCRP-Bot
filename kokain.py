@@ -17,9 +17,10 @@ KOKA_BLAETTER_MIN        = 50
 KOKA_BLAETTER_MAX        = 150
 KOKA_BLAETTER_PRO_RUNDE  = 35
 KOKAIN_WERT              = 2_950
+KOKAIN_GRAMM             = 250
 
 ITEM_BLAETTER_DEFAULT    = "Kokabl\xe4tter"
-ITEM_KOKAIN_DEFAULT      = "Kokain 250g"
+ITEM_KOKAIN_DEFAULT      = "Kokain"
 ITEM_SCHWARZGELD_DEFAULT = "Schwarzgeld"
 
 
@@ -133,19 +134,19 @@ class KokaInfoView(discord.ui.View):
         hits = [i for i in inv if nk in normalize_item_name(i)]
         if not hits:
             await interaction.response.send_message(
-                "\u274c Du hast kein **Kokain 250g** im Inventar.", ephemeral=True)
+                "\u274c Du hast kein **Kokain** im Inventar.", ephemeral=True)
             return
         ud["inventory"] = [i for i in inv if nk not in normalize_item_name(i)]
-        sg    = _shop_name(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
-        total = len(hits) * KOKAIN_WERT
-        ud["inventory"].extend([sg] * total)
+        sg        = _shop_name(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
+        total_sg  = (len(hits) * KOKAIN_WERT) // KOKAIN_GRAMM
+        ud["inventory"].extend([sg] * total_sg)
         eco[str(user.id)] = ud
         save_economy(eco)
         await interaction.response.send_message(
-            f"\u2705 **{len(hits)}\xd7 250g Kokain** verkauft!\n"
-            f"\U0001f4b0 **{total:,}\xd7 Schwarzgeld** ins Inventar.", ephemeral=True)
+            f"\u2705 **{len(hits)}g Kokain** verkauft!\n"
+            f"\U0001f4b0 **{total_sg:,}\xd7 Schwarzgeld** ins Inventar.", ephemeral=True)
         await _log(interaction.guild, "\U0001f4b0 Kokain verkauft",
-            f"{user.mention} hat **{len(hits)}\xd7 250g** \u2192 **{total:,}\xd7 Schwarzgeld**")
+            f"{user.mention} hat **{len(hits)}g Kokain** \u2192 **{total_sg:,}\xd7 Schwarzgeld**")
 
 
 # \u2500\u2500 Tempor\xe4re View: Auswahl nach Foto-Einreichung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -237,14 +238,14 @@ class KokaAktionView(discord.ui.View):
 
         async def _liefern():
             await asyncio.sleep(KOKA_KOKAIN_CD_SECS)
-            _add_items(user.id, _shop_name(ITEM_KOKAIN_DEFAULT, ITEM_KOKAIN_DEFAULT), 1)
+            _add_items(user.id, _shop_name(ITEM_KOKAIN_DEFAULT, ITEM_KOKAIN_DEFAULT), KOKAIN_GRAMM)
             await _log(guild, "\u2705 Kokain hergestellt",
-                f"{user.mention} hat **250g Kokain** erhalten.")
+                f"{user.mention} hat **{KOKAIN_GRAMM}\xd7 Kokain ({KOKAIN_GRAMM}g)** erhalten.")
             try:
                 await user.send(
                     f"\u2697\ufe0f **Herstellung abgeschlossen!**\n"
-                    f"**250g Kokain** wurde deinem Inventar hinzugef\xfcgt.\n"
-                    f"\U0001f4b0 Du kannst es jetzt im Kokain-Kanal verkaufen *(2.950 $ Schwarzgeld)*."
+                    f"**{KOKAIN_GRAMM}\xd7 Kokain ({KOKAIN_GRAMM}g)** wurde deinem Inventar hinzugef\xfcgt.\n"
+                    f"\U0001f4b0 Du kannst es jetzt im Kokain-Kanal verkaufen *(2.950 $ Schwarzgeld f\xfcr 250g)*."
                 )
             except Exception:
                 pass
@@ -338,7 +339,7 @@ async def koka_bild_listener(message: discord.Message):
         description=(
             f"{user.mention}, was m\xf6chtest du tun?\n\n"
             "\U0001f33f **Kokabl\xe4tter sammeln** \u2014 5 Min. Cooldown \xb7 50\u2013150 Bl\xe4tter\n"
-            "\u2697\ufe0f **Kokain herstellen** \u2014 15 Min. Cooldown \xb7 35 Bl\xe4tter n\xf6tig \xb7 250g Kokain"
+            "\u2697\ufe0f **Kokain herstellen** \u2014 15 Min. Cooldown \xb7 35 Bl\xe4tter n\xf6tig \xb7 250\xd7 Kokain (250g)"
         ),
         color=0xFF6B00,
     )
@@ -369,7 +370,7 @@ def _build_info_embed() -> discord.Embed:
             f"\U0001f4f8 Schicke ein Foto in <#{KOKA_BILD_CHANNEL_ID}>\n"
             "\U0001f33f Voraussetzung: **35 Kokabl\xe4tter**\n"
             "\u23f3 Herstellungszeit: **15 Minuten**\n"
-            "\U0001f48a Ergebnis: **250g Kokain** \u2014 Wert: **2.950 $ Schwarzgeld**\n\n"
+            "\U0001f48a Ergebnis: **250\xd7 Kokain (250g)** \u2014 Wert: **2.950 $ Schwarzgeld**\n\n"
             "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
             "\U0001f4b0 Dr\xfccke **Kokain verkaufen** um dein Kokain direkt\n"
             "in Schwarzgeld umzutauschen *(250g = 2.950 $)*"
