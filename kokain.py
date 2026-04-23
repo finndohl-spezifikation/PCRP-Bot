@@ -434,6 +434,7 @@ async def koka_bild_listener(message: discord.Message):
 async def _koka_setup():
     print(f"[kokain] _koka_setup gestartet, warte auf ready...")
     await bot.wait_until_ready()
+    await asyncio.sleep(3)   # kurz warten bis alle Caches geladen sind
     print(f"[kokain] Bot ready. Guilds: {[g.name for g in bot.guilds]}")
 
     # Kanal direkt per API holen (umgeht Cache-Probleme)
@@ -476,4 +477,5 @@ async def auto_kokain_setup():
 
 @bot.listen("on_ready")
 async def kokain_on_ready():
-    bot.add_view(KokaInfoView())   # Persistent View nach Neustart registrieren
+    bot.add_view(KokaInfoView())          # Persistent View registrieren
+    bot.loop.create_task(_koka_setup())   # Embed-Setup unabh\xe4ngig starten
