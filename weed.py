@@ -17,8 +17,9 @@ WEED_GRAMM_MAX         = 500
 WEED_PREIS_PRO_GRAMM   = 30
 WEED_SAMEN_PRO_RUNDE   = 10
 
-ITEM_WEED_SAMEN_DEFAULT = "Weed Samen"
-ITEM_WEED_DEFAULT       = "Weed"
+ITEM_WEED_SAMEN_DEFAULT    = "Weed Samen"
+ITEM_WEED_DEFAULT          = "Weed"
+ITEM_SCHWARZGELD_DEFAULT   = "Schwarzgeld"
 
 
 # -- Hilfsfunktionen ------------------------------------------
@@ -118,23 +119,41 @@ class WeedInfoView(discord.ui.View):
         eco  = load_economy()
         ud   = get_user(eco, user.id)
         inv  = ud.get("inventory", [])
-        nw   = normalize_item_name(ITEM_WEED_DEFAULT)
-        hits = [i for i in inv if nw in normalize_item_name(i)]
+
+        # Weed-Items finden (nur "Weed", nicht "Weed Samen")
+        nw      = normalize_item_name(ITEM_WEED_DEFAULT)
+        ns      = normalize_item_name(ITEM_WEED_SAMEN_DEFAULT)
+        hits    = [i for i in inv if nw in normalize_item_name(i) and ns not in normalize_item_name(i)]
         if not hits:
             await interaction.response.send_message(
                 "\u274C Du hast kein **Weed** im Inventar.", ephemeral=True)
             return
-        ud["inventory"] = [i for i in inv if nw not in normalize_item_name(i)]
+
+        # Weed-Items entfernen, Samen behalten
+        new_inv    = []
+        to_remove  = len(hits)
+        for item in inv:
+            nitem = normalize_item_name(item)
+            if nw in nitem and ns not in nitem and to_remove > 0:
+                to_remove -= 1
+            else:
+                new_inv.append(item)
+        ud["inventory"] = new_inv
+
         gramm    = len(hits)
         total_sg = gramm * WEED_PREIS_PRO_GRAMM
-        ud["schwarzgeld"] = ud.get("schwarzgeld", 0) + total_sg
+
+        # Schwarzgeld-Item aus Teamshop suchen
+        sg_item_name = _shop_name_weed(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
+        ud["inventory"].extend([sg_item_name] * total_sg)
+
         eco[str(user.id)] = ud
         save_economy(eco)
         await interaction.response.send_message(
             f"\u2705 **{gramm}g Weed** verkauft!\n"
-            f"\U0001F4B0 **{total_sg:,}$ Schwarzgeld** deinem Konto gutgeschrieben.", ephemeral=True)
+            f"\U0001F4B0 **{total_sg:,}x {sg_item_name}** ins Inventar gelegt.", ephemeral=True)
         await _log_weed(interaction.guild, "\U0001F4B0 Weed verkauft",
-            f"{user.mention} hat **{gramm}g Weed** \u2192 **{total_sg:,}$ Schwarzgeld**")
+            f"{user.mention} hat **{gramm}g Weed** \u2192 **{total_sg:,}x {sg_item_name}**")
 
 
 # -- on_message: Foto startet Anbau direkt --------------------
