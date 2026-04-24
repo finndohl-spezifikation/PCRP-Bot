@@ -449,6 +449,165 @@ async def start_snake(interaction: discord.Interaction):
 
 # \u2500\u2500 Game Over View \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
+
+# \u2500\u2500 Thorstens Rettung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+_THR_SIZE  = 9
+_THR_INNER = range(1, _THR_SIZE - 1)
+_THR_EMPTY  = "\u2b1c"
+_THR_WALL   = "\u2b1b"
+_THR_PLAYER = "\U0001f3c3"
+_THR_CHASER = "\U0001f469"
+_THR_BURGER = "\U0001f354"
+
+
+def _thr_spawn_burger(state):
+    import random as _rr
+    occupied = {(state["player"][0], state["player"][1]),
+                (state["chaser"][0], state["chaser"][1])}
+    candidates = [(r, c) for r in _THR_INNER for c in _THR_INNER
+                  if (r, c) not in occupied]
+    if candidates:
+        br, bc = _rr.choice(candidates)
+        state["burger"] = [br, bc]
+
+
+def thorsten_new(uid: int, name: str = "?"):
+    mid = _THR_SIZE // 2
+    _states[uid] = {
+        "kind":   "thorsten",
+        "player": [mid, mid],
+        "chaser": [1, 1],
+        "burger": [mid - 2, mid + 2],
+        "score":  0,
+        "moves":  0,
+        "over":   False,
+        "name":   name,
+    }
+    _thr_spawn_burger(_states[uid])
+
+
+def _thorsten_step(state, dr: int, dc: int):
+    if state["over"]:
+        return
+    pr, pc = state["player"]
+    nr, nc = pr + dr, pc + dc
+    if nr not in _THR_INNER or nc not in _THR_INNER:
+        return
+    state["player"] = [nr, nc]
+    state["moves"] += 1
+    if state["burger"] == [nr, nc]:
+        state["score"] += 10
+        _thr_spawn_burger(state)
+    cr, cc = state["chaser"]
+    best, best_d = None, abs(cr - nr) + abs(cc - nc)
+    for ddr, ddc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        ncr, ncc = cr + ddr, cc + ddc
+        if ncr not in _THR_INNER or ncc not in _THR_INNER:
+            continue
+        d = abs(ncr - nr) + abs(ncc - nc)
+        if d < best_d:
+            best_d = d
+            best = [ncr, ncc]
+    if best:
+        state["chaser"] = best
+    if state["chaser"] == state["player"]:
+        state["over"] = True
+        _update_score("thorsten", state.get("name", "?"), state["score"])
+
+
+def thorsten_render(state) -> str:
+    grid = [[_THR_EMPTY] * _THR_SIZE for _ in range(_THR_SIZE)]
+    for i in range(_THR_SIZE):
+        grid[0][i] = grid[_THR_SIZE - 1][i] = _THR_WALL
+        grid[i][0] = grid[i][_THR_SIZE - 1] = _THR_WALL
+    br, bc = state["burger"]
+    grid[br][bc] = _THR_BURGER
+    cr, cc = state["chaser"]
+    grid[cr][cc] = _THR_CHASER
+    pr, pc = state["player"]
+    grid[pr][pc] = _THR_PLAYER
+    rows = ["".join(row) for row in grid]
+    header = "\U0001f3c3 **Thorstens Rettung** \U0001f52a\n"
+    top    = _top_line("thorsten")
+    burgers = state["score"] // 10
+    info   = (
+        f"\U0001f354 Hamburger: **{burgers}**  |  "
+        f"Score: **{state['score']}** Pkt.  |  "
+        f"Schritte: **{state['moves']}**\n"
+    )
+    if state["over"]:
+        info += "\U0001f480 **ERWISCHT! GAME OVER**\n"
+    return header + top + info + "\n".join(rows)
+
+
+class ThorstensView(discord.ui.View):
+    def __init__(self, uid: int):
+        super().__init__(timeout=300)
+        self.uid = uid
+
+    def _check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.uid
+
+    async def _refresh(self, interaction: discord.Interaction):
+        state = _states.get(self.uid)
+        if not state:
+            await interaction.response.edit_message(
+                content="\U0001f4f1 Spiel nicht gefunden.", view=None)
+            return
+        txt  = thorsten_render(state)
+        view = self if not state["over"] else _GameOverView(self.uid, "thorsten")
+        await interaction.response.edit_message(content=txt, view=view)
+
+    @discord.ui.button(label="\u2b06 Hoch", style=discord.ButtonStyle.primary, row=0)
+    async def btn_up(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._check(interaction): await interaction.response.defer(); return
+        _thorsten_step(_states[self.uid], -1, 0)
+        await self._refresh(interaction)
+
+    @discord.ui.button(label="\U0001f504 Neu starten", style=discord.ButtonStyle.success, row=0)
+    async def btn_new(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._check(interaction): await interaction.response.defer(); return
+        name = _states.get(self.uid, {}).get("name", "?")
+        thorsten_new(self.uid, name)
+        await self._refresh(interaction)
+
+    @discord.ui.button(label="\u2716 Beenden", style=discord.ButtonStyle.danger, row=0)
+    async def btn_quit(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._check(interaction): await interaction.response.defer(); return
+        _states.pop(self.uid, None)
+        await interaction.response.edit_message(
+            content="\U0001f4f1 Spiel beendet.", view=None)
+
+    @discord.ui.button(label="\u2b05 Links", style=discord.ButtonStyle.primary, row=1)
+    async def btn_left(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._check(interaction): await interaction.response.defer(); return
+        _thorsten_step(_states[self.uid], 0, -1)
+        await self._refresh(interaction)
+
+    @discord.ui.button(label="\u2b07 Runter", style=discord.ButtonStyle.primary, row=1)
+    async def btn_down(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._check(interaction): await interaction.response.defer(); return
+        _thorsten_step(_states[self.uid], 1, 0)
+        await self._refresh(interaction)
+
+    @discord.ui.button(label="\u27a1 Rechts", style=discord.ButtonStyle.primary, row=1)
+    async def btn_right(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self._check(interaction): await interaction.response.defer(); return
+        _thorsten_step(_states[self.uid], 0, 1)
+        await self._refresh(interaction)
+
+
+async def start_thorsten(interaction: discord.Interaction):
+    thorsten_new(interaction.user.id, interaction.user.display_name)
+    txt = thorsten_render(_states[interaction.user.id])
+    await interaction.response.send_message(
+        content=txt,
+        view=ThorstensView(interaction.user.id),
+        ephemeral=True,
+    )
+
+
 class _GameOverView(discord.ui.View):
     def __init__(self, uid: int, kind: str):
         super().__init__(timeout=120)
@@ -462,6 +621,10 @@ class _GameOverView(discord.ui.View):
             tetris_new(self.uid, _states.get(self.uid, {}).get("name", "?"))
             txt  = tetris_render(_states[self.uid])
             view = TetrisView(self.uid)
+        elif self.kind == "thorsten":
+            thorsten_new(self.uid, _states.get(self.uid, {}).get("name", "?"))
+            txt  = thorsten_render(_states[self.uid])
+            view = ThorstensView(self.uid)
         else:
             snake_new(self.uid, _states.get(self.uid, {}).get("name", "?"))
             txt  = snake_render(_states[self.uid])
