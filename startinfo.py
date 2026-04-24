@@ -6,7 +6,7 @@ from config import *
 
 STARTINFO_CHANNEL_ID = 1490878159032422433
 STARTINFO_MSG_FILE   = DATA_DIR / "startinfo_msg.json"
-STARTINFO_IMG_URL    = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/startinfo.jpg"
+STARTINFO_IMG_URL    = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev/einreise.jpg"
 
 
 def _load_data() -> dict:
@@ -28,7 +28,7 @@ def _build_embed() -> discord.Embed:
             "Willkommen in **Paradise City**! W\u00e4hle deinen Startpunkt je nach Einreiseart.\n"
             "Dein Startfahrzeug findest du in <#1490878159804174470>."
         ),
-        color=LOG_COLOR,
+        color=0xFF6600,
     )
     embed.add_field(
         name="\u2708\ufe0f Legale Einreise",
@@ -46,7 +46,7 @@ def _build_embed() -> discord.Embed:
         ),
         inline=True,
     )
-    embed.set_thumbnail(url=STARTINFO_IMG_URL)
+    embed.set_image(url=STARTINFO_IMG_URL)
     embed.set_footer(text="Paradise City Roleplay \u2022 Start-Info")
     return embed
 
