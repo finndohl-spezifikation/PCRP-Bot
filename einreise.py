@@ -57,128 +57,80 @@ async def _assign_charakter_rollen(member: discord.Member, guild: discord.Guild,
 
 # \u2500\u2500 Spieler-Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-class AusweisModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen"):
-    vollstaendiger_name = discord.ui.TextInput(
-        label="Vollst\u00E4ndiger Name (Vorname Nachname)",
-        placeholder="z.B. Max Mustermann",
-        max_length=100,
+# \u2500\u2500 DM Q&A Ausweis \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+_pending_ausweis: dict = {}   # uid -> {step, einreise_typ, data}
+
+_AUSWEIS_FRAGEN = [
+    ("vollstaendiger_name", "\U0001f4dd **Schritt 1/5 \u2014 Vollst\u00e4ndiger Name**\nBitte gib deinen vollst\u00e4ndigen Roleplay-Namen ein *(Vorname Nachname)*:"),
+    ("geburtsdatum",        "\U0001f4c5 **Schritt 2/5 \u2014 Geburtsdatum**\nFormat: TT.MM.JJJJ"),
+    ("alter",               "\U0001f522 **Schritt 3/5 \u2014 Alter**\nWie alt ist dein Charakter?"),
+    ("nationalitaet",       "\U0001f30d **Schritt 4/5 \u2014 Nationalit\u00e4t**\nz.B. Deutsch, Amerikanisch \u2026"),
+    ("wohnort",             "\U0001f3e0 **Schritt 5/5 \u2014 Wohnort**\nz.B. Los Santos"),
+]
+
+
+@bot.listen("on_message")
+async def _ausweis_dm_listener(message: discord.Message):
+    if message.guild is not None or message.author.bot:
+        return
+    uid = message.author.id
+    if uid not in _pending_ausweis:
+        return
+    session = _pending_ausweis[uid]
+    step    = session["step"]
+    field, _ = _AUSWEIS_FRAGEN[step]
+    session["data"][field] = message.content.strip()
+    step += 1
+    session["step"] = step
+    if step < len(_AUSWEIS_FRAGEN):
+        _, frage = _AUSWEIS_FRAGEN[step]
+        await message.channel.send(frage)
+        return
+    del _pending_ausweis[uid]
+    data         = session["data"]
+    einreise_typ = session["einreise_typ"]
+    guild        = bot.get_guild(GUILD_ID)
+    member       = guild.get_member(uid) if guild else None
+    name_parts   = data["vollstaendiger_name"].strip().split(None, 1)
+    vorname      = name_parts[0] if name_parts else "?"
+    nachname     = name_parts[1] if len(name_parts) > 1 else "?"
+    ausweisnummer = generate_ausweisnummer()
+    typ_label     = "\U0001f935 Legale Einreise" if einreise_typ == "legal" else "\U0001f977 Illegale Einreise"
+    ausweis_data  = load_ausweis()
+    ausweis_data[str(uid)] = {
+        "vorname":       vorname,
+        "nachname":      nachname,
+        "geburtsdatum":  data["geburtsdatum"],
+        "alter":         data["alter"],
+        "nationalitaet": data["nationalitaet"],
+        "wohnort":       data["wohnort"],
+        "einreise_typ":  einreise_typ,
+        "ausweisnummer": ausweisnummer,
+        "discord_name":  str(message.author),
+        "discord_id":    uid,
+    }
+    save_ausweis(ausweis_data)
+    if guild and member:
+        await _assign_charakter_rollen(member, guild, einreise_typ)
+    embed = discord.Embed(
+        title="\U0001faaa Ausweis ausgestellt",
+        description="Dein Ausweis wurde erfolgreich erstellt! \U0001f389",
+        color=0x000000,
+        timestamp=datetime.now(timezone.utc),
     )
-    geburtsdatum = discord.ui.TextInput(
-        label="Geburtsdatum",
-        placeholder="TT.MM.JJJJ",
-        max_length=10,
-    )
-    alter = discord.ui.TextInput(
-        label="Alter",
-        placeholder="z.B. 25",
-        max_length=3,
-    )
-    nationalitaet = discord.ui.TextInput(
-        label="Nationalit\u00E4t",
-        placeholder="z.B. Deutsch",
-        max_length=50,
-    )
-    wohnort = discord.ui.TextInput(
-        label="Wohnort",
-        placeholder="z.B. Los Santos",
-        max_length=100,
-    )
+    embed.add_field(name="Name",              value=f"{vorname} {nachname}",  inline=True)
+    embed.add_field(name="Geburtsdatum",      value=data["geburtsdatum"],     inline=True)
+    embed.add_field(name="Alter",             value=data["alter"],            inline=True)
+    embed.add_field(name="Nationalit\u00e4t", value=data["nationalitaet"],    inline=True)
+    embed.add_field(name="Wohnort",           value=data["wohnort"],          inline=True)
+    embed.add_field(name="Einreiseart",       value=typ_label,                inline=True)
+    embed.add_field(name="Ausweisnummer",     value=f"`{ausweisnummer}`",     inline=False)
+    if member:
+        embed.set_thumbnail(url=member.display_avatar.url)
+    embed.set_footer(text="Paradise City Roleplay \u2014 Ausweis")
+    await message.channel.send(embed=embed)
 
-    def __init__(self, einreise_typ: str):
-        super().__init__()
-        self.einreise_typ = einreise_typ
-
-    async def on_submit(self, interaction: discord.Interaction):
-        import traceback as _tb, logging as _log
-        try:
-            guild      = interaction.guild or bot.get_guild(GUILD_ID)
-            member     = (guild.get_member(interaction.user.id) if guild else None) or interaction.user
-
-            name_parts = self.vollstaendiger_name.value.strip().split(None, 1)
-            vorname    = name_parts[0] if name_parts else "?"
-            nachname   = name_parts[1] if len(name_parts) > 1 else "?"
-
-            ausweisnummer = generate_ausweisnummer()
-            typ_label     = "\U0001F935 Legale Einreise" if self.einreise_typ == "legal" else "\U0001F977 Illegale Einreise"
-
-            ausweis_data = load_ausweis()
-            ausweis_data[str(member.id)] = {
-                "vorname":       vorname,
-                "nachname":      nachname,
-                "geburtsdatum":  self.geburtsdatum.value,
-                "alter":         self.alter.value,
-                "nationalitaet": self.nationalitaet.value,
-                "wohnort":       self.wohnort.value,
-                "einreise_typ":  self.einreise_typ,
-                "ausweisnummer": ausweisnummer,
-                "discord_name":  str(member),
-                "discord_id":    member.id,
-            }
-            save_ausweis(ausweis_data)
-
-            if guild and isinstance(member, discord.Member):
-                await _assign_charakter_rollen(member, guild, self.einreise_typ)
-
-            embed = discord.Embed(
-                title="\U0001FAAA Ausweis ausgestellt",
-                description="Dein Ausweis wurde erfolgreich erstellt!",
-                color=0x000000,
-                timestamp=datetime.now(timezone.utc),
-            )
-            embed.add_field(name="Name",              value=f"{vorname} {nachname}",  inline=True)
-            embed.add_field(name="Geburtsdatum",      value=self.geburtsdatum.value,  inline=True)
-            embed.add_field(name="Alter",             value=self.alter.value,         inline=True)
-            embed.add_field(name="Nationalit\u00E4t", value=self.nationalitaet.value, inline=True)
-            embed.add_field(name="Wohnort",           value=self.wohnort.value,       inline=True)
-            embed.add_field(name="Einreiseart",       value=typ_label,                inline=True)
-            embed.add_field(name="Ausweisnummer",     value=f"`{ausweisnummer}`",     inline=False)
-            embed.set_thumbnail(url=member.display_avatar.url)
-            embed.set_footer(text="Paradise City Roleplay \u2014 Ausweis")
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        except Exception as _e:
-            _log.error(f"[AusweisModal] FEHLER: {_e}\n{_tb.format_exc()}")
-            try:
-                await interaction.response.send_message(
-                    f"\u274C Fehler: `{type(_e).__name__}: {_e}`\nBitte einen Admin informieren.",
-                    ephemeral=True
-                )
-            except Exception:
-                try:
-                    await interaction.followup.send(
-                        f"\u274C Fehler: `{type(_e).__name__}: {_e}`", ephemeral=True
-                    )
-                except Exception:
-                    pass
-
-
-# \u2500\u2500 DM-Button-Views (persistent) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-
-class AusweisDMButton(discord.ui.Button):
-    def __init__(self, einreise_typ: str):
-        super().__init__(
-            label="\U0001F6C2 Ausweis ausf\u00FCllen",
-            style=discord.ButtonStyle.primary,
-            custom_id=f"ausweis_dm_{einreise_typ}",
-            emoji="\U0001FAAA"
-        )
-        self.einreise_typ = einreise_typ
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(AusweisModal(einreise_typ=self.einreise_typ))
-
-
-class AusweisDMLegalView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(AusweisDMButton("legal"))
-
-
-class AusweisDMIllegalView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(AusweisDMButton("illegal"))
 
 
 # \u2500\u2500 Admin-Modal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -317,32 +269,29 @@ class EinreiseSelect(discord.ui.Select):
             return
 
         typ      = self.values[0]
-        typ_name = "Legale Einreise"   if typ == "legal" else "Illegale Einreise"
-        typ_emoji= "\U0001F935"        if typ == "legal" else "\U0001F977"
-        view     = AusweisDMLegalView() if typ == "legal" else AusweisDMIllegalView()
-
-        dm_embed = discord.Embed(
-            title="\U0001FAAA Ausweis ausf\u00FCllen",
-            description=(
-                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
-                f"\u27A4 Du hast **{typ_emoji} {typ_name}** gew\u00E4hlt.\n\n"
-                "Klicke auf den Button unten um deinen **Ausweis** auszuf\u00FCllen.\n"
-                "\u26A0\uFE0F Bitte gib echte Roleplay-Daten an."
-            ),
-            color=0x3498DB
+        typ_name = "Legale Einreise" if typ == "legal" else "Illegale Einreise"
+        typ_emoji = "\U0001f935"     if typ == "legal" else "\U0001f977"
+        uid = member.id
+        _pending_ausweis[uid] = {"step": 0, "einreise_typ": typ, "data": {}}
+        _, erste_frage = _AUSWEIS_FRAGEN[0]
+        intro = (
+            f"\U0001faaa **Ausweis erstellen \u2014 {typ_emoji} {typ_name}**\n"
+            "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+            "Beantworte bitte die folgenden Fragen. Schreibe jeweils deine Antwort als normale Nachricht.\n\n"
+            + erste_frage
         )
-
         try:
-            await member.send(embed=dm_embed, view=view)
+            await member.send(intro)
             await interaction.response.send_message(
-                "\u2705 Wir haben dir eine DM geschickt! \U0001F4EC\n"
-                "\u27A4 \u00D6ffne sie und klicke auf den Button um deinen Ausweis auszuf\u00FCllen.",
+                "\u2705 Ich habe dir eine DM geschickt! \U0001f4ec\n"
+                "\u27a4 Beantworte dort die Fragen um deinen Ausweis zu erstellen.",
                 ephemeral=True
             )
         except discord.Forbidden:
+            _pending_ausweis.pop(uid, None)
             await interaction.response.send_message(
-                "\u274C Ich konnte dir keine DM senden.\n"
-                "\u27A4 Bitte aktiviere **DMs von Servermitgliedern** in deinen Datenschutzeinstellungen und versuche es erneut.",
+                "\u274c Ich konnte dir keine DM senden.\n"
+                "\u27a4 Bitte aktiviere **DMs von Servermitgliedern** in deinen Datenschutzeinstellungen.",
                 ephemeral=True
             )
 
