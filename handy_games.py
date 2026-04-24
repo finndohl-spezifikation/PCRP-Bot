@@ -8,6 +8,46 @@ from config import *
 # \u2500\u2500 Shared State \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 _states: dict[int, dict] = {}   # user_id -> game state
 
+# Top-Score Datei
+from config import DATA_DIR as _DATA_DIR
+import json as _json
+_SCORES_FILE = _DATA_DIR / "handy_games_scores.json"
+
+
+def _load_scores() -> dict:
+    if _SCORES_FILE.exists():
+        try:
+            return _json.load(open(_SCORES_FILE, encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def _save_scores(data: dict):
+    with open(_SCORES_FILE, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _update_score(kind: str, name: str, score: int):
+    data = _load_scores()
+    entry = data.get(kind, {})
+    if score > entry.get("score", 0):
+        from datetime import datetime, timezone
+        data[kind] = {
+            "score": score,
+            "name":  name,
+            "date":  datetime.now(timezone.utc).strftime("%d.%m.%Y"),
+        }
+        _save_scores(data)
+
+
+def _top_line(kind: str) -> str:
+    entry = _load_scores().get(kind)
+    if not entry:
+        return "\U0001f3c6 Kein Highscore gesetzt\n"
+    return f"\U0001f3c6 Highscore: **{entry['name']}** \u2014 {entry['score']} Pkt. ({entry['date']})\n"
+
+
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 #  TETRIS
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
@@ -80,7 +120,7 @@ def _t_valid(board, cells) -> bool:
     return True
 
 
-def tetris_new(uid: int):
+def tetris_new(uid: int, name: str = "?"):
     p, n = random.choice(_T_NAMES), random.choice(_T_NAMES)
     _states[uid] = {
         "kind":  "tetris",
@@ -89,6 +129,7 @@ def tetris_new(uid: int):
         "next":  n,
         "score": 0, "lines": 0,
         "over":  False,
+        "name":  name,
     }
 
 
@@ -109,6 +150,7 @@ def _t_lock(state):
     state["next"] = random.choice(_T_NAMES)
     if not _t_valid(board, _t_cells(state)):
         state["over"] = True
+        _update_score("tetris", state.get("name", "?"), state["score"])
 
 
 def tetris_move(state, dc: int):
@@ -163,12 +205,13 @@ def tetris_render(state) -> str:
     next_rows = ["".join(_T_EMOJI[c] for c in r) for r in next_grid]
 
     header = "\U0001f3ae **TETRIS**\n"
+    top    = _top_line("tetris")
     info   = f"\U0001f4ca Score: **{state['score']}**  |  Linien: **{state['lines']}**\n"
     if state["over"]:
         info += "\U0001f480 **GAME OVER**\n"
     board_txt = "\n".join(rows)
     next_txt  = "**Nachstes:**\n" + "\n".join(next_rows)
-    return f"{header}{info}{board_txt}\n{next_txt}"
+    return f"{header}{top}{info}{board_txt}\n{next_txt}"
 
 
 class TetrisView(discord.ui.View):
@@ -221,7 +264,8 @@ class TetrisView(discord.ui.View):
     @discord.ui.button(label="\U0001f504 Neu starten", style=discord.ButtonStyle.success, row=1)
     async def btn_new(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check(interaction): await interaction.response.defer(); return
-        tetris_new(self.uid)
+        name = _states.get(self.uid, {}).get("name", "?")
+        tetris_new(self.uid, name)
         await self._refresh(interaction)
 
     @discord.ui.button(label="\u2716 Beenden", style=discord.ButtonStyle.danger, row=1)
@@ -232,7 +276,7 @@ class TetrisView(discord.ui.View):
 
 
 async def start_tetris(interaction: discord.Interaction):
-    tetris_new(interaction.user.id)
+    tetris_new(interaction.user.id, interaction.user.display_name)
     txt = tetris_render(_states[interaction.user.id])
     await interaction.response.send_message(
         content=txt,
@@ -264,7 +308,7 @@ def _s_free(state) -> list[tuple[int, int]]:
     ]
 
 
-def snake_new(uid: int):
+def snake_new(uid: int, name: str = "?"):
     mid = _SW // 2
     snake = [(mid, mid), (mid, mid - 1), (mid, mid - 2)]
     food  = random.choice([
@@ -280,6 +324,7 @@ def snake_new(uid: int):
         "food":  food,
         "score": 0,
         "over":  False,
+        "name":  name,
     }
 
 
@@ -299,9 +344,11 @@ def _snake_step(state):
     r, c = new_head
     if not (1 <= r < _SW - 1 and 1 <= c < _SW - 1):
         state["over"] = True
+        _update_score("snake", state.get("name", "?"), state["score"])
         return
     if new_head in state["snake"]:
         state["over"] = True
+        _update_score("snake", state.get("name", "?"), state["score"])
         return
     state["snake"].insert(0, new_head)
     if new_head == state["food"]:
@@ -328,10 +375,11 @@ def snake_render(state) -> str:
 
     rows = ["".join(row) for row in grid]
     header = "\U0001f40d **SNAKE**\n"
-    info   = f"\U0001f4ca Score: **{state['score']}**  |  Lange: **{len(state['snake'])}**\n"
+    top    = _top_line("snake")
+    info   = f"\U0001f4ca Score: **{state['score']}**  |  L\u00e4nge: **{len(state['snake'])}**\n"
     if state["over"]:
         info += "\U0001f480 **GAME OVER**\n"
-    return header + info + "\n".join(rows)
+    return header + top + info + "\n".join(rows)
 
 
 class SnakeView(discord.ui.View):
@@ -360,7 +408,8 @@ class SnakeView(discord.ui.View):
     @discord.ui.button(label="\U0001f504 Neu starten", style=discord.ButtonStyle.success, row=0)
     async def btn_new(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check(interaction): await interaction.response.defer(); return
-        snake_new(self.uid)
+        name = _states.get(self.uid, {}).get("name", "?")
+        snake_new(self.uid, name)
         await self._refresh(interaction)
 
     @discord.ui.button(label="\u2716 Beenden", style=discord.ButtonStyle.danger, row=0)
@@ -389,7 +438,7 @@ class SnakeView(discord.ui.View):
 
 
 async def start_snake(interaction: discord.Interaction):
-    snake_new(interaction.user.id)
+    snake_new(interaction.user.id, interaction.user.display_name)
     txt = snake_render(_states[interaction.user.id])
     await interaction.response.send_message(
         content=txt,
@@ -410,11 +459,11 @@ class _GameOverView(discord.ui.View):
     async def btn_retry(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.uid: await interaction.response.defer(); return
         if self.kind == "tetris":
-            tetris_new(self.uid)
+            tetris_new(self.uid, _states.get(self.uid, {}).get("name", "?"))
             txt  = tetris_render(_states[self.uid])
             view = TetrisView(self.uid)
         else:
-            snake_new(self.uid)
+            snake_new(self.uid, _states.get(self.uid, {}).get("name", "?"))
             txt  = snake_render(_states[self.uid])
             view = SnakeView(self.uid)
         await interaction.response.edit_message(content=txt, view=view)
