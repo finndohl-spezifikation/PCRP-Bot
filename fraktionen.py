@@ -115,3 +115,15 @@ async def frakwarn_autocomplete(
         for name, entry in data.items()
         if entry.get("warns") and current.lower() in name.lower()
     ][:25]
+
+
+async def frak_autocomplete(
+    interaction: discord.Interaction,
+    current: str,
+) -> list[app_commands.Choice[str]]:
+    data = frak_load()
+    return [
+        app_commands.Choice(name=name, value=name)
+        for name in data
+        if current.lower() in name.lower()
+    ][:25]
