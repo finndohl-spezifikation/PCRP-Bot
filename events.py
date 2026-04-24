@@ -18,7 +18,7 @@ from moderation import (
 )
 from ticket       import TicketSelectView, TicketActionView
 from handy        import HandyView
-from einreise     import EinreiseView, AusweisDMLegalView, AusweisDMIllegalView, load_ausweis, save_ausweis
+from einreise     import EinreiseView, load_ausweis, save_ausweis
 from shop         import ShopKwikChannelView, ShopBaumarktChannelView, ShopSchwarzmarktChannelView
 from casino       import CasinoView
 from dienst       import DienstUnifiedView
@@ -49,8 +49,7 @@ async def on_ready():
     bot.add_view(TicketActionView())
     bot.add_view(HandyView())
     bot.add_view(EinreiseView())
-    bot.add_view(AusweisDMLegalView())
-    bot.add_view(AusweisDMIllegalView())
+
     bot.add_view(ShopKwikChannelView())
     bot.add_view(ShopBaumarktChannelView())
     bot.add_view(ShopSchwarzmarktChannelView())
