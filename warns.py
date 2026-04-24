@@ -14,10 +14,6 @@ from economy_helpers import (
 @bot.tree.command(name="warn", description="[Warn] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
-    if interaction.user.id != OWNER_ID and not any(r.id in (WARN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     warns      = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
     warn_entry = {
@@ -30,7 +26,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
     save_warns(warns)
     warn_count = len(user_warns)
 
-    badge = "\U0001F534" if warn_count >= 3 else "\U0001F7E1" if warn_count == 2 else "\U0001F7E2"
+    badge = "\U0001F534" if warn_count >= 5 else "\U0001F7E1" if warn_count >= 3 else "\U0001F7E2"
     embed = discord.Embed(
         title=f"\u26A0\uFE0F Verwarnung ausgestellt",
         description=f"\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015",
@@ -97,14 +93,45 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
         if log_ch:
             await log_ch.send(embed=timeout_embed)
 
+    if warn_count >= WARN_AUTO_BAN_COUNT:
+        try:
+            dm_ban_embed = discord.Embed(
+                title="\U0001f6ab Du wurdest gebannt",
+                description=(
+                    f"Du hast auf **{interaction.guild.name}** {WARN_AUTO_BAN_COUNT} Verwarnungen erhalten "
+                    f"und wurdest daher permanent vom Server entfernt.\n\n"
+                    f"**Letzte Verwarnung:**\n"
+                    f"Grund: {grund}\nKonsequenz: {konsequenz}"
+                ),
+                color=MOD_COLOR,
+                timestamp=datetime.now(timezone.utc)
+            )
+            dm_ban_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
+            await nutzer.send(embed=dm_ban_embed)
+        except Exception:
+            pass
+        try:
+            await nutzer.ban(reason=f"Automatischer Ban: {WARN_AUTO_BAN_COUNT} Warns erreicht", delete_message_days=0)
+        except Exception:
+            pass
+        ban_embed = discord.Embed(
+            title="\U0001f6ab Automatischer Ban",
+            description=(
+                f"**Spieler:** {nutzer.mention}\n"
+                f"**Grund:** {WARN_AUTO_BAN_COUNT} Warns erreicht\n"
+                f"**Ban:** Permanent"
+            ),
+            color=MOD_COLOR,
+            timestamp=datetime.now(timezone.utc)
+        )
+        ban_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
+        if log_ch:
+            await log_ch.send(embed=ban_embed)
+
 
 @bot.tree.command(name="warn-list", description="[Warn] Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.user.id != OWNER_ID and not any(r.id in (WARN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     warns      = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
 
@@ -132,10 +159,6 @@ async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
 @bot.tree.command(name="remove-warn", description="[Warn] Letzte Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.user.id != OWNER_ID and not any(r.id in (WARN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     warns      = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
 
@@ -165,10 +188,6 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
 @bot.tree.command(name="team-warn", description="[Admin] Team-Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
-        return
-
     warns      = load_team_warns()
     user_warns = get_user_team_warns(warns, nutzer.id)
     warn_entry = {
@@ -225,10 +244,6 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
 @bot.tree.command(name="teamwarn-list", description="[Admin] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
-        return
-
     warns      = load_team_warns()
     user_warns = get_user_team_warns(warns, nutzer.id)
 
@@ -256,10 +271,6 @@ async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member
 @bot.tree.command(name="remove-teamwarn", description="[Admin] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Dieser Befehl ist nur f\u00FCr Admins verf\u00FCgbar.", ephemeral=True)
-        return
-
     warns      = load_team_warns()
     user_warns = get_user_team_warns(warns, nutzer.id)
 
