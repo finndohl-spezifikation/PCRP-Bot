@@ -64,14 +64,14 @@ class TimedDisableView(discord.ui.View):
             except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                 pass
 
-OWNER_ID          = 1411796740243456092   # Server-Inhaber \u2014 immer alle Rechte
+OWNER_ID          = 1411796740243456092   # Server-Inhaber â€” immer alle Rechte
 ADMIN_ROLE_ID     = 1490855650081636352
 MOD_ROLE_ID       = 1496147874256392202
 INHABER_ROLE_ID   = 1490855647259136053
 DASH_ROLE_ID      = 1490855702225485936   # Highteam / Dashboard-Zugang
 TICKET_MOD_ROLE_ID = 1490855703370534965  # Rolle mit Ticket-Zugriff
 
-# Alle Rollen die Tickets sehen, schlie\xdfen und zuweisen d\xfcrfen
+# Alle Rollen die Tickets sehen, schlieÃŸen und zuweisen dÃ¼rfen
 TICKET_STAFF_ROLE_IDS = {
     INHABER_ROLE_ID,
     ADMIN_ROLE_ID,
@@ -239,6 +239,7 @@ SIM_WECHSEL_CHANNEL_ID = 1490882589014364250
 IC_CHAT_CHANNEL_ID    = 0
 
 WARN_AUTO_TIMEOUT_COUNT = 3
+WARN_AUTO_BAN_COUNT     = 6
 START_CASH              = 5_000
 
 LOG_COLOR = 0xE67E22
