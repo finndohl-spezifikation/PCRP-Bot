@@ -537,7 +537,7 @@ def thorsten_render(state) -> str:
         f"Schritte: **{state['moves']}**\n"
     )
     if state["over"]:
-        info += "\U0001f480 **ERWISCHT! GAME OVER**\n"
+        info += "\U0001f480 **Alina hat dich erwischt! GAME OVER**\n"
     return header + top + info + "\n".join(rows)
 
 
