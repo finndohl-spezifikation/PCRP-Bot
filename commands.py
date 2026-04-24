@@ -403,3 +403,62 @@ async def frak_list_cmd(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await _frak.frak_update_list()
     await interaction.followup.send("\u2705 Fraktionsliste aktualisiert.", ephemeral=True)
+
+
+# -- /frak-add -------------------------------------------------
+
+@bot.tree.command(
+    name="frak-add",
+    description="[Fraktionsleitung] F\u00fcgt eine Fraktion zur Liste hinzu",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(fraktion="Name der neuen Fraktion")
+async def frak_add_cmd(interaction: discord.Interaction, fraktion: str):
+    if not _frak.frak_hat_recht(interaction):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+
+    data = _frak.frak_load()
+    if fraktion in data:
+        await interaction.followup.send(
+            f"\u274c **{fraktion}** ist bereits in der Liste.", ephemeral=True
+        )
+        return
+
+    data[fraktion] = {"warns": []}
+    _frak.frak_save(data)
+    await _frak.frak_update_list()
+    await interaction.followup.send(
+        f"\u2705 **{fraktion}** wurde zur Fraktionsliste hinzugef\u00fcgt.", ephemeral=True
+    )
+
+
+# -- /frak-remove ----------------------------------------------
+
+@bot.tree.command(
+    name="frak-remove",
+    description="[Fraktionsleitung] Entfernt eine Fraktion aus der Liste",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(fraktion="Fraktion die entfernt werden soll")
+@app_commands.autocomplete(fraktion=_frak.frak_autocomplete)
+async def frak_remove_cmd(interaction: discord.Interaction, fraktion: str):
+    if not _frak.frak_hat_recht(interaction):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+
+    data = _frak.frak_load()
+    if fraktion not in data:
+        await interaction.followup.send(
+            f"\u274c **{fraktion}** ist nicht in der Liste.", ephemeral=True
+        )
+        return
+
+    del data[fraktion]
+    _frak.frak_save(data)
+    await _frak.frak_update_list()
+    await interaction.followup.send(
+        f"\u2705 **{fraktion}** wurde aus der Fraktionsliste entfernt.", ephemeral=True
+    )
