@@ -11,7 +11,7 @@ from economy_helpers import (
     load_handy_numbers, save_handy_numbers,
     generate_la_phone_number
 )
-from handy_games import start_tetris, start_snake, start_thorsten
+from handy_games import start_tetris, start_snake
 # Dispatch-Typ \u2192 Dienst-Fraktion
 DISPATCH_FACTION_MAP = {
     "pd":   "lapd",
@@ -207,7 +207,6 @@ class SpieleSelect(discord.ui.Select):
         options = [
             discord.SelectOption(label="\U0001f3ae Tetris", value="tetris", description="Tetris spielen \u2014 Steine stapeln!"),
             discord.SelectOption(label="\U0001f40d Snake",  value="snake",  description="Snake spielen \u2014 Apfel fressen!"),
-            discord.SelectOption(label="\U0001f3c3 Thorstens Rettung", value="thorsten", description="Hamburger sammeln \u2014 der Frau entkommen!"),
         ]
         super().__init__(
             placeholder="\U0001f3ae Spiele",
@@ -231,8 +230,6 @@ class SpieleSelect(discord.ui.Select):
             return
         if self.values[0] == "tetris":
             await start_tetris(interaction)
-        elif self.values[0] == "thorsten":
-            await start_thorsten(interaction)
         else:
             await start_snake(interaction)
 
