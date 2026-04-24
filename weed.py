@@ -21,6 +21,44 @@ ITEM_WEED_SAMEN_DEFAULT    = "Weed Samen"
 ITEM_WEED_DEFAULT          = "Weed"
 ITEM_SCHWARZGELD_DEFAULT   = "Schwarzgeld"
 
+WEED_MSG_FILE         = DATA_DIR / "weed_info_msg.json"
+EMBED_CONFIGS_FILE    = DATA_DIR / "embed_configs.json"
+BUTTON_CONFIGS_FILE   = DATA_DIR / "button_configs.json"
+
+WEED_EMBED_DEFAULT = {
+    "title":       "\U0001F331 Weed Anbau",
+    "description": None,
+    "color":       0x2ECC71,
+    "footer":      "Paradise City Roleplay \u2022 Weed-System",
+}
+WEED_BTN_DEFAULT = {
+    "weed_sell_btn": {"label": "\U0001F4B0 Weed verkaufen", "style": "success"},
+}
+
+
+def _load_embed_cfg_weed() -> dict:
+    try:
+        if EMBED_CONFIGS_FILE.exists():
+            d = json.load(open(EMBED_CONFIGS_FILE, encoding="utf-8"))
+            merged = dict(WEED_EMBED_DEFAULT)
+            merged.update(d.get("weed") or {})
+            return merged
+    except Exception:
+        pass
+    return dict(WEED_EMBED_DEFAULT)
+
+
+def _load_button_cfg_weed(key: str) -> dict:
+    try:
+        if BUTTON_CONFIGS_FILE.exists():
+            d = json.load(open(BUTTON_CONFIGS_FILE, encoding="utf-8"))
+            merged = dict(WEED_BTN_DEFAULT.get(key, {}))
+            merged.update(d.get(key) or {})
+            return merged
+    except Exception:
+        pass
+    return dict(WEED_BTN_DEFAULT.get(key, {}))
+
 
 # -- Hilfsfunktionen ------------------------------------------
 
@@ -108,6 +146,19 @@ async def _log_weed(guild, title: str, desc: str):
 class WeedInfoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
+        cfg = _load_button_cfg_weed("weed_sell_btn")
+        _style_map = {
+            "success":   discord.ButtonStyle.success,
+            "danger":    discord.ButtonStyle.danger,
+            "primary":   discord.ButtonStyle.primary,
+            "secondary": discord.ButtonStyle.secondary,
+        }
+        for child in self.children:
+            if getattr(child, "custom_id", "") == "weed_sell_btn":
+                if cfg.get("label"):
+                    child.label = cfg["label"]
+                if cfg.get("style") in _style_map:
+                    child.style = _style_map[cfg["style"]]
 
     @discord.ui.button(
         label="\U0001F4B0 Weed verkaufen",
@@ -279,24 +330,26 @@ async def weed_bild_listener(message: discord.Message):
 # -- Info-Embed ------------------------------------------------
 
 def _build_weed_info_embed() -> discord.Embed:
+    cfg = _load_embed_cfg_weed()
+    default_desc = (
+        "**\U0001F4E6 Voraussetzung**\n"
+        f"> **{WEED_SAMEN_PRO_RUNDE}x Weed Samen** (Schwarzmarkt)\n\n"
+        "**\U0001F4F8 Ablauf**\n"
+        f"> Foto in <#{WEED_BILD_CHANNEL_ID}> schicken\n"
+        "> Anbau startet **automatisch**\n"
+        f"> Ernte nach **10 Min.**: {WEED_GRAMM_MIN}\u2013{WEED_GRAMM_MAX}g Weed\n"
+        "> Du bekommst eine **DM** bei Fertigstellung\n\n"
+        "**\U0001F4B0 Verkauf**\n"
+        f"> **{WEED_PREIS_PRO_GRAMM}$ Schwarzgeld** pro Gramm\n\n"
+        f"\U0001F4B0 Dr\u00FCcke **Weed verkaufen** um dein Weed gegen Schwarzgeld einzutauschen."
+    )
     emb = discord.Embed(
-        title="\U0001F331 Weed Anbau",
-        color=0x2ECC71,
-        description=(
-            "**\U0001F4E6 Voraussetzung**\n"
-            f"> **{WEED_SAMEN_PRO_RUNDE}x Weed Samen** (Schwarzmarkt)\n\n"
-            "**\U0001F4F8 Ablauf**\n"
-            f"> Foto in <#{WEED_BILD_CHANNEL_ID}> schicken\n"
-            "> Anbau startet **automatisch**\n"
-            f"> Ernte nach **10 Min.**: {WEED_GRAMM_MIN}\u2013{WEED_GRAMM_MAX}g Weed\n"
-            "> Du bekommst eine **DM** bei Fertigstellung\n\n"
-            "**\U0001F4B0 Verkauf**\n"
-            f"> **{WEED_PREIS_PRO_GRAMM}$ Schwarzgeld** pro Gramm\n\n"
-            f"\U0001F4B0 Dr\u00FCcke **Weed verkaufen** um dein Weed gegen Schwarzgeld einzutauschen."
-        ),
+        title=cfg.get("title", "\U0001F331 Weed Anbau"),
+        color=cfg.get("color", 0x2ECC71),
+        description=cfg.get("description") or default_desc,
         timestamp=datetime.now(timezone.utc),
     )
-    emb.set_footer(text="Paradise City Roleplay \u2022 Weed-System")
+    emb.set_footer(text=cfg.get("footer", "Paradise City Roleplay \u2022 Weed-System"))
     return emb
 
 
@@ -306,19 +359,24 @@ async def _weed_setup() -> str:
     except Exception as e:
         return f"\u274C Kanal nicht erreichbar (ID {WEED_INFO_CHANNEL_ID}): {e}"
 
+    msg_id = None
     try:
-        async for msg in channel.history(limit=50):
-            if msg.author.id == bot.user.id and msg.embeds:
-                if any("Weed Anbau" in (e.title or "") for e in msg.embeds):
-                    try:
-                        await msg.delete()
-                    except Exception:
-                        pass
+        if WEED_MSG_FILE.exists():
+            msg_id = json.load(open(WEED_MSG_FILE, encoding="utf-8")).get("message_id")
     except Exception:
         pass
 
+    if msg_id:
+        try:
+            existing = await channel.fetch_message(msg_id)
+            await existing.edit(embed=_build_weed_info_embed(), view=WeedInfoView())
+            return "\u2705 Weed Info-Embed aktualisiert."
+        except Exception:
+            pass
+
     try:
-        await channel.send(embed=_build_weed_info_embed(), view=WeedInfoView())
+        sent = await channel.send(embed=_build_weed_info_embed(), view=WeedInfoView())
+        json.dump({"message_id": sent.id}, open(WEED_MSG_FILE, "w", encoding="utf-8"), indent=2)
         return "\u2705 Weed Info-Embed gesendet."
     except Exception as e:
         return f"\u274C Senden fehlgeschlagen: {e}"
