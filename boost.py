@@ -1,148 +1,145 @@
 # -*- coding: utf-8 -*-
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-# main.py \u2014 Bot-Einstiegspunkt
+# boost.py \u2014 Boost Belohnungen Embed + automatische Belohnung
 # Paradise City Roleplay Discord Bot
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-#
-# Importiert alle Module, startet den Bot mit dem TOKEN.
-# Alle DISCORD_TOKEN m\u00FCssen als Umgebungsvariable gesetzt sein.
-#
-# Startreihenfolge:
-#   python main.py
-#
-# Deployment: Railway (RAILWAY_ENVIRONMENT muss gesetzt sein)
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
-import os
-import sys
+from config import *
+from economy_helpers import load_economy, save_economy, get_user
 
-# UTF-8 Encoding erzwingen (wichtig f\u00FCr Railway/Linux-Deployments)
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
-if sys.stderr.encoding != 'utf-8':
-    sys.stderr.reconfigure(encoding='utf-8')
-os.environ.setdefault("PYTHONUTF8", "1")
+BOOST_CHANNEL_ID    = 1491622819824402583
+BOOST_LOG_CHANNEL_ID = 1491622860207292576
+BOOST_COLOR         = 0xB44FE8
+BOOST_MSG_FILE      = DATA_DIR / "boost_msg.json"
+BOOST_COUNTS_FILE   = DATA_DIR / "boost_counts.json"
+BOOST_BANNER_URL    = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev/boost_banner.jpg"
+BOOST_BETRAG        = 5_000
+BOOST_AUTO_BETRAG   = 5   # Ab dieser Anzahl \u2192 Ticket f\u00fcr Sportwagen
 
-# Bot-Instanz laden
-from config import bot
+# \u2500\u2500 Datenverwaltung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-# Dashboard sofort starten (vor allen anderen Imports) damit Railway-Healthcheck antwortet
-try:
-    from dashboard import start_dashboard
-    _dash_port = int(os.environ.get("PORT") or os.environ.get("DASHBOARD_PORT") or "8080")
-    print(f"[Dashboard] Starte auf Port {_dash_port} (PORT={os.environ.get('PORT')})")
-    start_dashboard(None, port=_dash_port)
-except Exception as _de:
-    import traceback; traceback.print_exc()
-    print(f"[Dashboard] Konnte nicht gestartet werden: {_de}")
+def _load_boost_data() -> dict:
+    if BOOST_MSG_FILE.exists():
+        with open(BOOST_MSG_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {"message_id": None}
 
 
-# Doppelte Command-Registrierung erlauben (Railway hat alte Ordnerstruktur)
-# Falls ein Command bereits registriert ist, wird er einfach \u00FCberschrieben statt zu crashen.
-_orig_add_command = bot.tree.add_command
-def _safe_add_command(command, /, **kwargs):
-    kwargs["override"] = True
-    return _orig_add_command(command, **kwargs)
-bot.tree.add_command = _safe_add_command
-
-# Alle Module importieren \u2014 Reihenfolge ist wichtig!
-import helpers                  # Hilfsfunktionen
-
-try:
-    import economy_helpers      # Economy-Datenschicht
-except Exception as _e:
-    import traceback; traceback.print_exc()
-    print(f"[FEHLER] economy_helpers konnte nicht geladen werden: {_e}")
-    raise
-
-import handy                    # Handy-System
-import ticket                   # Ticket-System
-import moderation               # Auto-Mod
-import events                   # on_ready, on_message, Logs
-import commands                 # Prefix Commands (!hallo etc.)
-
-try:
-    import economy_commands     # /lohn-abholen, /kontostand, etc.
-except Exception as _e:
-    import traceback; traceback.print_exc()
-    print(f"[FEHLER] economy_commands konnte nicht geladen werden: {_e}")
-    raise
-
-try:
-    import shop                 # /shop, /buy, /shop-add, /delete-item
-except Exception as _e:
-    import traceback; traceback.print_exc()
-    print(f"[FEHLER] shop konnte nicht geladen werden: {_e}")
-    raise
-
-try:
-    import team_shop            # /items, /items-add, /items-delete (Team-Shop)
-except Exception as _e:
-    import traceback; traceback.print_exc()
-    print(f"[FEHLER] team_shop konnte nicht geladen werden: {_e}")
-    raise
-
-try:
-    import inventory            # /rucksack, /uebergeben, /verstecken, /use-item
-except Exception as _e:
-    import traceback; traceback.print_exc()
-    print(f"[FEHLER] inventory konnte nicht geladen werden: {_e}")
-    raise
-import warns                    # /warn, /warn-list, /remove-warn, etc.
-import einreise                 # Einreise-System, /ausweisen, /ausweis-*
-import fuehrerschein            # F\u00FChrerschein-System
-import support_voice          # Automatischer Voice-Support mit TTS  \u2190 muss vor lobby stehen
-import casino                   # Casino Gl\u00FCcksrad
-import lobby                    # /lobby-abstimmung, /lobby-open, /lobby-close
-import giveaway                 # /create-giveaway
-import event_system             # /create-event
-import abstimmung               # /abstimmung, reaction polls
-import misc_commands            # /kartenkontrolle, /delete, /commands, /kategorien-setup
-import rechnungen               # /rechnung-schreiben, /rechnungen, /mahnung
-import beschlagnahmung          # /beschlagnahmen, /remove-beschlagnahmung, /konfiszieren
-import dienst                   # Dienst-System (Anmelden/Abmelden, Embed-Boards)
-import help_embed               # Automatisches Command-\u00DCbersicht Embed
-import ic_actions               # /erste-hilfe, /ortung, /fesseln
-import ping_roles               # Ping-Rollen Auswahl-Embed
-import team_overview           # Team \u00DCbersicht mit On/Off Duty
-import boost                   # Boost Belohnungen Embed
-import lotto                   # Lotto-System
-import bingo                   # W\u00F6chentliches Bingo-System
-import startinfo               # "Wo starte ich?" Embed
-import starterpaket            # Starter Paket Embed
-import vorschlag               # Vorschlag-System
-import auto_geben              # Fahrzeug-Vergabe-System
-import atm_raub               # ATM-Raub System
-import shop_raub              # Shop-Raub System
-import raubueberfall          # Raub\u00FCberfall System
-import human_labs_raub        # Humane Labs Raub\u00FCberfall System
-import staatsbank_raub        # Staatsbank Raub\u00FCberfall System
-import aktien                 # Aktienmarkt-System
-import kanal_sperre           # /kanal-sperre, /kanal-entsperren
-import nebenserver            # Nebenserver Import/Export Embed
-
-try:
-    import server_schutz      # Schutz vor unbefugten Kanal/Rollen-\u00C4nderungen
-except Exception as _import_err:
-    print(f"[WARNING] server_schutz konnte nicht geladen werden: {_import_err}")
-
-try:
-    import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
-    import bot_status           # Auto-aktualisierendes Status-Dashboard
-except Exception as _import_err:
-    print(f"[WARNING] logs/bot_status konnten nicht geladen werden: {_import_err}")
-
-TOKEN = os.environ.get("DISCORD_TOKEN")
-if not TOKEN:
-    print("\u274C DISCORD_TOKEN ist nicht gesetzt!")
-    exit(1)
+def _save_boost_data(data: dict):
+    with open(BOOST_MSG_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
 
-# Bot-Referenz im Dashboard aktualisieren
-try:
-    from dashboard import set_bot
-    set_bot(bot)
-except Exception:
-    pass
+def _load_boost_counts() -> dict:
+    if BOOST_COUNTS_FILE.exists():
+        with open(BOOST_COUNTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
-bot.run(TOKEN)
+
+def _save_boost_counts(data: dict):
+    with open(BOOST_COUNTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+# \u2500\u2500 Belohnungs-Embed (im Boost-Info-Channel) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+def _build_boost_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="\U0001f48e Boost Belohnungen",
+        description=(
+            "**Pro Boost 5.000 $**\n\n"
+            "**Ab 5 Boosts 1 Sportwagen deiner Wahl dazu**\n\n"
+            "\U0001f4dc Unterst\u00fctzer Rolle\n"
+            "\U0001f381 Exklusive Giveaways"
+        ),
+        color=BOOST_COLOR,
+    )
+    embed.set_image(url=BOOST_BANNER_URL)
+    embed.set_footer(text="Paradise City Roleplay \u2014 Server Boosts")
+    return embed
+
+
+async def auto_boost_setup():
+    for guild in bot.guilds:
+        channel = guild.get_channel(BOOST_CHANNEL_ID)
+        if not channel:
+            continue
+
+        data = _load_boost_data()
+
+        if data.get("message_id"):
+            try:
+                msg = await channel.fetch_message(data["message_id"])
+                await msg.edit(embed=_build_boost_embed(), attachments=[], view=discord.ui.View())
+                print(f"[boost] Embed aktualisiert in #{channel.name}")
+                return
+            except Exception:
+                pass
+
+        try:
+            new_msg = await channel.send(embed=_build_boost_embed(), view=discord.ui.View())
+            data["message_id"] = new_msg.id
+            _save_boost_data(data)
+            print(f"[boost] Embed gepostet in #{channel.name}")
+        except Exception as e:
+            print(f"[boost] Fehler: {e}")
+
+
+# \u2500\u2500 Boost-Event: automatische Belohnung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.listen("on_member_update")
+async def boost_reward_on_member_update(before: discord.Member, after: discord.Member):
+    # Nur wenn jemand NEU boosted (premium_since: None \u2192 gesetzt)
+    if before.premium_since is not None or after.premium_since is None:
+        return
+
+    guild   = after.guild
+    log_ch  = guild.get_channel(BOOST_LOG_CHANNEL_ID)
+
+    # Geld gutschreiben
+    eco = load_economy()
+    user_data = get_user(eco, after.id)
+    user_data["cash"] = user_data.get("cash", 0) + BOOST_BETRAG
+    save_economy(eco)
+
+    # Boost-Z\u00e4hler hochz\u00e4hlen
+    counts = _load_boost_counts()
+    uid    = str(after.id)
+    counts[uid] = counts.get(uid, 0) + 1
+    total_boosts = counts[uid]
+    _save_boost_counts(counts)
+
+    # Kanalbenachrichtigung
+    if not log_ch:
+        return
+
+    beschreibung = (
+        f"{after.mention} hat den Server geboostet! \U0001f389\n\n"
+        f"\U0001f4b0 **+{BOOST_BETRAG:,} $** wurden deinem Konto gutgeschrieben.\n"
+        f"\U0001f4ca **Deine Boosts gesamt:** {total_boosts}"
+    )
+
+    if total_boosts >= BOOST_AUTO_BETRAG:
+        beschreibung += (
+            f"\n\n\U0001f3ce\ufe0f **Du hast {total_boosts} Boosts erreicht!**\n"
+            f"\u00d6ffne ein **Ticket**, um deinen Sportwagen deiner Wahl abzuholen!"
+        )
+
+    embed = discord.Embed(
+        title="\U0001f49c Server Boost \u2014 Danke!",
+        description=beschreibung,
+        color=BOOST_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_author(
+        name=after.display_name,
+        icon_url=after.display_avatar.url
+    )
+    embed.set_image(url=BOOST_BANNER_URL)
+    embed.set_footer(text="Paradise City Roleplay \u2014 Server Boosts")
+
+    try:
+        await log_ch.send(embed=embed)
+    except Exception as e:
+        print(f"[boost] Fehler beim Senden der Belohnungsnachricht: {e}")
