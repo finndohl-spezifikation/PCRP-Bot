@@ -69,7 +69,7 @@ def frak_build_list_embed(data: dict) -> discord.Embed:
     for name, entry in sorted(data.items()):
         wc = len(entry.get("warns", []))
         if wc == 0:
-            symbol = "\u2705"
+            symbol = "\U0001f3db\ufe0f"
         elif wc == 1:
             symbol = "\u26a0\ufe0f"
         elif wc == 2:
