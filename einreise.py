@@ -386,10 +386,10 @@ async def auto_einreise_setup():
                 "\u27A4 Du reist als **illegale Person** ein. Keine staatlichen Berufe m\u00F6glich.\n\n"
                 "\u26A0\uFE0F **Hinweis:** Eine \u00C4nderung der Einreiseart ist nur durch den RP-Tod deines Charakters m\u00F6glich."
             ),
-            color=0x3498DB,
+            color=0xFF6600,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.set_thumbnail(url="https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/paradise_city.jpg")
+        embed.set_image(url="https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev/charakter_erstellung.jpg")
         embed.set_footer(text="\u2708\uFE0F Einreise-System \u2022 Paradise City Roleplay")
         view = EinreiseView()
 
@@ -509,10 +509,6 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 ])
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member,
                          einreise_typ: str = "legal"):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     ausweis_data = load_ausweis()
     if str(nutzer.id) in ausweis_data:
         await interaction.response.send_message(
