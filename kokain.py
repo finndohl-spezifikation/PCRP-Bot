@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# kokain.py \u2014 Kokain-System (Paradise City Roleplay)
+# kokain.py â€” Kokain-System (Paradise City Roleplay)
 
 from config import *
 from economy_helpers import (
@@ -11,6 +11,45 @@ KOKA_INFO_CHANNEL_ID     = 1490894293135790190
 KOKA_BILD_CHANNEL_ID     = 1490894294297477120
 KOKA_LOG_CHANNEL_ID      = 1490878131240829028
 
+KOKA_MSG_FILE         = DATA_DIR / "koka_info_msg.json"
+EMBED_CONFIGS_FILE    = DATA_DIR / "embed_configs.json"
+BUTTON_CONFIGS_FILE   = DATA_DIR / "button_configs.json"
+
+KOKA_EMBED_DEFAULT = {
+    "title":  "\U0001F33F Kokain Herstellung",
+    "description": None,
+    "color":  0xFF6B00,
+    "footer": "Paradise City Roleplay \u2022 Kokain-System",
+}
+KOKA_BTN_DEFAULT = {
+    "koka_sell_btn": {"label": "\U0001F4B0 Kokain verkaufen", "style": "success"},
+}
+
+
+def _load_embed_cfg_koka() -> dict:
+    try:
+        if EMBED_CONFIGS_FILE.exists():
+            d = json.load(open(EMBED_CONFIGS_FILE, encoding="utf-8"))
+            merged = dict(KOKA_EMBED_DEFAULT)
+            merged.update(d.get("kokain") or {})
+            return merged
+    except Exception:
+        pass
+    return dict(KOKA_EMBED_DEFAULT)
+
+
+def _load_button_cfg_koka(key: str) -> dict:
+    try:
+        if BUTTON_CONFIGS_FILE.exists():
+            d = json.load(open(BUTTON_CONFIGS_FILE, encoding="utf-8"))
+            merged = dict(KOKA_BTN_DEFAULT.get(key, {}))
+            merged.update(d.get(key) or {})
+            return merged
+    except Exception:
+        pass
+    return dict(KOKA_BTN_DEFAULT.get(key, {}))
+
+
 KOKA_BLAETTER_CD_SECS    = 5 * 60
 KOKA_KOKAIN_CD_SECS      = 15 * 60
 KOKA_BLAETTER_MIN        = 50
@@ -19,12 +58,12 @@ KOKA_BLAETTER_PRO_RUNDE  = 35
 KOKAIN_WERT              = 2_950
 KOKAIN_GRAMM             = 250
 
-ITEM_BLAETTER_DEFAULT    = "Kokabl\xe4tter"
+ITEM_BLAETTER_DEFAULT    = "KokablÃ¤tter"
 ITEM_KOKAIN_DEFAULT      = "Kokain"
 ITEM_SCHWARZGELD_DEFAULT = "Schwarzgeld"
 
 
-# \u2500\u2500 Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# â”€â”€ Hilfsfunktionen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _shop_name(query: str, default: str) -> str:
     try:
@@ -104,24 +143,37 @@ async def _log(guild, title: str, desc: str):
     ch = guild.get_channel(KOKA_LOG_CHANNEL_ID) if guild else None
     if ch:
         emb = discord.Embed(
-            title=f"\U0001f33f {title}", description=desc,
+            title=f"ðŸŒ¿ {title}", description=desc,
             color=0xFF6B00, timestamp=datetime.now(timezone.utc),
         )
-        emb.set_footer(text="Paradise City \u2022 Kokain-System")
+        emb.set_footer(text="Paradise City â€¢ Kokain-System")
         try:
             await ch.send(embed=emb)
         except Exception:
             pass
 
 
-# \u2500\u2500 Persistent View: Kokain verkaufen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# â”€â”€ Persistent View: Kokain verkaufen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class KokaInfoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
+        cfg = _load_button_cfg_koka("koka_sell_btn")
+        _style_map = {
+            "success":   discord.ButtonStyle.success,
+            "danger":    discord.ButtonStyle.danger,
+            "primary":   discord.ButtonStyle.primary,
+            "secondary": discord.ButtonStyle.secondary,
+        }
+        for child in self.children:
+            if getattr(child, "custom_id", "") == "koka_sell_btn":
+                if cfg.get("label"):
+                    child.label = cfg["label"]
+                if cfg.get("style") in _style_map:
+                    child.style = _style_map[cfg["style"]]
 
     @discord.ui.button(
-        label="\U0001f4b0 Kokain verkaufen",
+        label="\U0001F4B0 Kokain verkaufen",
         style=discord.ButtonStyle.success,
         custom_id="koka_sell_btn",
     )
@@ -134,22 +186,21 @@ class KokaInfoView(discord.ui.View):
         hits = [i for i in inv if nk in normalize_item_name(i)]
         if not hits:
             await interaction.response.send_message(
-                "\u274c Du hast kein **Kokain** im Inventar.", ephemeral=True)
+                "âŒ Du hast kein **Kokain** im Inventar.", ephemeral=True)
             return
         ud["inventory"] = [i for i in inv if nk not in normalize_item_name(i)]
-        sg        = _shop_name(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
         total_sg  = (len(hits) * KOKAIN_WERT) // KOKAIN_GRAMM
-        ud["inventory"].extend([sg] * total_sg)
+        ud["schwarzgeld"] = ud.get("schwarzgeld", 0) + total_sg
         eco[str(user.id)] = ud
         save_economy(eco)
         await interaction.response.send_message(
-            f"\u2705 **{len(hits)}g Kokain** verkauft!\n"
-            f"\U0001f4b0 **{total_sg:,}\xd7 Schwarzgeld** ins Inventar.", ephemeral=True)
-        await _log(interaction.guild, "\U0001f4b0 Kokain verkauft",
-            f"{user.mention} hat **{len(hits)}g Kokain** \u2192 **{total_sg:,}\xd7 Schwarzgeld**")
+            f"âœ… **{len(hits)}g Kokain** verkauft!\n"
+            f"ðŸ’° **{total_sg:,}$ Schwarzgeld** deinem Konto gutgeschrieben.", ephemeral=True)
+        await _log(interaction.guild, "ðŸ’° Kokain verkauft",
+            f"{user.mention} hat **{len(hits)}g Kokain** â†’ **{total_sg:,}$ Schwarzgeld**")
 
 
-# \u2500\u2500 Tempor\xe4re View: Auswahl nach Foto-Einreichung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# â”€â”€ TemporÃ¤re View: Auswahl nach Foto-Einreichung â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class KokaAktionView(discord.ui.View):
     def __init__(self, author_id: int, guild_id: int):
@@ -160,11 +211,11 @@ class KokaAktionView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author_id:
             await interaction.response.send_message(
-                "\u274c Das ist nicht deine Auswahl!", ephemeral=True)
+                "âŒ Das ist nicht deine Auswahl!", ephemeral=True)
             return False
         return True
 
-    @discord.ui.button(label="\U0001f33f Kokabl\xe4tter sammeln  (5 Min.)", style=discord.ButtonStyle.success)
+    @discord.ui.button(label="ðŸŒ¿ KokablÃ¤tter sammeln  (5 Min.)", style=discord.ButtonStyle.success)
     async def blaetter_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         user  = interaction.user
         guild = bot.get_guild(self.guild_id)
@@ -172,9 +223,9 @@ class KokaAktionView(discord.ui.View):
         _set_foto_cd(user.id, KOKA_BLAETTER_CD_SECS, action="sammeln")
 
         await interaction.response.send_message(
-            f"\U0001f33f **Kokabl\xe4tter sammeln gestartet!**\n"
-            f"\u23f3 In **5 Minuten** erh\xe4ltst du deine Kokabl\xe4tter.\n"
-            f"\U0001f4f8 Erst danach kannst du wieder ein Foto schicken.",
+            f"ðŸŒ¿ **KokablÃ¤tter sammeln gestartet!**\n"
+            f"â³ In **5 Minuten** erhÃ¤ltst du deine KokablÃ¤tter.\n"
+            f"ðŸ“¸ Erst danach kannst du wieder ein Foto schicken.",
             ephemeral=True,
         )
         try:
@@ -182,25 +233,25 @@ class KokaAktionView(discord.ui.View):
         except Exception:
             pass
 
-        await _log(guild, "\U0001f33f Sammeln gestartet",
-            f"{user.mention} sammelt Kokabl\xe4tter \u2014 fertig in 5 Min.")
+        await _log(guild, "ðŸŒ¿ Sammeln gestartet",
+            f"{user.mention} sammelt KokablÃ¤tter â€” fertig in 5 Min.")
 
         async def _liefern():
             menge = random.randint(KOKA_BLAETTER_MIN, KOKA_BLAETTER_MAX)
             await asyncio.sleep(KOKA_BLAETTER_CD_SECS)
             _add_items(user.id, _shop_name(ITEM_BLAETTER_DEFAULT, ITEM_BLAETTER_DEFAULT), menge)
-            await _log(guild, "\u2705 Kokabl\xe4tter erhalten",
-                f"{user.mention} hat **{menge} Kokabl\xe4tter** erhalten.")
+            await _log(guild, "âœ… KokablÃ¤tter erhalten",
+                f"{user.mention} hat **{menge} KokablÃ¤tter** erhalten.")
             try:
                 await user.send(
-                    f"\U0001f33f **Ernte abgeschlossen!**\n"
-                    f"Du hast **{menge} Kokabl\xe4tter** erhalten und sie wurden deinem Inventar hinzugef\xfcgt."
+                    f"ðŸŒ¿ **Ernte abgeschlossen!**\n"
+                    f"Du hast **{menge} KokablÃ¤tter** erhalten und sie wurden deinem Inventar hinzugefÃ¼gt."
                 )
             except Exception:
                 pass
         bot.loop.create_task(_liefern())
 
-    @discord.ui.button(label="\u2697\ufe0f Kokain herstellen  (15 Min.)", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="âš—ï¸ Kokain herstellen  (15 Min.)", style=discord.ButtonStyle.danger)
     async def kokain_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         user  = interaction.user
         guild = bot.get_guild(self.guild_id)
@@ -208,23 +259,23 @@ class KokaAktionView(discord.ui.View):
         vorrat = _count_item(user.id, ITEM_BLAETTER_DEFAULT)
         if vorrat < KOKA_BLAETTER_PRO_RUNDE:
             await interaction.response.send_message(
-                f"\u274c Nicht genug Kokabl\xe4tter!\n"
-                f"\U0001f33f Vorhanden: **{vorrat}** \xb7 Ben\xf6tigt: **{KOKA_BLAETTER_PRO_RUNDE}**",
+                f"âŒ Nicht genug KokablÃ¤tter!\n"
+                f"ðŸŒ¿ Vorhanden: **{vorrat}** Â· BenÃ¶tigt: **{KOKA_BLAETTER_PRO_RUNDE}**",
                 ephemeral=True)
             return
 
         if not _consume_n(user.id, ITEM_BLAETTER_DEFAULT, KOKA_BLAETTER_PRO_RUNDE):
             await interaction.response.send_message(
-                "\u274c Fehler beim Entnehmen der Kokabl\xe4tter.", ephemeral=True)
+                "âŒ Fehler beim Entnehmen der KokablÃ¤tter.", ephemeral=True)
             return
 
         _set_foto_cd(user.id, KOKA_KOKAIN_CD_SECS, action="herstellen")
 
         await interaction.response.send_message(
-            f"\u2697\ufe0f **Kokain Herstellung gestartet!**\n"
-            f"\U0001f33f **{KOKA_BLAETTER_PRO_RUNDE} Kokabl\xe4tter** entnommen.\n"
-            f"\u23f3 In **15 Minuten** erh\xe4ltst du **250g Kokain**.\n"
-            f"\U0001f4f8 Erst danach kannst du wieder ein Foto schicken.",
+            f"âš—ï¸ **Kokain Herstellung gestartet!**\n"
+            f"ðŸŒ¿ **{KOKA_BLAETTER_PRO_RUNDE} KokablÃ¤tter** entnommen.\n"
+            f"â³ In **15 Minuten** erhÃ¤ltst du **250g Kokain**.\n"
+            f"ðŸ“¸ Erst danach kannst du wieder ein Foto schicken.",
             ephemeral=True,
         )
         try:
@@ -232,30 +283,30 @@ class KokaAktionView(discord.ui.View):
         except Exception:
             pass
 
-        await _log(guild, "\u2697\ufe0f Herstellung gestartet",
-            f"{user.mention} stellt **250g Kokain** her \u2014 fertig in 15 Min. "
-            f"({KOKA_BLAETTER_PRO_RUNDE} Bl\xe4tter entnommen)")
+        await _log(guild, "âš—ï¸ Herstellung gestartet",
+            f"{user.mention} stellt **250g Kokain** her â€” fertig in 15 Min. "
+            f"({KOKA_BLAETTER_PRO_RUNDE} BlÃ¤tter entnommen)")
 
         async def _liefern():
             await asyncio.sleep(KOKA_KOKAIN_CD_SECS)
             _add_items(user.id, _shop_name(ITEM_KOKAIN_DEFAULT, ITEM_KOKAIN_DEFAULT), KOKAIN_GRAMM)
-            await _log(guild, "\u2705 Kokain hergestellt",
-                f"{user.mention} hat **{KOKAIN_GRAMM}\xd7 Kokain ({KOKAIN_GRAMM}g)** erhalten.")
+            await _log(guild, "âœ… Kokain hergestellt",
+                f"{user.mention} hat **{KOKAIN_GRAMM}Ã— Kokain ({KOKAIN_GRAMM}g)** erhalten.")
             try:
                 await user.send(
-                    f"\u2697\ufe0f **Herstellung abgeschlossen!**\n"
-                    f"**{KOKAIN_GRAMM}\xd7 Kokain ({KOKAIN_GRAMM}g)** wurde deinem Inventar hinzugef\xfcgt.\n"
-                    f"\U0001f4b0 Du kannst es jetzt im Kokain-Kanal verkaufen *(2.950 $ Schwarzgeld f\xfcr 250g)*."
+                    f"âš—ï¸ **Herstellung abgeschlossen!**\n"
+                    f"**{KOKAIN_GRAMM}Ã— Kokain ({KOKAIN_GRAMM}g)** wurde deinem Inventar hinzugefÃ¼gt.\n"
+                    f"ðŸ’° Du kannst es jetzt im Kokain-Kanal verkaufen *(2.950 $ Schwarzgeld fÃ¼r 250g)*."
                 )
             except Exception:
                 pass
         bot.loop.create_task(_liefern())
 
 
-# \u2500\u2500 Cooldown-Feld (einheitlich f\xfcr beide Aktionen) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# â”€â”€ Cooldown-Feld (einheitlich fÃ¼r beide Aktionen) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _foto_cd_remaining(user_id: int) -> tuple[int, str]:
-    """Gibt (verbleibende Sekunden, Aktion) zur\xfcck."""
+    """Gibt (verbleibende Sekunden, Aktion) zurÃ¼ck."""
     eco = load_economy()
     ud  = get_user(eco, user_id)
     last    = ud.get("koka_foto_cd")
@@ -270,7 +321,7 @@ def _foto_cd_remaining(user_id: int) -> tuple[int, str]:
         return 0, action
 
 
-# \u2500\u2500 on_message \u2014 Foto-Erkennung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# â”€â”€ on_message â€” Foto-Erkennung â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @bot.listen("on_message")
 async def koka_bild_listener(message: discord.Message):
@@ -291,7 +342,7 @@ async def koka_bild_listener(message: discord.Message):
     user  = message.author
     guild = message.guild
 
-    # Bilder herunterladen BEVOR die Nachricht gel\xf6scht wird
+    # Bilder herunterladen BEVOR die Nachricht gelÃ¶scht wird
     try:
         log_files = [await att.to_file() for att in img_atts]
     except Exception:
@@ -306,14 +357,14 @@ async def koka_bild_listener(message: discord.Message):
     if cd > 0:
         m, s = divmod(cd, 60)
         if action == "sammeln":
-            aktion_text = "am **Kokabl\xe4tter sammeln**"
+            aktion_text = "am **KokablÃ¤tter sammeln**"
         elif action == "herstellen":
             aktion_text = "bei der **Kokain Herstellung**"
         else:
             aktion_text = "im **Cooldown**"
         try:
             await message.channel.send(
-                f"{user.mention} \u23f3 Du bist aktuell noch {aktion_text} \u2014 noch **{m}m {s}s**!",
+                f"{user.mention} â³ Du bist aktuell noch {aktion_text} â€” noch **{m}m {s}s**!",
                 delete_after=5,
             )
         except Exception:
@@ -324,26 +375,26 @@ async def koka_bild_listener(message: discord.Message):
         log_ch = guild.get_channel(KOKA_LOG_CHANNEL_ID) or await bot.fetch_channel(KOKA_LOG_CHANNEL_ID)
         if log_ch:
             emb = discord.Embed(
-                title="\U0001f4f8 Foto eingereicht",
+                title="ðŸ“¸ Foto eingereicht",
                 description=f"{user.mention} hat ein Foto in <#{KOKA_BILD_CHANNEL_ID}> eingereicht.",
                 color=0xFF6B00,
                 timestamp=datetime.now(timezone.utc),
             )
-            emb.set_footer(text="Paradise City \u2022 Kokain-System")
+            emb.set_footer(text="Paradise City â€¢ Kokain-System")
             await log_ch.send(embed=emb, files=log_files)
     except Exception as e:
         print(f"[kokain] Log-Fehler: {e}")
 
     embed = discord.Embed(
-        title="\U0001f33f Kokain-System",
+        title="ðŸŒ¿ Kokain-System",
         description=(
-            f"{user.mention}, was m\xf6chtest du tun?\n\n"
-            "\U0001f33f **Kokabl\xe4tter sammeln** \u2014 5 Min. Cooldown \xb7 50\u2013150 Bl\xe4tter\n"
-            "\u2697\ufe0f **Kokain herstellen** \u2014 15 Min. Cooldown \xb7 35 Bl\xe4tter n\xf6tig \xb7 250\xd7 Kokain (250g)"
+            f"{user.mention}, was mÃ¶chtest du tun?\n\n"
+            "ðŸŒ¿ **KokablÃ¤tter sammeln** â€” 5 Min. Cooldown Â· 50â€“150 BlÃ¤tter\n"
+            "âš—ï¸ **Kokain herstellen** â€” 15 Min. Cooldown Â· 35 BlÃ¤tter nÃ¶tig Â· 250Ã— Kokain (250g)"
         ),
         color=0xFF6B00,
     )
-    embed.set_footer(text="Paradise City Roleplay \u2022 Nur du kannst diese Buttons dr\xfccken")
+    embed.set_footer(text="Paradise City Roleplay â€¢ Nur du kannst diese Buttons drÃ¼cken")
 
     try:
         await message.channel.send(embed=embed, view=KokaAktionView(user.id, guild.id))
@@ -351,60 +402,71 @@ async def koka_bild_listener(message: discord.Message):
         print(f"[kokain] Fehler beim Senden: {e}")
 
 
-# \u2500\u2500 Info-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# â”€â”€ Info-Embed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _build_info_embed() -> discord.Embed:
+    cfg = _load_embed_cfg_koka()
+    default_desc = (
+        "**\U0001F4CD Standorte**\n"
+        f"\u2523 **1\ufe0f\u20e3 Kokabll\u00e4tter sammeln** \u2014 Bild 1\n"
+        f"\u2517 **2\ufe0f\u20e3 Kokain herstellen** \u2014 Bild 2\n\n"
+        "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        "**Schritt 1 \u2014 \U0001F33F Kokabll\u00e4tter sammeln**\n"
+        f"\U0001F4F8 Schicke ein Foto in <#{KOKA_BILD_CHANNEL_ID}>\n"
+        "\u23F3 Warte **5 Minuten** bis die Ernte abgeschlossen ist\n"
+        "\U0001F3B2 Du erh\u00e4ltst zuf\u00e4llig **50 \u2013 150 Kokabll\u00e4tter**\n\n"
+        "**Schritt 2 \u2014 \u2697\ufe0f Kokain herstellen**\n"
+        f"\U0001F4F8 Schicke ein Foto in <#{KOKA_BILD_CHANNEL_ID}>\n"
+        "\U0001F33F Voraussetzung: **35 Kokabll\u00e4tter**\n"
+        "\u23F3 Herstellungszeit: **15 Minuten**\n"
+        "\U0001F48A Ergebnis: **250\u00d7 Kokain (250g)** \u2014 Wert: **2.950\u00a0$ Schwarzgeld**\n\n"
+        "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+        "\U0001F4B0 Dr\u00fccke **Kokain verkaufen** um dein Kokain direkt\n"
+        "in Schwarzgeld umzutauschen *(250g = 2.950\u00a0$)*"
+    )
     emb = discord.Embed(
-        title="\U0001f33f Kokain Herstellung",
-        color=0xFF6B00,
-        description=(
-            "**\U0001f4cd Standorte**\n"
-            f"\u2523 **1\ufe0f\u20e3 Kokabl\xe4tter sammeln** \u2014 Bild 1\n"
-            f"\u2517 **2\ufe0f\u20e3 Kokain herstellen** \u2014 Bild 2\n\n"
-            "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
-            "**Schritt 1 \u2014 \U0001f33f Kokabl\xe4tter sammeln**\n"
-            f"\U0001f4f8 Schicke ein Foto in <#{KOKA_BILD_CHANNEL_ID}>\n"
-            "\u23f3 Warte **5 Minuten** bis die Ernte abgeschlossen ist\n"
-            "\U0001f3b2 Du erh\xe4ltst zuf\xe4llig **50 \u2013 150 Kokabl\xe4tter**\n\n"
-            "**Schritt 2 \u2014 \u2697\ufe0f Kokain herstellen**\n"
-            f"\U0001f4f8 Schicke ein Foto in <#{KOKA_BILD_CHANNEL_ID}>\n"
-            "\U0001f33f Voraussetzung: **35 Kokabl\xe4tter**\n"
-            "\u23f3 Herstellungszeit: **15 Minuten**\n"
-            "\U0001f48a Ergebnis: **250\xd7 Kokain (250g)** \u2014 Wert: **2.950 $ Schwarzgeld**\n\n"
-            "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-            "\U0001f4b0 Dr\xfccke **Kokain verkaufen** um dein Kokain direkt\n"
-            "in Schwarzgeld umzutauschen *(250g = 2.950 $)*"
-        ),
+        title=cfg.get("title", "\U0001F33F Kokain Herstellung"),
+        color=cfg.get("color", 0xFF6B00),
+        description=cfg.get("description") or default_desc,
         timestamp=datetime.now(timezone.utc),
     )
-    emb.set_footer(text="Paradise City Roleplay \u2022 Kokain-System")
+    emb.set_footer(text=cfg.get("footer", "Paradise City Roleplay \u2022 Kokain-System"))
     return emb
 
 
-async def _koka_setup():
+async def _koka_setup() -> str:
     await bot.wait_until_ready()
     await asyncio.sleep(3)
     try:
         channel = await bot.fetch_channel(KOKA_INFO_CHANNEL_ID)
     except Exception as e:
         print(f"[kokain] Info-Kanal nicht erreichbar: {e}")
-        return
+        return f"\u274C Kanal nicht erreichbar: {e}"
 
+    msg_id = None
     try:
-        async for msg in channel.history(limit=50):
-            if msg.author.id == bot.user.id and msg.embeds:
-                if any("Kokain Herstellung" in (e.title or "") for e in msg.embeds):
-                    try:
-                        await msg.delete()
-                    except Exception:
-                        pass
+        if KOKA_MSG_FILE.exists():
+            msg_id = json.load(open(KOKA_MSG_FILE, encoding="utf-8")).get("message_id")
     except Exception:
         pass
 
+    if msg_id:
+        try:
+            existing = await channel.fetch_message(msg_id)
+            await existing.edit(embed=_build_info_embed(), view=KokaInfoView())
+            print("[kokain] \u2705 Info-Embed aktualisiert.")
+            return "\u2705 Kokain Info-Embed aktualisiert."
+        except Exception:
+            pass
+
     try:
-        await channel.send(embed=_build_info_embed(), view=KokaInfoView())
+        sent = await channel.send(embed=_build_info_embed(), view=KokaInfoView())
+        json.dump({"message_id": sent.id}, open(KOKA_MSG_FILE, "w", encoding="utf-8"), indent=2)
+        print("[kokain] \u2705 Info-Embed gesendet.")
+        return "\u2705 Kokain Info-Embed gesendet."
     except Exception as e:
         print(f"[kokain] Senden fehlgeschlagen: {e}")
+        return f"\u274C Senden fehlgeschlagen: {e}"
 
 
 async def auto_kokain_setup():
