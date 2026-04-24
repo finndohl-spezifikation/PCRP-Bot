@@ -7,6 +7,7 @@
 
 from config import *
 from helpers import is_admin, is_team
+import fraktionen as _frak
 
 # \u2500\u2500 /ping \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 # Kein default_member_permissions \u2192 f\u00FCr alle Spieler sichtbar (Debug-Command)
@@ -213,3 +214,192 @@ async def weed_setup_cmd(interaction: discord.Interaction):
     import weed as _weed
     result = await _weed._weed_setup()
     await interaction.followup.send(result, ephemeral=True)
+
+
+# -- /fraktions-warn -------------------------------------------
+
+@bot.tree.command(
+    name="fraktions-warn",
+    description="[Fraktionsleitung] Erteilt einer Fraktion einen offiziellen Warn",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(
+    fraktion="Name der Fraktion",
+    grund="Grund f\u00fcr den Warn",
+    konsequenz="Konsequenz bei weiteren Verst\u00f6\u00dfen",
+)
+async def fraktions_warn_cmd(
+    interaction: discord.Interaction,
+    fraktion: str,
+    grund: str,
+    konsequenz: str,
+):
+    if not _frak.frak_hat_recht(interaction):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+
+    data  = _frak.frak_load()
+    entry = data.setdefault(fraktion, {"warns": []})
+    warns = entry["warns"]
+
+    if len(warns) >= _frak.MAX_WARNS:
+        await interaction.followup.send(
+            f"\u274c **{fraktion}** hat bereits {_frak.MAX_WARNS}/{_frak.MAX_WARNS} Warns.",
+            ephemeral=True,
+        )
+        return
+
+    warns.append({
+        "grund":      grund,
+        "konsequenz": konsequenz,
+        "datum":      datetime.now(timezone.utc).strftime("%d.%m.%Y"),
+        "issuer":     str(interaction.user),
+    })
+    _frak.frak_save(data)
+    wc = len(warns)
+
+    if wc == 1:
+        warn_symbol = "\u26a0\ufe0f"
+    elif wc == 2:
+        warn_symbol = "\u26a0\ufe0f\u26a0\ufe0f"
+    else:
+        warn_symbol = "\U0001f6a8 **LETZTER WARN**"
+
+    emb = discord.Embed(
+        title=f"\u26a0\ufe0f Fraktions-Warn \u2014 {fraktion}",
+        color=0xE67E22,
+        timestamp=datetime.now(timezone.utc),
+    )
+    emb.add_field(name="\U0001f3db\ufe0f Fraktion",  value=fraktion,   inline=False)
+    emb.add_field(name="\U0001f4cb Grund",           value=grund,      inline=False)
+    emb.add_field(name="\u2696\ufe0f Konsequenz",    value=konsequenz, inline=False)
+    emb.add_field(name="\U0001f4ca Warn-Stand",      value=f"{warn_symbol}  ({wc}/{_frak.MAX_WARNS})", inline=False)
+    emb.set_footer(text=_frak.FRAK_FOOTER)
+
+    try:
+        ch = await bot.fetch_channel(_frak.FRAK_WARN_CHANNEL_ID)
+        await ch.send(embed=emb)
+    except Exception as e:
+        await interaction.followup.send(f"\u274c Senden fehlgeschlagen: {e}", ephemeral=True)
+        return
+
+    await _frak.frak_update_list()
+    await interaction.followup.send(
+        f"\u2705 Warn f\u00fcr **{fraktion}** eingetragen ({wc}/{_frak.MAX_WARNS}).", ephemeral=True
+    )
+
+
+# -- /fraktions-sperre -----------------------------------------
+
+@bot.tree.command(
+    name="fraktions-sperre",
+    description="[Fraktionsleitung] Sperrt eine Fraktion",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(
+    fraktion="Name der Fraktion",
+    grund="Grund f\u00fcr die Sperre",
+    dauer="Dauer der Sperre (z. B. 7 Tage / permanent)",
+)
+async def fraktions_sperre_cmd(
+    interaction: discord.Interaction,
+    fraktion: str,
+    grund: str,
+    dauer: str,
+):
+    if not _frak.frak_hat_recht(interaction):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+
+    emb = discord.Embed(
+        title=f"\U0001f512 Fraktions-Sperre \u2014 {fraktion}",
+        color=0xE74C3C,
+        timestamp=datetime.now(timezone.utc),
+    )
+    emb.add_field(name="\U0001f3db\ufe0f Fraktion", value=fraktion, inline=False)
+    emb.add_field(name="\U0001f4cb Grund",          value=grund,    inline=False)
+    emb.add_field(name="\u23f3 Dauer",              value=dauer,    inline=False)
+    emb.set_footer(text=_frak.FRAK_FOOTER)
+
+    try:
+        ch = await bot.fetch_channel(_frak.FRAK_SPERRE_CHANNEL_ID)
+        await ch.send(embed=emb)
+    except Exception as e:
+        await interaction.followup.send(f"\u274c Senden fehlgeschlagen: {e}", ephemeral=True)
+        return
+
+    await interaction.followup.send(
+        f"\u2705 Sperre f\u00fcr **{fraktion}** gesendet.", ephemeral=True
+    )
+
+
+# -- /remove-frakwarn ------------------------------------------
+
+@bot.tree.command(
+    name="remove-frakwarn",
+    description="[Fraktionsleitung] Entfernt einen Warn einer Fraktion",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(fraktion="Fraktion deren letzten Warn du entfernen m\u00f6chtest")
+@app_commands.autocomplete(fraktion=_frak.frakwarn_autocomplete)
+async def remove_frakwarn_cmd(
+    interaction: discord.Interaction,
+    fraktion: str,
+):
+    if not _frak.frak_hat_recht(interaction):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+
+    data  = _frak.frak_load()
+    entry = data.get(fraktion)
+
+    if not entry or not entry.get("warns"):
+        await interaction.followup.send(
+            f"\u274c **{fraktion}** hat keine Warns.", ephemeral=True
+        )
+        return
+
+    removed = entry["warns"].pop()
+    _frak.frak_save(data)
+    wc = len(entry["warns"])
+
+    emb = discord.Embed(
+        title=f"\u2705 Fraktions-Warn entfernt \u2014 {fraktion}",
+        color=0x2ECC71,
+        timestamp=datetime.now(timezone.utc),
+    )
+    emb.add_field(name="\U0001f3db\ufe0f Fraktion",        value=fraktion,          inline=False)
+    emb.add_field(name="\U0001f5d1\ufe0f Entfernter Warn", value=removed["grund"],  inline=False)
+    emb.add_field(name="\U0001f4ca Verbleibende Warns",    value=f"{wc}/{_frak.MAX_WARNS}", inline=False)
+    emb.set_footer(text=_frak.FRAK_FOOTER)
+
+    try:
+        ch = await bot.fetch_channel(_frak.FRAK_WARN_CHANNEL_ID)
+        await ch.send(embed=emb)
+    except Exception as e:
+        await interaction.followup.send(f"\u274c Senden fehlgeschlagen: {e}", ephemeral=True)
+        return
+
+    await _frak.frak_update_list()
+    await interaction.followup.send(
+        f"\u2705 Warn von **{fraktion}** entfernt. Noch {wc}/{_frak.MAX_WARNS} Warns.", ephemeral=True
+    )
+
+
+# -- /frak-list ------------------------------------------------
+
+@bot.tree.command(
+    name="frak-list",
+    description="[Fraktionsleitung] Aktualisiert die Fraktionsliste im Kanal",
+    guild=discord.Object(id=GUILD_ID),
+)
+async def frak_list_cmd(interaction: discord.Interaction):
+    if not _frak.frak_hat_recht(interaction):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    await _frak.frak_update_list()
+    await interaction.followup.send("\u2705 Fraktionsliste aktualisiert.", ephemeral=True)
