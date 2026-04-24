@@ -224,10 +224,11 @@ async def weed_setup_cmd(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.describe(
-    fraktion="Name der Fraktion",
+    fraktion="Bestehende Fraktion auswÃ¤hlen",
     grund="Grund f\u00fcr den Warn",
     konsequenz="Konsequenz bei weiteren Verst\u00f6\u00dfen",
 )
+@app_commands.autocomplete(fraktion=_frak.frak_autocomplete)
 async def fraktions_warn_cmd(
     interaction: discord.Interaction,
     fraktion: str,
@@ -240,7 +241,13 @@ async def fraktions_warn_cmd(
     await interaction.response.defer(ephemeral=True)
 
     data  = _frak.frak_load()
-    entry = data.setdefault(fraktion, {"warns": []})
+    if fraktion not in data:
+        await interaction.followup.send(
+            f"\u274c **{fraktion}** ist nicht in der Fraktionsliste. Bitte zuerst mit `/frak-add` hinzuf\u00fcgen.",
+            ephemeral=True,
+        )
+        return
+    entry = data[fraktion]
     warns = entry["warns"]
 
     if len(warns) >= _frak.MAX_WARNS:
@@ -298,10 +305,11 @@ async def fraktions_warn_cmd(
     guild=discord.Object(id=GUILD_ID),
 )
 @app_commands.describe(
-    fraktion="Name der Fraktion",
+    fraktion="Bestehende Fraktion auswÃ¤hlen",
     grund="Grund f\u00fcr die Sperre",
     dauer="Dauer der Sperre (z. B. 7 Tage / permanent)",
 )
+@app_commands.autocomplete(fraktion=_frak.frak_autocomplete)
 async def fraktions_sperre_cmd(
     interaction: discord.Interaction,
     fraktion: str,
