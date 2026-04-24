@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# starterpaket.py — Starter Paket Embed
+# starterpaket.py \u2014 Starter Paket Embed
 # Paradise City Roleplay Discord Bot
-# ══════════════════════════════════════════════════════════════
 
 from config import *
 
 STARTERPAKET_CHANNEL_ID = 1490878159804174470
 STARTERPAKET_MSG_FILE   = DATA_DIR / "starterpaket_msg.json"
-STARTERPAKET_IMG_URL    = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/starterpaket.jpg"
+STARTERPAKET_IMG_URL    = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev/starterpaket.jpg"
 
 
 def _load_data() -> dict:
@@ -25,65 +23,30 @@ def _save_data(data: dict):
 
 def _build_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="🎁 Starter Paket",
-        color=LOG_COLOR,
+        title="\U0001f381 Starterpaket",
+        description=(
+            "Je nach Einreiseart erh\u00e4ltst du folgendes Starterpaket:\n"
+            "Das Fahrzeug findest du am Startpunkt bereit."
+        ),
+        color=0xFF6600,
     )
-
-    # ── Legale Einreise ──────────────────────────────────────
     embed.add_field(
-        name="✅ Legale Einreise",
-        value="\u200b",
+        name="\u2705 Legale Einreise",
+        value="\U0001f4b0 **5.000 $** \u2502 \U0001f697 Declasse Rhapsody",
         inline=False,
     )
     embed.add_field(
-        name="💰 Startgeld",
-        value="> 5.000 $",
-        inline=True,
-    )
-    embed.add_field(
-        name="🚗 Startfahrzeug",
-        value="> **Declasse Rhapsody**",
-        inline=True,
-    )
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-
-    # ── Illegale Einreise ────────────────────────────────────
-    embed.add_field(
-        name="🚫 Illegale Einreise",
-        value="\u200b",
+        name="\U0001f6ab Illegale Einreise",
+        value="\U0001f4b0 **5.000 $** \u2502 \U0001f697 Karin Kuruma",
         inline=False,
     )
     embed.add_field(
-        name="💰 Startgeld",
-        value="> 5.000 $",
-        inline=True,
-    )
-    embed.add_field(
-        name="🚗 Startfahrzeug",
-        value="> **Karin Kuruma**",
-        inline=True,
-    )
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-
-    # ── Gruppeneinreise ──────────────────────────────────────
-    embed.add_field(
-        name="👥 Gruppeneinreise *(ab 5 Personen)*",
-        value="\u200b",
+        name="\U0001f465 Gruppeneinreise *(ab 5 Personen)*",
+        value="\U0001f4b0 **10.000 $ pro Person** \u2502 \U0001f697 Enus Huntley S",
         inline=False,
     )
-    embed.add_field(
-        name="💰 Startgeld",
-        value="> 10.000 $ *pro Person*",
-        inline=True,
-    )
-    embed.add_field(
-        name="🚗 Startfahrzeug",
-        value="> **Enus Huntley S**",
-        inline=True,
-    )
-
-    embed.set_thumbnail(url=STARTERPAKET_IMG_URL)
-    embed.set_footer(text="Paradise City Roleplay — Starter Paket")
+    embed.set_image(url=STARTERPAKET_IMG_URL)
+    embed.set_footer(text="Paradise City Roleplay \u2022 Starterpaket")
     return embed
 
 
