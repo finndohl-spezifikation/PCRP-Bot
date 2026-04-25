@@ -153,13 +153,14 @@ class RaubView(TimedDisableView):
         user_data = get_user(eco, self.raeuber_id)
         for _ in range(bier):
             user_data.setdefault("inventory", []).append("Bier")
+        user_data["schwarzgeld"] = int(user_data.get("schwarzgeld", 0)) + beute
         save_economy(eco)
 
         await log_money_action(
             interaction.guild,
             "Raub\u00FCberfall Beute",
             f"{raeuber.mention} hat einen Raub\u00FCberfall durchgef\u00FChrt.\n"
-            f"**Beute:** {beute:,}$ (ausstehend)\n"
+            f"**Beute:** {beute:,}$ (Schwarzgeld gutgeschrieben)\n"
             f"**Bonus:** {bier}x Bier\n"
             f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
@@ -179,15 +180,14 @@ class RaubView(TimedDisableView):
                 title="\U0001F52B Raub\u00FCberfall \u2014 Erfolgreich! \U0001F4B0",
                 description=(
                     f"Dein Raub\u00FCberfall war **erfolgreich**!\n\n"
-                    f"**{beute:,}$** werden dir von der **Serverleitung** manuell ausgezahlt.\n"
+                    f"**{beute:,}$** wurden deinem **Schwarzgeld** gutgeschrieben.\n"
                     f"Zus\u00E4tzlich erh\u00E4ltst du **{bier}x Bier**."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute:,}$**",   inline=True)
+            dm.add_field(name="\U0001F4B5 Schwarzgeld +", value=f"**{beute:,}$**",   inline=True)
             dm.add_field(name="\U0001F37A Bonus",          value=f"**{bier}x Bier**", inline=True)
-            dm.add_field(name="\u23F3 Ausstehend", value="Wird manuell vergeben", inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 Raub\u00FCberfall System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
