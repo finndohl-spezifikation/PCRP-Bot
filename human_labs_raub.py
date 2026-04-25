@@ -28,7 +28,7 @@ HL_TEAM_CHANNEL_ID = 1490878141235855491   # Team News \u2014 Beweis + Buttons
 
 HL_MIN_PDL = 4   # Mindestanzahl PDLer im Dienst
 
-HL_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
+HL_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID, DASH_ROLE_ID}
 
 HL_IMAGE_URL = "https://136643ba-e2d7-462a-9d79-80b31d48cd0e-00-1tc3t15bfz4kf.sisko.replit.dev/humane_labs.jpg"
 
@@ -86,7 +86,7 @@ def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
     embed.add_field(name="\U0001F464 Spieler", value=f"{user.mention}\n`{user.display_name}`", inline=True)
     embed.add_field(name="\u23F1\uFE0F Dauer",   value="**20 Minuten**",                          inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay \u2022 Humane Labs System | Nur Team")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Humane Labs System | Best\u00E4tigung: Highteam")
     return embed
 
 
@@ -138,7 +138,7 @@ class HumanLabsView(TimedDisableView):
     @discord.ui.button(label="\u2705  Erfolgreich", style=discord.ButtonStyle.success, custom_id="human_labs:erfolg")
     async def erfolg_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
+            await interaction.response.send_message(f"\u274C Nur <@&{DASH_ROLE_ID}> d\u00FCrfen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
@@ -151,7 +151,6 @@ class HumanLabsView(TimedDisableView):
 
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
-        user_data["cash"] = user_data.get("cash", 0) + beute_wert
         for _ in range(chemie):
             user_data.setdefault("inventory", []).append("Chemikalien")
         save_economy(eco)
@@ -160,7 +159,7 @@ class HumanLabsView(TimedDisableView):
             interaction.guild,
             "Humane Labs Beute",
             f"{raeuber.mention} hat das Humane Labs ausgeraubt.\n"
-            f"**Beute:** {beute_wert:,}$ \u2192 Barbestand\n"
+            f"**Beute:** {beute_wert:,}$ (ausstehend)\n"
             f"**Chemikalien:** {chemie}\u00D7 ins Inventar\n"
             f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
@@ -180,7 +179,7 @@ class HumanLabsView(TimedDisableView):
                 title="\U0001F9EA Humane Labs \u2014 Erfolgreich! \U0001F4B0",
                 description=(
                     f"Dein Raub\u00FCberfall im **Humane Labs** war **erfolgreich**!\n\n"
-                    f"**{beute_wert:,}$** wurden in deinen **Barbestand** \u00FCbertragen.\n"
+                    f"**{beute_wert:,}$** werden dir von der **Serverleitung** manuell ausgezahlt.\n"
                     f"Zus\u00E4tzlich erh\u00E4ltst du **{chemie}\u00D7 Chemikalien** ins Inventar."
                 ),
                 color=0x00CC44,
@@ -188,7 +187,7 @@ class HumanLabsView(TimedDisableView):
             )
             dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute_wert:,}$**",       inline=True)
             dm.add_field(name="\U0001F9EA Chemikalien",    value=f"**{chemie}\u00D7**",             inline=True)
-            dm.add_field(name="\U0001F4CD Gutgeschrieben", value="Barbestand (Cash)",          inline=True)
+            dm.add_field(name="\u23F3 Ausstehend", value="Wird manuell vergeben",                inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 Humane Labs System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
@@ -199,7 +198,7 @@ class HumanLabsView(TimedDisableView):
     @discord.ui.button(label="\u274C  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="human_labs:fehlschlag")
     async def fehlschlag_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
+            await interaction.response.send_message(f"\u274C Nur <@&{DASH_ROLE_ID}> d\u00FCrfen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
