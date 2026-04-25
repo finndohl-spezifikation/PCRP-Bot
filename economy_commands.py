@@ -987,3 +987,65 @@ async def konto_nutzer(interaction: discord.Interaction, nutzer: discord.Member)
     embed.set_thumbnail(url=nutzer.display_avatar.url)
     embed.set_footer(text=f"\U0001f451 {interaction.user.display_name} \u2022 Paradise City Roleplay")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# \u2500\u2500 /schwarzgeld-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(
+    name="schwarzgeld-add",
+    description="[Mod] Schwarzgeld manuell an einen Spieler vergeben (nur mit Illegale-Rolle)",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(
+    nutzer="Spieler dem Schwarzgeld gegeben wird",
+    betrag="Betrag in $",
+)
+async def schwarzgeld_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
+    if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
+        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
+        return
+
+    if betrag <= 0:
+        await interaction.response.send_message("\u274c Der Betrag muss gr\u00f6\u00dfer als 0 sein.", ephemeral=True)
+        return
+
+    if not any(r.id == ILLEGAL_ROLE_ID for r in nutzer.roles):
+        await interaction.response.send_message(
+            f"\u274c {nutzer.mention} hat keine **Illegale Rolle** und kann kein Schwarzgeld erhalten.",
+            ephemeral=True,
+        )
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    user_data["schwarzgeld"] = int(user_data.get("schwarzgeld", 0)) + betrag
+    save_economy(eco)
+
+    embed = discord.Embed(
+        title="\U0001f5a4 Schwarzgeld vergeben",
+        description=(
+            f"\U0001f464 **Spieler:** {nutzer.mention} (`{nutzer}` | `{nutzer.id}`)\n"
+            f"\U0001f4b0 **Betrag:** **{betrag:,} $**\n"
+            f"\U0001f4ca **Neues Guthaben:** {user_data['schwarzgeld']:,} $\n"
+            f"\U0001f46e **Vergeben von:** {interaction.user.mention}"
+        ),
+        color=0x1A1A2E,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Schwarzgeld-System")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    try:
+        dm_embed = discord.Embed(
+            title="\U0001f5a4 Schwarzgeld erhalten",
+            description=(
+                f"Du hast **{betrag:,} $** Schwarzgeld erhalten.\n"
+                f"\U0001f4ca Dein aktuelles Schwarzgeld-Guthaben: **{user_data['schwarzgeld']:,} $**"
+            ),
+            color=0x1A1A2E,
+            timestamp=datetime.now(timezone.utc),
+        )
+        dm_embed.set_footer(text="Paradise City Roleplay \u2022 Schwarzgeld-System")
+        await nutzer.send(embed=dm_embed)
+    except Exception:
+        pass
