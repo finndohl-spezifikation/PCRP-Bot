@@ -190,13 +190,14 @@ class KokaInfoView(discord.ui.View):
             return
         ud["inventory"] = [i for i in inv if nk not in normalize_item_name(i)]
         total_sg  = (len(hits) * KOKAIN_WERT) // KOKAIN_GRAMM
+        ud["schwarzgeld"] = int(ud.get("schwarzgeld", 0)) + total_sg
         eco[str(user.id)] = ud
         save_economy(eco)
         await interaction.response.send_message(
-            f"\u2705 **{len(hits)}g Kokain** verarbeitet!\n"
-            f"\u23f3 **{total_sg:,}$** werden von der **Serverleitung** manuell vergeben.", ephemeral=True)
+            f"\u2705 **{len(hits)}g Kokain** verkauft!\n"
+            f"\U0001f4b5 **{total_sg:,}$** wurden deinem **Schwarzgeld** gutgeschrieben.", ephemeral=True)
         await _log(interaction.guild, "\U0001f48a Kokain verkauft",
-            f"{user.mention} hat **{len(hits)}g Kokain** verarbeitet \u2014 **{total_sg:,}$** ausstehend")
+            f"{user.mention} hat **{len(hits)}g Kokain** verkauft \u2014 **{total_sg:,}$** Schwarzgeld gutgeschrieben")
 
 
 # \u2500\u2500 Tempor\u00E4re View: Auswahl nach Foto-Einreichung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
