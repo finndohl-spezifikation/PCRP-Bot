@@ -34,7 +34,7 @@ ATM_TEAM_CHANNEL_ID  = 1490878141235855491   # Team News \u2014 Beweis + Buttons
 BEUTE_MIN            = 3_000
 BEUTE_MAX            = 10_000
 
-ATM_CONFIRM_ROLES    = {ADMIN_ROLE_ID, MOD_ROLE_ID}
+ATM_CONFIRM_ROLES    = {ADMIN_ROLE_ID, MOD_ROLE_ID, DASH_ROLE_ID}
 
 ATM_IMAGE_URL        = "https://4dc1d74d-ea8e-46f4-b123-1e1a11f5dfed-00-c2y924gtit5c.worf.replit.dev/api/files/atm_raub.jpg"
 
@@ -106,7 +106,7 @@ def build_beweis_embed(
     embed.add_field(name="\U0001F527 Gegenstand", value=f"**{item_label}**",                       inline=True)
     embed.add_field(name="\u23F1\uFE0F Zeit",       value=f"**{item_minuten} Minuten**",              inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay \u2022 ATM-System | Nur Team")
+    embed.set_footer(text="Paradise City Roleplay \u2022 ATM-System | Best\u00E4tigung: Highteam")
     return embed
 
 
@@ -159,7 +159,7 @@ class AtmRaubView(TimedDisableView):
     @discord.ui.button(label="\u2705  Erfolgreich", style=discord.ButtonStyle.success, custom_id="atm_raub:erfolg")
     async def erfolg_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
+            await interaction.response.send_message(f"\u274C Nur <@&{DASH_ROLE_ID}> d\u00FCrfen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
@@ -171,7 +171,6 @@ class AtmRaubView(TimedDisableView):
 
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
-        user_data["cash"] = user_data.get("cash", 0) + beute
         save_economy(eco)
 
         await log_money_action(
@@ -179,7 +178,7 @@ class AtmRaubView(TimedDisableView):
             "ATM-Raub Beute",
             f"{raeuber.mention} hat einen ATM ausgeraubt.\n"
             f"**Gegenstand:** {self.item_label}\n"
-            f"**Beute:** {beute:,}$ \u2192 Barbestand\n"
+            f"**Beute:** {beute:,}$ (ausstehend)\n"
             f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
 
@@ -201,14 +200,14 @@ class AtmRaubView(TimedDisableView):
                 title="\U0001F3E7 ATM-Raub \u2014 Erfolgreich! \U0001F4B0",
                 description=(
                     f"Dein ATM-Raub war **erfolgreich**!\n\n"
-                    f"**{beute:,}$** wurden in deinen **Barbestand** \u00FCbertragen."
+                    f"**{beute:,}$** werden dir von der **Serverleitung** manuell ausgezahlt."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="\U0001F527 Gegenstand",    value=self.item_label,         inline=True)
-            dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute:,}$**",        inline=True)
-            dm.add_field(name="\U0001F4CD Gutgeschrieben", value="Barbestand (Cash)",      inline=True)
+            dm.add_field(name="\U0001F527 Gegenstand",    value=self.item_label,    inline=True)
+            dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute:,}$**", inline=True)
+            dm.add_field(name="\u23F3 Ausstehend", value="Wird manuell vergeben",     inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 ATM-System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
@@ -219,7 +218,7 @@ class AtmRaubView(TimedDisableView):
     @discord.ui.button(label="\u274C  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="atm_raub:fehlschlag")
     async def fehlschlag_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
+            await interaction.response.send_message(f"\u274C Nur <@&{DASH_ROLE_ID}> d\u00FCrfen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
