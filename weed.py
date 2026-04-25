@@ -193,14 +193,15 @@ class WeedInfoView(discord.ui.View):
 
         gramm    = len(hits)
         total_sg = gramm * WEED_PREIS_PRO_GRAMM
+        ud["schwarzgeld"] = int(ud.get("schwarzgeld", 0)) + total_sg
 
         eco[str(user.id)] = ud
         save_economy(eco)
         await interaction.response.send_message(
-            f"\u2705 **{gramm}g Weed** verarbeitet!\n"
-            f"\u23f3 **{total_sg:,}$** werden von der **Serverleitung** manuell vergeben.", ephemeral=True)
+            f"\u2705 **{gramm}g Weed** verkauft!\n"
+            f"\U0001f4b5 **{total_sg:,}$** wurden deinem **Schwarzgeld** gutgeschrieben.", ephemeral=True)
         await _log_weed(interaction.guild, "\U0001f4b0 Weed verkauft",
-            f"{user.mention} hat **{gramm}g Weed** verarbeitet \u2014 **{total_sg:,}$** ausstehend")
+            f"{user.mention} hat **{gramm}g Weed** verkauft \u2014 **{total_sg:,}$** Schwarzgeld gutgeschrieben")
 
 
 # -- on_message: Foto startet Anbau direkt --------------------
