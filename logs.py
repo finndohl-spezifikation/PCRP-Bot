@@ -4,12 +4,12 @@
 # Paradise City Roleplay Discord Bot
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 #
-# Erg\xe4nzt events.py um:
+# Erg\u00E4nzt events.py um:
 #   \u2022 Voice-Channel Beitritt / Verlassen / Wechsel  \u2192 MEMBER_LOG
-#   \u2022 Namens- / Nickname-\xc4nderungen                 \u2192 MEMBER_LOG
-#   \u2022 Rollen erstellt / gel\xf6scht                    \u2192 ROLE_LOG
-#   \u2022 Timeout verh\xe4ngt / aufgehoben                 \u2192 MOD_LOG
-#   \u2022 Server-\xc4nderungen (Shop-Items, etc.)          \u2192 SERVER_LOG
+#   \u2022 Namens- / Nickname-\u00C4nderungen                 \u2192 MEMBER_LOG
+#   \u2022 Rollen erstellt / gel\u00F6scht                    \u2192 ROLE_LOG
+#   \u2022 Timeout verh\u00E4ngt / aufgehoben                 \u2192 MOD_LOG
+#   \u2022 Server-\u00C4nderungen (Shop-Items, etc.)          \u2192 SERVER_LOG
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 import discord
@@ -21,6 +21,7 @@ from config import (
     MOD_LOG_CHANNEL_ID,
     LOG_COLOR, MOD_COLOR,
     GUILD_ID,
+    AKTIVITAET_WARN_CHANNEL_ID,
 )
 from datetime import datetime, timezone
 
@@ -49,21 +50,21 @@ async def log_voice_state(member: discord.Member, before: discord.VoiceState, af
         _dh.log_activity('VOICE', f'{member} wechselte von "{before.channel.name}" zu "{after.channel.name}"', member.id)
 
     if before.channel is None and after.channel is not None:
-        title = "\U0001f50a Voice beigetreten"
+        title = "\U0001F50A Voice beigetreten"
         desc  = (
             f"**Mitglied:** {member.mention} (`{member}`)\n"
             f"**Kanal:** {after.channel.mention}"
         )
         color = LOG_COLOR
     elif before.channel is not None and after.channel is None:
-        title = "\U0001f507 Voice verlassen"
+        title = "\U0001F507 Voice verlassen"
         desc  = (
             f"**Mitglied:** {member.mention} (`{member}`)\n"
             f"**Kanal:** {before.channel.mention}"
         )
         color = LOG_COLOR
     else:
-        title = "\U0001f500 Voice gewechselt"
+        title = "\U0001F500 Voice gewechselt"
         desc  = (
             f"**Mitglied:** {member.mention} (`{member}`)\n"
             f"**Von:** {before.channel.mention}\n"
@@ -83,7 +84,7 @@ async def log_voice_state(member: discord.Member, before: discord.VoiceState, af
         pass
 
 
-# \u2500\u2500 Namens- / Nickname-\xc4nderung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Namens- / Nickname-\u00C4nderung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.listen("on_member_update")
 async def log_name_change(before: discord.Member, after: discord.Member):
@@ -101,7 +102,7 @@ async def log_name_change(before: discord.Member, after: discord.Member):
     if before.roles != after.roles:
         return
 
-    _dh.log_activity('NAME', f'{after}: Name/Nick ge\xe4ndert', after.id)
+    _dh.log_activity('NAME', f'{after}: Name/Nick ge\u00E4ndert', after.id)
 
     desc = f"**Mitglied:** {after.mention} (`{after}`)\n"
     if name_changed:
@@ -112,7 +113,7 @@ async def log_name_change(before: discord.Member, after: discord.Member):
         )
 
     embed = discord.Embed(
-        title="\u270f\ufe0f Name ge\xe4ndert",
+        title="\u270F\uFE0F Name ge\u00E4ndert",
         description=desc,
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
@@ -144,7 +145,7 @@ async def log_timeout(before: discord.Member, after: discord.Member):
         _dh.log_activity('TIMEOUT', f'Timeout von {after} aufgehoben', after.id)
 
     if after_to is not None:
-        title = "\U0001f507 Timeout verh\xe4ngt"
+        title = "\U0001F507 Timeout verh\u00E4ngt"
         ts    = int(after_to.timestamp())
         desc  = (
             f"**Mitglied:** {after.mention} (`{after}`)\n"
@@ -177,7 +178,7 @@ async def log_timeout(before: discord.Member, after: discord.Member):
         pass
 
 
-# \u2500\u2500 Rollen erstellt / gel\xf6scht \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Rollen erstellt / gel\u00F6scht \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.listen("on_guild_role_create")
 async def log_role_create(role: discord.Role):
@@ -215,8 +216,8 @@ async def log_role_create(role: discord.Role):
 async def log_role_delete(role: discord.Role):
     guild  = role.guild
     _dh.log_warning(
-        '\U0001f5d1\ufe0f Rolle gel\xf6scht',
-        f'Die Rolle **{role.name}** wurde vom Server gel\xf6scht.',
+        '\U0001F5D1\uFE0F Rolle gel\u00F6scht',
+        f'Die Rolle **{role.name}** wurde vom Server gel\u00F6scht.',
     )
     log_ch = guild.get_channel(ROLE_LOG_CHANNEL_ID)
     if not log_ch:
@@ -233,16 +234,22 @@ async def log_role_delete(role: discord.Role):
 
     desc = f"**Rolle:** `{role.name}`"
     if deleter:
-        desc += f"\n**Gel\xf6scht von:** {deleter.mention} (`{deleter}`)"
+        desc += f"\n**Gel\u00F6scht von:** {deleter.mention} (`{deleter}`)"
 
     embed = discord.Embed(
-        title="\U0001f5d1\ufe0f Rolle gel\xf6scht",
+        title="\U0001f5d1\ufe0f Rolle gel\u00f6scht",
         description=desc,
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
     try:
         await log_ch.send(embed=embed)
+    except Exception:
+        pass
+    try:
+        _wc = guild.get_channel(AKTIVITAET_WARN_CHANNEL_ID)
+        if _wc:
+            await _wc.send(embed=embed)
     except Exception:
         pass
 
@@ -282,7 +289,7 @@ async def log_unban(guild: discord.Guild, user: discord.User):
         pass
 
 
-# \u2500\u2500 Kanal gel\xf6scht \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Kanal gel\u00F6scht \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.listen("on_guild_channel_delete")
 async def log_channel_delete(channel):
@@ -297,17 +304,33 @@ async def log_channel_delete(channel):
     except Exception:
         pass
     _dh.log_warning(
-        '\U0001f4e2 Kanal gel\xf6scht',
-        f'Kanal **#{channel.name}** wurde gel\xf6scht.'
+        '\U0001f4e2 Kanal gel\u00f6scht',
+        f'Kanal **#{channel.name}** wurde gel\u00f6scht.'
         + (f' | Von: {deleter}' if deleter else ''),
     )
     _dh.log_activity(
         'KANAL',
-        f'Kanal #{channel.name} gel\xf6scht' + (f' von {deleter}' if deleter else ''),
+        f'Kanal #{channel.name} gel\u00f6scht' + (f' von {deleter}' if deleter else ''),
     )
+    try:
+        _wc = guild.get_channel(AKTIVITAET_WARN_CHANNEL_ID)
+        if _wc:
+            _kd_desc = f"**Kanal:** `#{channel.name}`"
+            if deleter:
+                _kd_desc += f"\n**Gel\u00f6scht von:** {deleter.mention} (`{deleter}`)"
+            _kd_embed = discord.Embed(
+                title="\u26a0\ufe0f Aktivit\u00e4tswarnung \u2014 Kanal gel\u00f6scht",
+                description=_kd_desc,
+                color=0xFF0000,
+                timestamp=datetime.now(timezone.utc),
+            )
+            _kd_embed.set_footer(text="Paradise City Roleplay \u2022 Server-Schutz")
+            await _wc.send(embed=_kd_embed)
+    except Exception:
+        pass
 
 
-# \u2500\u2500 Helfer: Server-\xc4nderungen loggen (Items, Shop, etc.) \u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 Helfer: Server-\u00C4nderungen loggen (Items, Shop, etc.) \u2500\u2500\u2500\u2500\u2500\u2500
 
 async def log_server_change(guild: discord.Guild, title: str, description: str):
     log_ch = guild.get_channel(SERVER_LOG_CHANNEL_ID)
