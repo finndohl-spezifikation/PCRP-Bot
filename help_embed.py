@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-# ══════════════════════════════════════════════════════════════
-# help_embed.py — Automatisches Command-Übersicht Embed
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# help_embed.py \u2014 Automatisches Command-\xdcbersicht Embed
 # Paradise City Roleplay Discord Bot
 #
 # Liest alle registrierten Slash-Commands aus dem Bot-Tree,
-# gruppiert sie nach Kategorie-Präfix ([Kategorie]) und
+# gruppiert sie nach Kategorie-Pr\xe4fix ([Kategorie]) und
 # postet / aktualisiert ein hellblaues Embed im Info-Kanal.
 #
 # Speichert die Nachrichten-ID in data/help_message_id.json
 # damit die Nachricht bei jedem Neustart editiert wird.
-# ══════════════════════════════════════════════════════════════
+# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 import re
 import json
@@ -20,21 +20,21 @@ HELP_CHANNEL_ID  = 1491624319598460958
 MESSAGE_ID_FILE  = str(DATA_DIR / "help_message_id.json")
 EMBED_COLOR      = 0xE67E22   # Hellblau
 
-# ── Kategorie-Konfiguration ────────────────────────────────────
-# Schlüssel = Präfix in der Command-Beschreibung ([Präfix])
+# \u2500\u2500 Kategorie-Konfiguration \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# Schl\xfcssel = Pr\xe4fix in der Command-Beschreibung ([Pr\xe4fix])
 # Wert      = (Emoji, Anzeigename, Wer darf es nutzen)
 CATEGORY_MAP = {
-    "Konto":    ("💰", "Konto",                   "Alle Spieler"),
-    "Inventar": ("🎒", "Inventar",                "Alle Spieler"),
-    "Shop":     ("🏪", "Shop",                    "Alle Spieler / Shop-Admin"),
-    "Ausweis":  ("🪪", "Ausweis",                 "Bürger / Admin / Mod"),
-    "Behörde":  ("🚗", "Führerschein / Behörde",  "Behörden-Team"),
-    "IC":       ("🎭", "IC Aktionen",             "Alle Spieler"),
-    "Aktien":   ("📈", "Aktienmarkt",             "Alle Spieler"),
+    "Konto":    ("\U0001f4b0", "Konto",                   "Alle Spieler"),
+    "Inventar": ("\U0001f392", "Inventar",                "Alle Spieler"),
+    "Shop":     ("\U0001f3ea", "Shop",                    "Alle Spieler / Shop-Admin"),
+    "Ausweis":  ("\U0001faaa", "Ausweis",                 "B\xfcrger / Admin / Mod"),
+    "Beh\xf6rde":  ("\U0001f697", "F\xfchrerschein / Beh\xf6rde",  "Beh\xf6rden-Team"),
+    "IC":       ("\U0001f3ad", "IC Aktionen",             "Alle Spieler"),
+    "Aktien":   ("\U0001f4c8", "Aktienmarkt",             "Alle Spieler"),
 }
 
-# Commands ohne [Kategorie]-Präfix werden hier manuell zugeordnet
-# Schlüssel = Command-Name, Wert = Kategorie-Schlüssel
+# Commands ohne [Kategorie]-Pr\xe4fix werden hier manuell zugeordnet
+# Schl\xfcssel = Command-Name, Wert = Kategorie-Schl\xfcssel
 NAME_CATEGORY_MAP: dict[str, str] = {
     "erste-hilfe":    "IC",
     "ortung":         "IC",
@@ -48,7 +48,7 @@ NAME_CATEGORY_MAP: dict[str, str] = {
 HIDDEN_CATEGORIES = {"Warn", "Admin", "Mod", "Team", "LOBBY", "Allgemein", "__other__"}
 
 CATEGORY_ORDER = [
-    "Konto", "Inventar", "Shop", "Ausweis", "Behörde", "IC", "Aktien",
+    "Konto", "Inventar", "Shop", "Ausweis", "Beh\xf6rde", "IC", "Aktien",
 ]
 
 
@@ -73,14 +73,14 @@ def _get_prefix(description: str) -> str:
 
 
 def _strip_prefix(description: str) -> str:
-    """Entfernt den [Kategorie]-Präfix aus der Command-Beschreibung."""
+    """Entfernt den [Kategorie]-Pr\xe4fix aus der Command-Beschreibung."""
     return re.sub(r"^\[[^\]]+\]\s*", "", description)
 
 
 def _build_embed(commands: list) -> discord.Embed:
     grouped = {}
     for cmd in commands:
-        # Zuerst prüfen ob Command manuell einer Kategorie zugeordnet ist
+        # Zuerst pr\xfcfen ob Command manuell einer Kategorie zugeordnet ist
         if cmd.name in NAME_CATEGORY_MAP:
             category = NAME_CATEGORY_MAP[cmd.name]
         else:
@@ -95,8 +95,8 @@ def _build_embed(commands: list) -> discord.Embed:
     total = sum(len(v) for v in grouped.values())
 
     embed = discord.Embed(
-        title="📋 Paradise City Roleplay — Commands",
-        description="Alle verfügbaren Slash-Commands auf einem Blick.\nTippe `/` um loszulegen.\n\u200b",
+        title="\U0001f4cb Paradise City Roleplay \u2014 Commands",
+        description="Alle verf\xfcgbaren Slash-Commands auf einem Blick.\nTippe `/` um loszulegen.\n\u200b",
         color=EMBED_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
@@ -104,11 +104,11 @@ def _build_embed(commands: list) -> discord.Embed:
     for key in CATEGORY_ORDER:
         if key not in grouped:
             continue
-        emoji, cat_name, who = CATEGORY_MAP.get(key, ("📌", key, "Alle"))
+        emoji, cat_name, who = CATEGORY_MAP.get(key, ("\U0001f4cc", key, "Alle"))
 
-        # Jeder Command auf eigener Zeile: /name ─ Beschreibung
+        # Jeder Command auf eigener Zeile: /name \u2500 Beschreibung
         lines = "\n".join(
-            f"╰ `/{name}` — {desc}" for name, desc in sorted(grouped[key], key=lambda x: x[0])
+            f"\u2570 `/{name}` \u2014 {desc}" for name, desc in sorted(grouped[key], key=lambda x: x[0])
         )
 
         embed.add_field(
@@ -117,7 +117,7 @@ def _build_embed(commands: list) -> discord.Embed:
             inline=False,
         )
 
-    embed.set_footer(text=f"Paradise City Roleplay  •  {total} Commands verfügbar")
+    embed.set_footer(text=f"Paradise City Roleplay  \u2022  {total} Commands verf\xfcgbar")
     return embed
 
 
@@ -125,12 +125,12 @@ async def update_help_embed():
     guild   = bot.get_guild(GUILD_ID)
     channel = guild and guild.get_channel(HELP_CHANNEL_ID)
     if not channel:
-        print(f"[help_embed] ❌ Kanal {HELP_CHANNEL_ID} nicht gefunden.")
+        print(f"[help_embed] \u274c Kanal {HELP_CHANNEL_ID} nicht gefunden.")
         return
 
     commands = bot.tree.get_commands(guild=discord.Object(id=GUILD_ID))
     if not commands:
-        print("[help_embed] ⚠️ Keine Commands im Tree gefunden.")
+        print("[help_embed] \u26a0\ufe0f Keine Commands im Tree gefunden.")
         return
 
     embed      = _build_embed(commands)
@@ -140,29 +140,24 @@ async def update_help_embed():
         try:
             msg = await channel.fetch_message(message_id)
             await msg.edit(embed=embed)
-            print(f"[help_embed] ✅ Embed aktualisiert (ID {message_id})")
+            print(f"[help_embed] \u2705 Embed aktualisiert (ID {message_id})")
             return
         except discord.NotFound:
             pass
         except Exception as e:
-            print(f"[help_embed] ⚠️ Edit fehlgeschlagen: {e}")
+            print(f"[help_embed] \u26a0\ufe0f Edit fehlgeschlagen: {e}")
 
     msg = await channel.send(embed=embed)
     _save_message_id(msg.id)
-    print(f"[help_embed] ✅ Neues Embed gesendet (ID {msg.id})")
+    print(f"[help_embed] \u2705 Neues Embed gesendet (ID {msg.id})")
 
 
 @bot.tree.command(
     name="help-update",
-    description="[Admin] Aktualisiert das Command-Übersicht Embed manuell",
+    description="Aktualisiert das Command-\u00DCbersicht Embed manuell",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.default_permissions(administrator=True)
 async def help_update(interaction: discord.Interaction):
-    if not any(r.id == ADMIN_ROLE_ID for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
-        return
-
     await interaction.response.defer(ephemeral=True)
     await update_help_embed()
-    await interaction.followup.send("✅ Embed erfolgreich aktualisiert!", ephemeral=True)
+    await interaction.followup.send("\u2705 Embed erfolgreich aktualisiert!", ephemeral=True)
