@@ -73,6 +73,12 @@ async def on_ready():
             if hasattr(guild, "fetch_invites"):
                 invites = await guild.fetch_invites()
                 invite_cache[guild.id] = {inv.code: inv for inv in invites}
+                try:
+                    vanity = await guild.vanity_invite()
+                    if vanity:
+                        invite_cache[guild.id]["vanity"] = vanity
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -357,9 +363,20 @@ async def on_member_update(before, after):
     for _r in added:
         if _r.id in TEAM_ROLE_IDS:
             _dh.log_warning(
-                'âš ï¸ Highteam-Rolle vergeben',
+                '\u26a0\ufe0f Highteam-Rolle vergeben',
                 f'{after} ({after.id}) hat die Rolle **{_r.name}** erhalten.',
             )
+            _ht_embed = discord.Embed(
+                title="\u26a0\ufe0f Aktivit\u00e4tswarnung \u2014 Highteam-Rolle vergeben",
+                description=(
+                    f"\U0001f464 **Benutzer:** {after.mention} (`{after}` | `{after.id}`)\n"
+                    f"\U0001f3ad **Rolle:** {_r.mention} (`{_r.name}`)"
+                ),
+                color=0xFF0000,
+                timestamp=datetime.now(timezone.utc),
+            )
+            _ht_embed.set_footer(text="Paradise City Roleplay \u2022 Server-Schutz")
+            await _warn_channel_send(guild, _ht_embed)
     _dh.log_activity("ROLLE",
         f"{after} â€” Rollen geÃ¤ndert: +[{', '.join(r.name for r in added)}] -[{', '.join(r.name for r in removed)}]",
         after.id)
@@ -1107,6 +1124,16 @@ _NANANA_GIF_B64 = (
 _bot_deleted_ids: set = set()
 
 
+async def _warn_channel_send(guild: discord.Guild, embed: discord.Embed):
+    """\u0041ktivit\u00e4tswarnung auch in den dedizierten Warn-Kanal schicken."""
+    try:
+        ch = guild.get_channel(AKTIVITAET_WARN_CHANNEL_ID)
+        if ch:
+            await ch.send(embed=embed)
+    except Exception:
+        pass
+
+
 async def _dm_inhaber(guild: discord.Guild, embed: discord.Embed):
     """DM an alle Mitglieder mit Inhaber-Rolle."""
     # Dashboard: Aktivit\u00e4tswarnung aufzeichnen
@@ -1117,6 +1144,8 @@ async def _dm_inhaber(guild: discord.Guild, embed: discord.Embed):
         )
     except Exception:
         pass
+    # Zus\u00e4tzlich in den Aktivit\u00e4tswarnung-Kanal posten
+    await _warn_channel_send(guild, embed)
     inhaber_role = guild.get_role(INHABER_ROLE_ID)
     if not inhaber_role:
         return
