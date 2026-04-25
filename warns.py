@@ -311,3 +311,87 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
     )
     embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# \u2500\u2500 /ban-list \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+_BAN_LIST_PAGE_SIZE = 10
+
+class BanListView(discord.ui.View):
+    def __init__(self, bans: list, requester: discord.Member):
+        super().__init__(timeout=120)
+        self.bans      = bans
+        self.requester = requester
+        self.page      = 0
+        self.max_page  = max(0, (len(bans) - 1) // _BAN_LIST_PAGE_SIZE)
+        self._update_buttons()
+
+    def _update_buttons(self):
+        self.prev_btn.disabled = self.page == 0
+        self.next_btn.disabled = self.page >= self.max_page
+
+    def build_embed(self) -> discord.Embed:
+        start = self.page * _BAN_LIST_PAGE_SIZE
+        chunk = self.bans[start:start + _BAN_LIST_PAGE_SIZE]
+        lines = []
+        for idx, (user, reason) in enumerate(chunk, start + 1):
+            reason_short = (reason[:60] + "\u2026") if reason and len(reason) > 60 else (reason or "kein Grund")
+            lines.append(f"`{idx}.` **{user}** (`{user.id}`)\n    \U0001f4cb {reason_short}")
+        embed = discord.Embed(
+            title=f"\U0001f6ab Ban-Liste \u2014 {len(self.bans)} gebannte Spieler",
+            description="\n\n".join(lines) if lines else "*Keine Bans vorhanden.*",
+            color=0xFF0000,
+            timestamp=datetime.now(timezone.utc),
+        )
+        embed.set_footer(
+            text=f"Seite {self.page + 1}/{self.max_page + 1} \u2022 Paradise City Roleplay"
+        )
+        return embed
+
+    async def _check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.requester.id:
+            await interaction.response.send_message("\u274C Nur der Aufrufer darf bl\u00e4ttern.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="\u25c4 Zur\u00fcck", style=discord.ButtonStyle.secondary, custom_id="banlist_prev")
+    async def prev_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check(interaction):
+            return
+        self.page -= 1
+        self._update_buttons()
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    @discord.ui.button(label="Weiter \u25ba", style=discord.ButtonStyle.secondary, custom_id="banlist_next")
+    async def next_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self._check(interaction):
+            return
+        self.page += 1
+        self._update_buttons()
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+
+@bot.tree.command(
+    name="ban-list",
+    description="[Mod] Zeigt alle gebannten Spieler des Servers",
+    guild=discord.Object(id=GUILD_ID),
+)
+async def ban_list(interaction: discord.Interaction):
+    if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        bans = [(entry.user, entry.reason) async for entry in interaction.guild.bans()]
+    except Exception as e:
+        await interaction.followup.send(f"\u274C Fehler beim Laden der Bans: `{e}`", ephemeral=True)
+        return
+
+    if not bans:
+        await interaction.followup.send("\u2705 Keine Bans auf diesem Server.", ephemeral=True)
+        return
+
+    view  = BanListView(bans, interaction.user)
+    embed = view.build_embed()
+    await interaction.followup.send(embed=embed, view=view, ephemeral=True)
