@@ -264,9 +264,118 @@ class EmpfaengerAuswahlView(TimedDisableView):
 
 # \u2500\u2500 Kontostand View (Buttons) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-class KontostandView(TimedDisableView):
+class SchwarzgeldBetragModal(discord.ui.Modal, title="\U0001F5A4 Schwarzgeld senden"):
+    betrag_input = discord.ui.TextInput(
+        label="Betrag ($)",
+        placeholder="z. B. 5000",
+        min_length=1,
+        max_length=12,
+    )
+
+    def __init__(self, ziel: discord.Member):
+        super().__init__()
+        self.ziel = ziel
+
+    async def on_submit(self, interaction: discord.Interaction):
+        betrag = parse_betrag(self.betrag_input.value)
+        if betrag is None or betrag <= 0:
+            await interaction.response.send_message("\u274C Ung\u00FCltiger Betrag.", ephemeral=True)
+            return
+
+        eco         = load_economy()
+        sender_data = get_user(eco, interaction.user.id)
+        empf_data   = get_user(eco, self.ziel.id)
+
+        sg_sender = int(sender_data.get("schwarzgeld", 0))
+        if sg_sender < betrag:
+            await interaction.response.send_message(
+                f"\u274C Nicht genug Schwarzgeld. Dein Guthaben: **{sg_sender:,} $**", ephemeral=True
+            )
+            return
+
+        sender_data["schwarzgeld"] = sg_sender - betrag
+        empf_data["schwarzgeld"]   = int(empf_data.get("schwarzgeld", 0)) + betrag
+        save_economy(eco)
+
+        await log_money_action(
+            interaction.guild,
+            "\U0001F5A4 Schwarzgeld \u00DCberweisung",
+            f"**Von:** {interaction.user.mention} \u2192 **An:** {self.ziel.mention}\n"
+            f"**Betrag:** {betrag:,} $ | **Sender danach:** {sender_data['schwarzgeld']:,} $"
+        )
+
+        embed = discord.Embed(
+            title="\U0001F5A4 Schwarzgeld \u00FCberwiesen",
+            description="\u2015" * 20,
+            color=0x2C2F33,
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="\U0001F4E4 An",          value=self.ziel.mention,                        inline=True)
+        embed.add_field(name="\U0001F4B0 Betrag",      value=f"**{betrag:,} $**",                      inline=True)
+        embed.add_field(name="\U0001F5A4 Verbleibend", value=f"{sender_data['schwarzgeld']:,} $",       inline=True)
+        embed.set_footer(text="Paradise City Roleplay \u2022 Schwarzgeld-System")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        try:
+            dm = discord.Embed(
+                title="\U0001F5A4 Schwarzgeld erhalten",
+                description=f"{interaction.user.mention} hat dir **{betrag:,} $** Schwarzgeld \u00FCberwiesen.",
+                color=0x2C2F33,
+                timestamp=datetime.now(timezone.utc)
+            )
+            dm.set_footer(text="Paradise City Roleplay \u2022 Schwarzgeld-System")
+            await self.ziel.send(embed=dm)
+        except discord.Forbidden:
+            pass
+
+
+class SchwarzgeldEmpfaengerView(TimedDisableView):
     def __init__(self):
         super().__init__(timeout=INTERACTION_VIEW_TIMEOUT)
+
+    @discord.ui.select(
+        cls=discord.ui.UserSelect,
+        placeholder="Empf\u00E4nger ausw\u00E4hlen...",
+        min_values=1,
+        max_values=1,
+    )
+    async def select_empfaenger(self, interaction: discord.Interaction, select: discord.ui.UserSelect):
+        ziel = select.values[0]
+        if ziel.bot:
+            await interaction.response.send_message("\u274C Du kannst nicht an einen Bot senden.", ephemeral=True)
+            return
+        if ziel.id == interaction.user.id:
+            await interaction.response.send_message("\u274C Du kannst kein Schwarzgeld an dich selbst senden.", ephemeral=True)
+            return
+        if ILLEGAL_ROLE_ID not in {r.id for r in ziel.roles}:
+            await interaction.response.send_message(
+                f"\u274C {ziel.mention} hat keine **Illegale-Rolle** und kann kein Schwarzgeld empfangen.", ephemeral=True
+            )
+            return
+        await interaction.response.send_modal(SchwarzgeldBetragModal(ziel))
+
+
+class SchwarzgeldButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Schwarzgeld senden",
+            emoji="\U0001F5A4",
+            style=discord.ButtonStyle.secondary,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "**\U0001F5A4 An wen m\u00F6chtest du Schwarzgeld senden?**\nW\u00E4hle den Empf\u00E4nger aus der Liste:",
+            view=SchwarzgeldEmpfaengerView(),
+            ephemeral=True,
+        )
+
+
+class KontostandView(TimedDisableView):
+    def __init__(self, show_schwarzgeld: bool = False):
+        super().__init__(timeout=INTERACTION_VIEW_TIMEOUT)
+        if show_schwarzgeld:
+            self.add_item(SchwarzgeldButton())
 
     @discord.ui.button(label="Einzahlen", emoji="\U0001F3E6", style=discord.ButtonStyle.success)
     async def einzahlen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -416,6 +525,9 @@ async def _konto_logic(interaction: discord.Interaction):
     embed.add_field(name="\U0001F4B0 Gesamt",   value=f"**{int(user_data['cash'])+int(user_data['bank']):,} $**",   inline=True)
     if dispo > 0:
         embed.add_field(name="\U0001F4CA Dispo", value=f"bis -{dispo:,} $", inline=True)
+    if ILLEGAL_ROLE_ID in {r.id for r in interaction.user.roles}:
+        sg_bal = int(user_data.get("schwarzgeld", 0))
+        embed.add_field(name="\U0001F5A4 Schwarzgeld", value=f"**{sg_bal:,} $**", inline=False)
 
     tx_log = user_data.get("transaktionen", [])
     if tx_log:
@@ -427,7 +539,8 @@ async def _konto_logic(interaction: discord.Interaction):
 
     embed.set_thumbnail(url=interaction.user.display_avatar.url)
     embed.set_footer(text="\U0001F3DB\uFE0F Maze Bank \u2022 Paradise City Roleplay")
-    await interaction.response.send_message(embed=embed, view=KontostandView(), ephemeral=True)
+    show_sg = ILLEGAL_ROLE_ID in {r.id for r in interaction.user.roles}
+    await interaction.response.send_message(embed=embed, view=KontostandView(show_schwarzgeld=show_sg), ephemeral=True)
 
 
 # \u2500\u2500 Persistent-Panel: Online Banking \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -828,3 +941,49 @@ async def hard_reset(interaction: discord.Interaction):
     embed.add_field(name="\U0001F3E0 Lager",       value="**Geleert**",     inline=True)
     embed.set_footer(text=f"\U0001F451 {interaction.user.display_name} \u2022 Paradise City Roleplay")
     await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+# \u2500\u2500 /konto @nutzer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(
+    name="konto",
+    description="[Mod] Zeigt das Konto eines Spielers an",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(nutzer="Spieler dessen Konto du einsehen m\u00f6chtest")
+async def konto_nutzer(interaction: discord.Interaction, nutzer: discord.Member):
+    if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        return
+
+    eco       = load_economy()
+    user_data = get_user(eco, nutzer.id)
+    save_economy(eco)
+
+    dispo = user_data.get("dispo", 0)
+    embed = discord.Embed(
+        title=f"\U0001f4b3 Konto von {nutzer.display_name}",
+        description="\u2015" * 20,
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.add_field(name="\U0001f4b5 Bargeld",  value=f"{int(user_data['cash']):,} $",                            inline=True)
+    embed.add_field(name="\U0001f3e6 Bank",     value=f"{int(user_data['bank']):,} $",                            inline=True)
+    embed.add_field(name="\U0001f4b0 Gesamt",   value=f"**{int(user_data['cash'])+int(user_data['bank']):,} $**", inline=True)
+    if dispo > 0:
+        embed.add_field(name="\U0001f4ca Dispo", value=f"bis -{dispo:,} $", inline=True)
+    sg_bal = int(user_data.get("schwarzgeld", 0))
+    if sg_bal:
+        embed.add_field(name="\U0001f5a4 Schwarzgeld", value=f"**{sg_bal:,} $**", inline=False)
+
+    tx_log = user_data.get("transaktionen", [])
+    if tx_log:
+        tx_lines = []
+        for t in reversed(tx_log):
+            sign = "+" if t["betrag"] >= 0 else ""
+            tx_lines.append(f"`{t['ts']}` {t['text']}: **{sign}{t['betrag']:,} $**")
+        embed.add_field(name="\U0001f4cb Letzte Transaktionen", value="\n".join(tx_lines), inline=False)
+
+    embed.set_thumbnail(url=nutzer.display_avatar.url)
+    embed.set_footer(text=f"\U0001f451 {interaction.user.display_name} \u2022 Paradise City Roleplay")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
