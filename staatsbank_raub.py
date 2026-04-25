@@ -28,7 +28,7 @@ SB_TEAM_CHANNEL_ID = 1490878141235855491   # Team News \u2014 Beweis + Buttons
 
 SB_MIN_PDL = 5   # Mindestanzahl PDLer im Dienst
 
-SB_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID}
+SB_CONFIRM_ROLES = {ADMIN_ROLE_ID, MOD_ROLE_ID, DASH_ROLE_ID}
 
 SB_IMAGE_URL = "https://136643ba-e2d7-462a-9d79-80b31d48cd0e-00-1tc3t15bfz4kf.sisko.replit.dev/staatsbank.jpg"
 
@@ -83,7 +83,7 @@ def _build_beweis_embed(user: discord.Member, bild_url: str) -> discord.Embed:
     embed.add_field(name="\U0001F464 Spieler", value=f"{user.mention}\n`{user.display_name}`", inline=True)
     embed.add_field(name="\u23F1\uFE0F Dauer",   value="**30 Minuten**",                          inline=True)
     embed.set_image(url=bild_url)
-    embed.set_footer(text="Paradise City Roleplay \u2022 Staatsbank System | Nur Team")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Staatsbank System | Best\u00E4tigung: Highteam")
     return embed
 
 
@@ -133,7 +133,7 @@ class StaatsbankView(TimedDisableView):
     @discord.ui.button(label="\u2705  Erfolgreich", style=discord.ButtonStyle.success, custom_id="staatsbank:erfolg")
     async def erfolg_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
+            await interaction.response.send_message(f"\u274C Nur <@&{DASH_ROLE_ID}> d\u00FCrfen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
@@ -145,14 +145,13 @@ class StaatsbankView(TimedDisableView):
 
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
-        user_data["cash"] = user_data.get("cash", 0) + beute
         save_economy(eco)
 
         await log_money_action(
             interaction.guild,
             "Staatsbank Beute",
             f"{raeuber.mention} hat die Staatsbank ausgeraubt.\n"
-            f"**Beute:** {beute:,}$ \u2192 Barbestand\n"
+            f"**Beute:** {beute:,}$ (ausstehend)\n"
             f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
 
@@ -171,13 +170,13 @@ class StaatsbankView(TimedDisableView):
                 title="\U0001F3E6 Staatsbank \u2014 Erfolgreich! \U0001F4B0",
                 description=(
                     f"Dein **Staatsbank-Raub** war **erfolgreich**!\n\n"
-                    f"**{beute:,}$** wurden in deinen **Barbestand** \u00FCbertragen."
+                    f"**{beute:,}$** werden dir von der **Serverleitung** manuell ausgezahlt."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
             dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute:,}$**",  inline=True)
-            dm.add_field(name="\U0001F4CD Gutgeschrieben", value="Barbestand (Cash)", inline=True)
+            dm.add_field(name="\u23F3 Ausstehend", value="Wird manuell vergeben",       inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 Staatsbank System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
@@ -188,7 +187,7 @@ class StaatsbankView(TimedDisableView):
     @discord.ui.button(label="\u274C  Fehlschlag", style=discord.ButtonStyle.danger, custom_id="staatsbank:fehlschlag")
     async def fehlschlag_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not self._check_team(interaction):
-            await interaction.response.send_message("\u274C Nur Team-Mitglieder k\u00F6nnen best\u00E4tigen.", ephemeral=True)
+            await interaction.response.send_message(f"\u274C Nur <@&{DASH_ROLE_ID}> d\u00FCrfen best\u00E4tigen.", ephemeral=True)
             return
 
         raeuber = interaction.guild.get_member(self.raeuber_id)
