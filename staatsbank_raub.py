@@ -145,13 +145,14 @@ class StaatsbankView(TimedDisableView):
 
         eco = load_economy()
         user_data = get_user(eco, self.raeuber_id)
+        user_data["schwarzgeld"] = int(user_data.get("schwarzgeld", 0)) + beute
         save_economy(eco)
 
         await log_money_action(
             interaction.guild,
             "Staatsbank Beute",
             f"{raeuber.mention} hat die Staatsbank ausgeraubt.\n"
-            f"**Beute:** {beute:,}$ (ausstehend)\n"
+            f"**Beute:** {beute:,}$ (Schwarzgeld gutgeschrieben)\n"
             f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
 
@@ -170,13 +171,12 @@ class StaatsbankView(TimedDisableView):
                 title="\U0001F3E6 Staatsbank \u2014 Erfolgreich! \U0001F4B0",
                 description=(
                     f"Dein **Staatsbank-Raub** war **erfolgreich**!\n\n"
-                    f"**{beute:,}$** werden dir von der **Serverleitung** manuell ausgezahlt."
+                    f"**{beute:,}$** wurden deinem **Schwarzgeld** gutgeschrieben."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute:,}$**",  inline=True)
-            dm.add_field(name="\u23F3 Ausstehend", value="Wird manuell vergeben",       inline=True)
+            dm.add_field(name="\U0001F4B5 Schwarzgeld +", value=f"**{beute:,}$**", inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 Staatsbank System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
