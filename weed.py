@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# weed.py â€” Weed-System (Paradise City Roleplay)
+# weed.py \u2014 Weed-System (Paradise City Roleplay)
 
 from config import *
 from economy_helpers import (
@@ -194,17 +194,13 @@ class WeedInfoView(discord.ui.View):
         gramm    = len(hits)
         total_sg = gramm * WEED_PREIS_PRO_GRAMM
 
-        # Schwarzgeld-Item aus Teamshop suchen
-        sg_item_name = _shop_name_weed(ITEM_SCHWARZGELD_DEFAULT, ITEM_SCHWARZGELD_DEFAULT)
-        ud["inventory"].extend([sg_item_name] * total_sg)
-
         eco[str(user.id)] = ud
         save_economy(eco)
         await interaction.response.send_message(
-            f"\u2705 **{gramm}g Weed** verkauft!\n"
-            f"\U0001F4B0 **{total_sg:,}x {sg_item_name}** ins Inventar gelegt.", ephemeral=True)
-        await _log_weed(interaction.guild, "\U0001F4B0 Weed verkauft",
-            f"{user.mention} hat **{gramm}g Weed** \u2192 **{total_sg:,}x {sg_item_name}**")
+            f"\u2705 **{gramm}g Weed** verarbeitet!\n"
+            f"\u23f3 **{total_sg:,}$** werden von der **Serverleitung** manuell vergeben.", ephemeral=True)
+        await _log_weed(interaction.guild, "\U0001f4b0 Weed verkauft",
+            f"{user.mention} hat **{gramm}g Weed** verarbeitet \u2014 **{total_sg:,}$** ausstehend")
 
 
 # -- on_message: Foto startet Anbau direkt --------------------
@@ -296,7 +292,7 @@ async def weed_bild_listener(message: discord.Message):
     except Exception as e:
         print(f"[weed] Log-Fehler: {e}")
 
-    # BestÃ¤tigung im Kanal
+    # Best\u00E4tigung im Kanal
     try:
         await message.channel.send(
             f"{user.mention} \U0001F331 **Weed Anbau gestartet!**\n"
