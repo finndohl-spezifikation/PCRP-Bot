@@ -153,13 +153,14 @@ class HumanLabsView(TimedDisableView):
         user_data = get_user(eco, self.raeuber_id)
         for _ in range(chemie):
             user_data.setdefault("inventory", []).append("Chemikalien")
+        user_data["schwarzgeld"] = int(user_data.get("schwarzgeld", 0)) + beute_wert
         save_economy(eco)
 
         await log_money_action(
             interaction.guild,
             "Humane Labs Beute",
             f"{raeuber.mention} hat das Humane Labs ausgeraubt.\n"
-            f"**Beute:** {beute_wert:,}$ (ausstehend)\n"
+            f"**Beute:** {beute_wert:,}$ (Schwarzgeld gutgeschrieben)\n"
             f"**Chemikalien:** {chemie}\u00D7 ins Inventar\n"
             f"**Best\u00E4tigt von:** {interaction.user.mention}"
         )
@@ -179,15 +180,14 @@ class HumanLabsView(TimedDisableView):
                 title="\U0001F9EA Humane Labs \u2014 Erfolgreich! \U0001F4B0",
                 description=(
                     f"Dein Raub\u00FCberfall im **Humane Labs** war **erfolgreich**!\n\n"
-                    f"**{beute_wert:,}$** werden dir von der **Serverleitung** manuell ausgezahlt.\n"
+                    f"**{beute_wert:,}$** wurden deinem **Schwarzgeld** gutgeschrieben.\n"
                     f"Zus\u00E4tzlich erh\u00E4ltst du **{chemie}\u00D7 Chemikalien** ins Inventar."
                 ),
                 color=0x00CC44,
                 timestamp=datetime.now(timezone.utc)
             )
-            dm.add_field(name="\U0001F4B5 Beute",          value=f"**{beute_wert:,}$**",       inline=True)
-            dm.add_field(name="\U0001F9EA Chemikalien",    value=f"**{chemie}\u00D7**",             inline=True)
-            dm.add_field(name="\u23F3 Ausstehend", value="Wird manuell vergeben",                inline=True)
+            dm.add_field(name="\U0001F4B5 Schwarzgeld +", value=f"**{beute_wert:,}$**", inline=True)
+            dm.add_field(name="\U0001F9EA Chemikalien",    value=f"**{chemie}\u00D7**",  inline=True)
             dm.set_footer(text="Paradise City Roleplay \u2022 Humane Labs System")
             await raeuber.send(embed=dm)
         except discord.Forbidden:
