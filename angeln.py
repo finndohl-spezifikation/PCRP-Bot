@@ -579,44 +579,102 @@ class AnglershopKaufenModal(discord.ui.Modal):
         await interaction.response.send_message(embed=emb, ephemeral=True)
 
 
+ANGLER_SHOP_ITEMS = [
+    {"name": ANGEL_NAME,              "price": ANGEL_PRICE},
+    {"name": FISCHKOEDER_NAME,        "price": FISCHKOEDER_PRICE},
+    {"name": HOCHWERTIGE_KOEDER_NAME, "price": HOCHWERTIGE_KOEDER_PRICE},
+]
+
+
+def _build_angler_items_embed(member: discord.Member) -> discord.Embed:
+    eco  = load_economy()
+    ud   = get_user(eco, member.id)
+    cash = int(ud.get("cash", 0))
+    sep  = "\u2015" * 22
+    lines = [
+        f"\u27A4 **{it['name']}**\u3000\u2014\u3000`{it['price']:,} \U0001F4B5`"
+        for it in ANGLER_SHOP_ITEMS
+    ]
+    desc = sep + "\n" + "\n".join(lines) + "\n" + sep
+    emb  = discord.Embed(
+        title="\U0001F3A3  Angler Shop",
+        description=desc,
+        color=0x1E90FF,
+        timestamp=datetime.now(timezone.utc),
+    )
+    emb.add_field(name="\U0001F4B5 Dein Bargeld", value=f"**{cash:,} $**", inline=True)
+    emb.set_footer(text="\U0001F3A3 Item w\u00e4hlen \u2022 Nur Bargeld")
+    return emb
+
+
+class AnglershopItemSelect(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label=it["name"],
+                value=it["name"],
+                description=f"{it['price']:,} \U0001F4B5",
+            )
+            for it in ANGLER_SHOP_ITEMS
+        ]
+        super().__init__(
+            placeholder="\U0001F6D2 Item ausw\u00e4hlen\u2026",
+            min_values=1,
+            max_values=1,
+            options=options,
+            row=0,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        name = self.values[0]
+        item = next((it for it in ANGLER_SHOP_ITEMS if it["name"] == name), None)
+        if not item:
+            await interaction.response.send_message("\u274C Item nicht gefunden.", ephemeral=True)
+            return
+        await interaction.response.send_modal(
+            AnglershopKaufenModal(item["name"], item["price"])
+        )
+
+
+class AnglershopPageView(discord.ui.View):
+    """Ephemeraler Shop-View mit Dropdown (nicht persistent)."""
+
+    def __init__(self, member: discord.Member):
+        super().__init__(timeout=120)
+        self.add_item(AnglershopItemSelect())
+
+        close_btn = discord.ui.Button(
+            label="\u2716 Schlie\u00dfen",
+            style=discord.ButtonStyle.danger,
+            row=1,
+        )
+
+        async def close_cb(interaction: discord.Interaction):
+            try:
+                await interaction.response.defer()
+                await interaction.delete_original_response()
+            except Exception:
+                pass
+
+        close_btn.callback = close_cb
+        self.add_item(close_btn)
+
+
 class AnglershopView(discord.ui.View):
-    """Persistenter View am Angler-Shop-Embed."""
+    """Persistenter View am Angler-Shop-Kanal-Embed."""
 
     def __init__(self):
         super().__init__(timeout=None)
 
     @discord.ui.button(
-        label="Angel kaufen",
-        style=discord.ButtonStyle.blurple,
-        emoji="\U0001F3A3",
-        custom_id="angler_shop:angel",
+        label="\U0001F3A3 Shop \u00f6ffnen",
+        style=discord.ButtonStyle.primary,
+        custom_id="angler_shop:open",
     )
-    async def angel_btn(self, interaction: discord.Interaction, _btn):
-        await interaction.response.send_modal(
-            AnglershopKaufenModal(ANGEL_NAME, ANGEL_PRICE)
-        )
-
-    @discord.ui.button(
-        label="Fischk\u00f6der kaufen",
-        style=discord.ButtonStyle.green,
-        emoji="\U0001F41F",
-        custom_id="angler_shop:koeder",
-    )
-    async def koeder_btn(self, interaction: discord.Interaction, _btn):
-        await interaction.response.send_modal(
-            AnglershopKaufenModal(FISCHKOEDER_NAME, FISCHKOEDER_PRICE)
-        )
-
-    @discord.ui.button(
-        label="Hochwertiger K\u00f6der",
-        style=discord.ButtonStyle.red,
-        emoji="\u2B50",
-        custom_id="angler_shop:hw_koeder",
-    )
-    async def hw_koeder_btn(self, interaction: discord.Interaction, _btn):
-        await interaction.response.send_modal(
-            AnglershopKaufenModal(HOCHWERTIGE_KOEDER_NAME, HOCHWERTIGE_KOEDER_PRICE)
-        )
+    async def open_btn(self, interaction: discord.Interaction, _btn):
+        emb  = _build_angler_items_embed(interaction.user)
+        view = AnglershopPageView(interaction.user)
+        await interaction.response.send_message(embed=emb, view=view, ephemeral=True)
 
 
 # \u2500\u2500 Info-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -713,24 +771,22 @@ async def auto_angeln_setup():
 # \u2500\u2500 Angler Shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_angler_shop_embed() -> discord.Embed:
-    sep   = "\u2015" * 22
-    items = [
-        (ANGEL_NAME,             ANGEL_PRICE),
-        (FISCHKOEDER_NAME,       FISCHKOEDER_PRICE),
-        (HOCHWERTIGE_KOEDER_NAME, HOCHWERTIGE_KOEDER_PRICE),
-    ]
-    lines = [
-        f"\u27A4 **{name}**\u3000\u2014\u3000`{preis:,} \U0001F4B5`"
-        for name, preis in items
-    ]
-    desc = sep + "\n" + "\n".join(lines) + "\n" + sep
-    emb  = discord.Embed(
+    sep  = "\u2015" * 20
+    desc = (
+        "\U0001F3A3 **Willkommen im Angler Shop!**\n"
+        f"{sep}\n"
+        "\u27A4 Hier findest du alles was du zum Angeln brauchst.\n"
+        "\u27A4 Du ben\u00f6tigst eine **Angel** und einen **K\u00f6der** pro Session.\n"
+        "\u27A4 Bezahlung nur mit **Bargeld** (\U0001F4B5).\n\n"
+        "Klicke auf den Button um den Shop zu \u00f6ffnen!"
+    )
+    emb = discord.Embed(
         title="\U0001F3A3  Angler Shop",
         description=desc,
         color=0x1E90FF,
         timestamp=datetime.now(timezone.utc),
     )
-    emb.set_footer(text="\U0001F3A3 Item w\u00e4hlen \u2022 Nur Bargeld")
+    emb.set_footer(text="Paradise City Roleplay \u2022 Angler Shop")
     return emb
 
 
