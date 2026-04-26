@@ -18,8 +18,15 @@ ANGELN_MSG_FILE         = DATA_DIR / "angeln_info_msg.json"
 ANGLER_SHOP_CHANNEL_ID  = 1497804333541097532
 ANGLER_SHOP_MSG_FILE    = DATA_DIR / "angler_shop_msg.json"
 
+ANGEL_NAME  = "Angel"
+ANGEL_PRICE = 5000
+
 FISCHKOEDER_NAME  = "Fischk\u00f6der"
 FISCHKOEDER_PRICE = 750
+
+HOCHWERTIGE_KOEDER_NAME   = "Hochwertiger Angelk\u00f6der"
+HOCHWERTIGE_KOEDER_PRICE  = 2000
+HOCHWERTIGE_KOEDER_BONUS  = 5
 
 # Fische (nur nicht-M\u00fcll, nicht-text, nicht-Sonderitem)
 ANGELN_FISCHE_NAMEN = {
@@ -133,22 +140,45 @@ def _set_laura_check(user_id: int):
     save_economy(eco)
 
 
-def _hat_koeder(user_id: int) -> bool:
+def _hat_angel(user_id: int) -> bool:
     ud = get_user(load_economy(), user_id)
-    return any(normalize_item_name(i) == normalize_item_name(FISCHKOEDER_NAME)
+    return any(normalize_item_name(i) == normalize_item_name(ANGEL_NAME)
                for i in ud.get("inventory", []))
 
 
-def _remove_koeder(user_id: int) -> bool:
+def _detect_koeder(user_id: int) -> str | None:
+    """Gibt hochwertigen K\u00f6der zur\u00fcck wenn vorhanden, sonst normalen, sonst None."""
+    ud  = get_user(load_economy(), user_id)
+    inv = ud.get("inventory", [])
+    norms = [normalize_item_name(i) for i in inv]
+    if normalize_item_name(HOCHWERTIGE_KOEDER_NAME) in norms:
+        return HOCHWERTIGE_KOEDER_NAME
+    if normalize_item_name(FISCHKOEDER_NAME) in norms:
+        return FISCHKOEDER_NAME
+    return None
+
+
+def _remove_koeder_by_name(user_id: int, name: str) -> bool:
     eco = load_economy()
     ud  = get_user(eco, user_id)
     inv = ud.get("inventory", [])
     for i, item in enumerate(inv):
-        if normalize_item_name(item) == normalize_item_name(FISCHKOEDER_NAME):
+        if normalize_item_name(item) == normalize_item_name(name):
             inv.pop(i)
             eco[str(user_id)] = ud
             save_economy(eco)
             return True
+    return False
+
+
+def _hat_koeder(user_id: int) -> bool:
+    return _detect_koeder(user_id) is not None
+
+
+def _remove_koeder(user_id: int) -> bool:
+    name = _detect_koeder(user_id)
+    if name:
+        return _remove_koeder_by_name(user_id, name)
     return False
 
 
@@ -212,12 +242,13 @@ async def _log_angeln(guild, title: str, desc: str):
 
 # \u2500\u2500 Loot-Berechnung \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-def _roll_fang(user_id: int) -> tuple[list[tuple[str,int,int]], list[str], int]:
+def _roll_fang(user_id: int, bonus_chance: int = 0) -> tuple[list[tuple[str,int,int]], list[str], int]:
     """
     Gibt zur\u00fcck:
       items_inventar: [(item_name, anzahl, wert_gesamt), ...]
       text_only:      [beschreibung, ...]
       schwarzgeld:    Gesamtbetrag
+    bonus_chance: zus\u00e4tzliche Chance in % pro Item (z.B. durch Hochwertigen K\u00f6der)
     """
     hat_laura = _hat_laura_check(user_id)
     items_inventar = []
@@ -225,7 +256,8 @@ def _roll_fang(user_id: int) -> tuple[list[tuple[str,int,int]], list[str], int]:
     schwarzgeld    = 0
 
     for (name, chance, mn, mx, wert, nur_text, ukey) in ANGELN_LOOT:
-        if random.randint(1, 100) > chance:
+        eff_chance = min(100, chance + bonus_chance)
+        if random.randint(1, 100) > eff_chance:
             continue
         if ukey == "hat_laura_check" and hat_laura:
             continue
@@ -290,11 +322,24 @@ async def angeln_bild_listener(message: discord.Message):
             pass
         return
 
-    # K\u00f6der-Check
-    if not _hat_koeder(user.id):
+    # Angel-Check (Rute)
+    if not _hat_angel(user.id):
         try:
             await message.channel.send(
-                f"{user.mention} \u274C Du hast keinen **{FISCHKOEDER_NAME}**!\n"
+                f"{user.mention} \u274C Du hast keine **{ANGEL_NAME}**!\n"
+                f"\U0001F3A3 Kaufe eine im <#{ANGLER_SHOP_CHANNEL_ID}>.",
+                delete_after=10,
+            )
+        except Exception:
+            pass
+        return
+
+    # K\u00f6der-Check
+    koeder_name = _detect_koeder(user.id)
+    if koeder_name is None:
+        try:
+            await message.channel.send(
+                f"{user.mention} \u274C Du hast keinen **K\u00f6der**!\n"
                 f"\U0001F3A3 Kaufe einen im <#{ANGLER_SHOP_CHANNEL_ID}>.",
                 delete_after=10,
             )
@@ -302,7 +347,8 @@ async def angeln_bild_listener(message: discord.Message):
             pass
         return
 
-    _remove_koeder(user.id)
+    bonus_chance = HOCHWERTIGE_KOEDER_BONUS if koeder_name == HOCHWERTIGE_KOEDER_NAME else 0
+    _remove_koeder_by_name(user.id, koeder_name)
     _set_angeln_cd(user.id)
 
     # Foto im Log speichern
@@ -337,7 +383,7 @@ async def angeln_bild_listener(message: discord.Message):
     async def _fangen():
         await asyncio.sleep(ANGELN_CD_SECS)
 
-        items_inv, text_only, _ = _roll_fang(user.id)
+        items_inv, text_only, _ = _roll_fang(user.id, bonus_chance)
 
         # Alle Items ins Inventar
         for (item_name, anzahl, _wert) in items_inv:
@@ -467,15 +513,23 @@ class AnglernInfoView(discord.ui.View):
         await interaction.response.send_message(embed=emb, view=FischVerkaufenView(), ephemeral=True)
 
 
-class AnglershopKaufenModal(discord.ui.Modal, title="Fischk\u00f6der kaufen"):
-    menge_input = discord.ui.TextInput(
-        label="Menge",
-        placeholder="z.B. 5",
-        default="1",
-        min_length=1,
-        max_length=3,
-        required=True,
-    )
+class AnglershopKaufenModal(discord.ui.Modal):
+    """Generisches Kauf-Modal f\u00fcr den Angler Shop."""
+
+    def __init__(self, item_name: str, item_price: int):
+        preis_fmt = f"{item_price:,}".replace(",", ".")
+        super().__init__(title=f"{item_name[:45]} kaufen")
+        self.item_name  = item_name
+        self.item_price = item_price
+        self.menge_input = discord.ui.TextInput(
+            label=f"Menge  (Preis: {preis_fmt}\u00a0$ / St\u00fcck)",
+            placeholder="z.B. 1",
+            default="1",
+            min_length=1,
+            max_length=3,
+            required=True,
+        )
+        self.add_item(self.menge_input)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
@@ -491,31 +545,33 @@ class AnglershopKaufenModal(discord.ui.Modal, title="Fischk\u00f6der kaufen"):
             )
             return
 
-        gesamtpreis = FISCHKOEDER_PRICE * menge
+        gesamtpreis = self.item_price * menge
         eco = load_economy()
         ud  = get_user(eco, interaction.user.id)
 
         if int(ud.get("cash", 0)) < gesamtpreis:
+            preis_fmt = f"{gesamtpreis:,}".replace(",", ".")
+            cash_fmt  = f"{int(ud.get('cash', 0)):,}".replace(",", ".")
             await interaction.response.send_message(
                 f"\u274C Nicht genug **Bargeld**!\n"
-                f"Preis: **{gesamtpreis:,}\u00a0$** \u2014 "
-                f"Dein Bargeld: **{int(ud.get('cash', 0)):,}\u00a0$**".replace(",", "."),
+                f"Preis: **{preis_fmt}\u00a0$** \u2014 Dein Bargeld: **{cash_fmt}\u00a0$**",
                 ephemeral=True,
             )
             return
 
         ud["cash"] = int(ud.get("cash", 0)) - gesamtpreis
-        ud.setdefault("inventory", []).extend([FISCHKOEDER_NAME] * menge)
+        ud.setdefault("inventory", []).extend([self.item_name] * menge)
         eco[str(interaction.user.id)] = ud
         save_economy(eco)
 
+        preis_fmt = f"{gesamtpreis:,}".replace(",", ".")
+        cash_fmt  = f"{int(ud['cash']):,}".replace(",", ".")
         emb = discord.Embed(
             title="\u2705 Gekauft!",
             description=(
-                f"Du hast **{menge}x {FISCHKOEDER_NAME}** f\u00fcr "
-                f"**{gesamtpreis:,}\u00a0$** gekauft.\n"
-                f"Verbleibendes Bargeld: **{int(ud['cash']):,}\u00a0$**"
-            ).replace(",", "."),
+                f"Du hast **{menge}x {self.item_name}** f\u00fcr **{preis_fmt}\u00a0$** gekauft.\n"
+                f"Verbleibendes Bargeld: **{cash_fmt}\u00a0$**"
+            ),
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
@@ -530,13 +586,37 @@ class AnglershopView(discord.ui.View):
         super().__init__(timeout=None)
 
     @discord.ui.button(
+        label="Angel kaufen",
+        style=discord.ButtonStyle.blurple,
+        emoji="\U0001F3A3",
+        custom_id="angler_shop:angel",
+    )
+    async def angel_btn(self, interaction: discord.Interaction, _btn):
+        await interaction.response.send_modal(
+            AnglershopKaufenModal(ANGEL_NAME, ANGEL_PRICE)
+        )
+
+    @discord.ui.button(
         label="Fischk\u00f6der kaufen",
         style=discord.ButtonStyle.green,
-        emoji="\U0001F3A3",
-        custom_id="angler_shop:kaufen",
+        emoji="\U0001F41F",
+        custom_id="angler_shop:koeder",
     )
-    async def kaufen_btn(self, interaction: discord.Interaction, _btn):
-        await interaction.response.send_modal(AnglershopKaufenModal())
+    async def koeder_btn(self, interaction: discord.Interaction, _btn):
+        await interaction.response.send_modal(
+            AnglershopKaufenModal(FISCHKOEDER_NAME, FISCHKOEDER_PRICE)
+        )
+
+    @discord.ui.button(
+        label="Hochwertiger K\u00f6der",
+        style=discord.ButtonStyle.red,
+        emoji="\u2B50",
+        custom_id="angler_shop:hw_koeder",
+    )
+    async def hw_koeder_btn(self, interaction: discord.Interaction, _btn):
+        await interaction.response.send_modal(
+            AnglershopKaufenModal(HOCHWERTIGE_KOEDER_NAME, HOCHWERTIGE_KOEDER_PRICE)
+        )
 
 
 # \u2500\u2500 Info-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -568,8 +648,9 @@ def _build_angeln_info_embed() -> discord.Embed:
         "> Fahre zum **Pier** \u2014 Bild 1\n\n"
         f"{sep}\n\n"
         "**\U0001F4F8 Ablauf**\n"
+        f"> Du ben\u00f6tigst eine **Angel** + einen **K\u00f6der** aus dem <#{ANGLER_SHOP_CHANNEL_ID}>\n"
         f"> Schicke ein Foto in <#{ANGELN_BILD_CHANNEL_ID}>\n"
-        "> Angeln startet **automatisch**\n"
+        "> Angeln startet **automatisch** \u2014 1 K\u00f6der wird verbraucht\n"
         "> Nach **10 Minuten** bekommst du eine **DM** mit deinem Fang\n"
         "> Items landen direkt in deinem **Inventar**\n\n"
         f"{sep}\n\n"
@@ -633,12 +714,18 @@ async def auto_angeln_setup():
 # \u2500\u2500 Angler Shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_angler_shop_embed() -> discord.Embed:
-    sep        = "\u2501" * 32
-    preis_text = f"{FISCHKOEDER_PRICE:,}".replace(",", ".")
-    desc       = (
+    sep = "\u2501" * 32
+    p_angel = f"{ANGEL_PRICE:,}".replace(",", ".")
+    p_koeder = f"{FISCHKOEDER_PRICE:,}".replace(",", ".")
+    p_hw     = f"{HOCHWERTIGE_KOEDER_PRICE:,}".replace(",", ".")
+    desc = (
         f"{sep}\n"
-        f"\u27a4 **{FISCHKOEDER_NAME}** \u2014 {preis_text}\u00a0$\n"
-        f"> 1 K\u00f6der wird pro Angel-Session automatisch verbraucht\n"
+        f"\U0001F3A3 **{ANGEL_NAME}** \u2014 {p_angel}\u00a0$\n"
+        f"> Wird ben\u00f6tigt um angeln zu gehen (bleibt im Inventar)\n\n"
+        f"\U0001F41F **{FISCHKOEDER_NAME}** \u2014 {p_koeder}\u00a0$\n"
+        f"> 1 K\u00f6der wird pro Session verbraucht\n\n"
+        f"\u2B50 **{HOCHWERTIGE_KOEDER_NAME}** \u2014 {p_hw}\u00a0$\n"
+        f"> 1 K\u00f6der wird pro Session verbraucht \u2014 **+{HOCHWERTIGE_KOEDER_BONUS}% Fangchance** pro Item\n"
         f"{sep}"
     )
     emb = discord.Embed(
