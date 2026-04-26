@@ -579,11 +579,27 @@ class AnglershopKaufenModal(discord.ui.Modal):
         await interaction.response.send_message(embed=emb, ephemeral=True)
 
 
+# Hartcodierte Default-Liste (Fallback). Die echte aktuelle Liste kommt
+# \u00FCber _current_angler_items() aus der JSON-Datei (load_angler_shop),
+# damit \u00C4nderungen via /shop-edit oder /delete-item sofort wirken \u2014
+# OHNE Bot-Neustart.
 ANGLER_SHOP_ITEMS = [
     {"name": ANGEL_NAME,              "price": ANGEL_PRICE},
     {"name": FISCHKOEDER_NAME,        "price": FISCHKOEDER_PRICE},
     {"name": HOCHWERTIGE_KOEDER_NAME, "price": HOCHWERTIGE_KOEDER_PRICE},
 ]
+
+
+def _current_angler_items() -> list:
+    """Liefert die aktuelle Angler-Shop-Item-Liste live aus der JSON.
+    F\u00E4llt auf die hartcodierte Liste zur\u00FCck, falls JSON leer ist."""
+    try:
+        items = load_angler_shop()
+    except Exception:
+        items = []
+    if not items:
+        return [dict(d) for d in ANGLER_SHOP_ITEMS]
+    return items
 
 
 def _build_angler_items_embed(member: discord.Member) -> discord.Embed:
@@ -593,7 +609,7 @@ def _build_angler_items_embed(member: discord.Member) -> discord.Embed:
     sep  = "\u2015" * 22
     lines = [
         f"\u27A4 **{it['name']}**\u3000\u2014\u3000`{it['price']:,} \U0001F4B5`"
-        for it in ANGLER_SHOP_ITEMS
+        for it in _current_angler_items()
     ]
     desc = sep + "\n" + "\n".join(lines) + "\n" + sep
     emb  = discord.Embed(
@@ -615,7 +631,7 @@ class AnglershopItemSelect(discord.ui.Select):
                 value=it["name"],
                 description=f"{it['price']:,} \U0001F4B5",
             )
-            for it in ANGLER_SHOP_ITEMS
+            for it in _current_angler_items()
         ]
         super().__init__(
             placeholder="\U0001F6D2 Item ausw\u00e4hlen\u2026",
@@ -627,7 +643,7 @@ class AnglershopItemSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         name = self.values[0]
-        item = next((it for it in ANGLER_SHOP_ITEMS if it["name"] == name), None)
+        item = next((it for it in _current_angler_items() if it["name"] == name), None)
         if not item:
             await interaction.response.send_message("\u274C Item nicht gefunden.", ephemeral=True)
             return
