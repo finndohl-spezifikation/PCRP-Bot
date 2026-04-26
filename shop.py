@@ -10,9 +10,10 @@ from config import *
 from helpers import is_admin
 from economy_helpers import (
     load_economy, save_economy, get_user, load_shop, save_shop,
+    load_team_shop, save_team_shop,
     find_shop_item, find_inventory_item, normalize_item_name,
-    has_citizen_or_wage, shop_item_autocomplete, channel_error,
-    log_transaction
+    has_citizen_or_wage, shop_item_autocomplete, all_shops_item_autocomplete,
+    channel_error, log_transaction
 )
 from handy import give_handy_channel_access
 
@@ -1125,7 +1126,6 @@ class ShopAddConfirmView(TimedDisableView):
     description="[Shop] F\u00FCge ein neues Item zu einem Shop hinzu (Admin)",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     itemname="Name des Items",
     preis="Preis in $",
@@ -1178,13 +1178,12 @@ async def shop_add(
     description="[Shop] Bearbeite ein bestehendes Item (Admin)",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(
     itemname="Name des Items das bearbeitet werden soll",
     neuer_preis="Neuer Preis in $ (leer lassen um nicht zu \u00E4ndern)",
     neuer_name="Neuer Name des Items (leer lassen um nicht zu \u00E4ndern)"
 )
-@app_commands.autocomplete(itemname=shop_item_autocomplete)
+@app_commands.autocomplete(itemname=all_shops_item_autocomplete)
 async def shop_edit(
     interaction: discord.Interaction,
     itemname: str,
@@ -1201,8 +1200,15 @@ async def shop_edit(
         )
         return
 
-    items     = load_shop()
-    shop_item = find_shop_item(items, itemname)
+    items      = load_shop()
+    shop_item  = find_shop_item(items, itemname)
+    is_regular = shop_item is not None
+
+    if not shop_item:
+        team_items = load_team_shop()
+        shop_item  = find_shop_item(team_items, itemname)
+        if shop_item:
+            items = team_items
 
     if not shop_item:
         await interaction.response.send_message(
@@ -1231,7 +1237,10 @@ async def shop_edit(
         save_economy(eco)
         changes.append(f"**Name:** {old_name} \u2192 {neuer_name}")
 
-    save_shop(items)
+    if is_regular:
+        save_shop(items)
+    else:
+        save_team_shop(items)
 
     embed = discord.Embed(
         title="\u270F\uFE0F Item bearbeitet",
@@ -1250,16 +1259,22 @@ async def shop_edit(
     description="[Shop] Entfernt ein Item aus dem Shop (Admin)",
     guild=discord.Object(id=GUILD_ID)
 )
-@app_commands.default_permissions(administrator=True)
 @app_commands.describe(itemname="Name des Items das entfernt werden soll")
-@app_commands.autocomplete(itemname=shop_item_autocomplete)
+@app_commands.autocomplete(itemname=all_shops_item_autocomplete)
 async def delete_item(interaction: discord.Interaction, itemname: str):
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
-    items     = load_shop()
-    shop_item = find_shop_item(items, itemname)
+    items      = load_shop()
+    shop_item  = find_shop_item(items, itemname)
+    is_regular = shop_item is not None
+
+    if not shop_item:
+        team_items = load_team_shop()
+        shop_item  = find_shop_item(team_items, itemname)
+        if shop_item:
+            items = team_items
 
     if not shop_item:
         await interaction.response.send_message(
@@ -1268,7 +1283,12 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         return
 
     items.remove(shop_item)
-    save_shop(items)
+    if is_regular:
+        save_shop(items)
+        shop_label = SHOPS.get(_item_shop(shop_item), SHOPS["kwik"])["label"]
+    else:
+        save_team_shop(items)
+        shop_label = "Team Shop"
 
     item_name       = shop_item["name"]
     eco             = load_economy()
@@ -1288,7 +1308,7 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         title="\U0001F5D1\uFE0F Item aus Shop entfernt",
         description=(
             f"**Item:** {item_name}\n"
-            f"**Shop:** {SHOPS.get(_item_shop(shop_item), SHOPS['kwik'])['label']}\n"
+            f"**Shop:** {shop_label}\n"
             f"**Preis war:** {shop_item['price']:,} \U0001F4B5\n"
             f"**Entfernt von:** {interaction.user.mention}\n\n"
             f"**Inventare bereinigt:** {players_cleaned} Spieler\n"
