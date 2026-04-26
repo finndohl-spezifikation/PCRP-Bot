@@ -640,7 +640,6 @@ def _build_angeln_info_embed() -> discord.Embed:
     fische_lines  = "\n".join(fmt_item(n, w) for n, w in fische)
     muell_lines   = "\n".join(fmt_item(n, w) for n, w in muell)
     sonder_lines  = "\n".join(fmt_item(n, w) for n, w in sonder)
-    sonder_lines += "\n> \u27a4 **???**"
 
     sep = "\u2501" * 32
     default_desc = (
@@ -714,27 +713,24 @@ async def auto_angeln_setup():
 # \u2500\u2500 Angler Shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_angler_shop_embed() -> discord.Embed:
-    sep = "\u2501" * 32
-    p_angel = f"{ANGEL_PRICE:,}".replace(",", ".")
-    p_koeder = f"{FISCHKOEDER_PRICE:,}".replace(",", ".")
-    p_hw     = f"{HOCHWERTIGE_KOEDER_PRICE:,}".replace(",", ".")
-    desc = (
-        f"{sep}\n"
-        f"\U0001F3A3 **{ANGEL_NAME}** \u2014 {p_angel}\u00a0$\n"
-        f"> Wird ben\u00f6tigt um angeln zu gehen (bleibt im Inventar)\n\n"
-        f"\U0001F41F **{FISCHKOEDER_NAME}** \u2014 {p_koeder}\u00a0$\n"
-        f"> 1 K\u00f6der wird pro Session verbraucht\n\n"
-        f"\u2B50 **{HOCHWERTIGE_KOEDER_NAME}** \u2014 {p_hw}\u00a0$\n"
-        f"> 1 K\u00f6der wird pro Session verbraucht \u2014 **+{HOCHWERTIGE_KOEDER_BONUS}% Fangchance** pro Item\n"
-        f"{sep}"
-    )
-    emb = discord.Embed(
-        title="\U0001F3A3 Angler Shop",
+    sep   = "\u2015" * 22
+    items = [
+        (ANGEL_NAME,             ANGEL_PRICE),
+        (FISCHKOEDER_NAME,       FISCHKOEDER_PRICE),
+        (HOCHWERTIGE_KOEDER_NAME, HOCHWERTIGE_KOEDER_PRICE),
+    ]
+    lines = [
+        f"\u27A4 **{name}**\u3000\u2014\u3000`{preis:,} \U0001F4B5`"
+        for name, preis in items
+    ]
+    desc = sep + "\n" + "\n".join(lines) + "\n" + sep
+    emb  = discord.Embed(
+        title="\U0001F3A3  Angler Shop",
         description=desc,
         color=0x1E90FF,
         timestamp=datetime.now(timezone.utc),
     )
-    emb.set_footer(text="Paradise City Roleplay \u2022 Angler Shop")
+    emb.set_footer(text="\U0001F3A3 Item w\u00e4hlen \u2022 Nur Bargeld")
     return emb
 
 
