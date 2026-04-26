@@ -283,23 +283,46 @@ async def angeln_bild_listener(message: discord.Message):
 # \u2500\u2500 Info-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_angeln_info_embed() -> discord.Embed:
+    # Kategorien aus Loot-Tabelle
+    fische = [(n, w) for (n, _, _, _, w, nur_txt, _uk) in ANGELN_LOOT
+              if not nur_txt and n not in (
+                  "Stiefel", "Benutztes Kondom", "Seetang", "Sack M\u00fcll",
+                  "Schmuckk\u00e4stchen", "Antiker Kavallerie-Dolch")]
+    muell  = [(n, w) for (n, _, _, _, w, nur_txt, _uk) in ANGELN_LOOT
+              if not nur_txt and n in ("Stiefel", "Benutztes Kondom", "Seetang", "Sack M\u00fcll")]
+    sonder = [(n, w) for (n, _, _, _, w, nur_txt, _uk) in ANGELN_LOOT
+              if not nur_txt and n in ("Schmuckk\u00e4stchen", "Antiker Kavallerie-Dolch")]
+
+    def fmt_item(name, wert):
+        if wert > 0:
+            return f"> \u27a4 **{name}** \u2014 {wert:,}\u00a0$".replace(",", ".")
+        return f"> \u27a4 **{name}**"
+
+    fische_lines  = "\n".join(fmt_item(n, w) for n, w in fische)
+    muell_lines   = "\n".join(fmt_item(n, w) for n, w in muell)
+    sonder_lines  = "\n".join(fmt_item(n, w) for n, w in sonder)
+    sonder_lines += "\n> \u27a4 **???**"
+
+    sep = "\u2501" * 32
     default_desc = (
         "**\U0001F4CD Standort**\n"
         "> Fahre zum **Pier** \u2014 Bild 1\n\n"
-        "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
+        f"{sep}\n\n"
         "**\U0001F4F8 Ablauf**\n"
         f"> Schicke ein Foto in <#{ANGELN_BILD_CHANNEL_ID}>\n"
         "> Angeln startet **automatisch**\n"
         "> Nach **10 Minuten** bekommst du eine **DM** mit deinem Fang\n"
         "> Items landen direkt in deinem **Inventar**\n\n"
-        "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n"
-        "**\U0001F41F M\u00f6gliche Beutel**\n"
-        "> \U0001f947 Goldener Saibling \u00b7 Riffhai \u00b7 Delfin \u00b7 Aal \u00b7 Wels\n"
-        "> \U0001f948 Stachelrochen \u00b7 Schwertfisch \u00b7 Barrakuda\n"
-        "> \U0001f949 Lachs \u00b7 Forelle \u00b7 Hecht \u00b7 Tintenfisch\n"
-        "> \U0001f9f9 Krebs \u00b7 Seegurke \u00b7 Seetang \u00b7 Stiefel \u00b7 M\u00fcll\n"
-        "> \u2728 Schmuckk\u00e4stchen \u00b7 Antiker Kavallerie-Dolch \u00b7 ??? \n\n"
-        "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
+        f"{sep}\n\n"
+        "\U0001F41F **M\u00f6gliche F\u00e4nge \u2014 Fische**\n"
+        f"{fische_lines}\n\n"
+        f"{sep}\n\n"
+        "\U0001F9F9 **M\u00f6gliche F\u00e4nge \u2014 M\u00fcll**\n"
+        f"{muell_lines}\n\n"
+        f"{sep}\n\n"
+        "\u2728 **M\u00f6gliche F\u00e4nge \u2014 Sonstiges**\n"
+        f"{sonder_lines}\n\n"
+        f"{sep}\n"
         "\U0001F4E6 Alle Funde landen direkt in deinem **Inventar**."
     )
     emb = discord.Embed(
