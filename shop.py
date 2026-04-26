@@ -10,7 +10,7 @@ from config import *
 from helpers import is_admin
 from economy_helpers import (
     load_economy, save_economy, get_user, load_shop, save_shop,
-    load_team_shop, save_team_shop,
+    load_team_shop, save_team_shop, load_angler_shop, save_angler_shop,
     find_shop_item, find_inventory_item, normalize_item_name,
     has_citizen_or_wage, shop_item_autocomplete, all_shops_item_autocomplete,
     channel_error, log_transaction
@@ -1202,13 +1202,21 @@ async def shop_edit(
 
     items      = load_shop()
     shop_item  = find_shop_item(items, itemname)
-    is_regular = shop_item is not None
+    _save_fn   = save_shop
 
     if not shop_item:
         team_items = load_team_shop()
         shop_item  = find_shop_item(team_items, itemname)
         if shop_item:
-            items = team_items
+            items    = team_items
+            _save_fn = save_team_shop
+
+    if not shop_item:
+        angler_items = load_angler_shop()
+        shop_item    = find_shop_item(angler_items, itemname)
+        if shop_item:
+            items    = angler_items
+            _save_fn = save_angler_shop
 
     if not shop_item:
         await interaction.response.send_message(
@@ -1237,10 +1245,7 @@ async def shop_edit(
         save_economy(eco)
         changes.append(f"**Name:** {old_name} \u2192 {neuer_name}")
 
-    if is_regular:
-        save_shop(items)
-    else:
-        save_team_shop(items)
+    _save_fn(items)
 
     embed = discord.Embed(
         title="\u270F\uFE0F Item bearbeitet",
@@ -1268,13 +1273,24 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
 
     items      = load_shop()
     shop_item  = find_shop_item(items, itemname)
-    is_regular = shop_item is not None
+    _save_fn   = save_shop
+    shop_label = None
 
     if not shop_item:
         team_items = load_team_shop()
         shop_item  = find_shop_item(team_items, itemname)
         if shop_item:
-            items = team_items
+            items      = team_items
+            _save_fn   = save_team_shop
+            shop_label = "Team Shop"
+
+    if not shop_item:
+        angler_items = load_angler_shop()
+        shop_item    = find_shop_item(angler_items, itemname)
+        if shop_item:
+            items      = angler_items
+            _save_fn   = save_angler_shop
+            shop_label = "Angler Shop"
 
     if not shop_item:
         await interaction.response.send_message(
@@ -1282,13 +1298,11 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         )
         return
 
-    items.remove(shop_item)
-    if is_regular:
-        save_shop(items)
+    if shop_label is None:
         shop_label = SHOPS.get(_item_shop(shop_item), SHOPS["kwik"])["label"]
-    else:
-        save_team_shop(items)
-        shop_label = "Team Shop"
+
+    items.remove(shop_item)
+    _save_fn(items)
 
     item_name       = shop_item["name"]
     eco             = load_economy()
