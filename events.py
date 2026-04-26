@@ -36,6 +36,10 @@ try:
     from weed import WeedInfoView as _WeedInfoView
 except Exception:
     _WeedInfoView = None
+try:
+    from angeln import auto_angeln_setup as _auto_angeln_setup
+except Exception:
+    _auto_angeln_setup = None
 
 
 
