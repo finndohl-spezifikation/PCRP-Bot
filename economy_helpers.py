@@ -87,7 +87,14 @@ def save_shop(items):
         json.dump(items, f, indent=2, ensure_ascii=False)
 
 
-_TEAM_SHOP_FILE = DATA_DIR / "team_shop_data.json"
+_TEAM_SHOP_FILE   = DATA_DIR / "team_shop_data.json"
+_ANGLER_SHOP_FILE = DATA_DIR / "angler_shop_data.json"
+
+_ANGLER_SHOP_DEFAULTS = [
+    {"name": "Angel",                        "price": 5000,  "shop": "angeln"},
+    {"name": "Fischk\u00f6der",              "price": 750,   "shop": "angeln"},
+    {"name": "Hochwertiger Angelk\u00f6der", "price": 2000,  "shop": "angeln"},
+]
 
 
 def load_team_shop() -> list:
@@ -101,6 +108,20 @@ def load_team_shop() -> list:
 
 def save_team_shop(items: list):
     with open(_TEAM_SHOP_FILE, "w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
+
+
+def load_angler_shop() -> list:
+    if _ANGLER_SHOP_FILE.exists():
+        try:
+            return json.load(open(_ANGLER_SHOP_FILE, encoding="utf-8"))
+        except Exception:
+            pass
+    return [dict(d) for d in _ANGLER_SHOP_DEFAULTS]
+
+
+def save_angler_shop(items: list):
+    with open(_ANGLER_SHOP_FILE, "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=2)
 
 
@@ -350,7 +371,7 @@ async def all_shops_item_autocomplete(
     current: str
 ):
     import re
-    items = load_shop() + load_team_shop()
+    items = load_shop() + load_team_shop() + load_angler_shop()
     current_lower = current.lower()
     seen = set()
     choices = []
