@@ -37,9 +37,15 @@ try:
 except Exception:
     _WeedInfoView = None
 try:
-    from angeln import auto_angeln_setup as _auto_angeln_setup
+    from angeln import (
+        auto_angeln_setup as _auto_angeln_setup,
+        AnglernInfoView as _AnglernInfoView,
+        AnglershopView  as _AnglershopView,
+    )
 except Exception:
     _auto_angeln_setup = None
+    _AnglernInfoView   = None
+    _AnglershopView    = None
 
 
 
@@ -68,6 +74,10 @@ async def on_ready():
         bot.add_view(_KokaInfoView())
     if _WeedInfoView:
         bot.add_view(_WeedInfoView())
+    if _AnglernInfoView:
+        bot.add_view(_AnglernInfoView())
+    if _AnglershopView:
+        bot.add_view(_AnglershopView())
 
     for entry in load_hidden_items():
         bot.add_view(VersteckRetrieveView(entry["id"], entry["owner_id"]))
