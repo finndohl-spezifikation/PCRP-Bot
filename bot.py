@@ -45,6 +45,27 @@ def _safe_add_command(command, /, **kwargs):
     return _orig_add_command(command, **kwargs)
 bot.tree.add_command = _safe_add_command
 
+# Doppelte Listener-Registrierung verhindern (Railway hat alte Ordnerstruktur)
+# Wird ein Modul zweimal geladen, w\u00FCrden alle @bot.listen("...")-Listener
+# doppelt feuern \u2014 z.\u202FB. w\u00FCrde "Du hast keine Angel" zweimal gesendet.
+# Hier verwerfen wir Wiederholungen mit gleichem qualname + module.
+_orig_add_listener = bot.add_listener
+def _safe_add_listener(func, name=None):
+    event_name = name or getattr(func, "__name__", None)
+    if not event_name:
+        return _orig_add_listener(func, name)
+    qual = getattr(func, "__qualname__", getattr(func, "__name__", ""))
+    mod  = getattr(func, "__module__", "")
+    existing = bot.extra_events.get(event_name, [])
+    for ex in existing:
+        ex_qual = getattr(ex, "__qualname__", getattr(ex, "__name__", ""))
+        ex_mod  = getattr(ex, "__module__", "")
+        if ex_qual == qual and ex_mod == mod:
+            print(f"[bot] \u26A0\uFE0F Listener bereits registriert, \u00FCberspringe: {mod}.{qual} ({event_name})")
+            return
+    return _orig_add_listener(func, name)
+bot.add_listener = _safe_add_listener
+
 # Alle Module importieren \u2014 Reihenfolge ist wichtig!
 import helpers                  # Hilfsfunktionen
 
