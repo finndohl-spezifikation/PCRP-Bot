@@ -15,6 +15,19 @@ ANGELN_CD_SECS          = 10 * 60
 
 ANGELN_MSG_FILE         = DATA_DIR / "angeln_info_msg.json"
 
+ANGLER_SHOP_CHANNEL_ID  = 1497804333541097532
+ANGLER_SHOP_MSG_FILE    = DATA_DIR / "angler_shop_msg.json"
+
+FISCHKOEDER_NAME  = "Fischk\u00f6der"
+FISCHKOEDER_PRICE = 750
+
+# Fische (nur nicht-M\u00fcll, nicht-text, nicht-Sonderitem)
+ANGELN_FISCHE_NAMEN = {
+    n for (n, _, _, _, _, nur_txt, _uk) in []  # wird sp\u00e4ter bef\u00fcllt
+}
+_MUELL_NAMEN  = {"Stiefel", "Benutztes Kondom", "Seetang", "Sack M\u00fcll"}
+_SONDER_NAMEN = {"Schmuckk\u00e4stchen", "Antiker Kavallerie-Dolch"}
+
 ANGELN_EMBED_DEFAULT = {
     "title":       "\U0001F3A3 Angeln",
     "description": None,
@@ -55,6 +68,13 @@ ANGELN_LOOT = [
     ("Flasche mit dem Lohn Check von der Laura",    12, 1, 1,    0, True,  "hat_laura_check"),
     ("Antiker Kavallerie-Dolch",                    18, 1, 1,    0, False, None),
 ]
+
+# Fisch-Namen + Wert-Lookup (nach Loot-Tabelle berechnet)
+ANGELN_FISCHE_NAMEN = {
+    n for (n, _, _, _, _, nur_txt, _uk) in ANGELN_LOOT
+    if not nur_txt and n not in _MUELL_NAMEN and n not in _SONDER_NAMEN
+}
+ANGELN_WERT = {n: w for (n, _, _, _, w, _, _) in ANGELN_LOOT}
 
 
 # \u2500\u2500 Hilfsfunktionen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -111,6 +131,67 @@ def _set_laura_check(user_id: int):
     ud["hat_laura_check"] = True
     eco[str(user_id)] = ud
     save_economy(eco)
+
+
+def _hat_koeder(user_id: int) -> bool:
+    ud = get_user(load_economy(), user_id)
+    return any(normalize_item_name(i) == normalize_item_name(FISCHKOEDER_NAME)
+               for i in ud.get("inventory", []))
+
+
+def _remove_koeder(user_id: int) -> bool:
+    eco = load_economy()
+    ud  = get_user(eco, user_id)
+    inv = ud.get("inventory", [])
+    for i, item in enumerate(inv):
+        if normalize_item_name(item) == normalize_item_name(FISCHKOEDER_NAME):
+            inv.pop(i)
+            eco[str(user_id)] = ud
+            save_economy(eco)
+            return True
+    return False
+
+
+def _verkaufe_fische(user_id: int) -> tuple:
+    """Entfernt alle Fische aus dem Inventar, schreibt Schwarzgeld gut.
+    Gibt (anzahl_fische, sg_total, detail_lines) zur\u00fcck."""
+    from collections import Counter
+    eco = load_economy()
+    ud  = get_user(eco, user_id)
+    inv = ud.get("inventory", [])
+
+    keep       = []
+    gefangen   = []
+    for item in inv:
+        matched = next(
+            (fn for fn in ANGELN_FISCHE_NAMEN
+             if normalize_item_name(fn) == normalize_item_name(item)),
+            None
+        )
+        if matched:
+            gefangen.append(matched)
+        else:
+            keep.append(item)
+
+    if not gefangen:
+        return 0, 0, []
+
+    counts   = Counter(gefangen)
+    sg_total = sum(ANGELN_WERT.get(n, 0) * c for n, c in counts.items())
+
+    lines = []
+    for fname, cnt in sorted(counts.items(), key=lambda x: -ANGELN_WERT.get(x[0], 0)):
+        wert = ANGELN_WERT.get(fname, 0)
+        if wert > 0:
+            lines.append(f"\u27a4 **{fname}** \u00d7{cnt} \u2014 {wert * cnt:,}\u00a0$".replace(",", "."))
+        else:
+            lines.append(f"\u27a4 **{fname}** \u00d7{cnt}")
+
+    ud["inventory"]   = keep
+    ud["schwarzgeld"] = int(ud.get("schwarzgeld", 0)) + sg_total
+    eco[str(user_id)] = ud
+    save_economy(eco)
+    return len(gefangen), sg_total, lines
 
 
 
@@ -209,6 +290,19 @@ async def angeln_bild_listener(message: discord.Message):
             pass
         return
 
+    # K\u00f6der-Check
+    if not _hat_koeder(user.id):
+        try:
+            await message.channel.send(
+                f"{user.mention} \u274C Du hast keinen **{FISCHKOEDER_NAME}**!\n"
+                f"\U0001F3A3 Kaufe einen im <#{ANGLER_SHOP_CHANNEL_ID}>.",
+                delete_after=10,
+            )
+        except Exception:
+            pass
+        return
+
+    _remove_koeder(user.id)
     _set_angeln_cd(user.id)
 
     # Foto im Log speichern
@@ -278,6 +372,171 @@ async def angeln_bild_listener(message: discord.Message):
             pass
 
     bot.loop.create_task(_fangen())
+
+
+# \u2500\u2500 Views \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class FischVerkaufenView(discord.ui.View):
+    """Ephemeraler Bestaetigungs-View nach Klick auf 'Fische verkaufen'."""
+
+    def __init__(self):
+        super().__init__(timeout=60)
+
+    @discord.ui.button(
+        label="Alle Fische verkaufen",
+        style=discord.ButtonStyle.green,
+        emoji="\U0001F4B0",
+    )
+    async def verkaufen_btn(self, interaction: discord.Interaction, _btn):
+        fish_count, sg_total, lines = _verkaufe_fische(interaction.user.id)
+        if fish_count == 0:
+            await interaction.response.edit_message(
+                content="\u274C Du hast keine Fische im Inventar.",
+                embed=None, view=None,
+            )
+            return
+
+        desc = "\n".join(lines)
+        if sg_total > 0:
+            desc += f"\n\n\U0001F4B0 Gesamt: **{sg_total:,}\u00a0$ Schwarzgeld**".replace(",", ".")
+        emb = discord.Embed(
+            title="\u2705 Fische verkauft!",
+            description=desc,
+            color=0x2ECC71,
+            timestamp=datetime.now(timezone.utc),
+        )
+        emb.set_footer(text="Paradise City Roleplay \u2022 Angel-System")
+        await interaction.response.edit_message(embed=emb, view=None)
+        await _log_angeln(
+            interaction.guild,
+            "\U0001F4B0 Fische verkauft",
+            f"{interaction.user.mention} hat **{fish_count} Fische** f\u00fcr **{sg_total:,}\u00a0$ SG** verkauft.".replace(",", "."),
+        )
+
+
+class AnglernInfoView(discord.ui.View):
+    """Persistenter View am Angel-Info-Embed."""
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Fische verkaufen",
+        style=discord.ButtonStyle.blurple,
+        emoji="\U0001F41F",
+        custom_id="angeln_info:verkaufen",
+    )
+    async def fische_verkaufen(self, interaction: discord.Interaction, _btn):
+        eco = load_economy()
+        ud  = get_user(eco, interaction.user.id)
+        inv = ud.get("inventory", [])
+
+        from collections import Counter
+        gefangen = [
+            fn for item in inv
+            for fn in ANGELN_FISCHE_NAMEN
+            if normalize_item_name(fn) == normalize_item_name(item)
+        ]
+
+        if not gefangen:
+            await interaction.response.send_message(
+                "\u274C Du hast keine Fische im Inventar.", ephemeral=True,
+            )
+            return
+
+        counts   = Counter(gefangen)
+        sg_total = sum(ANGELN_WERT.get(n, 0) * c for n, c in counts.items())
+        lines    = []
+        for fname, cnt in sorted(counts.items(), key=lambda x: -ANGELN_WERT.get(x[0], 0)):
+            wert = ANGELN_WERT.get(fname, 0)
+            if wert > 0:
+                lines.append(f"\u27a4 **{fname}** \u00d7{cnt} \u2014 {wert * cnt:,}\u00a0$".replace(",", "."))
+            else:
+                lines.append(f"\u27a4 **{fname}** \u00d7{cnt}")
+
+        desc = "\n".join(lines)
+        if sg_total > 0:
+            desc += f"\n\n\U0001F4B0 Gesamt: **{sg_total:,}\u00a0$ Schwarzgeld**".replace(",", ".")
+        emb = discord.Embed(
+            title="\U0001F41F Fische im Inventar",
+            description=desc,
+            color=0x1E90FF,
+            timestamp=datetime.now(timezone.utc),
+        )
+        emb.set_footer(text="Paradise City Roleplay \u2022 Angel-System")
+        await interaction.response.send_message(embed=emb, view=FischVerkaufenView(), ephemeral=True)
+
+
+class AnglershopKaufenModal(discord.ui.Modal, title="Fischk\u00f6der kaufen"):
+    menge_input = discord.ui.TextInput(
+        label="Menge",
+        placeholder="z.B. 5",
+        default="1",
+        min_length=1,
+        max_length=3,
+        required=True,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            menge = int(self.menge_input.value.strip())
+        except ValueError:
+            await interaction.response.send_message(
+                "\u274C Bitte eine g\u00fcltige Zahl eingeben.", ephemeral=True,
+            )
+            return
+        if menge < 1 or menge > 100:
+            await interaction.response.send_message(
+                "\u274C Menge muss zwischen 1 und 100 liegen.", ephemeral=True,
+            )
+            return
+
+        gesamtpreis = FISCHKOEDER_PRICE * menge
+        eco = load_economy()
+        ud  = get_user(eco, interaction.user.id)
+
+        if int(ud.get("cash", 0)) < gesamtpreis:
+            await interaction.response.send_message(
+                f"\u274C Nicht genug **Bargeld**!\n"
+                f"Preis: **{gesamtpreis:,}\u00a0$** \u2014 "
+                f"Dein Bargeld: **{int(ud.get('cash', 0)):,}\u00a0$**".replace(",", "."),
+                ephemeral=True,
+            )
+            return
+
+        ud["cash"] = int(ud.get("cash", 0)) - gesamtpreis
+        ud.setdefault("inventory", []).extend([FISCHKOEDER_NAME] * menge)
+        eco[str(interaction.user.id)] = ud
+        save_economy(eco)
+
+        emb = discord.Embed(
+            title="\u2705 Gekauft!",
+            description=(
+                f"Du hast **{menge}x {FISCHKOEDER_NAME}** f\u00fcr "
+                f"**{gesamtpreis:,}\u00a0$** gekauft.\n"
+                f"Verbleibendes Bargeld: **{int(ud['cash']):,}\u00a0$**"
+            ).replace(",", "."),
+            color=0x2ECC71,
+            timestamp=datetime.now(timezone.utc),
+        )
+        emb.set_footer(text="Paradise City Roleplay \u2022 Angler Shop")
+        await interaction.response.send_message(embed=emb, ephemeral=True)
+
+
+class AnglershopView(discord.ui.View):
+    """Persistenter View am Angler-Shop-Embed."""
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(
+        label="Fischk\u00f6der kaufen",
+        style=discord.ButtonStyle.green,
+        emoji="\U0001F3A3",
+        custom_id="angler_shop:kaufen",
+    )
+    async def kaufen_btn(self, interaction: discord.Interaction, _btn):
+        await interaction.response.send_modal(AnglershopKaufenModal())
 
 
 # \u2500\u2500 Info-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -351,13 +610,13 @@ async def _angeln_setup() -> str:
     if msg_id:
         try:
             existing = await channel.fetch_message(msg_id)
-            await existing.edit(embed=_build_angeln_info_embed())
+            await existing.edit(embed=_build_angeln_info_embed(), view=AnglernInfoView())
             return "\u2705 Angel Info-Embed aktualisiert."
         except Exception:
             pass
 
     try:
-        sent = await channel.send(embed=_build_angeln_info_embed())
+        sent = await channel.send(embed=_build_angeln_info_embed(), view=AnglernInfoView())
         json.dump({"message_id": sent.id}, open(ANGELN_MSG_FILE, "w", encoding="utf-8"), indent=2)
         return "\u2705 Angel Info-Embed gesendet."
     except Exception as e:
@@ -369,3 +628,60 @@ async def auto_angeln_setup():
     await asyncio.sleep(3)
     result = await _angeln_setup()
     print(f"[angeln] {result}")
+
+
+# \u2500\u2500 Angler Shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+def _build_angler_shop_embed() -> discord.Embed:
+    sep        = "\u2501" * 32
+    preis_text = f"{FISCHKOEDER_PRICE:,}".replace(",", ".")
+    desc       = (
+        f"{sep}\n"
+        f"\u27a4 **{FISCHKOEDER_NAME}** \u2014 {preis_text}\u00a0$\n"
+        f"> 1 K\u00f6der wird pro Angel-Session automatisch verbraucht\n"
+        f"{sep}"
+    )
+    emb = discord.Embed(
+        title="\U0001F3A3 Angler Shop",
+        description=desc,
+        color=0x1E90FF,
+        timestamp=datetime.now(timezone.utc),
+    )
+    emb.set_footer(text="Paradise City Roleplay \u2022 Angler Shop")
+    return emb
+
+
+async def _angler_shop_setup() -> str:
+    try:
+        channel = await bot.fetch_channel(ANGLER_SHOP_CHANNEL_ID)
+    except Exception as e:
+        return f"\u274C Angler Shop Kanal nicht erreichbar ({ANGLER_SHOP_CHANNEL_ID}): {e}"
+
+    msg_id = None
+    try:
+        if ANGLER_SHOP_MSG_FILE.exists():
+            msg_id = json.load(open(ANGLER_SHOP_MSG_FILE, encoding="utf-8")).get("message_id")
+    except Exception:
+        pass
+
+    if msg_id:
+        try:
+            existing = await channel.fetch_message(msg_id)
+            await existing.edit(embed=_build_angler_shop_embed(), view=AnglershopView())
+            return "\u2705 Angler Shop aktualisiert."
+        except Exception:
+            pass
+
+    try:
+        sent = await channel.send(embed=_build_angler_shop_embed(), view=AnglershopView())
+        json.dump({"message_id": sent.id}, open(ANGLER_SHOP_MSG_FILE, "w", encoding="utf-8"), indent=2)
+        return "\u2705 Angler Shop gesendet."
+    except Exception as e:
+        return f"\u274C Angler Shop senden fehlgeschlagen: {e}"
+
+
+async def auto_angler_shop_setup():
+    await bot.wait_until_ready()
+    await asyncio.sleep(5)
+    result = await _angler_shop_setup()
+    print(f"[angler_shop] {result}")
