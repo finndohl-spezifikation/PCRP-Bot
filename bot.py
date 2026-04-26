@@ -166,6 +166,10 @@ try:
 except Exception as _e:
     print(f"[WARNING] weed konnte nicht geladen werden: {_e}")
 try:
+    import angeln
+except Exception as _e:
+    print(f"[WARNING] angeln konnte nicht geladen werden: {_e}")
+try:
     import fraktionen
 except Exception as _e:
     print(f"[WARNING] fraktionen konnte nicht geladen werden: {_e}")
