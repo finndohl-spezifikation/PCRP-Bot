@@ -113,12 +113,6 @@ def _set_laura_check(user_id: int):
     save_economy(eco)
 
 
-def _credit_schwarzgeld(user_id: int, betrag: int):
-    eco = load_economy()
-    ud  = get_user(eco, user_id)
-    ud["schwarzgeld"] = int(ud.get("schwarzgeld", 0)) + betrag
-    eco[str(user_id)] = ud
-    save_economy(eco)
 
 
 async def _log_angeln(guild, title: str, desc: str):
@@ -249,44 +243,34 @@ async def angeln_bild_listener(message: discord.Message):
     async def _fangen():
         await asyncio.sleep(ANGELN_CD_SECS)
 
-        items_inv, text_only, sg_total = _roll_fang(user.id)
+        items_inv, text_only, _ = _roll_fang(user.id)
 
-        # Items ins Inventar
-        for (item_name, anzahl, _) in items_inv:
+        # Alle Items ins Inventar
+        for (item_name, anzahl, _wert) in items_inv:
             _add_items_angeln(user.id, item_name, anzahl)
-
-        # Schwarzgeld gutschreiben
-        if sg_total > 0:
-            _credit_schwarzgeld(user.id, sg_total)
 
         # DM aufbauen
         if not items_inv and not text_only:
             fang_text = "\u2694\uFE0F Leider nichts gefangen \u2014 heute war kein guter Tag!"
         else:
             lines = []
-            for (item_name, anzahl, wert_ges) in items_inv:
-                if wert_ges > 0:
-                    lines.append(f"\u27A4 **{item_name}** \u00D7{anzahl} \u2014 {wert_ges:,}\u00A0$")
-                else:
-                    lines.append(f"\u27A4 **{item_name}** \u00D7{anzahl}")
+            for (item_name, anzahl, _wert) in items_inv:
+                lines.append(f"\u27A4 **{item_name}** \u00D7{anzahl}")
             for t in text_only:
                 lines.append(f"\u27A4 {t}")
             fang_text = "\n".join(lines)
 
         embed_dm = discord.Embed(
             title="\U0001F3A3 Fang abgeschlossen!",
-            description=(
-                f"**Dein Fang vom Pier:**\n\n"
-                f"{fang_text}\n\n"
-                + (f"\U0001F4B5 **{sg_total:,}\u00A0$ Schwarzgeld** wurden deinem Konto gutgeschrieben." if sg_total > 0 else "")
-            ),
+            description=f"**Dein Fang vom Pier:**\n\n{fang_text}",
             color=0x1E90FF,
             timestamp=datetime.now(timezone.utc),
         )
         embed_dm.set_footer(text="Paradise City Roleplay \u2022 Angel-System")
 
+        item_namen = ", ".join(f"{anzahl}x {n}" for (n, anzahl, _) in items_inv) or "nichts"
         await _log_angeln(guild, "\u2705 Fang abgeschlossen",
-            f"{user.mention} hat geangelt \u2014 **{sg_total:,}\u00A0$ Schwarzgeld** gutgeschrieben.")
+            f"{user.mention} hat geangelt \u2014 Fang: {item_namen}")
 
         try:
             await user.send(embed=embed_dm)
@@ -316,7 +300,7 @@ def _build_angeln_info_embed() -> discord.Embed:
         "> \U0001f9f9 Krebs \u00b7 Seegurke \u00b7 Seetang \u00b7 Stiefel \u00b7 M\u00fcll\n"
         "> \u2728 Schmuckk\u00e4stchen \u00b7 Antiker Kavallerie-Dolch \u00b7 ??? \n\n"
         "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n"
-        "\U0001F4B5 Wertvolle Fische werden automatisch als **Schwarzgeld** gutgeschrieben."
+        "\U0001F4E6 Alle Funde landen direkt in deinem **Inventar**."
     )
     emb = discord.Embed(
         title="\U0001F3A3 Angeln",
