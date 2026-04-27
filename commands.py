@@ -171,13 +171,11 @@ async def setup_angelshop(interaction: discord.Interaction):
                 except:
                     pass
         
-        # Erstelle das neue Embed (ohne await - es ist eine Funktion, kein Coroutine)
-        embed = _angeln._build_angler_shop_embed()
+        # Verwende die KORREKTE Funktion für das Embed MIT Buttons
+        # Die _angler_shop_setup() Funktion erstellt das Embed MIT den Shop-Buttons
+        result = await _angeln._angler_shop_setup()
         
-        if embed:
-            # Sende das neue Embed
-            await channel.send(embed=embed)
-            
+        if "✅" in result:
             # Erfolgsnachricht an den User
             success_embed = discord.Embed(
                 title="✅ Angler Shop aktualisiert",
@@ -185,7 +183,7 @@ async def setup_angelshop(interaction: discord.Interaction):
                     f"Das Angler-Shop Embed wurde erfolgreich aktualisiert.\n\n"
                     f"**Kanal:** {channel.mention}\n"
                     f"**Gelöschte alte Nachrichten:** {deleted}\n"
-                    f"**Neues Embed gesendet:** ✅"
+                    f"**Neues Embed MIT Buttons gesendet:** ✅"
                 ),
                 color=0x28a745,
                 timestamp=datetime.now(timezone.utc)
@@ -196,7 +194,7 @@ async def setup_angelshop(interaction: discord.Interaction):
             await interaction.followup.send(embed=success_embed, ephemeral=True)
             
         else:
-            await interaction.followup.send("❌ Fehler beim Erstellen des Embeds!", ephemeral=True)
+            await interaction.followup.send(f"❌ Fehler bei Aktualisierung: {result}", ephemeral=True)
             
     except Exception as e:
         error_embed = discord.Embed(
