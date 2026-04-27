@@ -161,7 +161,7 @@ async def setup_angelshop(interaction: discord.Interaction):
             await interaction.followup.send("❌ Angler-Shop Kanal nicht gefunden!", ephemeral=True)
             return
         
-        # Lösche alte Bot-Nachrichten im Kanal
+        # Lösche alte Bot-Nachrichten im ANGLER-SHOP KANAL (nicht alle Kanäle!)
         deleted = 0
         async for message in channel.history(limit=50):
             if message.author == bot.user:
@@ -171,15 +171,15 @@ async def setup_angelshop(interaction: discord.Interaction):
                 except:
                     pass
         
-        # Erstelle das neue Embed
-        result = await _angeln._build_angler_shop_embed()
+        # Erstelle das neue Embed (ohne await - es ist eine Funktion, kein Coroutine)
+        embed = _angeln._build_angler_shop_embed()
         
-        if result:
+        if embed:
             # Sende das neue Embed
-            await channel.send(embed=result)
+            await channel.send(embed=embed)
             
             # Erfolgsnachricht an den User
-            embed = discord.Embed(
+            success_embed = discord.Embed(
                 title="✅ Angler Shop aktualisiert",
                 description=(
                     f"Das Angler-Shop Embed wurde erfolgreich aktualisiert.\n\n"
@@ -190,24 +190,24 @@ async def setup_angelshop(interaction: discord.Interaction):
                 color=0x28a745,
                 timestamp=datetime.now(timezone.utc)
             )
-            embed.set_footer(text=f"Aktualisiert von {interaction.user}")
-            embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1f3a3.png")
+            success_embed.set_footer(text=f"Aktualisiert von {interaction.user}")
+            success_embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1f3a3.png")
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=success_embed, ephemeral=True)
             
         else:
             await interaction.followup.send("❌ Fehler beim Erstellen des Embeds!", ephemeral=True)
             
     except Exception as e:
-        embed = discord.Embed(
+        error_embed = discord.Embed(
             title="❌ Kritischer Fehler",
             description=f"Ein unerwarteter Fehler ist aufgetreten:\n\n```\n{str(e)}\n```",
             color=0xdc3545,
             timestamp=datetime.now(timezone.utc)
         )
-        embed.set_footer(text=f"Versucht von {interaction.user}")
+        error_embed.set_footer(text=f"Versucht von {interaction.user}")
         
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=error_embed, ephemeral=True)
         print(f"[setup-angelshop] Kritischer Fehler: {e}")
 
 # ─────────────────────────────────────────────────────────────────────────────────
