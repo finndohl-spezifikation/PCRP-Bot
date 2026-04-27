@@ -144,31 +144,48 @@ async def server_info(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 # ─────────────────────────────────────────────────────────────────────────────────
-# 🆕 NEU: /setup-angelshop Command
+# 🆕 NEU: /setup-angelshop Command (FÜR ALLE)
 @bot.tree.command(
     name="setup-angelshop",
-    description="[Angler Shop] Aktualisiere das Angler-Shop Embed (Admin)",
+    description="[Angler Shop] Aktualisiere das Angler-Shop Embed",
     guild=discord.Object(id=GUILD_ID)
 )
 async def setup_angelshop(interaction: discord.Interaction):
-    """Aktualisiert das Angler-Shop Embed manuell"""
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
-    
+    """Aktualisiert das Angler-Shop Embed manuell und ersetzt das alte"""
     await interaction.response.defer(ephemeral=True)
     
     try:
-        # Verwende die existierende Funktion aus angeln.py
-        result = await _angeln._angler_shop_setup()
+        # Hole den Angler-Shop Kanal
+        channel = bot.get_channel(_angeln.ANGLER_SHOP_CHANNEL_ID)
+        if not channel:
+            await interaction.followup.send("❌ Angler-Shop Kanal nicht gefunden!", ephemeral=True)
+            return
         
-        if "✅" in result:
+        # Lösche alte Bot-Nachrichten im Kanal
+        deleted = 0
+        async for message in channel.history(limit=50):
+            if message.author == bot.user:
+                try:
+                    await message.delete()
+                    deleted += 1
+                except:
+                    pass
+        
+        # Erstelle das neue Embed
+        result = await _angeln._build_angler_shop_embed()
+        
+        if result:
+            # Sende das neue Embed
+            await channel.send(embed=result)
+            
+            # Erfolgsnachricht an den User
             embed = discord.Embed(
                 title="✅ Angler Shop aktualisiert",
                 description=(
                     f"Das Angler-Shop Embed wurde erfolgreich aktualisiert.\n\n"
-                    f"**Kanal:** <#{_angeln.ANGLER_SHOP_CHANNEL_ID}>\n"
-                    f"**Status:** {result}"
+                    f"**Kanal:** {channel.mention}\n"
+                    f"**Gelöschte alte Nachrichten:** {deleted}\n"
+                    f"**Neues Embed gesendet:** ✅"
                 ),
                 color=0x28a745,
                 timestamp=datetime.now(timezone.utc)
@@ -179,15 +196,7 @@ async def setup_angelshop(interaction: discord.Interaction):
             await interaction.followup.send(embed=embed, ephemeral=True)
             
         else:
-            embed = discord.Embed(
-                title="❌ Fehler bei Aktualisierung",
-                description=f"Beim Aktualisieren des Angler-Shops ist ein Fehler aufgetreten:\n\n```\n{result}\n```",
-                color=0xdc3545,
-                timestamp=datetime.now(timezone.utc)
-            )
-            embed.set_footer(text=f"Versucht von {interaction.user}")
-            
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send("❌ Fehler beim Erstellen des Embeds!", ephemeral=True)
             
     except Exception as e:
         embed = discord.Embed(
