@@ -90,12 +90,6 @@ def save_shop(items):
 _TEAM_SHOP_FILE   = DATA_DIR / "team_shop_data.json"
 _ANGLER_SHOP_FILE = DATA_DIR / "angler_shop_data.json"
 
-_ANGLER_SHOP_DEFAULTS = [
-    {"name": "Angel",                        "price": 5000,  "shop": "angeln"},
-    {"name": "Fischk\u00f6der",              "price": 750,   "shop": "angeln"},
-    {"name": "Hochwertiger Angelk\u00f6der", "price": 2000,  "shop": "angeln"},
-]
-
 
 def load_team_shop() -> list:
     if _TEAM_SHOP_FILE.exists():
@@ -112,12 +106,14 @@ def save_team_shop(items: list):
 
 
 def load_angler_shop() -> list:
+    """L\u00E4dt Angler-Shop-Items aus JSON. Gibt IMMER die gespeicherte Liste zur\u00FCck
+    (kein hartcodiertes Fallback), damit L\u00F6schungen via /delete-item wirklich greifen."""
     if _ANGLER_SHOP_FILE.exists():
         try:
             return json.load(open(_ANGLER_SHOP_FILE, encoding="utf-8"))
         except Exception:
             pass
-    return [dict(d) for d in _ANGLER_SHOP_DEFAULTS]
+    return []
 
 
 def save_angler_shop(items: list):
