@@ -14,6 +14,7 @@ from economy_helpers import (
 @bot.tree.command(name="warn", description="[Warn] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
+    await interaction.response.defer(ephemeral=True)
     warns      = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
     warn_entry = {
@@ -44,7 +45,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
     if log_ch:
         await log_ch.send(embed=embed)
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"\u2705 Verwarnung f\u00FCr {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)", ephemeral=True
     )
 
@@ -132,11 +133,12 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
 @bot.tree.command(name="warn-list", description="[Warn] Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
+    await interaction.response.defer(ephemeral=True)
     warns      = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
 
     if not user_warns:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"\u2705 {nutzer.mention} hat keine Verwarnungen.", ephemeral=True
         )
         return
@@ -153,17 +155,18 @@ async def warn_list(interaction: discord.Interaction, nutzer: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text=f"Gesamt: {len(user_warns)} Warn(s)")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="remove-warn", description="[Warn] Letzte Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
+    await interaction.response.defer(ephemeral=True)
     warns      = load_warns()
     user_warns = get_user_warns(warns, nutzer.id)
 
     if not user_warns:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"\u2139\uFE0F {nutzer.mention} hat keine Verwarnungen.", ephemeral=True
         )
         return
@@ -182,12 +185,13 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="team-warn", description="[Admin] Team-Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
+    await interaction.response.defer(ephemeral=True)
     warns      = load_team_warns()
     user_warns = get_user_team_warns(warns, nutzer.id)
     warn_entry = {
@@ -235,7 +239,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
     except Exception:
         pass
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"\u2705 Team-Verwarnung f\u00FCr {nutzer.mention} gespeichert. (Team-Warns gesamt: **{warn_count}**)",
         ephemeral=True
     )
@@ -244,11 +248,12 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
 @bot.tree.command(name="teamwarn-list", description="[Admin] Team-Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member):
+    await interaction.response.defer(ephemeral=True)
     warns      = load_team_warns()
     user_warns = get_user_team_warns(warns, nutzer.id)
 
     if not user_warns:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"\u2705 {nutzer.mention} hat keine Team-Verwarnungen.", ephemeral=True
         )
         return
@@ -265,17 +270,18 @@ async def teamwarn_list(interaction: discord.Interaction, nutzer: discord.Member
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text=f"Gesamt: {len(user_warns)} Team-Warn(s)")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="remove-teamwarn", description="[Admin] Letzte Team-Verwarnung eines Spielers entfernen", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler")
 async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Member):
+    await interaction.response.defer(ephemeral=True)
     warns      = load_team_warns()
     user_warns = get_user_team_warns(warns, nutzer.id)
 
     if not user_warns:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"\u2139\uFE0F {nutzer.mention} hat keine Team-Verwarnungen.", ephemeral=True
         )
         return
@@ -310,7 +316,7 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # \u2500\u2500 /ban-list \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -350,7 +356,7 @@ class BanListView(discord.ui.View):
 
     async def _check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.requester.id:
-            await interaction.response.send_message("\u274C Nur der Aufrufer darf bl\u00e4ttern.", ephemeral=True)
+            await interaction.followup.send("\u274C Nur der Aufrufer darf bl\u00e4ttern.", ephemeral=True)
             return False
         return True
 
@@ -378,7 +384,7 @@ class BanListView(discord.ui.View):
 )
 async def ban_list(interaction: discord.Interaction):
     if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        await interaction.followup.send("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     await interaction.response.defer(ephemeral=True)
@@ -395,3 +401,4 @@ async def ban_list(interaction: discord.Interaction):
     view  = BanListView(bans, interaction.user)
     embed = view.build_embed()
     await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
