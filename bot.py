@@ -209,7 +209,8 @@ except Exception as _import_err:
     print(f"[WARNING] server_schutz konnte nicht geladen werden: {_import_err}")
 
 try:
-    import logs                 # Erweiterte Server-Logs (Voice, Name, Timeout, Rollen)
+    import logs                 # Zentrale Log-Hilfsfunktionen
+    import logs_events          # Automatische Discord-Event-Logs
     import bot_status           # Auto-aktualisierendes Status-Dashboard
 except Exception as _import_err:
     print(f"[WARNING] logs/bot_status konnten nicht geladen werden: {_import_err}")
@@ -228,3 +229,4 @@ except Exception:
     pass
 
 bot.run(TOKEN)
+
