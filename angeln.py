@@ -141,21 +141,56 @@ def _set_laura_check(user_id: int):
     save_economy(eco)
 
 
+def _is_koeder_name(raw_name: str) -> bool:
+    """True wenn der Itemname auf einen K\u00F6der hindeutet
+    (egal ob 'K\u00F6der', 'Fischk\u00F6der', 'Angelk\u00F6der', 'Hochwertiger K\u00F6der' usw.).
+    Pr\u00FCft sowohl die normalisierte Form als auch die rohe (mit Umlauten)."""
+    n_norm = normalize_item_name(raw_name)
+    n_raw  = raw_name.lower()
+    return ("koeder" in n_norm) or ("k\u00F6der" in n_raw)
+
+
+def _is_hochwertig_koeder_name(raw_name: str) -> bool:
+    n_norm = normalize_item_name(raw_name)
+    n_raw  = raw_name.lower()
+    return _is_koeder_name(raw_name) and (
+        "hochwertig" in n_norm or "hochwertig" in n_raw
+        or "premium"   in n_norm or "premium"   in n_raw
+    )
+
+
 def _hat_angel(user_id: int) -> bool:
+    """Tolerante Angel-Erkennung: matched 'Angel', 'Angelrute' usw.,
+    aber NICHT 'Angelk\u00F6der' (das ist ein K\u00F6der, keine Rute)."""
     ud = get_user(load_economy(), user_id)
-    return any(normalize_item_name(i) == normalize_item_name(ANGEL_NAME)
-               for i in ud.get("inventory", []))
+    target_norm = normalize_item_name(ANGEL_NAME)
+    for raw in ud.get("inventory", []):
+        if _is_koeder_name(raw):
+            continue  # K\u00F6der ist keine Rute
+        n = normalize_item_name(raw)
+        if n == target_norm:
+            return True
+        if n.startswith("angel"):  # Angelrute, Angel-Set, etc.
+            return True
+    return False
 
 
 def _detect_koeder(user_id: int) -> str | None:
-    """Gibt hochwertigen K\u00f6der zur\u00fcck wenn vorhanden, sonst normalen, sonst None."""
+    """Gibt den ECHTEN Inventar-Namen des K\u00F6ders zur\u00FCck (damit
+    _remove_koeder_by_name ihn 1:1 entfernen kann).
+    Bevorzugt hochwertige K\u00F6der \u00FCber normale.
+    Tolerant gegen\u00FCber Schreibweisen \u2014 erkennt 'K\u00F6der',
+    'Fischk\u00F6der', 'Angelk\u00F6der', 'Hochwertiger K\u00F6der' etc."""
     ud  = get_user(load_economy(), user_id)
     inv = ud.get("inventory", [])
-    norms = [normalize_item_name(i) for i in inv]
-    if normalize_item_name(HOCHWERTIGE_KOEDER_NAME) in norms:
-        return HOCHWERTIGE_KOEDER_NAME
-    if normalize_item_name(FISCHKOEDER_NAME) in norms:
-        return FISCHKOEDER_NAME
+    # Erst nach hochwertigem suchen
+    for raw in inv:
+        if _is_hochwertig_koeder_name(raw):
+            return raw
+    # Dann irgendeinen K\u00F6der
+    for raw in inv:
+        if _is_koeder_name(raw):
+            return raw
     return None
 
 
@@ -281,12 +316,27 @@ def _roll_fang(user_id: int, bonus_chance: int = 0) -> tuple[list[tuple[str,int,
 
 # \u2500\u2500 on_message: Foto startet Angeln \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
+_ANGELN_PROCESSED_IDS: set[int] = set()  # Idempotenz-Schutz gegen doppelte Listener
+
+
 @bot.listen("on_message")
 async def angeln_bild_listener(message: discord.Message):
     if message.author.bot:
         return
     if message.channel.id != ANGELN_BILD_CHANNEL_ID:
         return
+
+    # Idempotenz: jede Nachricht garantiert nur EINMAL verarbeiten,
+    # auch wenn der Listener aus Versehen mehrfach registriert ist
+    # (z.\u202FB. weil angeln.py an zwei Stellen importiert wird).
+    if message.id in _ANGELN_PROCESSED_IDS:
+        return
+    _ANGELN_PROCESSED_IDS.add(message.id)
+    # Set begrenzen damit es nicht unendlich w\u00E4chst
+    if len(_ANGELN_PROCESSED_IDS) > 500:
+        # \u00C4lteste H\u00E4lfte rauswerfen
+        for old in list(_ANGELN_PROCESSED_IDS)[:250]:
+            _ANGELN_PROCESSED_IDS.discard(old)
 
     IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
     img_atts = [
@@ -348,7 +398,7 @@ async def angeln_bild_listener(message: discord.Message):
             pass
         return
 
-    bonus_chance = HOCHWERTIGE_KOEDER_BONUS if koeder_name == HOCHWERTIGE_KOEDER_NAME else 0
+    bonus_chance = HOCHWERTIGE_KOEDER_BONUS if _is_hochwertig_koeder_name(koeder_name) else 0
     _remove_koeder_by_name(user.id, koeder_name)
     _set_angeln_cd(user.id)
 
