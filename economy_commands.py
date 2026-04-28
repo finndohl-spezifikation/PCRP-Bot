@@ -1049,3 +1049,60 @@ async def schwarzgeld_add(interaction: discord.Interaction, nutzer: discord.Memb
         await nutzer.send(embed=dm_embed)
     except Exception:
         pass
+
+
+# ── Lohnliste-Embed (Infos zu allen Lohnklassen) ──────────────────────────────
+
+async def auto_lohnliste_setup():
+    for guild in bot.guilds:
+        channel = guild.get_channel(LOHNLISTE_CHANNEL_ID)
+        if not channel:
+            continue
+
+        desc = (
+            "<@&1490855796932739093>\n"
+            "**1'000 \U0001f4b5 Stündlich**\n"
+            "> Diese Lohnklasse ist für alle Arbeitslosen Spieler/in die keinen Privaten oder Staatlichen Beruf ausüben\n\n"
+            "<@&1490855789844234310>\n"
+            "**3'000 \U0001f4b5 Stündlich**\n"
+            "> Diese Lohnklasse ist für alle Normal Angestellten von Staatlichen Unternehmen\n\n"
+            "<@&1490855790913785886>\n"
+            "**3'600 \U0001f4b5 Stündlich**\n"
+            "> Diese Lohnklasse ist für alle Angestellten mit einem Befehlsposten in Staatlichen Unternehmen\n\n"
+            "<@&1490855791953973421>\n"
+            "**4'500 \U0001f4b5 Stündlich**\n"
+            "> Diese Lohnklasse ist für alle die einen Posten in einer Leitungsebene haben in Staatlichen Unternehmen\n\n"
+            "━━━━━━━━━━━━━━━━━━\n"
+            "**\U0001f4cb Lohn Info**\n"
+            "Spieler/in die einen Privaten Beruf ausüben müssen vom Unternehmenschef Privat bezahlt werden. "
+            "Der Anspruch auf Staatlichen Lohn oder Arbeitslosengeld fällt hier weg."
+        )
+        embed = discord.Embed(
+            title="\U0001f4b5 Lohnliste \U0001f4b5",
+            description=desc,
+            color=LOG_COLOR,
+        )
+        embed.set_footer(text="Paradise City Roleplay \u2022 Lohnbüro")
+
+        existing_msg = None
+        try:
+            async for msg in channel.history(limit=20):
+                if msg.author.id == bot.user.id and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Lohnliste" in emb.title:
+                            existing_msg = msg
+                            break
+                if existing_msg:
+                    break
+        except Exception:
+            pass
+
+        try:
+            if existing_msg:
+                await existing_msg.edit(embed=embed)
+                print(f"[economy] Lohnliste aktualisiert in #{channel.name}")
+            else:
+                await channel.send(embed=embed)
+                print(f"[economy] Lohnliste gepostet in #{channel.name}")
+        except Exception as e:
+            print(f"[economy] Lohnliste Fehler: {e}")
