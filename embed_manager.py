@@ -23,7 +23,7 @@ async def setup_all_embeds():
             print(f"[embed_manager] âš ï¸ Import Ã¼bersprungen [{name}]: {e}")
 
     _try_import("ticket",        "ticket",           "auto_ticket_setup")
-    _try_import("lohnliste",     "ticket",           "auto_lohnliste_setup")
+    _try_import("lohnliste",     "economy_commands",  "auto_lohnliste_setup")
     _try_import("einreise",      "einreise",         "auto_einreise_setup")
     _try_import("handy",         "handy",            "auto_handy_setup")
     _try_import("casino",        "casino",           "auto_casino_setup")
