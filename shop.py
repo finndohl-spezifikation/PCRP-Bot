@@ -1080,6 +1080,8 @@ class ShopAddConfirmView(TimedDisableView):
 
     @discord.ui.button(label="\u2705 Best\u00E4tigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Defer damit Discord nicht timeoutet (auto_shop_setup braucht >3s)
+        await interaction.response.defer()
         items = load_shop()
         entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
         if self.allowed_role_id:
@@ -1098,7 +1100,7 @@ class ShopAddConfirmView(TimedDisableView):
             r = interaction.guild.get_role(self.allowed_role_id)
             rolle_info = f"\n**Nur f\u00FCr:** {r.mention if r else self.allowed_role_id}"
         shop_label = SHOPS[self.shop_key]["label"]
-        await interaction.response.edit_message(
+        await interaction.edit_original_response(
             embed=discord.Embed(
                 title="\u2705 Item hinzugef\u00FCgt",
                 description=(
@@ -1216,6 +1218,9 @@ async def shop_edit(
         )
         return
 
+    # Defer damit Discord nicht timeoutet (auto_shop_setup braucht >3s)
+    await interaction.response.defer(ephemeral=True)
+
     # \u2500\u2500 Item in allen Shops finden \u2500\u2500
     MAIN_KEYS = {"kwik", "baumarkt", "schwarzmarkt"}
 
@@ -1242,7 +1247,7 @@ async def shop_edit(
             source_save  = save_angler_shop
 
     if not shop_item:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"\u274C Item **{itemname}** wurde nicht gefunden.", ephemeral=True
         )
         return
@@ -1260,7 +1265,7 @@ async def shop_edit(
     # \u2500\u2500 Preis \u00E4ndern \u2500\u2500
     if neuer_preis is not None:
         if neuer_preis <= 0:
-            await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
+            await interaction.followup.send("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
             return
         old_price          = shop_item.get("price", 0)
         shop_item["price"] = neuer_preis
@@ -1338,7 +1343,7 @@ async def shop_edit(
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text=f"Bearbeitet von {interaction.user}")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # \u2500\u2500 /delete-item \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1354,6 +1359,9 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
+
+    # Defer damit Discord nicht timeoutet (auto_shop_setup braucht >3s)
+    await interaction.response.defer(ephemeral=True)
 
     items      = load_shop()
     shop_item  = find_shop_item(items, itemname)
@@ -1377,7 +1385,7 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
             shop_label = "Angler Shop"
 
     if not shop_item:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"\u274C Das Item **{itemname}** wurde nicht gefunden.", ephemeral=True
         )
         return
@@ -1413,7 +1421,7 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         description=(
             f"**Item:** {item_name}\n"
             f"**Shop:** {shop_label}\n"
-            f"**Preis war:** {shop_item['price']:,} \U0001F4B5\n"
+            f"**Preis war:** {shop_item.get('price', 0):,} \U0001F4B5\n"
             f"**Entfernt von:** {interaction.user.mention}\n\n"
             f"**Inventare bereinigt:** {players_cleaned} Spieler\n"
             f"**Items entfernt:** {total_removed}\u00D7"
@@ -1421,4 +1429,4 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         color=MOD_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
