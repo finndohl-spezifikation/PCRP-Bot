@@ -391,8 +391,15 @@ class BuyItemSelect(discord.ui.Select):
         import re
         self.shop_key = shop_key
         options = []
+        seen_values = set()  # Dedup: Discord verbietet doppelte option-values
         for item in page_items[:25]:
             name = item["name"]
+            value = name[:100]
+            if value in seen_values:
+                # Doppeltes Item in der JSON \u2014 \u00FCberspringen damit Discord nicht
+                # mit "option value already used" (400 Bad Request) crasht.
+                continue
+            seen_values.add(value)
             custom = re.search(r'<(a?):([^:]+):(\d+)>', name)
             label  = re.sub(r'<a?:[^:]+:\d+>\s*\|?\s*', '', name).strip() or name
             if custom:
@@ -405,7 +412,7 @@ class BuyItemSelect(discord.ui.Select):
                 emoji = None
             opt = discord.SelectOption(
                 label=label[:100],
-                value=name[:100],
+                value=value,
                 description=f"{item['price']:,} \U0001f4b5",
                 emoji=emoji
             )
