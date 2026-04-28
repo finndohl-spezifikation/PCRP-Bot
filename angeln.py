@@ -5,6 +5,7 @@ from config import *
 from economy_helpers import (
     load_economy, save_economy, get_user,
     load_team_shop, find_shop_item, normalize_item_name,
+    load_angler_shop, save_angler_shop,
 )
 
 ANGELN_INFO_CHANNEL_ID  = 1490894254006993026
