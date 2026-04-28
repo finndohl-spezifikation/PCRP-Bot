@@ -1007,10 +1007,36 @@ _CHANNEL_VIEWS = {
 
 
 def _build_channel_embed(shop_key: str) -> discord.Embed:
+    # Items dynamisch aus JSON laden (wie im Angler-Shop)
+    all_items = load_shop()
+    items     = [i for i in all_items if _item_shop(i) == shop_key]
+    sep       = "\u2015" * 22
+
+    if items:
+        lines = []
+        for it in items:
+            role_hint = ""
+            if it.get("allowed_role"):
+                role_hint = " \U0001F512"
+            lines.append(
+                f"\u27A4 **{it['name']}**\u3000\u2014\u3000`{it.get('price', 0):,} \U0001F4B5`{role_hint}"
+            )
+        item_block = "\n".join(lines)
+    else:
+        item_block = "*Dieser Shop ist aktuell leer.*"
+
+    description = (
+        f"{_SHOP_BANNERS[shop_key]}\n"
+        f"{sep}\n"
+        f"{item_block}\n"
+        f"{sep}"
+    )
+
     embed = discord.Embed(
         title=SHOPS[shop_key]["label"],
-        description=_SHOP_BANNERS[shop_key],
+        description=description,
         color=_SHOP_COLORS[shop_key],
+        timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(text="Paradise City Roleplay \u2014 Shop")
     return embed
@@ -1099,26 +1125,52 @@ class ShopAddConfirmView(TimedDisableView):
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
         # Defer damit Discord nicht timeoutet (auto_shop_setup braucht >3s)
         await interaction.response.defer()
-        items = load_shop()
-        entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
-        if self.allowed_role_id:
-            entry["allowed_role"] = self.allowed_role_id
-        items.append(entry)
-        save_shop(items)
+
+        # Je nach Shop-Typ in die richtige JSON-Datei schreiben
+        if self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
+            items = load_shop()
+            entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
+            if self.allowed_role_id:
+                entry["allowed_role"] = self.allowed_role_id
+            items.append(entry)
+            save_shop(items)
+            shop_label = SHOPS[self.shop_key]["label"]
+        elif self.shop_key == "team":
+            items = load_team_shop()
+            # Team-Shop speichert nur Name
+            items.append({"name": self.name})
+            save_team_shop(items)
+            shop_label = "\U0001F4E6 Team-Shop"
+        elif self.shop_key == "angler":
+            items = load_angler_shop()
+            items.append({"name": self.name, "price": self.price})
+            save_angler_shop(items)
+            shop_label = "\U0001F3A3 Angler-Shop"
+        else:
+            await interaction.edit_original_response(
+                embed=discord.Embed(
+                    title="\u274C Unbekannter Shop",
+                    description=f"Shop-Key `{self.shop_key}` ist ungueltig.",
+                    color=MOD_COLOR
+                ),
+                view=None
+            )
+            return
+
         # Shop-Embeds in Discord sofort aktualisieren (inkl. Angler-Shop)
         await refresh_all_shop_embeds()
         for child in self.children:
             child.disabled = True
         rolle_info = ""
-        if self.allowed_role_id:
+        if self.allowed_role_id and self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
             r = interaction.guild.get_role(self.allowed_role_id)
             rolle_info = f"\n**Nur f\u00FCr:** {r.mention if r else self.allowed_role_id}"
-        shop_label = SHOPS[self.shop_key]["label"]
+        price_info = f"**{self.price:,} \U0001F4B5**" if self.shop_key != "team" else "(Team-Shop)"
         await interaction.edit_original_response(
             embed=discord.Embed(
                 title="\u2705 Item hinzugef\u00FCgt",
                 description=(
-                    f"**{self.name}** f\u00FCr **{self.price:,} \U0001F4B5** wurde zum "
+                    f"**{self.name}** f\u00FCr {price_info} wurde zum "
                     f"**{shop_label}** hinzugef\u00FCgt.{rolle_info}"
                 ),
                 color=LOG_COLOR
@@ -1149,14 +1201,16 @@ class ShopAddConfirmView(TimedDisableView):
 )
 @app_commands.describe(
     itemname="Name des Items",
-    preis="Preis in $",
-    shop="Welcher Shop: kwik / baumarkt / schwarzmarkt",
-    rolle="(Optional) Nur diese Rolle kann das Item kaufen"
+    preis="Preis in $ (im Team-Shop ignoriert)",
+    shop="In welchem Shop soll das Item angelegt werden?",
+    rolle="(Optional) Nur diese Rolle kann das Item kaufen (nur Haupt-Shops)"
 )
 @app_commands.choices(shop=[
     app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",       value="kwik"),
     app_commands.Choice(name="\U0001F528 Baumarkt",            value="baumarkt"),
     app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt",  value="schwarzmarkt"),
+    app_commands.Choice(name="\U0001F4E6 Team-Shop",          value="team"),
+    app_commands.Choice(name="\U0001F3A3 Angler-Shop",        value="angler"),
 ])
 async def shop_add(
     interaction: discord.Interaction,
@@ -1168,17 +1222,37 @@ async def shop_add(
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
-    if preis <= 0:
+    if preis <= 0 and shop != "team":
         await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
         return
 
-    shop_label = SHOPS[shop]["label"]
-    rolle_info = f"\n**Nur f\u00FCr:** {rolle.mention}" if rolle else "\n**Rollenbeschr\u00E4nkung:** Keine"
+    SHOP_LABELS_ADD = {
+        "kwik":         SHOPS["kwik"]["label"],
+        "baumarkt":     SHOPS["baumarkt"]["label"],
+        "schwarzmarkt": SHOPS["schwarzmarkt"]["label"],
+        "team":         "\U0001F4E6 Team-Shop",
+        "angler":       "\U0001F3A3 Angler-Shop",
+    }
+    shop_label = SHOP_LABELS_ADD[shop]
+
+    # Team-Shop hat keinen Preis, keine Rollenbeschr\u00E4nkung
+    if shop == "team":
+        price_line = "**Preis:** (Team-Shop \u2014 ignoriert)\n"
+        rolle_info = ""
+        rolle      = None
+    else:
+        price_line = f"**Preis:** {preis:,} \U0001F4B5\n"
+        rolle_info = f"\n**Nur f\u00FCr:** {rolle.mention}" if rolle else "\n**Rollenbeschr\u00E4nkung:** Keine"
+        # Angler-Shop unterst\u00FCtzt keine Rollenbeschr\u00E4nkung
+        if shop == "angler" and rolle:
+            rolle_info = "\n**Hinweis:** Rollenbeschr\u00E4nkung wird im Angler-Shop ignoriert."
+            rolle      = None
+
     embed = discord.Embed(
         title="\U0001F6D2 Neues Item hinzuf\u00FCgen?",
         description=(
             f"**Name:** {itemname}\n"
-            f"**Preis:** {preis:,} \U0001F4B5\n"
+            f"{price_line}"
             f"**Shop:** {shop_label}"
             f"{rolle_info}\n\n"
             "Bitte best\u00E4tige das Hinzuf\u00FCgen."
