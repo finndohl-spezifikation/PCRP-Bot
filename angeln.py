@@ -579,10 +579,10 @@ class AnglershopKaufenModal(discord.ui.Modal):
         await interaction.response.send_message(embed=emb, ephemeral=True)
 
 
-# Hartcodierte Default-Liste (Fallback). Die echte aktuelle Liste kommt
-# \u00FCber _current_angler_items() aus der JSON-Datei (load_angler_shop),
-# damit \u00C4nderungen via /shop-edit oder /delete-item sofort wirken \u2014
-# OHNE Bot-Neustart.
+# Keine hartcodierten Items mehr. Die komplette Item-Liste kommt
+# IMMER aus der JSON-Datei (load_angler_shop), damit \u00C4nderungen via
+# /shop-add, /shop-edit oder /delete-item sofort wirken \u2014 auch wenn
+# alle Items gel\u00F6scht werden.
 ANGLER_SHOP_ITEMS = [
     {"name": ANGEL_NAME,              "price": ANGEL_PRICE},
     {"name": FISCHKOEDER_NAME,        "price": FISCHKOEDER_PRICE},
@@ -592,14 +592,13 @@ ANGLER_SHOP_ITEMS = [
 
 def _current_angler_items() -> list:
     """Liefert die aktuelle Angler-Shop-Item-Liste live aus der JSON.
-    F\u00E4llt auf die hartcodierte Liste zur\u00FCck, falls JSON leer ist."""
+    Gibt leere Liste zur\u00FCck wenn keine Items vorhanden \u2014 KEIN Fallback
+    auf hartcodierte Items, damit L\u00F6schungen wirklich greifen."""
     try:
         items = load_angler_shop()
     except Exception:
         items = []
-    if not items:
-        return [dict(d) for d in ANGLER_SHOP_ITEMS]
-    return items
+    return items if items else []
 
 
 def _build_angler_items_embed(member: discord.Member) -> discord.Embed:
@@ -625,20 +624,29 @@ def _build_angler_items_embed(member: discord.Member) -> discord.Embed:
 
 class AnglershopItemSelect(discord.ui.Select):
     def __init__(self):
-        options = [
-            discord.SelectOption(
-                label=it["name"],
-                value=it["name"],
-                description=f"{it['price']:,} \U0001F4B5",
-            )
-            for it in _current_angler_items()
-        ]
+        items = _current_angler_items()
+        if items:
+            options = [
+                discord.SelectOption(
+                    label=it["name"][:100],
+                    value=it["name"][:100],
+                    description=f"{it.get('price', 0):,} \U0001F4B5",
+                )
+                for it in items
+            ]
+            placeholder = "\U0001F6D2 Item ausw\u00e4hlen\u2026"
+            disabled    = False
+        else:
+            options = [discord.SelectOption(label="Keine Items verf\u00FCgbar", value="_none_")]
+            placeholder = "\u274C Keine Items verf\u00FCgbar"
+            disabled    = True
         super().__init__(
-            placeholder="\U0001F6D2 Item ausw\u00e4hlen\u2026",
+            placeholder=placeholder,
             min_values=1,
             max_values=1,
             options=options,
             row=0,
+            disabled=disabled,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -787,11 +795,21 @@ async def auto_angeln_setup():
 # \u2500\u2500 Angler Shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_angler_shop_embed() -> discord.Embed:
-    sep  = "\u2015" * 20
+    sep    = "\u2015" * 22
+    items  = _current_angler_items()
+    if items:
+        lines = [
+            f"\u27A4 **{it['name']}**\u3000\u2014\u3000`{it.get('price', 0):,} \U0001F4B5`"
+            for it in items
+        ]
+        item_block = "\n".join(lines)
+    else:
+        item_block = "*Dieser Shop ist aktuell leer.*"
     desc = (
         "\U0001F3A3 **Willkommen im Angler Shop!**\n"
         f"{sep}\n"
-        "\u27A4 Hier findest du alles was du zum Angeln brauchst.\n"
+        f"{item_block}\n"
+        f"{sep}\n"
         "\u27A4 Du ben\u00f6tigst eine **Angel** und einen **K\u00f6der** pro Session.\n"
         "\u27A4 Bezahlung nur mit **Bargeld** (\U0001F4B5).\n\n"
         "Klicke auf den Button um den Shop zu \u00f6ffnen!"
