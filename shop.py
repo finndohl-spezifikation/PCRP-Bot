@@ -1123,69 +1123,111 @@ class ShopAddConfirmView(TimedDisableView):
 
     @discord.ui.button(label="\u2705 Best\u00E4tigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Je nach Shop-Typ in die richtige JSON-Datei schreiben
-        if self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
-            items = load_shop()
-            entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
-            if self.allowed_role_id:
-                entry["allowed_role"] = self.allowed_role_id
-            items.append(entry)
-            save_shop(items)
-            shop_label = SHOPS[self.shop_key]["label"]
-        elif self.shop_key == "team":
-            items = load_team_shop()
-            items.append({"name": self.name})
-            save_team_shop(items)
-            shop_label = "\U0001F4E6 Team-Shop"
-        elif self.shop_key == "angler":
-            items = load_angler_shop()
-            items.append({"name": self.name, "price": self.price})
-            save_angler_shop(items)
-            shop_label = "\U0001F3A3 Angler-Shop"
-        else:
-            try:
-                await interaction.response.send_message(
-                    f"\u274C Unbekannter Shop: `{self.shop_key}`", ephemeral=True
-                )
-            except Exception:
-                pass
-            return
+        # EPHEMERAL defer \u2014 matcht die ephemere Original-Nachricht,
+        # verhindert "Interaktion fehlgeschlagen" sicher.
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception as _e:
+            print(f"[shop-add] defer fehlgeschlagen: {_e}")
+
+        save_ok = False
+        error_msg = ""
+        shop_label = ""
+
+        try:
+            # Je nach Shop-Typ in die richtige JSON-Datei schreiben
+            if self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
+                items = load_shop()
+                entry = {"name": self.name, "price": self.price, "shop": self.shop_key}
+                if self.allowed_role_id:
+                    entry["allowed_role"] = self.allowed_role_id
+                items.append(entry)
+                save_shop(items)
+                shop_label = SHOPS[self.shop_key]["label"]
+                save_ok = True
+                print(f"[shop-add] Item '{self.name}' gespeichert in {self.shop_key}. Total Items: {len(items)}")
+            elif self.shop_key == "team":
+                items = load_team_shop()
+                items.append({"name": self.name})
+                save_team_shop(items)
+                shop_label = "\U0001F4E6 Team-Shop"
+                save_ok = True
+                print(f"[shop-add] Item '{self.name}' gespeichert in team_shop. Total Items: {len(items)}")
+            elif self.shop_key == "angler":
+                items = load_angler_shop()
+                items.append({"name": self.name, "price": self.price})
+                save_angler_shop(items)
+                shop_label = "\U0001F3A3 Angler-Shop"
+                save_ok = True
+                print(f"[shop-add] Item '{self.name}' gespeichert in angler_shop. Total Items: {len(items)}")
+            else:
+                error_msg = f"Unbekannter Shop-Key: `{self.shop_key}`"
+        except Exception as _e:
+            error_msg = f"Fehler beim Speichern: {_e}"
+            print(f"[shop-add] \u274C Fehler beim Speichern: {_e}")
+            import traceback
+            traceback.print_exc()
 
         # Alle Buttons deaktivieren
         for child in self.children:
             child.disabled = True
 
-        # Rolle-Info + Preis-Info
+        if not save_ok:
+            fail_embed = discord.Embed(
+                title="\u274C Fehler beim Hinzuf\u00FCgen",
+                description=error_msg or "Unbekannter Fehler.",
+                color=MOD_COLOR
+            )
+            try:
+                await interaction.edit_original_response(embed=fail_embed, view=self)
+            except Exception:
+                pass
+            return
+
+        # Shop-Embeds aktualisieren (kann 2-5s dauern)
+        refresh_ok = True
+        refresh_err = ""
+        try:
+            await refresh_all_shop_embeds()
+            print(f"[shop-add] refresh_all_shop_embeds erfolgreich")
+        except Exception as _e:
+            refresh_ok = False
+            refresh_err = str(_e)
+            print(f"[shop-add] \u274C refresh_all_shop_embeds fehlgeschlagen: {_e}")
+            import traceback
+            traceback.print_exc()
+
+        # Best\u00E4tigung zusammenbauen
         rolle_info = ""
         if self.allowed_role_id and self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
             r = interaction.guild.get_role(self.allowed_role_id)
             rolle_info = f"\n**Nur f\u00FCr:** {r.mention if r else self.allowed_role_id}"
         price_info = f"**{self.price:,} \U0001F4B5**" if self.shop_key != "team" else "(Team-Shop)"
 
-        # SOFORT auf den Button antworten (<3s) \u2014 verhindert 'Interaktion fehlgeschlagen'
+        desc = (
+            f"**{self.name}** f\u00FCr {price_info} wurde zum "
+            f"**{shop_label}** hinzugef\u00FCgt."
+            f"{rolle_info}"
+        )
+        if refresh_ok:
+            desc += "\n\n\u2705 Shop-Embeds sind aktualisiert \u2014 das Item ist jetzt sichtbar."
+        else:
+            desc += f"\n\n\u26A0\uFE0F Item wurde gespeichert, aber Channel-Embed konnte nicht aktualisiert werden:\n`{refresh_err[:200]}`"
+
         confirmation_embed = discord.Embed(
             title="\u2705 Item hinzugef\u00FCgt",
-            description=(
-                f"**{self.name}** f\u00FCr {price_info} wurde zum "
-                f"**{shop_label}** hinzugef\u00FCgt.{rolle_info}\n\n"
-                "\u23F3 Shop-Embeds werden im Hintergrund aktualisiert\u2026"
-            ),
+            description=desc,
             color=LOG_COLOR
         )
         try:
-            await interaction.response.edit_message(embed=confirmation_embed, view=self)
+            await interaction.edit_original_response(embed=confirmation_embed, view=self)
         except Exception as _e:
-            # Fallback falls edit_message fehlschl\u00E4gt
+            print(f"[shop-add] edit_original_response fehlgeschlagen: {_e}")
+            # Last-resort: followup
             try:
-                await interaction.response.send_message(embed=confirmation_embed, ephemeral=True)
+                await interaction.followup.send(embed=confirmation_embed, ephemeral=True)
             except Exception:
-                print(f"[shop] Confirm-Antwort fehlgeschlagen: {_e}")
-
-        # Jetzt im Hintergrund Shop-Embeds aktualisieren (kann 2-5s dauern)
-        try:
-            await refresh_all_shop_embeds()
-        except Exception as _e:
-            print(f"[shop] refresh_all_shop_embeds nach /shop-add fehlgeschlagen: {_e}")
+                pass
 
     @discord.ui.button(label="\u274C Abbrechen", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
