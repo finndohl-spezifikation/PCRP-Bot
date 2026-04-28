@@ -8,6 +8,18 @@ from config import *
 from helpers import is_mod_or_admin, log_bot_error
 
 
+# Rollen die Tickets schließen / zuweisen dürfen
+TICKET_MANAGE_ROLE_IDS: set[int] = {
+    1490855703370534965,  # Highteam
+    1490855702225485936,  # Admin
+}
+
+
+def _hat_ticket_berechtigung(member: discord.Member) -> bool:
+    """True wenn das Mitglied mindestens eine der erlaubten Rollen hat."""
+    return any(r.id in TICKET_MANAGE_ROLE_IDS for r in member.roles)
+
+
 TICKET_TYPE_NAMES = {
     "support":    "Support",
     "highteam":   "Highteam Ticket",
@@ -246,6 +258,13 @@ class TicketActionView(discord.ui.View):
             )
             return
 
+        if not _hat_ticket_berechtigung(interaction.user):
+            await interaction.response.send_message(
+                "❌ Du hast keine Berechtigung, dieses Ticket zu schließen.",
+                ephemeral=True
+            )
+            return
+
         await interaction.response.defer(ephemeral=True)
 
         ticket_data[channel.id]["handler"]    = str(interaction.user)
@@ -347,6 +366,12 @@ class TicketActionView(discord.ui.View):
         custom_id="ticket_assign_btn"
     )
     async def assign_person(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not _hat_ticket_berechtigung(interaction.user):
+            await interaction.response.send_message(
+                "\u274c Du hast keine Berechtigung, Personen zuzuweisen.",
+                ephemeral=True
+            )
+            return
         assign_view = AssignView()
         await interaction.response.send_message(
             "W\xe4hle eine Person aus die dem Ticket zugewiesen werden soll:",
@@ -555,7 +580,7 @@ async def cmd_setup_ticket(interaction: discord.Interaction):
         return
 
     await interaction.followup.send(
-        f"\u2705 Ticket-Embed in {posted} Kanal{'\xe4' if posted != 1 else 'a'}len neu gepostet.",
+        f"\u2705 Ticket-Embed in {posted} Kan\xe4len neu gepostet.",
         ephemeral=True
     )
 
@@ -671,3 +696,4 @@ async def auto_lohnliste_setup():
             print(f"Lohnliste automatisch gepostet in #{channel.name}")
         except Exception as e:
             await log_bot_error("auto_lohnliste_setup fehlgeschlagen", str(e), guild)
+
