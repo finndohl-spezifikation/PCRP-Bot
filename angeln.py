@@ -67,12 +67,12 @@ ANGELN_LOOT = [
     ("Krebs",             37,  1, 4,  1200, False, None),
     ("Seegurke",          39,  1, 4,  1200, False, None),
     # M\u00fcll
-    ("Stiefel",           14,  1, 3,   900, False, None),
+    ("Stiefel",           14,  1, 3,     0, False, None),
     ("Benutztes Kondom",  12,  1, 1,     0, False, None),
-    ("Seetang",           24,  1, 5,   700, False, None),
+    ("Seetang",           24,  1, 5,     0, False, None),
     ("Sack M\u00fcll",    12,  1, 2,     0, False, None),
     # Sonstiges
-    ("Schmuckk\u00e4stchen",                        11, 1, 1, 4800, False, None),
+    ("Schmuckk\u00e4stchen",                        11, 1, 1,    0, False, None),
     ("Flasche mit dem Lohn Check von der Laura",    12, 1, 1,    0, True,  "hat_laura_check"),
     ("Antiker Kavallerie-Dolch",                    18, 1, 1,    0, False, None),
 ]
@@ -451,6 +451,12 @@ async def angeln_bild_listener(message: discord.Message):
                 lines.append(f"\u27A4 {t}")
             fang_text = "\n".join(lines)
 
+        # Schmuckkästchen-Button falls geangelt
+        hat_schmukkastchen = any(
+            "Schmuckk" in item_name and "stchen" in item_name
+            for (item_name, _, _) in items_inv
+        )
+
         embed_dm = discord.Embed(
             title="\U0001F3A3 Fang abgeschlossen!",
             description=f"**Dein Fang vom Pier:**\n\n{fang_text}",
@@ -464,7 +470,10 @@ async def angeln_bild_listener(message: discord.Message):
             f"{user.mention} hat geangelt \u2014 Fang: {item_namen}")
 
         try:
-            await user.send(embed=embed_dm)
+            if hat_schmukkastchen:
+                await user.send(embed=embed_dm, view=SchmuckkastchenView(user.id))
+            else:
+                await user.send(embed=embed_dm)
         except Exception:
             pass
 
@@ -472,6 +481,68 @@ async def angeln_bild_listener(message: discord.Message):
 
 
 # \u2500\u2500 Views \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+
+
+# ─── Schmuckkästchen-View ────────────────────────────────────────────────────
+
+class SchmuckkastchenView(discord.ui.View):
+    """Erscheint in der DM wenn der Spieler ein Schmuckkästchen geangelt hat."""
+
+    def __init__(self, user_id: int):
+        super().__init__(timeout=86400)   # 24 Stunden
+        self.user_id = user_id
+        self.opened  = False
+
+    @discord.ui.button(
+        label="Schmuckk\u00e4stchen \u00d6ffnen",
+        style=discord.ButtonStyle.primary,
+        emoji="\U0001F4DC",
+    )
+    async def oeffnen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "\u274C Das ist nicht dein Schmuckk\u00e4stchen.", ephemeral=True
+            )
+            return
+        if self.opened:
+            await interaction.response.send_message(
+                "\u274C Du hast das Schmuckk\u00e4stchen bereits ge\u00f6ffnet.", ephemeral=True
+            )
+            return
+
+        self.opened     = True
+        button.disabled = True
+        button.label    = "Ge\u00f6ffnet"
+
+        import random
+        if random.random() < 0.60:
+            # 60 % — 3x Diamant
+            diamant_name = _shop_name_angeln("Diamant") or "Diamant"
+            _add_items_angeln(self.user_id, diamant_name, 3)
+            emb = discord.Embed(
+                title="\U0001F48E Schmuckk\u00e4stchen ge\u00f6ffnet!",
+                description=(
+                    "Du hast das Schmuckk\u00e4stchen ge\u00f6ffnet und gefunden:\n\n"
+                    f"\u27A4 **{diamant_name}** \u00D73 \u2192 direkt in dein Inventar"
+                ),
+                color=0x9B59B6,
+                timestamp=datetime.now(timezone.utc),
+            )
+        else:
+            # 40 % — Seltenes Artefakt
+            emb = discord.Embed(
+                title="\u2728 Schmuckk\u00e4stchen ge\u00f6ffnet!",
+                description=(
+                    "Du hast das Schmuckk\u00e4stchen ge\u00f6ffnet und gefunden:\n\n"
+                    "\u27A4 **Artefakt**\n"
+                    "*(Seltenes Artefakt)*"
+                ),
+                color=0xF1C40F,
+                timestamp=datetime.now(timezone.utc),
+            )
+        emb.set_footer(text="Paradise City Roleplay \u2022 Angel-System")
+        await interaction.response.edit_message(embed=emb, view=self)
 
 class FischVerkaufenView(discord.ui.View):
     """Ephemeraler Bestaetigungs-View nach Klick auf 'Fische verkaufen'."""
