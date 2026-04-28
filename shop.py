@@ -1123,9 +1123,6 @@ class ShopAddConfirmView(TimedDisableView):
 
     @discord.ui.button(label="\u2705 Best\u00E4tigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # Defer damit Discord nicht timeoutet (auto_shop_setup braucht >3s)
-        await interaction.response.defer()
-
         # Je nach Shop-Typ in die richtige JSON-Datei schreiben
         if self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
             items = load_shop()
@@ -1137,7 +1134,6 @@ class ShopAddConfirmView(TimedDisableView):
             shop_label = SHOPS[self.shop_key]["label"]
         elif self.shop_key == "team":
             items = load_team_shop()
-            # Team-Shop speichert nur Name
             items.append({"name": self.name})
             save_team_shop(items)
             shop_label = "\U0001F4E6 Team-Shop"
@@ -1147,36 +1143,49 @@ class ShopAddConfirmView(TimedDisableView):
             save_angler_shop(items)
             shop_label = "\U0001F3A3 Angler-Shop"
         else:
-            await interaction.edit_original_response(
-                embed=discord.Embed(
-                    title="\u274C Unbekannter Shop",
-                    description=f"Shop-Key `{self.shop_key}` ist ungueltig.",
-                    color=MOD_COLOR
-                ),
-                view=None
-            )
+            try:
+                await interaction.response.send_message(
+                    f"\u274C Unbekannter Shop: `{self.shop_key}`", ephemeral=True
+                )
+            except Exception:
+                pass
             return
 
-        # Shop-Embeds in Discord sofort aktualisieren (inkl. Angler-Shop)
-        await refresh_all_shop_embeds()
+        # Alle Buttons deaktivieren
         for child in self.children:
             child.disabled = True
+
+        # Rolle-Info + Preis-Info
         rolle_info = ""
         if self.allowed_role_id and self.shop_key in {"kwik", "baumarkt", "schwarzmarkt"}:
             r = interaction.guild.get_role(self.allowed_role_id)
             rolle_info = f"\n**Nur f\u00FCr:** {r.mention if r else self.allowed_role_id}"
         price_info = f"**{self.price:,} \U0001F4B5**" if self.shop_key != "team" else "(Team-Shop)"
-        await interaction.edit_original_response(
-            embed=discord.Embed(
-                title="\u2705 Item hinzugef\u00FCgt",
-                description=(
-                    f"**{self.name}** f\u00FCr {price_info} wurde zum "
-                    f"**{shop_label}** hinzugef\u00FCgt.{rolle_info}"
-                ),
-                color=LOG_COLOR
+
+        # SOFORT auf den Button antworten (<3s) \u2014 verhindert 'Interaktion fehlgeschlagen'
+        confirmation_embed = discord.Embed(
+            title="\u2705 Item hinzugef\u00FCgt",
+            description=(
+                f"**{self.name}** f\u00FCr {price_info} wurde zum "
+                f"**{shop_label}** hinzugef\u00FCgt.{rolle_info}\n\n"
+                "\u23F3 Shop-Embeds werden im Hintergrund aktualisiert\u2026"
             ),
-            view=self
+            color=LOG_COLOR
         )
+        try:
+            await interaction.response.edit_message(embed=confirmation_embed, view=self)
+        except Exception as _e:
+            # Fallback falls edit_message fehlschl\u00E4gt
+            try:
+                await interaction.response.send_message(embed=confirmation_embed, ephemeral=True)
+            except Exception:
+                print(f"[shop] Confirm-Antwort fehlgeschlagen: {_e}")
+
+        # Jetzt im Hintergrund Shop-Embeds aktualisieren (kann 2-5s dauern)
+        try:
+            await refresh_all_shop_embeds()
+        except Exception as _e:
+            print(f"[shop] refresh_all_shop_embeds nach /shop-add fehlgeschlagen: {_e}")
 
     @discord.ui.button(label="\u274C Abbrechen", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
