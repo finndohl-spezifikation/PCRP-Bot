@@ -697,9 +697,27 @@ class AnglershopView(discord.ui.View):
         custom_id="angler_shop:open",
     )
     async def open_btn(self, interaction: discord.Interaction, _btn):
-        emb  = _build_angler_items_embed(interaction.user)
-        view = AnglershopPageView(interaction.user)
-        await interaction.response.send_message(embed=emb, view=view, ephemeral=True)
+        # Defer sofort \u2014 verhindert "Interaktion fehlgeschlagen", auch wenn
+        # der Embed-/View-Aufbau l\u00E4nger dauert oder eine Exception wirft.
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+        except Exception as _e:
+            print(f"[angler_shop] defer fehlgeschlagen: {_e}")
+
+        try:
+            emb  = _build_angler_items_embed(interaction.user)
+            view = AnglershopPageView(interaction.user)
+            await interaction.followup.send(embed=emb, view=view, ephemeral=True)
+        except Exception as _e:
+            import traceback
+            traceback.print_exc()
+            try:
+                await interaction.followup.send(
+                    f"\u274C Angler-Shop konnte nicht ge\u00F6ffnet werden: `{_e}`",
+                    ephemeral=True,
+                )
+            except Exception:
+                pass
 
 
 # \u2500\u2500 Info-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -796,20 +814,12 @@ async def auto_angeln_setup():
 # \u2500\u2500 Angler Shop \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 def _build_angler_shop_embed() -> discord.Embed:
-    sep    = "\u2015" * 22
-    items  = _current_angler_items()
-    if items:
-        lines = [
-            f"\u27A4 **{it['name']}**\u3000\u2014\u3000`{it.get('price', 0):,} \U0001F4B5`"
-            for it in items
-        ]
-        item_block = "\n".join(lines)
-    else:
-        item_block = "*Dieser Shop ist aktuell leer.*"
+    # Items werden bewusst NICHT mehr im Channel-Embed angezeigt.
+    # Die Item-Liste erscheint erst, wenn der Spieler den Shop \u00FCber den
+    # Button \u00F6ffnet (ephemerales Embed).
+    sep = "\u2015" * 22
     desc = (
         "\U0001F3A3 **Willkommen im Angler Shop!**\n"
-        f"{sep}\n"
-        f"{item_block}\n"
         f"{sep}\n"
         "\u27A4 Du ben\u00f6tigst eine **Angel** und einen **K\u00f6der** pro Session.\n"
         "\u27A4 Bezahlung nur mit **Bargeld** (\U0001F4B5).\n\n"
