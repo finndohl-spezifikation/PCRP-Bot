@@ -219,8 +219,8 @@ def _remove_koeder(user_id: int) -> bool:
 
 
 def _verkaufe_fische(user_id: int) -> tuple:
-    """Entfernt alle Fische aus dem Inventar, schreibt Schwarzgeld gut.
-    Gibt (anzahl_fische, sg_total, detail_lines) zur\u00fcck."""
+    """Entfernt alle Fische aus dem Inventar, schreibt Betrag auf das Bankkonto.
+    Gibt (anzahl_fische, betrag, detail_lines) zur\u00fcck."""
     from collections import Counter
     eco = load_economy()
     ud  = get_user(eco, user_id)
@@ -242,8 +242,8 @@ def _verkaufe_fische(user_id: int) -> tuple:
     if not gefangen:
         return 0, 0, []
 
-    counts   = Counter(gefangen)
-    sg_total = sum(ANGELN_WERT.get(n, 0) * c for n, c in counts.items())
+    counts = Counter(gefangen)
+    betrag = sum(ANGELN_WERT.get(n, 0) * c for n, c in counts.items())
 
     lines = []
     for fname, cnt in sorted(counts.items(), key=lambda x: -ANGELN_WERT.get(x[0], 0)):
@@ -254,10 +254,10 @@ def _verkaufe_fische(user_id: int) -> tuple:
             lines.append(f"\u27a4 **{fname}** \u00d7{cnt}")
 
     ud["inventory"]   = keep
-    ud["schwarzgeld"] = int(ud.get("schwarzgeld", 0)) + sg_total
+    ud["bank"]        = int(ud.get("bank", 0)) + betrag
     eco[str(user_id)] = ud
     save_economy(eco)
-    return len(gefangen), sg_total, lines
+    return len(gefangen), betrag, lines
 
 
 
@@ -281,62 +281,79 @@ async def _log_angeln(guild, title: str, desc: str):
 def _roll_fang(user_id: int, bonus_chance: int = 0) -> tuple[list[tuple[str,int,int]], list[str], int]:
     """
     Gibt zur\u00fcck:
-      items_inventar: [(item_name, anzahl, wert_gesamt), ...]
+      items_inventar: [(item_name, anzahl, wert_gesamt), ...]  \u2014 maximal 1 Eintrag
       text_only:      [beschreibung, ...]
-      schwarzgeld:    Gesamtbetrag
+      betrag:         Gesamtbetrag
     bonus_chance: zus\u00e4tzliche Chance in % pro Item (z.B. durch Hochwertigen K\u00f6der)
+    Pro Angelversuch wird immer nur EIN Item gefangen.
     """
     hat_laura = _hat_laura_check(user_id)
-    items_inventar = []
-    text_only      = []
-    schwarzgeld    = 0
 
+    # Alle Items sammeln, die ihre Chance-Pr\u00fcfung bestehen
+    kandidaten = []
     for (name, chance, mn, mx, wert, nur_text, ukey) in ANGELN_LOOT:
         eff_chance = min(100, chance + bonus_chance)
         if random.randint(1, 100) > eff_chance:
             continue
         if ukey == "hat_laura_check" and hat_laura:
             continue
+        kandidaten.append((name, mn, mx, wert, nur_text, ukey))
 
-        anzahl = random.randint(mn, mx)
+    # Kein Treffer \u2192 nichts gefangen
+    if not kandidaten:
+        return [], [], 0
 
-        if nur_text:
-            if ukey == "hat_laura_check":
-                _set_laura_check(user_id)
-            text_only.append(
-                f"\U0001F37E Du hast eine **Flasche mit dem Lohn Check von der Laura** gefunden!"
-            )
-        else:
-            shop_name = _shop_name_angeln(name)
-            items_inventar.append((shop_name, anzahl, wert * anzahl))
-            schwarzgeld += wert * anzahl
+    # Nur EIN zuf\u00e4lliges Item aus den Treffern ausw\u00e4hlen
+    (name, mn, mx, wert, nur_text, ukey) = random.choice(kandidaten)
+    anzahl = random.randint(mn, mx)
 
-    return items_inventar, text_only, schwarzgeld
+    if nur_text:
+        if ukey == "hat_laura_check":
+            _set_laura_check(user_id)
+        return [], [f"\U0001F37E Du hast eine **Flasche mit dem Lohn Check von der Laura** gefunden!"], 0
+    else:
+        shop_name = _shop_name_angeln(name)
+        return [(shop_name, anzahl, wert * anzahl)], [], wert * anzahl
 
 
 # \u2500\u2500 on_message: Foto startet Angeln \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-_ANGELN_PROCESSED_IDS: set[int] = set()  # Idempotenz-Schutz gegen doppelte Listener
+import time as _time  # f\u00FCr Zeitstempel im Duplikatschutz
 
 
-@bot.listen("on_message")
+def _angeln_msg_bereits_verarbeitet(msg_id: int) -> bool:
+    """Pr\u00FCft ob die Nachrichten-ID schon verarbeitet wurde.
+    Speichert den Zustand in der Economy-JSON, damit auch mehrere
+    Bot-Prozesse (z.B. lokal + Railway) keine Doppelnachrichten senden."""
+    try:
+        eco  = load_economy()
+        seen = eco.get("_angeln_seen_msgs", {})
+        now  = _time.time()
+        # Eintr\u00E4ge \u00E4lter als 2 Minuten bereinigen
+        seen = {k: v for k, v in seen.items() if now - v < 120}
+        if str(msg_id) in seen:
+            eco["_angeln_seen_msgs"] = seen
+            save_economy(eco)
+            return True
+        seen[str(msg_id)] = now
+        eco["_angeln_seen_msgs"] = seen
+        save_economy(eco)
+        return False
+    except Exception:
+        return False
+
+
 async def angeln_bild_listener(message: discord.Message):
     if message.author.bot:
         return
     if message.channel.id != ANGELN_BILD_CHANNEL_ID:
         return
 
-    # Idempotenz: jede Nachricht garantiert nur EINMAL verarbeiten,
-    # auch wenn der Listener aus Versehen mehrfach registriert ist
-    # (z.\u202FB. weil angeln.py an zwei Stellen importiert wird).
-    if message.id in _ANGELN_PROCESSED_IDS:
+    # Duplikatschutz: Nachricht nur einmal verarbeiten.
+    # Funktioniert auch bei mehreren gleichzeitigen Bot-Prozessen,
+    # da der Zustand in der gemeinsamen Economy-JSON gespeichert wird.
+    if _angeln_msg_bereits_verarbeitet(message.id):
         return
-    _ANGELN_PROCESSED_IDS.add(message.id)
-    # Set begrenzen damit es nicht unendlich w\u00E4chst
-    if len(_ANGELN_PROCESSED_IDS) > 500:
-        # \u00C4lteste H\u00E4lfte rauswerfen
-        for old in list(_ANGELN_PROCESSED_IDS)[:250]:
-            _ANGELN_PROCESSED_IDS.discard(old)
 
     IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
     img_atts = [
@@ -480,6 +497,13 @@ async def angeln_bild_listener(message: discord.Message):
     bot.loop.create_task(_fangen())
 
 
+# Listener nur einmal registrieren — verhindert Doppel-Nachrichten
+# auch wenn angeln.py mehrfach importiert wird.
+if not getattr(bot, "_angeln_listener_registered", False):
+    bot._angeln_listener_registered = True
+    bot.add_listener(angeln_bild_listener, "on_message")
+
+
 # \u2500\u2500 Views \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 
@@ -566,7 +590,7 @@ class FischVerkaufenView(discord.ui.View):
 
         desc = "\n".join(lines)
         if sg_total > 0:
-            desc += f"\n\n\U0001F4B0 Gesamt: **{sg_total:,}\u00a0$ Schwarzgeld**".replace(",", ".")
+            desc += f"\n\n\U0001F4B0 Gesamt: **{sg_total:,}\u00a0$ (Bankkonto)**".replace(",", ".")
         emb = discord.Embed(
             title="\u2705 Fische verkauft!",
             description=desc,
@@ -578,7 +602,7 @@ class FischVerkaufenView(discord.ui.View):
         await _log_angeln(
             interaction.guild,
             "\U0001F4B0 Fische verkauft",
-            f"{interaction.user.mention} hat **{fish_count} Fische** f\u00fcr **{sg_total:,}\u00a0$ SG** verkauft.".replace(",", "."),
+            f"{interaction.user.mention} hat **{fish_count} Fische** f\u00fcr **{sg_total:,}\u00a0$ (Bank)** verkauft.".replace(",", "."),
         )
 
 
@@ -624,7 +648,7 @@ class AnglernInfoView(discord.ui.View):
 
         desc = "\n".join(lines)
         if sg_total > 0:
-            desc += f"\n\n\U0001F4B0 Gesamt: **{sg_total:,}\u00a0$ Schwarzgeld**".replace(",", ".")
+            desc += f"\n\n\U0001F4B0 Gesamt: **{sg_total:,}\u00a0$ (Bankkonto)**".replace(",", ".")
         emb = discord.Embed(
             title="\U0001F41F Fische im Inventar",
             description=desc,
