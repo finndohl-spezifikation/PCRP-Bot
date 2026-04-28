@@ -976,9 +976,27 @@ class ShopChannelButton(discord.ui.Button):
             )
             return
 
-        embed, total_pages = _build_shop_embed(shop_key, interaction.user, page=0)
-        view = ShopPageView(shop_key, interaction.user, page=0, total_pages=total_pages)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        # Defer sofort \u2014 verhindert "Interaktion fehlgeschlagen", auch wenn
+        # der Embed-/View-Aufbau l\u00E4nger als 3 Sekunden dauert oder wirft.
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+        except Exception as _e:
+            print(f"[shop] defer fehlgeschlagen ({shop_key}): {_e}")
+
+        try:
+            embed, total_pages = _build_shop_embed(shop_key, interaction.user, page=0)
+            view = ShopPageView(shop_key, interaction.user, page=0, total_pages=total_pages)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        except Exception as _e:
+            import traceback
+            traceback.print_exc()
+            try:
+                await interaction.followup.send(
+                    f"\u274C Shop konnte nicht ge\u00F6ffnet werden: `{_e}`",
+                    ephemeral=True,
+                )
+            except Exception:
+                pass
 
 
 class ShopKwikChannelView(discord.ui.View):
@@ -1007,28 +1025,13 @@ _CHANNEL_VIEWS = {
 
 
 def _build_channel_embed(shop_key: str) -> discord.Embed:
-    # Items dynamisch aus JSON laden (wie im Angler-Shop)
-    all_items = load_shop()
-    items     = [i for i in all_items if _item_shop(i) == shop_key]
-    sep       = "\u2015" * 22
-
-    if items:
-        lines = []
-        for it in items:
-            role_hint = ""
-            if it.get("allowed_role"):
-                role_hint = " \U0001F512"
-            lines.append(
-                f"\u27A4 **{it['name']}**\u3000\u2014\u3000`{it.get('price', 0):,} \U0001F4B5`{role_hint}"
-            )
-        item_block = "\n".join(lines)
-    else:
-        item_block = "*Dieser Shop ist aktuell leer.*"
+    # Items werden bewusst NICHT mehr im Channel-Embed angezeigt.
+    # Die Item-Liste erscheint erst, wenn der Spieler den Shop \u00FCber den
+    # Button \u00F6ffnet (ephemerales Embed).
+    sep = "\u2015" * 22
 
     description = (
         f"{_SHOP_BANNERS[shop_key]}\n"
-        f"{sep}\n"
-        f"{item_block}\n"
         f"{sep}"
     )
 
