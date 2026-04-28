@@ -1086,6 +1086,11 @@ class ShopAddConfirmView(TimedDisableView):
             entry["allowed_role"] = self.allowed_role_id
         items.append(entry)
         save_shop(items)
+        # Shop-Embeds in Discord sofort aktualisieren
+        try:
+            await auto_shop_setup()
+        except Exception as _e:
+            print(f"[shop] auto_shop_setup nach /shop-add fehlgeschlagen: {_e}")
         for child in self.children:
             child.disabled = True
         rolle_info = ""
@@ -1181,46 +1186,66 @@ async def shop_add(
 @app_commands.describe(
     itemname="Name des Items das bearbeitet werden soll",
     neuer_preis="Neuer Preis in $ (leer lassen um nicht zu \u00E4ndern)",
-    neuer_name="Neuer Name des Items (leer lassen um nicht zu \u00E4ndern)"
+    neuer_name="Neuer Name des Items (leer lassen um nicht zu \u00E4ndern)",
+    neuer_shop="In welchen Shop verschieben? (leer lassen um nicht zu \u00E4ndern)"
+)
+@app_commands.choices(
+    neuer_shop=[
+        app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",  value="kwik"),
+        app_commands.Choice(name="\U0001F528 Baumarkt",      value="baumarkt"),
+        app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt", value="schwarzmarkt"),
+    ]
 )
 @app_commands.autocomplete(itemname=all_shops_item_autocomplete)
 async def shop_edit(
     interaction: discord.Interaction,
     itemname: str,
     neuer_preis: int = None,
-    neuer_name: str = None
+    neuer_name: str = None,
+    neuer_shop: app_commands.Choice[str] = None
 ):
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
-    if neuer_preis is None and neuer_name is None:
+    if neuer_preis is None and neuer_name is None and neuer_shop is None:
         await interaction.response.send_message(
-            "\u274C Bitte gib einen neuen Preis oder einen neuen Namen an.", ephemeral=True
+            "\u274C Bitte gib einen neuen Preis, Namen oder Shop an.", ephemeral=True
         )
         return
 
     items      = load_shop()
     shop_item  = find_shop_item(items, itemname)
     _save_fn   = save_shop
+    in_main_shop = True
 
     if not shop_item:
         team_items = load_team_shop()
         shop_item  = find_shop_item(team_items, itemname)
         if shop_item:
-            items    = team_items
-            _save_fn = save_team_shop
+            items        = team_items
+            _save_fn     = save_team_shop
+            in_main_shop = False
 
     if not shop_item:
         angler_items = load_angler_shop()
         shop_item    = find_shop_item(angler_items, itemname)
         if shop_item:
-            items    = angler_items
-            _save_fn = save_angler_shop
+            items        = angler_items
+            _save_fn     = save_angler_shop
+            in_main_shop = False
 
     if not shop_item:
         await interaction.response.send_message(
             f"\u274C Item **{itemname}** wurde nicht gefunden.", ephemeral=True
+        )
+        return
+
+    # Shop-Wechsel pr\u00FCfen
+    if neuer_shop is not None and not in_main_shop:
+        await interaction.response.send_message(
+            "\u274C Shop-Wechsel ist nur f\u00FCr Items aus Kwik/Baumarkt/Schwarzmarkt m\u00F6glich.",
+            ephemeral=True
         )
         return
 
@@ -1245,7 +1270,20 @@ async def shop_edit(
         save_economy(eco)
         changes.append(f"**Name:** {old_name} \u2192 {neuer_name}")
 
+    if neuer_shop is not None:
+        old_shop_key         = shop_item.get("shop", "kwik")
+        shop_item["shop"]    = neuer_shop.value
+        old_label            = SHOPS.get(old_shop_key, {}).get("label", old_shop_key)
+        new_label            = SHOPS.get(neuer_shop.value, {}).get("label", neuer_shop.value)
+        changes.append(f"**Shop:** {old_label} \u2192 {new_label}")
+
     _save_fn(items)
+
+    # Discord-Shop-Embeds sofort aktualisieren
+    try:
+        await auto_shop_setup()
+    except Exception as _e:
+        print(f"[shop] auto_shop_setup nach /shop-edit fehlgeschlagen: {_e}")
 
     embed = discord.Embed(
         title="\u270F\uFE0F Item bearbeitet",
@@ -1303,6 +1341,12 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
 
     items.remove(shop_item)
     _save_fn(items)
+
+    # Discord-Shop-Embeds sofort aktualisieren
+    try:
+        await auto_shop_setup()
+    except Exception as _e:
+        print(f"[shop] auto_shop_setup nach /delete-item fehlgeschlagen: {_e}")
 
     item_name       = shop_item["name"]
     eco             = load_economy()
