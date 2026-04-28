@@ -1066,6 +1066,23 @@ async def auto_shop_setup():
                 print(f"[shop] \u274C Fehler beim Posten ({shop_key}): {e}")
 
 
+async def refresh_all_shop_embeds():
+    """Aktualisiert ALLE Shop-Embeds (Kwik/Baumarkt/Schwarzmarkt + Angler)
+    nach einer Item-\u00C4nderung. Wird nach /shop-add, /shop-edit, /delete-item
+    aufgerufen damit \u00C4nderungen sofort in Discord sichtbar sind."""
+    try:
+        await auto_shop_setup()
+    except Exception as _e:
+        print(f"[shop] auto_shop_setup fehlgeschlagen: {_e}")
+    # Angler-Shop separat refreshen (eigener Channel + eigene Logik)
+    try:
+        from angeln import _angler_shop_setup
+        result = await _angler_shop_setup()
+        print(f"[shop] Angler-Shop Embed: {result}")
+    except Exception as _e:
+        print(f"[shop] _angler_shop_setup fehlgeschlagen: {_e}")
+
+
 
 
 # \u2500\u2500 /shop-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1088,11 +1105,8 @@ class ShopAddConfirmView(TimedDisableView):
             entry["allowed_role"] = self.allowed_role_id
         items.append(entry)
         save_shop(items)
-        # Shop-Embeds in Discord sofort aktualisieren
-        try:
-            await auto_shop_setup()
-        except Exception as _e:
-            print(f"[shop] auto_shop_setup nach /shop-add fehlgeschlagen: {_e}")
+        # Shop-Embeds in Discord sofort aktualisieren (inkl. Angler-Shop)
+        await refresh_all_shop_embeds()
         for child in self.children:
             child.disabled = True
         rolle_info = ""
@@ -1330,11 +1344,8 @@ async def shop_edit(
         # Kein Shop-Wechsel \u2014 nur Source-File speichern (Preis/Name-\u00C4nderungen)
         source_save(source_items)
 
-    # \u2500\u2500 Discord-Shop-Embeds sofort aktualisieren \u2500\u2500
-    try:
-        await auto_shop_setup()
-    except Exception as _e:
-        print(f"[shop] auto_shop_setup nach /shop-edit fehlgeschlagen: {_e}")
+    # \u2500\u2500 Discord-Shop-Embeds sofort aktualisieren (inkl. Angler-Shop) \u2500\u2500
+    await refresh_all_shop_embeds()
 
     embed = discord.Embed(
         title="\u270F\uFE0F Item bearbeitet",
@@ -1396,11 +1407,8 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
     items.remove(shop_item)
     _save_fn(items)
 
-    # Discord-Shop-Embeds sofort aktualisieren
-    try:
-        await auto_shop_setup()
-    except Exception as _e:
-        print(f"[shop] auto_shop_setup nach /delete-item fehlgeschlagen: {_e}")
+    # Discord-Shop-Embeds sofort aktualisieren (inkl. Angler-Shop)
+    await refresh_all_shop_embeds()
 
     item_name       = shop_item["name"]
     eco             = load_economy()
