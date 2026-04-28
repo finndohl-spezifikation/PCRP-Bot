@@ -1187,13 +1187,15 @@ async def shop_add(
     itemname="Name des Items das bearbeitet werden soll",
     neuer_preis="Neuer Preis in $ (leer lassen um nicht zu \u00E4ndern)",
     neuer_name="Neuer Name des Items (leer lassen um nicht zu \u00E4ndern)",
-    neuer_shop="In welchen Shop verschieben? (leer lassen um nicht zu \u00E4ndern)"
+    shop="In welchem Shop soll das Item sein? (leer lassen um nicht zu \u00E4ndern)"
 )
 @app_commands.choices(
-    neuer_shop=[
-        app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",  value="kwik"),
-        app_commands.Choice(name="\U0001F528 Baumarkt",      value="baumarkt"),
+    shop=[
+        app_commands.Choice(name="\U0001F3EA Kwik-E-Markt",      value="kwik"),
+        app_commands.Choice(name="\U0001F528 Baumarkt",          value="baumarkt"),
         app_commands.Choice(name="\U0001F575\uFE0F Schwarzmarkt", value="schwarzmarkt"),
+        app_commands.Choice(name="\U0001F4E6 Team-Shop",         value="team"),
+        app_commands.Choice(name="\U0001F3A3 Angler-Shop",       value="angler"),
     ]
 )
 @app_commands.autocomplete(itemname=all_shops_item_autocomplete)
@@ -1202,38 +1204,42 @@ async def shop_edit(
     itemname: str,
     neuer_preis: int = None,
     neuer_name: str = None,
-    neuer_shop: app_commands.Choice[str] = None
+    shop: app_commands.Choice[str] = None
 ):
     if not _is_shop_admin(interaction.user):
         await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
         return
 
-    if neuer_preis is None and neuer_name is None and neuer_shop is None:
+    if neuer_preis is None and neuer_name is None and shop is None:
         await interaction.response.send_message(
             "\u274C Bitte gib einen neuen Preis, Namen oder Shop an.", ephemeral=True
         )
         return
 
-    items      = load_shop()
-    shop_item  = find_shop_item(items, itemname)
-    _save_fn   = save_shop
-    in_main_shop = True
+    # \u2500\u2500 Item in allen Shops finden \u2500\u2500
+    MAIN_KEYS = {"kwik", "baumarkt", "schwarzmarkt"}
+
+    items       = load_shop()
+    shop_item   = find_shop_item(items, itemname)
+    source_type = "main" if shop_item else None
+    source_items = items if shop_item else None
+    source_save  = save_shop if shop_item else None
 
     if not shop_item:
         team_items = load_team_shop()
         shop_item  = find_shop_item(team_items, itemname)
         if shop_item:
-            items        = team_items
-            _save_fn     = save_team_shop
-            in_main_shop = False
+            source_type  = "team"
+            source_items = team_items
+            source_save  = save_team_shop
 
     if not shop_item:
         angler_items = load_angler_shop()
         shop_item    = find_shop_item(angler_items, itemname)
         if shop_item:
-            items        = angler_items
-            _save_fn     = save_angler_shop
-            in_main_shop = False
+            source_type  = "angler"
+            source_items = angler_items
+            source_save  = save_angler_shop
 
     if not shop_item:
         await interaction.response.send_message(
@@ -1241,23 +1247,26 @@ async def shop_edit(
         )
         return
 
-    # Shop-Wechsel pr\u00FCfen
-    if neuer_shop is not None and not in_main_shop:
-        await interaction.response.send_message(
-            "\u274C Shop-Wechsel ist nur f\u00FCr Items aus Kwik/Baumarkt/Schwarzmarkt m\u00F6glich.",
-            ephemeral=True
-        )
-        return
+    # Aktueller Shop-Schl\u00FCssel (f\u00FCr Vergleich)
+    if source_type == "main":
+        current_shop_key = shop_item.get("shop", "kwik")
+    elif source_type == "team":
+        current_shop_key = "team"
+    else:
+        current_shop_key = "angler"
 
     changes = []
+
+    # \u2500\u2500 Preis \u00E4ndern \u2500\u2500
     if neuer_preis is not None:
         if neuer_preis <= 0:
             await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
             return
-        old_price          = shop_item["price"]
+        old_price          = shop_item.get("price", 0)
         shop_item["price"] = neuer_preis
         changes.append(f"**Preis:** {old_price:,} \U0001F4B5 \u2192 {neuer_preis:,} \U0001F4B5")
 
+    # \u2500\u2500 Name \u00E4ndern (inkl. Inventar-Rename) \u2500\u2500
     if neuer_name:
         old_name          = shop_item["name"]
         shop_item["name"] = neuer_name
@@ -1270,16 +1279,53 @@ async def shop_edit(
         save_economy(eco)
         changes.append(f"**Name:** {old_name} \u2192 {neuer_name}")
 
-    if neuer_shop is not None:
-        old_shop_key         = shop_item.get("shop", "kwik")
-        shop_item["shop"]    = neuer_shop.value
-        old_label            = SHOPS.get(old_shop_key, {}).get("label", old_shop_key)
-        new_label            = SHOPS.get(neuer_shop.value, {}).get("label", neuer_shop.value)
+    # \u2500\u2500 Shop-Wechsel (unterst\u00FCtzt Cross-Shop-Moves) \u2500\u2500
+    shop_label_map = {
+        "kwik":         "\U0001F3EA Kwik-E-Markt",
+        "baumarkt":     "\U0001F528 Baumarkt",
+        "schwarzmarkt": "\U0001F575\uFE0F Schwarzmarkt",
+        "team":         "\U0001F4E6 Team-Shop",
+        "angler":       "\U0001F3A3 Angler-Shop",
+    }
+
+    if shop is not None and shop.value != current_shop_key:
+        target_key = shop.value
+        old_label  = shop_label_map.get(current_shop_key, current_shop_key)
+        new_label  = shop_label_map.get(target_key, target_key)
+
+        # Aus Quell-Shop entfernen
+        source_items.remove(shop_item)
+        source_save(source_items)
+
+        # In Ziel-Shop einf\u00FCgen
+        if target_key in MAIN_KEYS:
+            shop_item["shop"] = target_key
+            target_items = load_shop() if source_type != "main" else source_items
+            # Wenn source_type == "main", wurde schon aus der Liste entfernt, gleiche Liste nutzen
+            if source_type != "main":
+                target_items.append(shop_item)
+                save_shop(target_items)
+            else:
+                source_items.append(shop_item)
+                save_shop(source_items)
+        elif target_key == "team":
+            # Team-Shop-Format: nur name (ohne price/shop)
+            team_entry = {"name": shop_item["name"]}
+            target_items = load_team_shop()
+            target_items.append(team_entry)
+            save_team_shop(target_items)
+        elif target_key == "angler":
+            angler_entry = {"name": shop_item["name"], "price": shop_item.get("price", 0)}
+            target_items = load_angler_shop()
+            target_items.append(angler_entry)
+            save_angler_shop(target_items)
+
         changes.append(f"**Shop:** {old_label} \u2192 {new_label}")
+    else:
+        # Kein Shop-Wechsel \u2014 nur Source-File speichern (Preis/Name-\u00C4nderungen)
+        source_save(source_items)
 
-    _save_fn(items)
-
-    # Discord-Shop-Embeds sofort aktualisieren
+    # \u2500\u2500 Discord-Shop-Embeds sofort aktualisieren \u2500\u2500
     try:
         await auto_shop_setup()
     except Exception as _e:
