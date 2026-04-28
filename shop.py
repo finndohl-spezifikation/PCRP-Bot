@@ -1597,7 +1597,16 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
     if shop_label is None:
         shop_label = SHOPS.get(_item_shop(shop_item), SHOPS["kwik"])["label"]
 
-    items.remove(shop_item)
+    # WICHTIG: Alle Vorkommen mit gleichem Namen entfernen, nicht nur eines.
+    # Sonst \u00FCberleben Dubletten (mehrfaches /shop-add) den L\u00F6schvorgang
+    # und der User denkt "L\u00F6schen funktioniert nicht".
+    target_norm = normalize_item_name(shop_item["name"])
+    before_len  = len(items)
+    items[:] = [
+        it for it in items
+        if normalize_item_name(it.get("name", "")) != target_norm
+    ]
+    removed_dupes = before_len - len(items)
     _save_fn(items)
 
     # Discord-Shop-Embeds sofort aktualisieren (inkl. Angler-Shop)
