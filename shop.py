@@ -1109,6 +1109,64 @@ async def refresh_all_shop_embeds():
         print(f"[shop] _angler_shop_setup fehlgeschlagen: {_e}")
 
 
+@bot.tree.command(
+    name="shop-refresh",
+    description="[Shop] Erzwingt einen Refresh ALLER Shop-Embeds (Admin / Debug)",
+    guild=discord.Object(id=GUILD_ID)
+)
+async def shop_refresh(interaction: discord.Interaction):
+    """Diagnose-Command: refresht alle Shop-Embeds und zeigt Status pro Shop."""
+    if not _is_shop_admin(interaction.user):
+        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    results = []
+
+    # Main-Shops (Kwik/Baumarkt/Schwarzmarkt)
+    try:
+        await auto_shop_setup()
+        all_items = load_shop()
+        for shop_key in SHOPS.keys():
+            n = len([i for i in all_items if _item_shop(i) == shop_key])
+            results.append(f"\u2705 **{SHOPS[shop_key]['label']}**: {n} Items")
+    except Exception as e:
+        results.append(f"\u274C Main-Shops Refresh: `{e}`")
+        import traceback
+        traceback.print_exc()
+
+    # Team-Shop (hat keinen Channel-Embed aber wir zeigen die Anzahl)
+    try:
+        team_items = load_team_shop()
+        results.append(f"\U0001F4E6 **Team-Shop**: {len(team_items)} Items (kein Channel-Embed)")
+    except Exception as e:
+        results.append(f"\u274C Team-Shop laden: `{e}`")
+
+    # Angler-Shop
+    try:
+        from angeln import _angler_shop_setup, ANGLER_SHOP_CHANNEL_ID
+        angler_items = load_angler_shop()
+        result = await _angler_shop_setup()
+        results.append(
+            f"\U0001F3A3 **Angler-Shop**: {len(angler_items)} Items\n"
+            f"   Channel-ID: `{ANGLER_SHOP_CHANNEL_ID}`\n"
+            f"   Setup-Ergebnis: {result}"
+        )
+    except Exception as e:
+        results.append(f"\u274C Angler-Shop Refresh: `{e}`")
+        import traceback
+        traceback.print_exc()
+
+    embed = discord.Embed(
+        title="\U0001F504 Shop-Refresh Status",
+        description="\n\n".join(results),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
 
 
 # \u2500\u2500 /shop-add \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
@@ -1482,7 +1540,7 @@ async def shop_edit(
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-# \u2500\u2500 /delete-item \u2500\u2500\u2500\u2500\u2500\u2500\u25u250000\u2500\u2500\u2500\\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# \u2500\u2500 /delete-item \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 @bot.tree.command(
     name="delete-item",
