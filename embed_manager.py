@@ -42,6 +42,7 @@ async def setup_all_embeds():
     _try_import("weed",          "weed",             "auto_weed_setup")
     _try_import("angeln",        "angeln",           "auto_angeln_setup")
     _try_import("angler_shop",   "angeln",           "auto_angler_shop_setup")
+    _try_import("info_embeds",   "info_embeds",      "auto_info_embeds_setup")
 
     for name, fn in _setups:
         try:
