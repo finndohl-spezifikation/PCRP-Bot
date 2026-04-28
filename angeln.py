@@ -594,12 +594,28 @@ ANGLER_SHOP_ITEMS = [
 def _current_angler_items() -> list:
     """Liefert die aktuelle Angler-Shop-Item-Liste live aus der JSON.
     Gibt leere Liste zur\u00FCck wenn keine Items vorhanden \u2014 KEIN Fallback
-    auf hartcodierte Items, damit L\u00F6schungen wirklich greifen."""
+    auf hartcodierte Items, damit L\u00F6schungen wirklich greifen.
+
+    Dedupliziert Items anhand des Namens (case-insensitive, getrimmt),
+    damit Discord-Select-Menus nicht mit "option value already used"
+    crashen, falls die JSON aus Versehen doppelte Eintr\u00E4ge enth\u00E4lt
+    (z.\u202FB. nach mehrfachem /shop-add)."""
     try:
         items = load_angler_shop()
     except Exception:
         items = []
-    return items if items else []
+    if not items:
+        return []
+
+    seen   = set()
+    unique = []
+    for it in items:
+        name = str(it.get("name", "")).strip().lower()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        unique.append(it)
+    return unique
 
 
 def _build_angler_items_embed(member: discord.Member) -> discord.Embed:
