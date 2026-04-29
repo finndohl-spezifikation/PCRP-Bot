@@ -22,31 +22,44 @@ def _save_data(data: dict):
 
 
 def _build_embed() -> discord.Embed:
+    sep = "\u2015" * 22
     embed = discord.Embed(
-        title="\U0001f381 Starterpaket",
+        title="\U0001f381 Starterpaket \u2014 Paradise City Roleplay",
         description=(
-            "Je nach Einreiseart erh\u00e4ltst du folgendes Starterpaket:\n"
-            "Das Fahrzeug findest du am Startpunkt bereit."
+            "Willkommen auf **Paradise City Roleplay**!\n"
+            "Je nach Einreiseart erh\u00e4ltst du beim Start folgendes Paket.\n"
+            "Das Fahrzeug steht bereits am Startpunkt bereit.\n"
+            f"{sep}"
         ),
         color=0xFF6600,
     )
     embed.add_field(
         name="\u2705 Legale Einreise",
-        value="\U0001f4b0 **5.000 $** \u2502 \U0001f697 Declasse Rhapsody",
-        inline=False,
+        value=(
+            "\u27A1 \U0001f4b0 **5.000 $** Startkapital\n"
+            "\u27A1 \U0001f697 **Declasse Rhapsody**"
+        ),
+        inline=True,
     )
     embed.add_field(
         name="\U0001f6ab Illegale Einreise",
-        value="\U0001f4b0 **5.000 $** \u2502 \U0001f697 Karin Kuruma",
-        inline=False,
+        value=(
+            "\u27A1 \U0001f4b0 **5.000 $** Startkapital\n"
+            "\u27A1 \U0001f697 **Karin Kuruma**"
+        ),
+        inline=True,
     )
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
     embed.add_field(
         name="\U0001f465 Gruppeneinreise *(ab 5 Personen)*",
-        value="\U0001f4b0 **10.000 $ pro Person** \u2502 \U0001f697 Enus Huntley S",
+        value=(
+            "\u27A1 \U0001f4b0 **10.000 $ pro Person** Startkapital\n"
+            "\u27A1 \U0001f697 **Enus Huntley S**"
+        ),
         inline=False,
     )
     embed.set_image(url=STARTERPAKET_IMG_URL)
-    embed.set_footer(text="Paradise City Roleplay \u2022 Starterpaket")
+    embed.set_footer(text="Paradise City Roleplay \u2022 Viel Spa\xdf auf dem Server!")
     return embed
 
 
@@ -57,16 +70,37 @@ async def auto_starterpaket_setup():
             continue
 
         data = _load_data()
+        existing_msg = None
 
+        # 1. Gespeicherte Message-ID ausprobieren
         if data.get("message_id"):
             try:
-                msg = await channel.fetch_message(data["message_id"])
-                await msg.edit(embed=_build_embed())
+                existing_msg = await channel.fetch_message(data["message_id"])
+            except Exception:
+                pass
+
+        # 2. Fallback: Channel-Verlauf nach bestehendem Bot-Embed scannen
+        if not existing_msg:
+            try:
+                async for msg in channel.history(limit=50):
+                    if msg.author.id == bot.user.id and msg.embeds:
+                        if msg.embeds[0].title and "Starterpaket" in msg.embeds[0].title:
+                            existing_msg = msg
+                            data["message_id"] = msg.id
+                            _save_data(data)
+                            break
+            except Exception:
+                pass
+
+        if existing_msg:
+            try:
+                await existing_msg.edit(embed=_build_embed())
                 print(f"[starterpaket] Embed aktualisiert in #{channel.name}")
                 return
             except Exception:
                 pass
 
+        # 3. Wirklich neu senden
         try:
             new_msg = await channel.send(embed=_build_embed())
             data["message_id"] = new_msg.id
@@ -74,3 +108,4 @@ async def auto_starterpaket_setup():
             print(f"[starterpaket] Embed gepostet in #{channel.name}")
         except Exception as e:
             print(f"[starterpaket] Fehler: {e}")
+
