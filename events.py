@@ -25,6 +25,7 @@ from dienst       import DienstUnifiedView
 from team_overview import TeamOverviewView
 from lotto        import LottoView, lotto_draw_loop
 from embed_manager import setup_all_embeds
+from logs import log_bot_restart
 from rechnungen   import RechnungenPanelView
 from economy_commands import LohnPanelView, KontoPanelView
 
@@ -148,6 +149,20 @@ async def on_ready():
 
     await setup_all_embeds()
     bot.loop.create_task(lotto_draw_loop())
+
+    try:
+        _g = len(bot.guilds)
+        _m = sum(g.member_count or 0 for g in bot.guilds)
+        _t = int(bot_start_time.timestamp())
+        _info = (
+            "🤖 **Bot:** " + str(bot.user) + " (`" + str(bot.user.id) + "`)" + "\n"
+            + "📡 **Server:** " + str(_g) + "\n"
+            + "👥 **Mitglieder:** " + str(_m) + "\n"
+            + f"⏰ **Gestartet um:** <t:{int(bot_start_time.timestamp())}:F>"
+        )
+        await log_bot_restart(_info)
+    except Exception as _rle:
+        print(f"[on_ready] log_bot_restart fehlgeschlagen: {_rle}")
 
 
 @bot.event
