@@ -1083,16 +1083,38 @@ async def auto_shop_setup():
             embed = _build_channel_embed(shop_key)
             view  = _CHANNEL_VIEWS[shop_key]()
             mid   = msg_ids.get(shop_key)
+            existing_msg = None
 
+            # 1. Gespeicherte Message-ID ausprobieren
             if mid:
                 try:
-                    msg = await channel.fetch_message(int(mid))
-                    await msg.edit(embed=embed, view=view)
+                    existing_msg = await channel.fetch_message(int(mid))
+                except Exception:
+                    pass
+
+            # 2. Fallback: Channel-Verlauf nach bestehendem Bot-Embed scannen
+            if not existing_msg:
+                try:
+                    label = SHOPS[shop_key]["label"]
+                    async for msg in channel.history(limit=50):
+                        if msg.author.id == bot.user.id and msg.embeds:
+                            if msg.embeds[0].title and label in msg.embeds[0].title:
+                                existing_msg = msg
+                                msg_ids[shop_key] = msg.id
+                                _save_shop_msg_ids(msg_ids)
+                                break
+                except Exception:
+                    pass
+
+            if existing_msg:
+                try:
+                    await existing_msg.edit(embed=embed, view=view)
                     print(f"[shop] Embed aktualisiert: {shop_key} in #{channel.name}")
                     continue
                 except Exception:
                     pass
 
+            # 3. Wirklich neu senden (erstes Mal oder Nachricht nicht auffindbar)
             try:
                 new_msg = await channel.send(embed=embed, view=view)
                 msg_ids[shop_key] = new_msg.id
@@ -1640,3 +1662,4 @@ async def delete_item(interaction: discord.Interaction, itemname: str):
         timestamp=datetime.now(timezone.utc)
     )
     await interaction.followup.send(embed=embed, ephemeral=True)
+
