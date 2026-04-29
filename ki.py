@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# ki.py — Groq KI-Assistent (direkte HTTP-Anfragen via aiohttp)
+# ki.py — Groq KI-Assistent mit Konversationsmodus
 # Paradise City Roleplay Discord Bot
 
 import aiohttp
@@ -7,8 +7,11 @@ import os
 from datetime import datetime, timezone
 
 GROQ_API_KEY     = os.environ.get("GROQ_API_KEY", "")
-COOLDOWN_SECONDS = 15
+COOLDOWN_SECONDS = 5
 MAX_ANTWORT_LEN  = 1800
+
+# Aktive Konversationen: channel_id -> user_id
+active_sessions: dict[int, int] = {}
 
 # Cooldown-Speicher: user_id -> letzter Aufruf
 cooldowns: dict[int, datetime] = {}
@@ -17,13 +20,12 @@ cooldowns: dict[int, datetime] = {}
 model = True if GROQ_API_KEY else None
 
 _SYSTEM = (
-    "Du bist der KI-Assistent von Paradise City Roleplay (PCRP), "
-    "einem deutschen GTA V Roleplay-Server. "
-    "Antworte immer auf Deutsch, freundlich und praezise (max. 1800 Zeichen). "
-    "Wenn du etwas nicht weisst, sage es ehrlich."
+    "Du bist ein hilfreicher KI-Assistent. "
+    "Beantworte alle Fragen ehrlich, klar und praezise. "
+    "Antworte immer in der Sprache des Nutzers. "
+    "Halte deine Antworten unter 1800 Zeichen."
 )
 
-# Modelle der Reihe nach versuchen
 _MODELLE = [
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
@@ -44,7 +46,6 @@ async def ask(frage: str) -> str:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {GROQ_API_KEY}",
     }
-
     payload = {
         "model": _MODELLE[0],
         "messages": [
@@ -77,3 +78,48 @@ async def ask(frage: str) -> str:
                 letzter_fehler = exc
 
     raise RuntimeError(f"Kein Modell verfuegbar. Letzter Fehler: {letzter_fehler}")
+
+
+def setup(bot):
+    """Registriert den on_message-Listener fuer den Konversationsmodus."""
+
+    @bot.listen("on_message")
+    async def ki_message_handler(message):
+        # Bot-Nachrichten und Slash-Commands ignorieren
+        if message.author.bot:
+            return
+        if message.content.startswith("/"):
+            return
+
+        channel_id = message.channel.id
+        if channel_id not in active_sessions:
+            return
+
+        session_user_id = active_sessions[channel_id]
+
+        # Jemand anderes schreibt rein -> einschreiten
+        if message.author.id != session_user_id:
+            await message.channel.send(
+                f"{message.author.mention} NaNaNa Ich f\u00fchre gerade eine Konversation, "
+                "es ist Unfreundlich uns ins Wort zu fallen du Pisser \U0001f6ab"
+            )
+            return
+
+        # Nachricht des Session-Nutzers -> an KI weiterleiten
+        if not GROQ_API_KEY:
+            await message.channel.send("\u274c KI nicht verf\u00fcgbar (GROQ_API_KEY fehlt).")
+            return
+
+        now  = datetime.now(timezone.utc)
+        last = cooldowns.get(message.author.id)
+        if last and (now - last).total_seconds() < COOLDOWN_SECONDS:
+            return  # Cooldown still running - silently ignore
+
+        cooldowns[message.author.id] = now
+
+        async with message.channel.typing():
+            try:
+                antwort = await ask(message.content)
+                await message.channel.send(antwort)
+            except Exception as exc:
+                await message.channel.send(f"\u274c Fehler: `{exc}`")
