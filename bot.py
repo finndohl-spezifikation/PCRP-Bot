@@ -202,6 +202,10 @@ try:
     import nebenserver
 except Exception as _e:
     print(f"[WARNING] nebenserver konnte nicht geladen werden: {_e}")
+try:
+    import ki                   # KI-Assistent (Google Gemini)
+except Exception as _e:
+    print(f"[WARNING] ki konnte nicht geladen werden: {_e}")
 
 try:
     import server_schutz      # Schutz vor unbefugten Kanal/Rollen-\u00C4nderungen
@@ -229,4 +233,5 @@ except Exception:
     pass
 
 bot.run(TOKEN)
+
 
