@@ -4,4 +4,3 @@ PyNaCl
 edge-tts
 flask
 psutil
-google-generativeai
