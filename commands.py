@@ -430,68 +430,72 @@ async def frak_remove(interaction: discord.Interaction, fraktion: str):
 
 # ─────────────────────────────────────────────────────────────────────────────────
 # /ki — KI-Assistent (Google Gemini)
+# Command wird IMMER registriert — ki lazy geladen beim ersten Aufruf
 # ─────────────────────────────────────────────────────────────────────────────────
-try:
-    import ki as _ki
+@bot.tree.command(
+    name="ki",
+    description="🤖 Stelle dem KI-Assistenten eine Frage",
+    guild=discord.Object(id=GUILD_ID),
+)
+@app_commands.describe(frage="Deine Frage an den KI-Assistenten (max. 500 Zeichen)")
+async def ki_command(interaction: discord.Interaction, frage: str):
+    # ki lazy laden — fehlende Pakete blockieren den Command nicht
+    try:
+        import ki as _ki
+    except Exception as _err:
+        await interaction.response.send_message(
+            f"❌ KI-Modul nicht ladbar: `{_err}`",
+            ephemeral=True,
+        )
+        return
 
-    @bot.tree.command(
-        name="ki",
-        description="🤖 Stelle dem KI-Assistenten eine Frage",
-        guild=discord.Object(id=GUILD_ID),
+    if not _ki.model:
+        await interaction.response.send_message(
+            "❌ Der KI-Assistent ist nicht verfügbar.\n"
+            "*(GEMINI_API_KEY fehlt — bitte einen Admin kontaktieren)*",
+            ephemeral=True,
+        )
+        return
+
+    if len(frage) > 500:
+        await interaction.response.send_message(
+            "❌ Deine Frage ist zu lang. Maximal **500 Zeichen** erlaubt.",
+            ephemeral=True,
+        )
+        return
+
+    now  = datetime.now(timezone.utc)
+    last = _ki.cooldowns.get(interaction.user.id)
+    if last and (now - last).total_seconds() < _ki.COOLDOWN_SECONDS:
+        warte = int(_ki.COOLDOWN_SECONDS - (now - last).total_seconds()) + 1
+        await interaction.response.send_message(
+            f"⏳ Bitte warte noch **{warte} Sekunden** bevor du erneut fragst.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    _ki.cooldowns[interaction.user.id] = now
+
+    try:
+        antwort = await _ki.ask(frage)
+    except Exception as e:
+        await interaction.followup.send(
+            f"❌ Fehler beim Abrufen der KI-Antwort:\n`{e}`",
+            ephemeral=True,
+        )
+        return
+
+    sep = "\u2501" * 26
+    embed = discord.Embed(
+        title="🤖  KI-Assistent",
+        description=sep,
+        color=0x4285F4,
     )
-    @app_commands.describe(frage="Deine Frage an den KI-Assistenten (max. 500 Zeichen)")
-    async def ki_command(interaction: discord.Interaction, frage: str):
-        if not _ki.model:
-            await interaction.response.send_message(
-                "❌ Der KI-Assistent ist aktuell nicht verfügbar.\n"
-                "*(GEMINI_API_KEY fehlt — bitte einen Admin kontaktieren)*",
-                ephemeral=True,
-            )
-            return
-
-        if len(frage) > 500:
-            await interaction.response.send_message(
-                "❌ Deine Frage ist zu lang. Maximal **500 Zeichen** erlaubt.",
-                ephemeral=True,
-            )
-            return
-
-        # Cooldown prüfen
-        now  = datetime.now(timezone.utc)
-        last = _ki.cooldowns.get(interaction.user.id)
-        if last and (now - last).total_seconds() < _ki.COOLDOWN_SECONDS:
-            warte = int(_ki.COOLDOWN_SECONDS - (now - last).total_seconds()) + 1
-            await interaction.response.send_message(
-                f"⏳ Bitte warte noch **{warte} Sekunden** bevor du erneut fragst.",
-                ephemeral=True,
-            )
-            return
-
-        await interaction.response.defer(ephemeral=True)
-        _ki.cooldowns[interaction.user.id] = now
-
-        try:
-            antwort = await _ki.ask(frage)
-        except Exception as e:
-            await interaction.followup.send(
-                f"❌ Fehler beim Abrufen der KI-Antwort:\n`{e}`",
-                ephemeral=True,
-            )
-            return
-
-        sep = "\u2501" * 26
-        embed = discord.Embed(
-            title="🤖  KI-Assistent",
-            description=sep,
-            color=0x4285F4,
-        )
-        embed.add_field(name="❓  Deine Frage", value=f"> {frage}", inline=False)
-        embed.add_field(name="\u200b", value=sep, inline=False)
-        embed.add_field(name="💬  Antwort", value=antwort, inline=False)
-        embed.set_footer(
-            text=f"Powered by Google Gemini  •  {interaction.user.display_name}"
-        )
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-except Exception as _ki_err:
-    print(f"[commands] ⚠️  /ki konnte nicht registriert werden: {_ki_err}")
+    embed.add_field(name="❓  Deine Frage", value=f"> {frage}", inline=False)
+    embed.add_field(name="\u200b", value=sep, inline=False)
+    embed.add_field(name="💬  Antwort", value=antwort, inline=False)
+    embed.set_footer(
+        text=f"Powered by Google Gemini  •  {interaction.user.display_name}"
+    )
+    await interaction.followup.send(embed=embed, ephemeral=True)
