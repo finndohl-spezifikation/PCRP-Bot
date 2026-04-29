@@ -429,7 +429,7 @@ async def frak_remove(interaction: discord.Interaction, fraktion: str):
         )
 
 # ─────────────────────────────────────────────────────────────────────────────────
-# /ki — KI-Assistent (Google Gemini)
+# /ki — KI-Assistent (Groq)
 # Command wird IMMER registriert — ki lazy geladen beim ersten Aufruf
 # ─────────────────────────────────────────────────────────────────────────────────
 @bot.tree.command(
@@ -452,7 +452,7 @@ async def ki_command(interaction: discord.Interaction, frage: str):
     if not _ki.model:
         await interaction.response.send_message(
             "❌ Der KI-Assistent ist nicht verfügbar.\n"
-            "*(GEMINI_API_KEY fehlt — bitte einen Admin kontaktieren)*",
+            "*(GROQ_API_KEY fehlt — bitte einen Admin kontaktieren)*",
             ephemeral=True,
         )
         return
@@ -496,6 +496,7 @@ async def ki_command(interaction: discord.Interaction, frage: str):
     embed.add_field(name="\u200b", value=sep, inline=False)
     embed.add_field(name="💬  Antwort", value=antwort, inline=False)
     embed.set_footer(
-        text=f"Powered by Google Gemini  •  {interaction.user.display_name}"
+        text=f"Powered by Groq AI  •  {interaction.user.display_name}"
     )
     await interaction.followup.send(embed=embed, ephemeral=True)
+
