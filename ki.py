@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-# ki.py — Google Gemini Hilfsfunktionen
+# ki.py — Google Gemini Hilfsfunktionen (direkte HTTP-Anfragen via aiohttp)
 # Paradise City Roleplay Discord Bot
 
-import google.generativeai as genai
+import aiohttp
 import os
-import asyncio
+import json
 from datetime import datetime, timezone
 
 GEMINI_API_KEY   = os.environ.get("GEMINI_API_KEY", "")
@@ -21,65 +21,71 @@ _SYSTEM_PROMPT = (
     "Du produzierst keine beleidigenden, diskriminierenden oder unangemessenen Inhalte."
 )
 
-# Cooldown-Speicher: user_id \u2192 letzter Aufruf
+# Modelle der Reihe nach versuchen
+_MODELLE = [
+    ("v1beta", "gemini-2.0-flash"),
+    ("v1beta", "gemini-2.0-flash-lite"),
+    ("v1beta", "gemini-1.5-flash-latest"),
+    ("v1beta", "gemini-1.5-flash-8b"),
+    ("v1",     "gemini-2.0-flash"),
+    ("v1",     "gemini-1.5-flash"),
+]
+
+# Cooldown-Speicher: user_id -> letzter Aufruf
 cooldowns: dict[int, datetime] = {}
 
+# Damit commands.py model != None pruefen kann
+model = True if GEMINI_API_KEY else None
 
-def _init_model():
-    if not GEMINI_API_KEY:
-        print("[ki] \u26a0\ufe0f  GEMINI_API_KEY nicht gesetzt \u2014 KI-Modul deaktiviert.")
-        return None
-    genai.configure(api_key=GEMINI_API_KEY)
-    # Modelle der Reihe nach versuchen (neueste zuerst)
-    for model_name in ("gemini-2.0-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"):
-        try:
-            m = genai.GenerativeModel(
-                model_name=model_name,
-                system_instruction=_SYSTEM_PROMPT,
-            )
-            print(f"[ki] \u2705 Google Gemini Modell geladen ({model_name}).")
-            return m
-        except Exception as e:
-            print(f"[ki] \u26a0\ufe0f  {model_name} nicht verf\u00fcgbar: {e}")
-    print("[ki] \u274c Kein Gemini-Modell verf\u00fcgbar.")
-    return None
-
-
-model = _init_model()
-
-_MODELLE = (
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro-latest",
-    "gemini-pro",
-)
-
-
-def _get_model(name: str):
-    return genai.GenerativeModel(
-        model_name=name,
-        system_instruction=_SYSTEM_PROMPT,
-    )
+if not GEMINI_API_KEY:
+    print("[ki] \u26a0\ufe0f  GEMINI_API_KEY nicht gesetzt \u2014 KI-Modul deaktiviert.")
+else:
+    print("[ki] \u2705 KI-Modul bereit (direkte HTTP-Anfragen an Gemini API).")
 
 
 async def ask(frage: str) -> str:
-    """Stellt eine Frage an Gemini — probiert automatisch alle verf\u00fcgbaren Modelle."""
+    """Stellt eine Frage an Gemini API und gibt die Antwort als String zur\u00fcck."""
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY fehlt.")
 
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": _SYSTEM_PROMPT}]
+        },
+        "contents": [
+            {"parts": [{"text": frage}]}
+        ],
+        "generationConfig": {
+            "maxOutputTokens": 800,
+            "temperature": 0.7,
+        }
+    }
+
     letzter_fehler = None
-    for model_name in _MODELLE:
-        try:
-            m = _get_model(model_name)
-            response = await asyncio.to_thread(m.generate_content, frage)
-            antwort  = response.text.strip()
-            if len(antwort) > MAX_ANTWORT_LEN:
-                antwort = antwort[:MAX_ANTWORT_LEN] + "\n*\u2026(Antwort gek\u00fcrzt)*"
-            return antwort
-        except Exception as e:
-            print(f"[ki] {model_name} fehlgeschlagen: {e}")
-            letzter_fehler = e
+    async with aiohttp.ClientSession() as session:
+        for api_version, model_name in _MODELLE:
+            url = (
+                f"https://generativelanguage.googleapis.com"
+                f"/{api_version}/models/{model_name}:generateContent"
+                f"?key={GEMINI_API_KEY}"
+            )
+            try:
+                async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+                    data = await resp.json()
+                    if resp.status == 200:
+                        antwort = (
+                            data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                        )
+                        if len(antwort) > MAX_ANTWORT_LEN:
+                            antwort = antwort[:MAX_ANTWORT_LEN] + "\n*\u2026(Antwort gek\u00fcrzt)*"
+                        print(f"[ki] \u2705 Antwort erhalten via {api_version}/{model_name}")
+                        return antwort
+                    else:
+                        err = data.get("error", {}).get("message", str(data))
+                        print(f"[ki] {api_version}/{model_name} -> HTTP {resp.status}: {err}")
+                        letzter_fehler = err
+            except Exception as e:
+                print(f"[ki] {api_version}/{model_name} -> Fehler: {e}")
+                letzter_fehler = e
 
     raise RuntimeError(f"Kein Gemini-Modell verf\u00fcgbar. Letzter Fehler: {letzter_fehler}")
