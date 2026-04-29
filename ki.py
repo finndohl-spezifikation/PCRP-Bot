@@ -4,7 +4,6 @@
 
 import aiohttp
 import os
-import json
 from datetime import datetime, timezone
 
 GEMINI_API_KEY   = os.environ.get("GEMINI_API_KEY", "")
@@ -48,12 +47,16 @@ async def ask(frage: str) -> str:
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY fehlt.")
 
+    # Systemkontext direkt in die Nutzernachricht einbetten —
+    # das ist das kompatibelste Format f\u00fcr alle Gemini-Modelle
+    nachricht = f"{_SYSTEM_PROMPT}\n\nFrage des Nutzers: {frage}"
+
     payload = {
-        "system_instruction": {
-            "parts": [{"text": _SYSTEM_PROMPT}]
-        },
         "contents": [
-            {"parts": [{"text": frage}]}
+            {
+                "role": "user",
+                "parts": [{"text": nachricht}]
+            }
         ],
         "generationConfig": {
             "maxOutputTokens": 800,
