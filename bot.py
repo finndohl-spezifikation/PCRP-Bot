@@ -203,7 +203,8 @@ try:
 except Exception as _e:
     print(f"[WARNING] nebenserver konnte nicht geladen werden: {_e}")
 try:
-    import ki                   # KI-Assistent (Google Gemini)
+    import ki                   # KI-Assistent (Groq)
+    ki.setup(bot)               # on_message Listener fuer Konversationsmodus
 except Exception as _e:
     print(f"[WARNING] ki konnte nicht geladen werden: {_e}")
 
@@ -233,5 +234,6 @@ except Exception:
     pass
 
 bot.run(TOKEN)
+
 
 
