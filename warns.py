@@ -11,6 +11,18 @@ from economy_helpers import (
 )
 
 
+# Log-Kanal für alle Warn-Aktionen
+_WARN_LOG_ID = 1490878132230819840
+
+async def _warn_log(embed: discord.Embed) -> None:
+    """Sendet ein Embed in den Warn-Log-Kanal."""
+    try:
+        ch = bot.get_channel(_WARN_LOG_ID) or await bot.fetch_channel(_WARN_LOG_ID)
+        await ch.send(embed=embed)
+    except Exception as _e:
+        print(f"[warns] Log-Fehler: {_e}")
+
+
 @bot.tree.command(name="warn", description="[Warn] Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler", grund="Grund der Verwarnung", konsequenz="Konsequenz")
 async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: str, konsequenz: str):
@@ -41,9 +53,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
     embed.add_field(name="\u2694\uFE0F Konsequenz", value=konsequenz,                  inline=False)
     embed.set_thumbnail(url=nutzer.display_avatar.url)
     embed.set_footer(text="\U0001F6E1\uFE0F Warn-System \u2022 Paradise City Roleplay")
-    log_ch = interaction.guild.get_channel(WARN_LOG_CHANNEL_ID)
-    if log_ch:
-        await log_ch.send(embed=embed)
+    await _warn_log(embed)
 
     await interaction.followup.send(
         f"\u2705 Verwarnung f\u00FCr {nutzer.mention} gespeichert. (Warns gesamt: **{warn_count}**)", ephemeral=True
@@ -91,8 +101,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
             timestamp=datetime.now(timezone.utc)
         )
         timeout_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-        if log_ch:
-            await log_ch.send(embed=timeout_embed)
+        await _warn_log(timeout_embed)
 
     if warn_count >= WARN_AUTO_BAN_COUNT:
         try:
@@ -126,8 +135,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
             timestamp=datetime.now(timezone.utc)
         )
         ban_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-        if log_ch:
-            await log_ch.send(embed=ban_embed)
+        await _warn_log(ban_embed)
 
 
 @bot.tree.command(name="warn-list", description="[Warn] Verwarnungen eines Spielers anzeigen", guild=discord.Object(id=GUILD_ID))
@@ -174,18 +182,22 @@ async def remove_warn(interaction: discord.Interaction, nutzer: discord.Member):
     removed = user_warns.pop()
     save_warns(warns)
 
-    embed = discord.Embed(
+    remove_embed = discord.Embed(
         title="\u2705 Verwarnung entfernt",
         description=(
             f"**Spieler:** {nutzer.mention}\n"
             f"**Entfernte Verwarnung:** {removed['grund']}\n"
+            f"**Konsequenz:** {removed.get('konsequenz', '\u2014')}\n"
+            f"**Entfernt von:** {interaction.user.mention}\n"
             f"**Verbleibende Warns:** {len(user_warns)}"
         ),
         color=LOG_COLOR,
         timestamp=datetime.now(timezone.utc)
     )
-    embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-    await interaction.followup.send(embed=embed, ephemeral=True)
+    remove_embed.set_thumbnail(url=nutzer.display_avatar.url)
+    remove_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
+    await _warn_log(remove_embed)
+    await interaction.followup.send(embed=remove_embed, ephemeral=True)
 
 
 @bot.tree.command(name="team-warn", description="[Admin] Team-Verwarnung an einen Spieler ausgeben", guild=discord.Object(id=GUILD_ID))
@@ -217,9 +229,7 @@ async def team_warn(interaction: discord.Interaction, nutzer: discord.Member, gr
         timestamp=datetime.now(timezone.utc)
     )
     embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-    log_ch = interaction.guild.get_channel(TEAM_WARN_LOG_CHANNEL_ID)
-    if log_ch:
-        await log_ch.send(embed=embed)
+    await _warn_log(embed)
 
     try:
         dm_embed = discord.Embed(
@@ -289,21 +299,21 @@ async def remove_teamwarn(interaction: discord.Interaction, nutzer: discord.Memb
     removed = user_warns.pop()
     save_team_warns(warns)
 
-    log_ch = interaction.guild.get_channel(TEAM_WARN_LOG_CHANNEL_ID)
-    if log_ch:
-        log_embed = discord.Embed(
-            title="\U0001F5D1\uFE0F Team-Verwarnung entfernt",
-            description=(
-                f"**Spieler:** {nutzer.mention}\n"
-                f"**Entfernte Verwarnung:** {removed['grund']}\n"
-                f"**Entfernt von:** {interaction.user.mention}\n"
-                f"**Verbleibende Team-Warns:** {len(user_warns)}"
-            ),
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
-        log_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
-        await log_ch.send(embed=log_embed)
+    rtw_log_embed = discord.Embed(
+        title="\U0001F5D1\uFE0F Team-Verwarnung entfernt",
+        description=(
+            f"**Spieler:** {nutzer.mention}\n"
+            f"**Entfernte Verwarnung:** {removed['grund']}\n"
+            f"**Konsequenz:** {removed.get('konsequenz', '\u2014')}\n"
+            f"**Entfernt von:** {interaction.user.mention}\n"
+            f"**Verbleibende Team-Warns:** {len(user_warns)}"
+        ),
+        color=LOG_COLOR,
+        timestamp=datetime.now(timezone.utc)
+    )
+    rtw_log_embed.set_thumbnail(url=nutzer.display_avatar.url)
+    rtw_log_embed.set_footer(text="Paradise City Roleplay \u2022 Warn-System")
+    await _warn_log(rtw_log_embed)
 
     embed = discord.Embed(
         title="\u2705 Team-Verwarnung entfernt",
@@ -356,7 +366,7 @@ class BanListView(discord.ui.View):
 
     async def _check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.requester.id:
-            await interaction.followup.send("\u274C Nur der Aufrufer darf bl\u00e4ttern.", ephemeral=True)
+            await interaction.response.send_message("\u274C Nur der Aufrufer darf bl\u00e4ttern.", ephemeral=True)
             return False
         return True
 
