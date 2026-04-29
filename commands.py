@@ -429,17 +429,16 @@ async def frak_remove(interaction: discord.Interaction, fraktion: str):
         )
 
 # ─────────────────────────────────────────────────────────────────────────────────
-# /ki — KI-Assistent (Groq)
-# Command wird IMMER registriert — ki lazy geladen beim ersten Aufruf
+# ─────────────────────────────────────────────────────────────────────────────────
+# /ki — KI-Konversation starten
+# /ki-end — KI-Konversation beenden
 # ─────────────────────────────────────────────────────────────────────────────────
 @bot.tree.command(
     name="ki",
-    description="🤖 Stelle dem KI-Assistenten eine Frage",
+    description="🤖 Startet eine KI-Konversation in diesem Kanal",
     guild=discord.Object(id=GUILD_ID),
 )
-@app_commands.describe(frage="Deine Frage an den KI-Assistenten (max. 500 Zeichen)")
-async def ki_command(interaction: discord.Interaction, frage: str):
-    # ki lazy laden — fehlende Pakete blockieren den Command nicht
+async def ki_start_command(interaction: discord.Interaction):
     try:
         import ki as _ki
     except Exception as _err:
@@ -457,46 +456,64 @@ async def ki_command(interaction: discord.Interaction, frage: str):
         )
         return
 
-    if len(frage) > 500:
+    channel_id = interaction.channel_id
+
+    if channel_id in _ki.active_sessions:
+        bestehender = _ki.active_sessions[channel_id]
         await interaction.response.send_message(
-            "❌ Deine Frage ist zu lang. Maximal **500 Zeichen** erlaubt.",
+            f"⚠️ In diesem Kanal läuft bereits eine KI-Konversation "
+            f"(gestartet von <@{bestehender}>).\n"
+            "Beende sie zuerst mit `/ki-end`.",
             ephemeral=True,
         )
         return
 
-    now  = datetime.now(timezone.utc)
-    last = _ki.cooldowns.get(interaction.user.id)
-    if last and (now - last).total_seconds() < _ki.COOLDOWN_SECONDS:
-        warte = int(_ki.COOLDOWN_SECONDS - (now - last).total_seconds()) + 1
-        await interaction.response.send_message(
-            f"⏳ Bitte warte noch **{warte} Sekunden** bevor du erneut fragst.",
-            ephemeral=True,
-        )
-        return
+    _ki.active_sessions[channel_id] = interaction.user.id
 
-    await interaction.response.defer(ephemeral=True)
-    _ki.cooldowns[interaction.user.id] = now
+    await interaction.response.send_message(
+        f"🤖 **KI-Konversation gestartet!**\n"
+        f"Schreib einfach deine Nachrichten in diesen Kanal — ich antworte direkt.\n"
+        f"Mit `/ki-end` beendest du die Konversation.",
+    )
 
+
+@bot.tree.command(
+    name="ki-end",
+    description="🛑 Beendet die aktive KI-Konversation in diesem Kanal",
+    guild=discord.Object(id=GUILD_ID),
+)
+async def ki_end_command(interaction: discord.Interaction):
     try:
-        antwort = await _ki.ask(frage)
-    except Exception as e:
-        await interaction.followup.send(
-            f"❌ Fehler beim Abrufen der KI-Antwort:\n`{e}`",
+        import ki as _ki
+    except Exception as _err:
+        await interaction.response.send_message(
+            f"❌ KI-Modul nicht ladbar: `{_err}`",
             ephemeral=True,
         )
         return
 
-    sep = "\u2501" * 26
-    embed = discord.Embed(
-        title="🤖  KI-Assistent",
-        description=sep,
-        color=0x4285F4,
-    )
-    embed.add_field(name="❓  Deine Frage", value=f"> {frage}", inline=False)
-    embed.add_field(name="\u200b", value=sep, inline=False)
-    embed.add_field(name="💬  Antwort", value=antwort, inline=False)
-    embed.set_footer(
-        text=f"Powered by Groq AI  •  {interaction.user.display_name}"
-    )
-    await interaction.followup.send(embed=embed, ephemeral=True)
+    channel_id = interaction.channel_id
 
+    if channel_id not in _ki.active_sessions:
+        await interaction.response.send_message(
+            "ℹ️ In diesem Kanal läuft keine KI-Konversation.",
+            ephemeral=True,
+        )
+        return
+
+    session_user_id = _ki.active_sessions[channel_id]
+    is_owner = interaction.user.id == session_user_id
+    is_mod   = interaction.user.guild_permissions.manage_messages
+
+    if not is_owner and not is_mod:
+        await interaction.response.send_message(
+            "❌ Nur die Person die die Konversation gestartet hat (oder Mods) können sie beenden.",
+            ephemeral=True,
+        )
+        return
+
+    del _ki.active_sessions[channel_id]
+
+    await interaction.response.send_message(
+        f"🛑 **KI-Konversation beendet.** Tschüss! 👋"
+    )
