@@ -11,29 +11,29 @@ from config import *
 # Rollen ohne Outfit-Beschreibung: None eintragen.
 # ─────────────────────────────────────────────────────────────────────────────────────
 TEAM_HIERARCHIE = [
-    (1490855647259136053, "Teamoutfit Schwarz"),    # Owner
-    (1490855648978669599, "Teamoutfit Schwarz"),    # Stv Owner
-    (1490855654347505706, "Teamoutfit Weiß"),       # Server Leitung
-    (1490855657543303239, "Teamoutfit Weiß"),       # Stv Serverleitung
-    (1490855655408664577, "Teamoutfit Blau"),       # Teamleitung
-    (1490855656352251987, "Teamoutfit Blau"),       # Stv Teamleitung
-    (1490855659506372743, "Teamoutfit Rot"),        # Projektleitung
-    (1490855661137956879, "Teamoutfit Rot"),        # Stv Projektleitung
-    (1496136847338770693, "Teamoutfit Gelb"),       # Community Manager (NEU)
-    (1490855664854106225, "Teamoutfit Weißgelb"),   # Administration
-    (1490855679282516100, "Teamoutfit Weißpink"),   # Moderation
-    (1490855680708579389, "Teamoutfit Weißgrau"),   # Support Leitung
-    (1490855688208126095, "Teamoutfit Weißgrau"),   # Stv Support Leitung
-    (1490855689424212110, "Teamoutfit Weißgrün"),   # Supporter
-    (1490855690183381087, None),
-    (1492678578071146536, None),
-    (1492678644277969048, None),
-    (1490855692477923520, None),
-    (1490855693786550404, None),
-    (1490855695363342358, None),
-    (1490855695912931329, None),
-    (1498395437206601828, None),
-    (1498395500137807932, None),
+    (1490855647259136053, "Teamoutfit Schwarz"),      # Owner
+    (1490855648978669599, "Teamoutfit Schwarz"),      # Stv Owner
+    (1490855654347505706, "Teamoutfit Weiß"),         # Serverleitung
+    (1490855657543303239, "Teamoutfit Weiß"),         # Stv Serverleitung
+    (1490855655408664577, "Teamoutfit Blau"),         # Teamleitung
+    (1490855656352251987, "Teamoutfit Blau"),         # Stv Teamleitung
+    (1490855659506372743, "Teamoutfit Rot"),          # Projektleitung
+    (1490855661137956879, "Teamoutfit Rot"),          # Stv Projektleitung
+    (1496136847338770693, "Teamoutfit Gelb"),         # Community Manager (NEU)
+    (1490855664854106225, "Teamoutfit Weißgelb"),     # Administrator III
+    (1490855679282516100, "Teamoutfit Weißgelb"),     # Administrator II
+    (1490855680708579389, "Teamoutfit Weißgelb"),     # Administrator I
+    (1490855688208126095, "Teamoutfit Weißgelb"),     # Test Administrator
+    (1490855689424212110, "Teamoutfit Weißpink"),     # Moderator III
+    (1490855690183381087, "Teamoutfit Weißpink"),     # Moderator II
+    (1492678578071146536, "Teamoutfit Weißpink"),     # Moderator I
+    (1492678644277969048, "Teamoutfit Weißpink"),     # Test Moderator
+    (1490855692477923520, "Teamoutfit Schwarzweiß"),  # Supportleitung
+    (1490855693786550404, "Teamoutfit Schwarzweiß"),  # Stv Support Leitung
+    (1490855695363342358, "Teamoutfit Weißgrün"),     # Supporter III
+    (1490855695912931329, "Teamoutfit Weißgrün"),     # Supporter II
+    (1498395437206601828, "Teamoutfit Weißgrün"),     # Supporter I
+    (1498395500137807932, "Teamoutfit Weißgrün"),     # Test Supporter
 ]
 
 # IDs aller Team-Rollen (für Button-Berechtigung)
