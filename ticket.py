@@ -5,6 +5,7 @@
 # \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
 
 from config import *
+from kanal_sperre import is_sperre_aktiv
 from helpers import is_mod_or_admin, log_bot_error
 
 
@@ -249,6 +250,9 @@ class TicketActionView(discord.ui.View):
         custom_id="ticket_close_btn"
     )
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
 
         channel = interaction.channel
         data    = ticket_data.get(channel.id)
@@ -366,6 +370,9 @@ class TicketActionView(discord.ui.View):
         custom_id="ticket_assign_btn"
     )
     async def assign_person(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         if not _hat_ticket_berechtigung(interaction.user):
             await interaction.response.send_message(
                 "\u274c Du hast keine Berechtigung, Personen zuzuweisen.",
@@ -461,22 +468,37 @@ class RatingView(TimedDisableView):
 
     @discord.ui.button(label="\u2b50 1", style=discord.ButtonStyle.grey, custom_id="rating_1")
     async def rate_1(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         await interaction.response.send_modal(CommentModal(stars=1, rating_view=self))
 
     @discord.ui.button(label="\u2b50 2", style=discord.ButtonStyle.grey, custom_id="rating_2")
     async def rate_2(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         await interaction.response.send_modal(CommentModal(stars=2, rating_view=self))
 
     @discord.ui.button(label="\u2b50 3", style=discord.ButtonStyle.grey, custom_id="rating_3")
     async def rate_3(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         await interaction.response.send_modal(CommentModal(stars=3, rating_view=self))
 
     @discord.ui.button(label="\u2b50 4", style=discord.ButtonStyle.grey, custom_id="rating_4")
     async def rate_4(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         await interaction.response.send_modal(CommentModal(stars=4, rating_view=self))
 
     @discord.ui.button(label="\u2b50 5", style=discord.ButtonStyle.green, custom_id="rating_5")
     async def rate_5(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         await interaction.response.send_modal(CommentModal(stars=5, rating_view=self))
 
 
