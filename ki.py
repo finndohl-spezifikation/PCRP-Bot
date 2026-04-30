@@ -32,6 +32,15 @@ _MODELLE = [
     "gemma2-9b-it",
 ]
 
+# Spezielle RP-Antworten (Schluessel -> Antwort)
+_RP_ANTWORTEN: list[tuple[list[str], str]] = [
+    (
+        ["wer ist die alina", "wer ist alina", "erzaehll mir von alina", "beschreib alina",
+         "wer ist alina", "alina wer ist das", "was ist alina"],
+        "Alina ist ein übergewichtiges Walross, was von Geburt aus mit übermäßiger Intimbehaaarung geprägt ist. Außerdem verbringt sie ihre Freizeit gerne im McDonald's. 🦦",
+    ),
+]
+
 if not GROQ_API_KEY:
     print("[ki] GROQ_API_KEY nicht gesetzt — KI-Modul deaktiviert.")
 else:
@@ -41,6 +50,12 @@ else:
 async def ask(frage: str) -> str:
     if not GROQ_API_KEY:
         raise RuntimeError("GROQ_API_KEY fehlt.")
+
+    # Spezielle RP-Antworten pruefen
+    frage_lower = frage.lower().strip()
+    for schluessel_liste, antwort in _RP_ANTWORTEN:
+        if any(k in frage_lower for k in schluessel_liste):
+            return antwort
 
     headers = {
         "Content-Type": "application/json",
@@ -67,7 +82,7 @@ async def ask(frage: str) -> str:
                     if resp.status == 200:
                         text = data["choices"][0]["message"]["content"].strip()
                         if len(text) > MAX_ANTWORT_LEN:
-                            text = text[:MAX_ANTWORT_LEN] + "\n*\u2026(gek\u00fcrzt)*"
+                            text = text[:MAX_ANTWORT_LEN] + "\n*…(gekürzt)*"
                         print(f"[ki] OK via {modell}")
                         return text
                     fehler = data.get("error", {}).get("message", f"HTTP {resp.status}")
@@ -100,14 +115,14 @@ def setup(bot):
         # Jemand anderes schreibt rein -> einschreiten
         if message.author.id != session_user_id:
             await message.channel.send(
-                f"{message.author.mention} NaNaNa Ich f\u00fchre gerade eine Konversation, "
+                f"{message.author.mention} NaNaNa Ich führe gerade eine Konversation, "
                 "es ist Unfreundlich uns ins Wort zu fallen du Pisser \U0001f6ab"
             )
             return
 
         # Nachricht des Session-Nutzers -> an KI weiterleiten
         if not GROQ_API_KEY:
-            await message.channel.send("\u274c KI nicht verf\u00fcgbar (GROQ_API_KEY fehlt).")
+            await message.channel.send("\u274c KI nicht verfügbar (GROQ_API_KEY fehlt).")
             return
 
         now  = datetime.now(timezone.utc)
