@@ -552,19 +552,7 @@ _SPAM_THRESHOLD   = 6    # Nachrichten
 _SPAM_WINDOW_SECS = 5    # innerhalb von X Sekunden
 _spam_warned: set[int] = set()   # user_ids die kürzlich als Spam gemeldet wurden
 
-# Vulgäre Wörter (Deutsch + häufige Englische)
-_VULGAR_WORDS = re.compile(
-    r"\b("
-    r"fick|ficker|gefickt|fickst|fotze|hurensohn|hurenkind|nutte|wichser|wichse|"
-    r"arschloch|scheiß|scheiße|scheiße|scheis|scheiss|kacke|kacken|"
-    r"motherfuck|motherfucker|nigger|nigga|faggot|bastard|bitch|asshole|"
-    r"anal|penis|vagina|schwanz|titten|"
-    r"nazi|heil.{0,5}hitler|judensau"
-    r")\b",
-    re.IGNORECASE | re.UNICODE,
-)
-
-# Kanäle in denen Spam/Vulgär-Check NICHT greift
+# Kanäle in denen Spam-Check NICHT greift
 _CONTENT_CHECK_IGNORE: set[int] = set(_MSG_LOG_IGNORE_CHANNELS)
 
 
@@ -603,18 +591,4 @@ async def _log_spam_and_vulgar(message: discord.Message):
             thumbnail=str(message.author.display_avatar.url),
         )
 
-    # ── Vulgäre Wörter ────────────────────────────────────────────────────────
-    if message.content and _VULGAR_WORDS.search(message.content):
-        matches = list(set(_VULGAR_WORDS.findall(message.content)))
-        desc = (
-            f"**Mitglied:** {message.author.mention} (`{message.author}`)\n"
-            f"**Kanal:** {message.channel.mention}\n"
-            f"**Erkannte Wörter:** `{'`, `'.join(matches)}`\n"
-            f"**Nachricht:** {_short(message.content, 400)}"
-        )
-        await log_mod(
-            "\U0001F4A2 Vulgäre Sprache",
-            desc,
-            color=0x992D22,
-            thumbnail=str(message.author.display_avatar.url),
-        )
+    # Vulgäre Wörter werden bereits von moderation.py (handle_vulgar_message) geloggt
