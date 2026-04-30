@@ -95,8 +95,9 @@ def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     beschreibung = "\n".join(lines)
     beschreibung += (
         "\n\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
-        f"\U0001F465 **Insgesamt:** {gesamt} Teammitglieder\n"
-        f"\U0001F7E2 **On Duty:** {on_count}  \u00B7  \U0001F534 **Off Duty:** {off_count}"
+        f"\U0001F465 **Aktuelle Teammitglieder gesamt:** {gesamt}\n\n"
+        f"\U0001F7E2 **On Duty** ({on_count}) \u2014 *Teammitglied ist aktiv im Support und Co.*\n"
+        f"\U0001F534 **Off Duty** ({off_count}) \u2014 *Teammitglied bearbeitet derzeit keine Supportanfragen und Co.*"
     )
 
     embed = discord.Embed(
@@ -223,18 +224,50 @@ async def auto_team_setup():
             print(f"[team_overview] Fehler: {e}")
 
 
-# ── Slash Command: /team-refresh ──────────────────────────────────────────────────────
+# ── Slash Command: /setup-teamembed ──────────────────────────────────────────────────
 
 @bot.tree.command(
-    name="team-refresh",
-    description="[Team] Aktualisiert die Team-Übersicht manuell",
+    name="setup-teamembed",
+    description="[Team] Löscht das alte Team-Embed und postet ein neues mit allen Änderungen",
     guild=discord.Object(id=GUILD_ID),
 )
-async def team_refresh(interaction: discord.Interaction):
+async def setup_teamembed(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID and not any(r.id in TEAM_ROLE_IDS | {INHABER_ROLE_ID} for r in interaction.user.roles):
         await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
         return
 
     await interaction.response.defer(ephemeral=True)
-    await auto_team_setup()
-    await interaction.followup.send("\u2705 Team-\u00DCbersicht wurde aktualisiert.", ephemeral=True)
+
+    for guild in bot.guilds:
+        channel = guild.get_channel(TEAM_OVERVIEW_CHANNEL_ID)
+        if not channel:
+            continue
+
+        duty_data = load_duty()
+
+        # Alle Bot-Nachrichten mit Team-Embed im Kanal löschen
+        try:
+            async for msg in channel.history(limit=50):
+                if msg.author.id == bot.user.id and msg.embeds:
+                    for emb in msg.embeds:
+                        if emb.title and "Team \u00DCbersicht" in emb.title:
+                            try:
+                                await msg.delete()
+                            except Exception:
+                                pass
+                            break
+        except Exception as e:
+            print(f"[team_overview] Fehler beim Löschen: {e}")
+
+        # message_id zurücksetzen und neu posten
+        duty_data["message_id"] = None
+        save_duty(duty_data)
+
+        embed   = build_team_embed(guild, duty_data)
+        view    = TeamOverviewView()
+        new_msg = await channel.send(embed=embed, view=view)
+        duty_data["message_id"] = new_msg.id
+        save_duty(duty_data)
+        print(f"[team_overview] Neues Embed gepostet in #{channel.name}")
+
+    await interaction.followup.send("\u2705 Team-Embed wurde neu erstellt.", ephemeral=True)
