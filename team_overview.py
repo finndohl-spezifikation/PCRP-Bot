@@ -5,6 +5,7 @@
 # ══════════════════════════════════════════════════════════════════════════════════════
 
 from config import *
+from kanal_sperre import is_sperre_aktiv
 
 # ── Hierarchie: (role_id, outfit_text) ───────────────────────────────────────────────
 TEAM_HIERARCHIE = [
@@ -127,6 +128,9 @@ class TeamOverviewView(discord.ui.View):
         custom_id="team_on_duty",
     )
     async def on_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         if not self._is_team(interaction.user):
             await interaction.response.send_message(
                 "\u274C Nur Teammitglieder k\u00F6nnen ihren Dienststatus \u00E4ndern.",
@@ -152,6 +156,9 @@ class TeamOverviewView(discord.ui.View):
         custom_id="team_off_duty",
     )
     async def off_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         if not self._is_team(interaction.user):
             await interaction.response.send_message(
                 "\u274C Nur Teammitglieder k\u00F6nnen ihren Dienststatus \u00E4ndern.",
