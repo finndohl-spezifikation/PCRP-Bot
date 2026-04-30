@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-# kanal_sperre.py \u2014 Server-weite Kanalsperre f\u00FCr Spieler
+# ══════════════════════════════════════════════════════════════════════════════════════
+# kanal_sperre.py — Server-weite Kanalsperre für Spieler
 # Paradise City Roleplay Discord Bot
 #
-# /kanal-sperre      \u2192 Sperrt alle definierten Kan\u00E4le,
+# /kanal-sperre      → Sperrt alle definierten Kanäle,
 #                       postet rotes Embed, blockiert Threads
-# /kanal-entsperren  \u2192 Stellt Rechte wieder her, l\u00F6scht Embeds
+# /kanal-entsperren  → Stellt Rechte wieder her, löscht Embeds
 #
-# Nur die Kan\u00E4le in SPERRE_CHANNEL_IDS werden angefasst.
-# Alle anderen Kan\u00E4le bleiben unber\u00FChrt.
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# Nur die Kanäle in SPERRE_CHANNEL_IDS werden angefasst.
+# Alle anderen Kanäle bleiben unberührt.
+# ══════════════════════════════════════════════════════════════════════════════════════
 
 import json
 import asyncio
@@ -17,12 +17,11 @@ from config import *
 
 SPERRE_FILE = DATA_DIR / "kanal_sperre.json"
 
-# \u2500\u2500 Feste Channel-Liste \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-# Nur diese Kan\u00E4le werden bei Sperre/Entsperrung angefasst.
-# Kommentar-Kan\u00E4le = Nur Button-Interaktionen werden blockiert
+# ── Feste Channel-Liste ───────────────────────────────────────────────────────────────
+# Nur diese Kanäle werden bei Sperre/Entsperrung angefasst.
 SPIELER_ROLLE_ID = 1490855722534310003  # Rolle die gesperrt/entsperrt wird
 
-# Kan\u00E4le wo nur Buttons blockiert werden (kein schreiben sowieso m\u00F6glich)
+# Kanäle wo nur Buttons blockiert werden (kein Schreiben sowieso möglich)
 BUTTON_ONLY_CHANNEL_IDS: set[int] = {
     1490889784753782784,  # Rubbellose
     1492636063817138216,  # Lotto
@@ -69,9 +68,18 @@ SPERRE_CHANNEL_IDS: list[int] = [
     1490894314132213771,
     1490894317462753280,
     1490894320604020806,
+    # Ergänzte Kanäle
+    1497804333541097532,
+    1496108196752789594,
+    1497049792923172924,
+    1497049591172960356,
+    1497049007019790446,
+    1497049211085000837,
+    1497048240124854332,
+    1497048361323335770,
 ]
 
-# \u2500\u2500 Datei-Helfer \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── Datei-Helfer ──────────────────────────────────────────────────────────────────────
 
 def _load() -> dict:
     try:
@@ -92,7 +100,7 @@ def _ow_to_dict(ow: discord.PermissionOverwrite) -> dict:
     result = {}
     for name, value in ow:
         if value is not None:
-            result[name] = value  # True oder False
+            result[name] = value
     return result
 
 
@@ -101,38 +109,42 @@ def _dict_to_ow(d: dict) -> discord.PermissionOverwrite:
     return discord.PermissionOverwrite(**d)
 
 
-# \u2500\u2500 Rotes Sperre-Embed \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+def is_sperre_aktiv() -> bool:
+    """Gibt True zurück wenn eine Kanalsperre aktiv ist."""
+    return bool(_load())
+
+
+# ── Knallrotes Sperre-Embed ───────────────────────────────────────────────────────────
 
 def _build_sperre_embed() -> discord.Embed:
     embed = discord.Embed(
-        title="\U0001F512  Kanal gesperrt \u2014 Lobby geschlossen",
+        title="🔒  Kanal gesperrt — Lobby geschlossen",
         description=(
-            "Die **Lobby ist aktuell geschlossen**, daher ist dieser Kanal gesperrt.\n"
-            "Schreiben ist w\u00E4hrend der Sperrung nicht m\u00F6glich.\n\n"
-            "Sobald die Lobby wieder ge\u00F6ffnet wird, kannst du hier wieder schreiben."
+            "Das Schreiben oder Ausführen von Commands ist,\n"
+            "während die **RP Lobby geschlossen** ist, nicht möglich."
         ),
-        color=0xE74C3C,
+        color=0xFF0000,
         timestamp=datetime.now(timezone.utc),
     )
-    embed.set_footer(text="Paradise City Roleplay \u2022 Kanalsperre")
+    embed.set_footer(text="Paradise City Roleplay • Kanalsperre")
     return embed
 
 
-# \u2500\u2500 /kanal-sperre \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── /kanal-sperre ─────────────────────────────────────────────────────────────────────
 
 @bot.tree.command(
     name="kanal-sperre",
-    description="[Mod] Sperrt alle definierten Spieler-Kan\u00E4le und postet eine Meldung",
+    description="[Mod] Sperrt alle definierten Spieler-Kanäle und postet eine Meldung",
     guild=discord.Object(id=GUILD_ID),
 )
 async def kanal_sperre(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
     if _load():
         await interaction.response.send_message(
-            "\u26A0\uFE0F Es ist bereits eine Kanalsperre aktiv.\n"
+            "⚠️ Es ist bereits eine Kanalsperre aktiv.\n"
             "Nutze `/kanal-entsperren` um sie zuerst aufzuheben.",
             ephemeral=True,
         )
@@ -143,8 +155,9 @@ async def kanal_sperre(interaction: discord.Interaction):
     guild        = interaction.guild
     spieler_role = guild.get_role(SPIELER_ROLLE_ID)
     if not spieler_role:
-        await interaction.followup.send("\u274C Spieler-Rolle nicht gefunden.", ephemeral=True)
+        await interaction.followup.send("❌ Spieler-Rolle nicht gefunden.", ephemeral=True)
         return
+
     data     = {"channels": {}, "embeds": {}}
     gesperrt = 0
     fehler   = 0
@@ -154,11 +167,9 @@ async def kanal_sperre(interaction: discord.Interaction):
         if not channel:
             continue
 
-        # Kompletten originalen Overwrite sichern
         ow = channel.overwrites_for(spieler_role)
         data["channels"][str(ch_id)] = _ow_to_dict(ow)
 
-        # Sperren \u2014 Button-Kan\u00E4le nur use_application_commands, Rest alles
         if ch_id in BUTTON_ONLY_CHANNEL_IDS:
             ow.use_application_commands = False
         else:
@@ -169,8 +180,6 @@ async def kanal_sperre(interaction: discord.Interaction):
 
         try:
             await channel.set_permissions(spieler_role, overwrite=ow)
-
-            # Rotes Embed still senden \u2014 keine Ungelesen-Markierung f\u00FCr Mitglieder
             msg = await channel.send(embed=_build_sperre_embed(), silent=True)
             data["embeds"][str(ch_id)] = msg.id
             gesperrt += 1
@@ -181,48 +190,47 @@ async def kanal_sperre(interaction: discord.Interaction):
 
     _save(data)
 
-    # Mod-Log
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
         embed = discord.Embed(
-            title="\U0001F512 Kanalsperre aktiviert",
+            title="🔒 Kanalsperre aktiviert",
             description=(
-                f"**Ausgef\u00FChrt von:** {interaction.user.mention}\n"
-                f"**Gesperrte Kan\u00E4le:** {gesperrt}"
+                f"**Ausgeführt von:** {interaction.user.mention}\n"
+                f"**Gesperrte Kanäle:** {gesperrt}"
                 + (f"\n**Fehler:** {fehler}" if fehler else "")
-                + "\n\nSpieler k\u00F6nnen in keinem der definierten Kan\u00E4le mehr schreiben oder Threads erstellen."
+                + "\n\nSpieler können in keinem der definierten Kanäle mehr schreiben oder Commands ausführen."
             ),
-            color=0xE74C3C,
+            color=0xFF0000,
             timestamp=datetime.now(timezone.utc),
         )
         await log_ch.send(embed=embed)
 
-    status = f"\u2705 {gesperrt} Kan\u00E4le gesperrt"
+    status = f"✅ {gesperrt} Kanäle gesperrt"
     if fehler:
-        status += f"\n\u26A0\uFE0F {fehler} Kan\u00E4le konnten nicht gesperrt werden (fehlende Rechte?)"
+        status += f"\n⚠️ {fehler} Kanäle konnten nicht gesperrt werden (fehlende Rechte?)"
 
     await interaction.followup.send(
-        f"\U0001F512 **Kanalsperre aktiviert!**\n{status}",
+        f"🔒 **Kanalsperre aktiviert!**\n{status}",
         ephemeral=True,
     )
 
 
-# \u2500\u2500 /kanal-entsperren \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── /kanal-entsperren ─────────────────────────────────────────────────────────────────
 
 @bot.tree.command(
     name="kanal-entsperren",
-    description="[Mod] Hebt die Kanalsperre auf und l\u00F6scht alle Sperr-Embeds",
+    description="[Mod] Hebt die Kanalsperre auf und löscht alle Sperr-Embeds",
     guild=discord.Object(id=GUILD_ID),
 )
 async def kanal_entsperren(interaction: discord.Interaction):
     if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
         return
 
     data = _load()
     if not data:
         await interaction.response.send_message(
-            "\u2139\uFE0F Es ist gerade keine Kanalsperre aktiv.",
+            "ℹ️ Es ist gerade keine Kanalsperre aktiv.",
             ephemeral=True,
         )
         return
@@ -232,15 +240,13 @@ async def kanal_entsperren(interaction: discord.Interaction):
     guild        = interaction.guild
     spieler_role = guild.get_role(SPIELER_ROLLE_ID)
     if not spieler_role:
-        await interaction.followup.send("\u274C Spieler-Rolle nicht gefunden.", ephemeral=True)
+        await interaction.followup.send("❌ Spieler-Rolle nicht gefunden.", ephemeral=True)
         return
-    restored = 0
-    fehler   = 0
 
-    # Embed-IDs aus gespeicherter JSON (zum L\u00F6schen der roten Embeds)
-    embed_ids: dict = data.get("embeds", {})
+    restored  = 0
+    fehler    = 0
+    embed_ids = data.get("embeds", {})
 
-    # Immer direkt \u00FCber die feste Channel-Liste gehen \u2014 nicht \u00FCber gespeicherte Daten
     for ch_id in SPERRE_CHANNEL_IDS:
         channel = guild.get_channel(ch_id)
         if not channel:
@@ -250,21 +256,18 @@ async def kanal_entsperren(interaction: discord.Interaction):
             ow = channel.overwrites_for(spieler_role)
 
             if ch_id in BUTTON_ONLY_CHANNEL_IDS:
-                # Nur Buttons waren gesperrt \u2192 nur use_application_commands zur\u00FCcksetzen
                 ow.use_application_commands = None
                 if ow.is_empty():
                     await channel.set_permissions(spieler_role, overwrite=None)
                 else:
                     await channel.set_permissions(spieler_role, overwrite=ow)
             else:
-                # Normale Kan\u00E4le \u2192 send_messages explizit auf True
                 ow.send_messages            = True
                 ow.create_public_threads    = None
                 ow.create_private_threads   = None
                 ow.use_application_commands = None
                 await channel.set_permissions(spieler_role, overwrite=ow)
 
-            # Rotes Sperre-Embed l\u00F6schen
             msg_id = embed_ids.get(str(ch_id))
             if msg_id:
                 try:
@@ -279,31 +282,29 @@ async def kanal_entsperren(interaction: discord.Interaction):
 
         await asyncio.sleep(0.5)
 
-    # Daten-Datei l\u00F6schen
     if SPERRE_FILE.exists():
         SPERRE_FILE.unlink()
 
-    # Mod-Log
     log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
     if log_ch:
         embed = discord.Embed(
-            title="\U0001F513 Kanalsperre aufgehoben",
+            title="🔓 Kanalsperre aufgehoben",
             description=(
-                f"**Ausgef\u00FChrt von:** {interaction.user.mention}\n"
-                f"**Wiederhergestellte Kan\u00E4le:** {restored}"
+                f"**Ausgeführt von:** {interaction.user.mention}\n"
+                f"**Wiederhergestellte Kanäle:** {restored}"
                 + (f"\n**Fehler:** {fehler}" if fehler else "")
-                + "\n\nAlle Spieler k\u00F6nnen wieder normal schreiben."
+                + "\n\nAlle Spieler können wieder normal schreiben und Commands ausführen."
             ),
             color=0x2ECC71,
             timestamp=datetime.now(timezone.utc),
         )
         await log_ch.send(embed=embed)
 
-    status = f"\u2705 {restored} Kan\u00E4le entsperrt"
+    status = f"✅ {restored} Kanäle entsperrt"
     if fehler:
-        status += f"\n\u26A0\uFE0F {fehler} Kan\u00E4le konnten nicht entsperrt werden"
+        status += f"\n⚠️ {fehler} Kanäle konnten nicht entsperrt werden"
 
     await interaction.followup.send(
-        f"\U0001F513 **Kanalsperre aufgehoben!**\n{status}",
+        f"🔓 **Kanalsperre aufgehoben!**\n{status}",
         ephemeral=True,
-              )
+    )
