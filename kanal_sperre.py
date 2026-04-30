@@ -158,14 +158,22 @@ async def kanal_sperre(interaction: discord.Interaction):
         await interaction.followup.send("❌ Spieler-Rolle nicht gefunden.", ephemeral=True)
         return
 
-    data     = {"channels": {}, "embeds": {}}
-    gesperrt = 0
-    fehler   = 0
+    data         = {"channels": {}, "embeds": {}}
+    gesperrt     = 0
+    fehler       = 0
+    fehler_liste = []
 
     for ch_id in SPERRE_CHANNEL_IDS:
         channel = guild.get_channel(ch_id)
         if not channel:
-            continue
+            # Fallback: per API holen (Channel evtl. nicht im Cache)
+            try:
+                channel = await bot.fetch_channel(ch_id)
+            except Exception as e:
+                print(f"[kanal_sperre] ❌ Channel {ch_id} nicht gefunden: {e}")
+                fehler += 1
+                fehler_liste.append(f"<#{ch_id}> nicht gefunden")
+                continue
 
         ow = channel.overwrites_for(spieler_role)
         data["channels"][str(ch_id)] = _ow_to_dict(ow)
@@ -180,11 +188,28 @@ async def kanal_sperre(interaction: discord.Interaction):
 
         try:
             await channel.set_permissions(spieler_role, overwrite=ow)
-            msg = await channel.send(embed=_build_sperre_embed(), silent=True)
-            data["embeds"][str(ch_id)] = msg.id
-            gesperrt += 1
-        except (discord.Forbidden, discord.HTTPException):
+            print(f"[kanal_sperre] ✅ Rechte gesetzt: #{getattr(channel, 'name', ch_id)}")
+        except Exception as e:
+            print(f"[kanal_sperre] ❌ Rechte-Fehler #{getattr(channel, 'name', ch_id)}: {e}")
             fehler += 1
+            fehler_liste.append(f"<#{ch_id}> Rechte-Fehler: {e}")
+            await asyncio.sleep(0.5)
+            continue
+
+        # Embed nur in Textkanäle senden (nicht Voice/Forum/Stage)
+        if isinstance(channel, (discord.TextChannel, discord.NewsChannel)):
+            try:
+                msg = await channel.send(embed=_build_sperre_embed(), silent=True)
+                data["embeds"][str(ch_id)] = msg.id
+                print(f"[kanal_sperre] ✅ Embed gesendet: #{channel.name}")
+                gesperrt += 1
+            except Exception as e:
+                print(f"[kanal_sperre] ❌ Embed-Fehler #{channel.name}: {e}")
+                fehler += 1
+                fehler_liste.append(f"<#{ch_id}> Embed-Fehler: {e}")
+        else:
+            print(f"[kanal_sperre] ℹ️ Kein Embed (kein Textkanal): #{getattr(channel, 'name', ch_id)} ({type(channel).__name__})")
+            gesperrt += 1
 
         await asyncio.sleep(0.5)
 
@@ -207,7 +232,9 @@ async def kanal_sperre(interaction: discord.Interaction):
 
     status = f"✅ {gesperrt} Kanäle gesperrt"
     if fehler:
-        status += f"\n⚠️ {fehler} Kanäle konnten nicht gesperrt werden (fehlende Rechte?)"
+        status += f"\n⚠️ {fehler} Fehler:"
+        for fl in fehler_liste:
+            status += f"\n• {fl}"
 
     await interaction.followup.send(
         f"🔒 **Kanalsperre aktiviert!**\n{status}",
