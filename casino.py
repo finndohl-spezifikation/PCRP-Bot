@@ -6,6 +6,7 @@
 
 from typing import Optional
 from config import *
+from kanal_sperre import is_sperre_aktiv
 from helpers import log_bot_error
 from economy_helpers import (
     load_economy, save_economy, get_user, load_shop, save_shop,
@@ -339,6 +340,9 @@ class CasinoView(discord.ui.View):
         custom_id="casino_drehen",
     )
     async def casino_drehen(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         member = interaction.user
 
 
