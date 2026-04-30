@@ -207,6 +207,10 @@ try:
     ki.setup(bot)               # on_message Listener fuer Konversationsmodus
 except Exception as _e:
     print(f"[WARNING] ki konnte nicht geladen werden: {_e}")
+try:
+    import regelwerk            # Serverregelwerk Embed
+except Exception as _e:
+    print(f"[WARNING] regelwerk konnte nicht geladen werden: {_e}")
 
 try:
     import server_schutz      # Schutz vor unbefugten Kanal/Rollen-\u00C4nderungen
