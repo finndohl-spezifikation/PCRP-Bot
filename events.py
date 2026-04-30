@@ -332,20 +332,7 @@ async def on_message_delete(message):
         f'#{message.channel.name} | {message.author}: {(message.content or "[kein Text]")[:120]}',
         message.author.id,
     )
-    log_ch = message.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
-    embed = discord.Embed(
-        title="\U0001F5D1\uFE0F Nachricht gel\u00F6scht",
-        description=(
-            f"**Benutzer:** {message.author.mention} (`{message.author}`)\n"
-            f"**Kanal:** {message.channel.mention}\n"
-            f"**Inhalt:** {message.content[:500] if message.content else '*Kein Text*'}"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await log_ch.send(embed=embed)
+    # Embed-Log wird von logs_events.py übernommen (kein Duplikat)
 
 
 @bot.event
@@ -359,21 +346,7 @@ async def on_message_edit(before, after):
         f'#{before.channel.name} | {before.author}: {(before.content or "[]")[:80]} â†’ {(after.content or "[]")[:80]}',
         before.author.id,
     )
-    log_ch = before.guild.get_channel(MESSAGE_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
-    embed = discord.Embed(
-        title="\u270F\uFE0F Nachricht bearbeitet",
-        description=(
-            f"**Benutzer:** {before.author.mention} (`{before.author}`)\n"
-            f"**Kanal:** {before.channel.mention}\n"
-            f"**Vorher:** {before.content[:250] if before.content else '*Kein Text*'}\n"
-            f"**Nachher:** {after.content[:250] if after.content else '*Kein Text*'}"
-        ),
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await log_ch.send(embed=embed)
+    # Embed-Log wird von logs_events.py übernommen (kein Duplikat)
 
 
 @bot.event
@@ -467,9 +440,6 @@ async def on_member_ban(guild, user):
 @bot.event
 async def on_member_remove(member):
     guild  = member.guild
-    log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
     await asyncio.sleep(1)
     action = "verlassen"
     mod    = None
@@ -494,19 +464,7 @@ async def on_member_remove(member):
         f'{member} ({member.id}) {action}' + (f' | Von: {mod}' if mod else ''),
         member.id,
     )
-    description = f"**Benutzer:** {member.mention} (`{member}`)\n**Aktion:** {action}"
-    if mod:
-        description += f"\n**Von:** {mod.mention} (`{mod}`)"
-    if reason:
-        description += f"\n**Grund:** {reason}"
-    title = "\U0001F462 Mitglied gekickt" if action == "gekickt" else "\U0001F6AA Mitglied hat den Server verlassen"
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await log_ch.send(embed=embed)
+    # Embed-Log wird von logs_events.py übernommen (kein Duplikat)
 
     goodbye_ch = guild.get_channel(GOODBYE_CHANNEL_ID)
     if goodbye_ch:
@@ -608,15 +566,7 @@ async def on_member_join(member):
     _dh.update_member(member)
     _dh.log_activity("MITGLIED", f"{member} ({member.id}) ist dem Server beigetreten", member.id)
 
-    member_log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
-    if member_log_ch:
-        embed = discord.Embed(
-            title="\u2705 Mitglied beigetreten",
-            description=f"**Benutzer:** {member.mention} (`{member}`)",
-            color=LOG_COLOR,
-            timestamp=datetime.now(timezone.utc)
-        )
-        await member_log_ch.send(embed=embed)
+    # Embed-Log wird von logs_events.py übernommen (kein Duplikat)
 
     inviter      = None
     inviter_uses = 0
