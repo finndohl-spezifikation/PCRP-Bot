@@ -1,17 +1,46 @@
 # -*- coding: utf-8 -*-
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-# team_overview.py \u2014 Team \u00DCbersicht mit On/Off Duty System
+# ══════════════════════════════════════════════════════════════════════════════════════
+# team_overview.py — Team Übersicht mit On/Off Duty System
 # Paradise City Roleplay Discord Bot
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# ══════════════════════════════════════════════════════════════════════════════════════
 
 from config import *
 
-# Zusätzliche Rollen für die Team-Übersicht
-TEAM_ROLES = list(TEAM_ROLES) + [1498395437206601828, 1498395500137807932]
-TEAM_ROLE_IDS = set(TEAM_ROLES)
+# ── Hierarchie: (role_id, outfit_text oder None) ──────────────────────────────────────
+# Reihenfolge bestimmt die Anzeigereihenfolge im Embed.
+# Rollen ohne Outfit-Beschreibung: None eintragen.
+# ─────────────────────────────────────────────────────────────────────────────────────
+TEAM_HIERARCHIE = [
+    (1490855647259136053, "Teamoutfit Schwarz"),    # Owner
+    (1490855648978669599, "Teamoutfit Schwarz"),    # Stv Owner
+    (1490855654347505706, "Teamoutfit Weiß"),       # Server Leitung
+    (1490855657543303239, "Teamoutfit Weiß"),       # Stv Serverleitung
+    (1490855655408664577, "Teamoutfit Blau"),       # Teamleitung
+    (1490855656352251987, "Teamoutfit Blau"),       # Stv Teamleitung
+    (1490855659506372743, "Teamoutfit Rot"),        # Projektleitung
+    (1490855661137956879, "Teamoutfit Rot"),        # Stv Projektleitung
+    (1496136847338770693, "Teamoutfit Gelb"),       # Community Manager (NEU)
+    (1490855664854106225, "Teamoutfit Weißgelb"),   # Administration
+    (1490855679282516100, "Teamoutfit Weißpink"),   # Moderation
+    (1490855680708579389, "Teamoutfit Weißgrau"),   # Support Leitung
+    (1490855688208126095, "Teamoutfit Weißgrau"),   # Stv Support Leitung
+    (1490855689424212110, "Teamoutfit Weißgrün"),   # Supporter
+    (1490855690183381087, None),
+    (1492678578071146536, None),
+    (1492678644277969048, None),
+    (1490855692477923520, None),
+    (1490855693786550404, None),
+    (1490855695363342358, None),
+    (1490855695912931329, None),
+    (1498395437206601828, None),
+    (1498395500137807932, None),
+]
+
+# IDs aller Team-Rollen (für Button-Berechtigung)
+TEAM_ROLE_IDS = set(rid for rid, _ in TEAM_HIERARCHIE) | set(TEAM_ROLES)
 
 
-# \u2500\u2500 Datei-Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── Datei-Helpers ─────────────────────────────────────────────────────────────────────
 
 def load_duty():
     if DUTY_FILE.exists():
@@ -25,7 +54,7 @@ def save_duty(data):
         json.dump(data, f, indent=2)
 
 
-# \u2500\u2500 Embed Builder \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── Embed Builder ─────────────────────────────────────────────────────────────────────
 
 def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     on_duty_set = set(duty_data.get("on_duty", []))
@@ -35,24 +64,32 @@ def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     on_count  = 0
     off_count = 0
 
-    for role_id in TEAM_ROLES:
+    for role_id, outfit in TEAM_HIERARCHIE:
         role = guild.get_role(role_id)
         if not role:
             continue
 
-        mitglieder = [m for m in role.members if not m.bot]
-        if not mitglieder:
-            continue
-
+        # Rollenname immer anzeigen
         lines.append(f"\n**{role.name}**")
-        for m in sorted(mitglieder, key=lambda x: x.display_name.lower()):
-            if m.id in on_duty_set:
-                lines.append(f"> {m.mention} \U0001F7E2")
-                on_count  += 1
-            else:
-                lines.append(f"> {m.mention} \U0001F534")
-                off_count += 1
-            gesamt += 1
+
+        # Outfit-Text in Kursiv direkt darunter
+        if outfit:
+            lines.append(f"*{outfit}*")
+
+        mitglieder = [m for m in role.members if not m.bot]
+
+        if not mitglieder:
+            lines.append("*(Rolle nicht besetzt)*")
+        else:
+            for m in sorted(mitglieder, key=lambda x: x.display_name.lower()):
+                if m.id in on_duty_set:
+                    lines.append(f"> {m.mention} \U0001F7E2")
+                    on_count  += 1
+                else:
+                    lines.append(f"> {m.mention} \U0001F534")
+                    off_count += 1
+                gesamt += 1
+
         lines.append("")
 
     beschreibung = "\n".join(lines)
@@ -72,7 +109,7 @@ def build_team_embed(guild: discord.Guild, duty_data: dict) -> discord.Embed:
     return embed
 
 
-# \u2500\u2500 Persistent View \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── Persistent View ───────────────────────────────────────────────────────────────────
 
 class TeamOverviewView(discord.ui.View):
     def __init__(self):
@@ -140,7 +177,7 @@ class TeamOverviewView(discord.ui.View):
         await self._update_embed(interaction)
 
 
-# \u2500\u2500 Auto Setup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── Auto Setup ────────────────────────────────────────────────────────────────────────
 
 async def auto_team_setup():
     for guild in bot.guilds:
@@ -162,7 +199,7 @@ async def auto_team_setup():
             except Exception:
                 pass
 
-        # Altes Embed suchen und l\u00F6schen
+        # Altes Embed suchen und löschen
         try:
             async for msg in channel.history(limit=20):
                 if msg.author.id == bot.user.id and msg.embeds:
@@ -186,11 +223,11 @@ async def auto_team_setup():
             print(f"[team_overview] Fehler: {e}")
 
 
-# \u2500\u2500 Slash Command: /team-refresh \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+# ── Slash Command: /team-refresh ──────────────────────────────────────────────────────
 
 @bot.tree.command(
     name="team-refresh",
-    description="[Team] Aktualisiert die Team-\u00DCbersicht manuell",
+    description="[Team] Aktualisiert die Team-Übersicht manuell",
     guild=discord.Object(id=GUILD_ID),
 )
 async def team_refresh(interaction: discord.Interaction):
