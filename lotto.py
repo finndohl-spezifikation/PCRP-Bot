@@ -5,6 +5,7 @@
 # ══════════════════════════════════════════════════════════════
 
 from config import *
+from kanal_sperre import is_sperre_aktiv
 from economy_helpers import load_economy, save_economy, get_user, normalize_item_name
 
 LOTTO_CHANNEL_ID    = 1492636063817138216
@@ -266,6 +267,9 @@ class LottoView(discord.ui.View):
         custom_id="lotto:spielen",
     )
     async def spielen(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         await interaction.response.send_modal(LottoModal())
 
 
