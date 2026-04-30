@@ -28,6 +28,7 @@ async def setup_all_embeds():
     _try_import("handy",         "handy",            "auto_handy_setup")
     _try_import("casino",        "casino",           "auto_casino_setup")
     _try_import("dienst",        "dienst",           "auto_dienst_setup")
+    _try_import("regelwerk",     "regelwerk",         "auto_regelwerk_setup")
     _try_import("team_overview", "team_overview",    "auto_team_setup")
     _try_import("boost",         "boost",            "auto_boost_setup")
     _try_import("lotto",         "lotto",            "auto_lotto_setup")
