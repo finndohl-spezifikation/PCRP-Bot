@@ -232,7 +232,9 @@ async def on_message(message):
         if URL_RE.search(message.content):
             await handle_link_outside_memes(message)
             return
-    if not is_mod_or_admin(member) and contains_vulgar(message.content):
+    _VULGAR_EXEMPT_ROLES = {1490855648978669599}
+    _hat_vulgar_exempt = any(r.id in _VULGAR_EXEMPT_ROLES for r in getattr(member, 'roles', []))
+    if not is_mod_or_admin(member) and not _hat_vulgar_exempt and contains_vulgar(message.content):
         await handle_vulgar_message(message)
         return
 
