@@ -7,6 +7,7 @@
 import json
 import re as _re
 from config import *
+from kanal_sperre import is_sperre_aktiv
 from helpers import is_admin
 from economy_helpers import (
     load_economy, save_economy, get_user, load_shop, save_shop,
@@ -560,6 +561,9 @@ class CartCheckoutView(TimedDisableView):
 
     @discord.ui.button(label="\u2705 Kaufen", style=discord.ButtonStyle.green)
     async def checkout(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         uid  = interaction.user.id
         cart = _SHOP_CARTS.get(uid, [])
         if not cart:
@@ -658,6 +662,9 @@ class CartCheckoutView(TimedDisableView):
 
     @discord.ui.button(label="\U0001F5D1\uFE0F Warenkorb leeren", style=discord.ButtonStyle.red)
     async def clear_cart(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         _SHOP_CARTS.pop(interaction.user.id, None)
         embed = discord.Embed(
             title="\U0001F5D1\uFE0F Warenkorb geleert",
@@ -1213,6 +1220,9 @@ class ShopAddConfirmView(TimedDisableView):
 
     @discord.ui.button(label="\u2705 Best\u00E4tigen", style=discord.ButtonStyle.green)
     async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         # EPHEMERAL defer \u2014 matcht die ephemere Original-Nachricht,
         # verhindert "Interaktion fehlgeschlagen" sicher.
         try:
@@ -1321,6 +1331,9 @@ class ShopAddConfirmView(TimedDisableView):
 
     @discord.ui.button(label="\u274C Abbrechen", style=discord.ButtonStyle.red)
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if is_sperre_aktiv():
+            await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
+            return
         for child in self.children:
             child.disabled = True
         await interaction.response.edit_message(
