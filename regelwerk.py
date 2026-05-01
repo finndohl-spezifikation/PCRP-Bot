@@ -251,11 +251,6 @@ async def auto_regelwerk_setup():
     guild=discord.Object(id=GUILD_ID),
 )
 async def setup_regelwerk(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(
-        r.id in {INHABER_ROLE_ID, ADMIN_ROLE_ID} for r in interaction.user.roles
-    ):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
-        return
 
     await interaction.response.defer(ephemeral=True)
 
