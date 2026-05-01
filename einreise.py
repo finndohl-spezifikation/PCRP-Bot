@@ -55,102 +55,7 @@ async def _assign_charakter_rollen(member: discord.Member, guild: discord.Guild,
         pass
 
 
-# ── Spieler-Modal (ersetzt DM Q&A) ──────────────────────────────
 
-class SpielerAusweisModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen"):
-    vollstaendiger_name = discord.ui.TextInput(
-        label="Vollständiger Name (Vorname Nachname)",
-        placeholder="z.B. Max Mustermann",
-        max_length=100,
-    )
-    geburtsdatum = discord.ui.TextInput(
-        label="Geburtsdatum",
-        placeholder="TT.MM.JJJJ",
-        max_length=10,
-    )
-    alter = discord.ui.TextInput(
-        label="Alter",
-        placeholder="z.B. 25",
-        max_length=3,
-    )
-    nationalitaet = discord.ui.TextInput(
-        label="Nationalität / Herkunft",
-        placeholder="z.B. Deutsch, Amerikanisch",
-        max_length=50,
-    )
-    wohnort = discord.ui.TextInput(
-        label="Wohnort",
-        placeholder="z.B. Los Santos",
-        max_length=100,
-    )
-
-    def __init__(self, einreise_typ: str):
-        super().__init__()
-        self.einreise_typ = einreise_typ
-
-    async def on_submit(self, interaction: discord.Interaction):
-        import traceback as _tb, logging as _log
-        try:
-            member = interaction.user
-            guild  = interaction.guild or bot.get_guild(GUILD_ID)
-
-            name_parts = self.vollstaendiger_name.value.strip().split(None, 1)
-            vorname    = name_parts[0] if name_parts else "?"
-            nachname   = name_parts[1] if len(name_parts) > 1 else "?"
-
-            ausweisnummer = generate_ausweisnummer()
-            typ_label     = "\U0001F935 Legale Einreise" if self.einreise_typ == "legal" else "\U0001F977 Illegale Einreise"
-
-            ausweis_data = load_ausweis()
-            ausweis_data[str(member.id)] = {
-                "vorname":       vorname,
-                "nachname":      nachname,
-                "geburtsdatum":  self.geburtsdatum.value,
-                "alter":         self.alter.value,
-                "nationalitaet": self.nationalitaet.value,
-                "wohnort":       self.wohnort.value,
-                "einreise_typ":  self.einreise_typ,
-                "ausweisnummer": ausweisnummer,
-                "discord_name":  str(member),
-                "discord_id":    member.id,
-            }
-            save_ausweis(ausweis_data)
-
-            if guild:
-                await _assign_charakter_rollen(member, guild, self.einreise_typ)
-
-            embed = discord.Embed(
-                title="\U0001FAAA Ausweis ausgestellt",
-                description="Dein Ausweis wurde erfolgreich erstellt! \U0001F389",
-                color=0x000000,
-                timestamp=datetime.now(timezone.utc),
-            )
-            embed.add_field(name="Name",           value=f"{vorname} {nachname}",      inline=True)
-            embed.add_field(name="Geburtsdatum",   value=self.geburtsdatum.value,       inline=True)
-            embed.add_field(name="Alter",          value=self.alter.value,              inline=True)
-            embed.add_field(name="Nationalität",   value=self.nationalitaet.value,      inline=True)
-            embed.add_field(name="Wohnort",        value=self.wohnort.value,            inline=True)
-            embed.add_field(name="Einreiseart",    value=typ_label,                     inline=True)
-            embed.add_field(name="Ausweisnummer",  value=f"`{ausweisnummer}`",          inline=False)
-            embed.set_thumbnail(url=member.display_avatar.url)
-            embed.set_footer(text="Paradise City Roleplay — Ausweis")
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        except Exception as _e:
-            _log.error(f"[SpielerAusweisModal] FEHLER: {_e}\n{_tb.format_exc()}")
-            try:
-                await interaction.response.send_message(
-                    f"\u274C Fehler beim Erstellen: `{type(_e).__name__}: {_e}`\nBitte einen Admin informieren.",
-                    ephemeral=True
-                )
-            except Exception:
-                try:
-                    await interaction.followup.send(
-                        f"\u274C Fehler: `{type(_e).__name__}: {_e}`", ephemeral=True
-                    )
-                except Exception:
-                    pass
 
 
 # ── Admin-Modal ──────────────────────────────────────────────────────────────
@@ -283,7 +188,7 @@ class EinreiseSelect(discord.ui.Select):
 
         if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
             await interaction.response.send_message(
-                "\u274C Du hast bereits eine Einreiseart gewählt. Eine Änderung ist nur durch den RP-Tod möglich.",
+                "\u274C Du hast bereits eine Einreiseart gew\u00e4hlt. Eine \u00c4nderung ist nur durch den RP-Tod m\u00f6glich.",
                 ephemeral=True
             )
             return
@@ -297,7 +202,24 @@ class EinreiseSelect(discord.ui.Select):
             )
             return
 
-        await interaction.response.send_modal(SpielerAusweisModal(einreise_typ=typ))
+        from dashboard import get_ausweis_url
+        link      = get_ausweis_url(member.id, typ)
+        typ_label = "\U0001F935 Legale Einreise" if typ == "legal" else "\U0001F977 Illegale Einreise"
+
+        view = discord.ui.View()
+        view.add_item(discord.ui.Button(
+            label="\U0001FAAA Ausweis erstellen",
+            style=discord.ButtonStyle.link,
+            url=link,
+        ))
+
+        await interaction.response.send_message(
+            f"**{typ_label}** ausgew\u00e4hlt.\n"
+            "Klicke auf den Button um deinen Ausweis im Browser auszuf\u00fcllen.\n"
+            "\u23F1\uFE0F Der Link ist **15 Minuten** g\u00fcltig.",
+            view=view,
+            ephemeral=True
+        )
 
 
 class EinreiseView(discord.ui.View):
