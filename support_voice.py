@@ -346,9 +346,6 @@ async def support_voice_state(
 ])
 async def cmd_support_lobby(interaction: discord.Interaction, status: str) -> None:
     global _lobby_open
-    if interaction.user.id != OWNER_ID and not any(r.id in {ADMIN_ROLE_ID, MOD_ROLE_ID} for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
     _lobby_open = status == "open"
     _save_status(_lobby_open)
     if _EDGE_OK:
