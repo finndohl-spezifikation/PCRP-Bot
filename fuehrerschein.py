@@ -206,9 +206,6 @@ async def fuehrerschein(interaction: discord.Interaction, nutzer: discord.Member
     role_ids = [r.id for r in interaction.user.roles]
     is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
 
-    if CITIZEN_ROLE_ID not in role_ids and not is_team:
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     target = nutzer if (is_team and nutzer) else interaction.user
 
@@ -585,9 +582,6 @@ class FahrlehrerLizenzEntzugModal(discord.ui.Modal, title="\U0001F6AB Fahrlehrer
 )
 @app_commands.describe(nutzer="Spieler f\u00FCr den die Fahrlehrer-Lizenz ausgestellt wird")
 async def create_fahrlehrer(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
     await interaction.response.send_modal(FahrlehrerLizenzModal(zielperson=nutzer))
 
 
@@ -649,7 +643,4 @@ async def fahrlehrer_lizenz(interaction: discord.Interaction, nutzer: discord.Me
 )
 @app_commands.describe(nutzer="Spieler dem die Fahrlehrer-Lizenz entzogen werden soll")
 async def remove_lizenz(interaction: discord.Interaction, nutzer: discord.Member):
-    if interaction.user.id != OWNER_ID and not any(r.id in (FUEHRERSCHEIN_ENTZIEHEN_ROLE_ID, ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
     await interaction.response.send_modal(FahrlehrerLizenzEntzugModal(zielperson=nutzer))
