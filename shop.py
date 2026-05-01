@@ -1155,9 +1155,6 @@ async def refresh_all_shop_embeds():
 )
 async def shop_refresh(interaction: discord.Interaction):
     """Diagnose-Command: refresht alle Shop-Embeds und zeigt Status pro Shop."""
-    if not _is_shop_admin(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
 
     await interaction.response.defer(ephemeral=True)
 
@@ -1373,9 +1370,6 @@ async def shop_add(
     shop: str,
     rolle: discord.Role = None
 ):
-    if not _is_shop_admin(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
     if preis <= 0 and shop != "team":
         await interaction.response.send_message("\u274C Preis muss gr\u00F6\u00DFer als 0 sein.", ephemeral=True)
         return
@@ -1450,9 +1444,6 @@ async def shop_edit(
     neuer_name: str = None,
     shop: app_commands.Choice[str] = None
 ):
-    if not _is_shop_admin(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
 
     if neuer_preis is None and neuer_name is None and shop is None:
         await interaction.response.send_message(
@@ -1595,9 +1586,6 @@ async def shop_edit(
 @app_commands.describe(itemname="Name des Items das entfernt werden soll")
 @app_commands.autocomplete(itemname=all_shops_item_autocomplete)
 async def delete_item(interaction: discord.Interaction, itemname: str):
-    if not _is_shop_admin(interaction.user):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     # Defer damit Discord nicht timeoutet (auto_shop_setup braucht >3s)
     await interaction.response.defer(ephemeral=True)
