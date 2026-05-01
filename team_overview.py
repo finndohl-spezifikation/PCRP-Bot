@@ -131,12 +131,6 @@ class TeamOverviewView(discord.ui.View):
         if is_sperre_aktiv():
             await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
             return
-        if not self._is_team(interaction.user):
-            await interaction.response.send_message(
-                "\u274C Nur Teammitglieder k\u00F6nnen ihren Dienststatus \u00E4ndern.",
-                ephemeral=True,
-            )
-            return
 
         duty_data = load_duty()
         uid = interaction.user.id
@@ -158,12 +152,6 @@ class TeamOverviewView(discord.ui.View):
     async def off_duty_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         if is_sperre_aktiv():
             await interaction.response.send_message("🔒 Das Ausführen von Commands ist während die RP Lobby geschlossen ist nicht möglich.", ephemeral=True)
-            return
-        if not self._is_team(interaction.user):
-            await interaction.response.send_message(
-                "\u274C Nur Teammitglieder k\u00F6nnen ihren Dienststatus \u00E4ndern.",
-                ephemeral=True,
-            )
             return
 
         duty_data = load_duty()
@@ -229,9 +217,6 @@ async def auto_team_setup():
     guild=discord.Object(id=GUILD_ID),
 )
 async def team_rollen(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id in {INHABER_ROLE_ID} for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     zeilen = ["**Rollen nach Position (oben = höchste Rolle):**\n"]
     for role in sorted(interaction.guild.roles, reverse=True):
@@ -263,9 +248,6 @@ async def team_rollen(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 async def setup_teamembed(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id in TEAM_ROLE_IDS | {INHABER_ROLE_ID} for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     await interaction.response.defer(ephemeral=True)
 
