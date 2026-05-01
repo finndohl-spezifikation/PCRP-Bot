@@ -393,9 +393,6 @@ class BanListView(discord.ui.View):
     guild=discord.Object(id=GUILD_ID),
 )
 async def ban_list(interaction: discord.Interaction):
-    if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.followup.send("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     await interaction.response.defer(ephemeral=True)
     try:
