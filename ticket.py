@@ -561,9 +561,6 @@ TICKET_INFO_CHANNEL_ID = 1490885002030874775
     guild=discord.Object(id=GUILD_ID)
 )
 async def cmd_setup_ticket(interaction: discord.Interaction):
-    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-        await interaction.response.send_message("\u274c Kein Zugriff.", ephemeral=True)
-        return
 
     await interaction.response.defer(ephemeral=True)
 
