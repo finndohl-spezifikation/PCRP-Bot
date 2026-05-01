@@ -198,9 +198,15 @@ async def on_message(message):
         return
     member = message.author
 
-    # DMs haben kein Guild-Objekt \u2014 Server-Filter \u00FCberspringen
+    # DMs \u2014 Bot antwortet nicht auf eingehende DMs
     if not message.guild:
-        await bot.process_commands(message)
+        try:
+            await message.channel.send(
+                "\u26D4 **Dieser Bot akzeptiert keine Direktnachrichten.**\n"
+                "Bitte nutze die entsprechenden Kan\u00e4le auf dem Paradise City Roleplay Server."
+            )
+        except Exception:
+            pass
         return
 
     if message.channel.id == COUNTING_CHANNEL_ID:
