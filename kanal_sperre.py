@@ -138,9 +138,6 @@ def _build_sperre_embed() -> discord.Embed:
     guild=discord.Object(id=GUILD_ID),
 )
 async def kanal_sperre(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
-        return
 
     if _load():
         await interaction.response.send_message(
@@ -250,9 +247,6 @@ async def kanal_sperre(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID),
 )
 async def kanal_entsperren(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Keine Berechtigung.", ephemeral=True)
-        return
 
     data = _load()
     if not data:
