@@ -1112,6 +1112,269 @@ def api_bot_commands():
 
 # â”€â”€ Starter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+
+
+# ── Ausweis Web-Formular ─────────────────────────────────────────────────────
+
+import ausweis_tokens as _at
+import random as _rnd, string as _str
+
+_AUSWEIS_BASE_URL = os.environ.get(
+    "DASHBOARD_URL",
+    "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev"
+)
+
+_AUSWEIS_FORM_HTML = """<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ausweis erstellen – Paradise City</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:#0d0f14;font-family:'Segoe UI',system-ui,sans-serif;padding:20px}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 80%,rgba(255,107,0,.15) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 50% at 80% 20%,rgba(255,140,0,.12) 0%,transparent 60%);
+  pointer-events:none}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,107,0,.2);
+  border-radius:20px;padding:44px 40px;width:100%;max-width:500px;
+  backdrop-filter:blur(20px);box-shadow:0 24px 60px rgba(0,0,0,.5);
+  position:relative;z-index:1;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.logo{text-align:center;margin-bottom:28px}
+.logo-icon{display:inline-flex;width:72px;height:72px;border-radius:20px;
+  background:linear-gradient(135deg,#FF6B00,#FF8C00);align-items:center;
+  justify-content:center;font-size:34px;box-shadow:0 8px 24px rgba(255,107,0,.4);margin-bottom:14px}
+h1{color:#fff;font-size:22px;font-weight:700;text-align:center}
+.badge{display:inline-block;background:rgba(255,107,0,.15);border:1px solid rgba(255,107,0,.3);
+  color:#FF8C00;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;
+  margin:10px auto 28px;text-align:center}
+.field{margin-bottom:18px}
+label{display:block;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;
+  letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
+input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;color:#fff;font-size:14px;padding:12px 14px;
+  transition:border-color .2s,box-shadow .2s;outline:none}
+input::placeholder{color:rgba(255,255,255,.3)}
+input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.15)}
+.error-msg{background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);
+  color:#e74c3c;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:20px}
+.btn{width:100%;background:linear-gradient(135deg,#FF6B00,#FF8C00);border:none;
+  border-radius:12px;color:#fff;font-size:15px;font-weight:700;padding:14px;
+  cursor:pointer;letter-spacing:.3px;transition:opacity .2s,transform .1s;
+  box-shadow:0 6px 20px rgba(255,107,0,.35);margin-top:8px}
+.btn:hover{opacity:.9}.btn:active{transform:scale(.98)}
+.hint{color:rgba(255,255,255,.25);font-size:11px;text-align:center;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">&#x1FAAA;</div>
+    <h1>Ausweis erstellen</h1>
+  </div>
+  <div class="badge">{{ typ_label }}</div>
+  {% if error %}
+  <div class="error-msg">&#x274C; {{ error }}</div>
+  {% endif %}
+  <form method="POST" action="/ausweis/{{ token }}">
+    <div class="field">
+      <label>Vollst&#228;ndiger Name</label>
+      <input type="text" name="name" placeholder="Vorname Nachname" required maxlength="100" value="{{ name or '' }}">
+    </div>
+    <div class="field">
+      <label>Geburtsdatum</label>
+      <input type="text" name="geburtsdatum" placeholder="TT.MM.JJJJ" required maxlength="10" value="{{ geburtsdatum or '' }}">
+    </div>
+    <div class="field">
+      <label>Alter</label>
+      <input type="number" name="alter" placeholder="z.B. 25" required min="1" max="120" value="{{ alter or '' }}">
+    </div>
+    <div class="field">
+      <label>Nationalit&#228;t</label>
+      <input type="text" name="nationalitaet" placeholder="z.B. Deutsch" required maxlength="50" value="{{ nationalitaet or '' }}">
+    </div>
+    <div class="field">
+      <label>Wohnort</label>
+      <input type="text" name="wohnort" placeholder="z.B. Los Santos" required maxlength="100" value="{{ wohnort or '' }}">
+    </div>
+    <button type="submit" class="btn">&#x1FAAA; Ausweis beantragen</button>
+  </form>
+  <p class="hint">&#x23F1;&#xFE0F; Dieser Link ist 15 Minuten g&#xFC;ltig &mdash; Paradise City Roleplay</p>
+</div>
+</body>
+</html>"""
+
+_AUSWEIS_SUCCESS_HTML = """<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ausweis ausgestellt – Paradise City</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:#0d0f14;font-family:'Segoe UI',system-ui,sans-serif;padding:20px}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 80%,rgba(46,204,113,.12) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 50% at 80% 20%,rgba(255,107,0,.1) 0%,transparent 60%);
+  pointer-events:none}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(46,204,113,.25);
+  border-radius:20px;padding:44px 40px;width:100%;max-width:480px;
+  backdrop-filter:blur(20px);box-shadow:0 24px 60px rgba(0,0,0,.5);
+  position:relative;z-index:1;animation:fadeUp .4s ease;text-align:center}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.icon{font-size:56px;margin-bottom:16px}
+h1{color:#2ecc71;font-size:24px;font-weight:700;margin-bottom:8px}
+.sub{color:rgba(255,255,255,.5);font-size:14px;margin-bottom:28px}
+.info-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;padding:18px 20px;text-align:left}
+.info-row{display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+.info-row:last-child{border-bottom:none}
+.info-label{color:rgba(255,255,255,.45);font-weight:600;text-transform:uppercase;
+  font-size:11px;letter-spacing:.4px}
+.info-val{color:#fff;font-weight:500}
+.ausweis-nr{font-family:monospace;background:rgba(255,107,0,.15);
+  color:#FF8C00;padding:2px 8px;border-radius:6px;font-size:13px}
+.hint{color:rgba(255,255,255,.25);font-size:12px;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">&#x1F389;</div>
+  <h1>Ausweis ausgestellt!</h1>
+  <p class="sub">Dein Charakter wurde erfolgreich registriert.</p>
+  <div class="info-box">
+    <div class="info-row">
+      <span class="info-label">Name</span>
+      <span class="info-val">{{ name }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Einreiseart</span>
+      <span class="info-val">{{ typ_label }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Ausweisnummer</span>
+      <span class="info-val ausweis-nr">{{ ausweisnummer }}</span>
+    </div>
+  </div>
+  <p class="hint">&#x2705; Deine Rollen wurden automatisch vergeben &mdash; du kannst dieses Fenster jetzt schlie&#xDF;en.</p>
+</div>
+</body>
+</html>"""
+
+_AUSWEIS_ERROR_HTML = """<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fehler – Paradise City</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:#0d0f14;font-family:'Segoe UI',system-ui,sans-serif;padding:20px}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(231,76,60,.25);
+  border-radius:20px;padding:44px 40px;width:100%;max-width:420px;
+  text-align:center;animation:fadeUp .4s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.icon{font-size:52px;margin-bottom:16px}
+h1{color:#e74c3c;font-size:22px;font-weight:700;margin-bottom:10px}
+p{color:rgba(255,255,255,.5);font-size:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">&#x274C;</div>
+  <h1>Link ung&#xFC;ltig</h1>
+  <p>{{ error }}</p>
+  <p style="margin-top:14px;font-size:12px;color:rgba(255,255,255,.25)">Bitte erneut im Discord-Server ausw&#xE4;hlen.</p>
+</div>
+</body>
+</html>"""
+
+
+@app.route("/ausweis/<token>", methods=["GET"])
+def ausweis_form(token):
+    entry = _at.get(token)
+    if not entry:
+        return render_template_string(_AUSWEIS_ERROR_HTML,
+                                      error="Dieser Link ist abgelaufen oder wurde bereits verwendet.")
+    typ_label = "\U0001F935 Legale Einreise" if entry["einreise_typ"] == "legal" else "\U0001F977 Illegale Einreise"
+    return render_template_string(_AUSWEIS_FORM_HTML, token=token, typ_label=typ_label,
+                                   name="", geburtsdatum="", alter="", nationalitaet="", wohnort="", error=None)
+
+
+@app.route("/ausweis/<token>", methods=["POST"])
+def ausweis_submit(token):
+    entry = _at.get(token)
+    if not entry:
+        return render_template_string(_AUSWEIS_ERROR_HTML,
+                                      error="Dieser Link ist abgelaufen oder wurde bereits verwendet.")
+
+    name          = request.form.get("name", "").strip()
+    geburtsdatum  = request.form.get("geburtsdatum", "").strip()
+    alter         = request.form.get("alter", "").strip()
+    nationalitaet = request.form.get("nationalitaet", "").strip()
+    wohnort       = request.form.get("wohnort", "").strip()
+
+    if not all([name, geburtsdatum, alter, nationalitaet, wohnort]):
+        typ_label = "\U0001F935 Legale Einreise" if entry["einreise_typ"] == "legal" else "\U0001F977 Illegale Einreise"
+        return render_template_string(_AUSWEIS_FORM_HTML, token=token, typ_label=typ_label,
+                                       error="Bitte alle Felder ausf\u00fcllen.",
+                                       name=name, geburtsdatum=geburtsdatum,
+                                       alter=alter, nationalitaet=nationalitaet, wohnort=wohnort)
+
+    uid          = entry["uid"]
+    einreise_typ = entry["einreise_typ"]
+
+    letters       = _rnd.choices(_str.ascii_uppercase, k=2)
+    digits        = _rnd.choices(_str.digits, k=6)
+    ausweisnummer = "".join(letters) + "-" + "".join(digits)
+
+    name_parts = name.split(None, 1)
+    vorname    = name_parts[0] if name_parts else "?"
+    nachname   = name_parts[1] if len(name_parts) > 1 else "?"
+
+    from einreise import load_ausweis, save_ausweis, _assign_charakter_rollen
+    ausweis_data = load_ausweis()
+    ausweis_data[str(uid)] = {
+        "vorname":       vorname,
+        "nachname":      nachname,
+        "geburtsdatum":  geburtsdatum,
+        "alter":         alter,
+        "nationalitaet": nationalitaet,
+        "wohnort":       wohnort,
+        "einreise_typ":  einreise_typ,
+        "ausweisnummer": ausweisnummer,
+        "discord_id":    uid,
+    }
+    save_ausweis(ausweis_data)
+
+    if _bot_ref:
+        guild  = _bot_ref.get_guild(GUILD_ID)
+        member = guild.get_member(uid) if guild else None
+        if member:
+            _call_async(_assign_charakter_rollen(member, guild, einreise_typ))
+
+    _at.consume(token)
+
+    typ_label = "\U0001F935 Legale Einreise" if einreise_typ == "legal" else "\U0001F977 Illegale Einreise"
+    return render_template_string(_AUSWEIS_SUCCESS_HTML,
+                                   name=f"{vorname} {nachname}",
+                                   ausweisnummer=ausweisnummer,
+                                   typ_label=typ_label)
+
+
+def get_ausweis_url(uid: int, einreise_typ: str) -> str:
+    """Wird von einreise.py aufgerufen um einen Einmal-Link zu generieren."""
+    tok = _at.create(uid, einreise_typ)
+    return f"{_AUSWEIS_BASE_URL}/ausweis/{tok}"
+
+
+
 def start_dashboard(bot_instance, host="0.0.0.0", port=8080):
     set_bot(bot_instance)
     t = threading.Thread(
