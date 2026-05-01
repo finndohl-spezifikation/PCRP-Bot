@@ -152,9 +152,6 @@ async def create_giveaway_channel_flow(admin: discord.Member, guild: discord.Gui
 
 @bot.tree.command(name="create-giveaway", description="[Team] Erstellt ein neues Giveaway", guild=discord.Object(id=GUILD_ID))
 async def create_giveaway(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID and not any(r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     await interaction.response.send_message(
         "\U0001F381 **Giveaway-Erstellung gestartet!** Beantworte die Fragen hier im Channel.",
