@@ -1177,6 +1177,7 @@ input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.15)}
     <h1>Ausweis erstellen</h1>
   </div>
   <div class="badge">{{ typ_label }}</div>
+  <p style="color:#e74c3c;font-size:18px;font-weight:700;text-align:center;margin-bottom:22px;line-height:1.4">Bitte aktiviere die DM&#x2011;Nachrichten auf dem Server f&#xFC;r das RP</p>
   {% if error %}
   <div class="error-msg">&#x274C; {{ error }}</div>
   {% endif %}
