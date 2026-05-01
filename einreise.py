@@ -4,8 +4,15 @@
 # Paradise City Roleplay Discord Bot
 # ══════════════════════════════════════════════════════════════════
 
+import os, traceback, logging
 from config import *
 from helpers import log_bot_error
+import ausweis_tokens as _at
+
+_DASHBOARD_URL = os.environ.get(
+    "DASHBOARD_URL",
+    "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev"
+)
 
 
 # ── Ausweis Helpers ──────────────────────────────────────────────
@@ -183,43 +190,60 @@ class EinreiseSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        member   = interaction.user
-        role_ids = [r.id for r in member.roles]
+        try:
+            member   = interaction.user
+            role_ids = [r.id for r in member.roles]
 
-        if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
+            if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
+                await interaction.response.send_message(
+                    "\u274C Du hast bereits eine Einreiseart gew\u00e4hlt. Eine \u00c4nderung ist nur durch den RP-Tod m\u00f6glich.",
+                    ephemeral=True
+                )
+                return
+
+            typ = self.values[0]
+            ausweis_data = load_ausweis()
+            if str(member.id) in ausweis_data:
+                await interaction.response.send_message(
+                    "\u274C Du hast bereits einen Ausweis.",
+                    ephemeral=True
+                )
+                return
+
+            tok  = _at.create(member.id, typ)
+            link = f"{_DASHBOARD_URL}/ausweis/{tok}"
+
+            typ_label = "\U0001F935 Legale Einreise" if typ == "legal" else "\U0001F977 Illegale Einreise"
+
+            view = discord.ui.View()
+            view.add_item(discord.ui.Button(
+                label="\U0001FAAA Ausweis erstellen",
+                style=discord.ButtonStyle.link,
+                url=link,
+            ))
+
             await interaction.response.send_message(
-                "\u274C Du hast bereits eine Einreiseart gew\u00e4hlt. Eine \u00c4nderung ist nur durch den RP-Tod m\u00f6glich.",
+                f"**{typ_label}** ausgew\u00e4hlt.\n"
+                "Klicke auf den Button um deinen Ausweis im Browser auszuf\u00fcllen.\n"
+                "\u23F1\uFE0F Der Link ist **15 Minuten** g\u00fcltig.",
+                view=view,
                 ephemeral=True
             )
-            return
 
-        typ = self.values[0]
-        ausweis_data = load_ausweis()
-        if str(member.id) in ausweis_data:
-            await interaction.response.send_message(
-                "\u274C Du hast bereits einen Ausweis.",
-                ephemeral=True
-            )
-            return
-
-        from dashboard import get_ausweis_url
-        link      = get_ausweis_url(member.id, typ)
-        typ_label = "\U0001F935 Legale Einreise" if typ == "legal" else "\U0001F977 Illegale Einreise"
-
-        view = discord.ui.View()
-        view.add_item(discord.ui.Button(
-            label="\U0001FAAA Ausweis erstellen",
-            style=discord.ButtonStyle.link,
-            url=link,
-        ))
-
-        await interaction.response.send_message(
-            f"**{typ_label}** ausgew\u00e4hlt.\n"
-            "Klicke auf den Button um deinen Ausweis im Browser auszuf\u00fcllen.\n"
-            "\u23F1\uFE0F Der Link ist **15 Minuten** g\u00fcltig.",
-            view=view,
-            ephemeral=True
-        )
+        except Exception as _e:
+            logging.error(f"[EinreiseSelect] FEHLER: {_e}\n{traceback.format_exc()}")
+            try:
+                await interaction.response.send_message(
+                    f"\u274C Fehler: `{type(_e).__name__}: {_e}`\nBitte einen Admin informieren.",
+                    ephemeral=True
+                )
+            except Exception:
+                try:
+                    await interaction.followup.send(
+                        f"\u274C Fehler: `{type(_e).__name__}: {_e}`", ephemeral=True
+                    )
+                except Exception:
+                    pass
 
 
 class EinreiseView(discord.ui.View):
