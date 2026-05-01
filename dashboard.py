@@ -1167,6 +1167,7 @@ input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.15)}
   box-shadow:0 6px 20px rgba(255,107,0,.35);margin-top:8px}
 .btn:hover{opacity:.9}.btn:active{transform:scale(.98)}
 .hint{color:rgba(255,255,255,.25);font-size:11px;text-align:center;margin-top:20px}
+.warn-text{color:#e74c3c;font-size:11px;text-align:center;margin-top:14px;margin-bottom:0;line-height:1.5}
 </style>
 </head>
 <body>
@@ -1200,6 +1201,7 @@ input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.15)}
       <label>Wohnort</label>
       <input type="text" name="wohnort" placeholder="z.B. Los Santos" required maxlength="100" value="{{ wohnort or '' }}">
     </div>
+    <p class="warn-text">&#x26A0;&#xFE0F; Bitte gebe hier korrekte Informationen zu deinem RP-Charakter an.<br>Eine &#196;nderung ist sp&#228;ter nur durch den RP-Tod m&#246;glich.</p>
     <button type="submit" class="btn">&#x1FAAA; Ausweis beantragen</button>
   </form>
   <p class="hint">&#x23F1;&#xFE0F; Dieser Link ist 15 Minuten g&#xFC;ltig &mdash; Paradise City Roleplay</p>
