@@ -379,23 +379,14 @@ class KontostandView(TimedDisableView):
 
     @discord.ui.button(label="Einzahlen", emoji="\U0001F3E6", style=discord.ButtonStyle.success)
     async def einzahlen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not has_citizen_or_wage(interaction.user) and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-            await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-            return
         await interaction.response.send_modal(EinzahlenModal())
 
     @discord.ui.button(label="Auszahlen", emoji="\U0001F4B8", style=discord.ButtonStyle.danger)
     async def auszahlen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not has_citizen_or_wage(interaction.user) and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-            await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-            return
         await interaction.response.send_modal(AuszahlenModal())
 
     @discord.ui.button(label="\u00DCberweisen", emoji="\U0001F4B3", style=discord.ButtonStyle.primary)
     async def ueberweisen_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not has_citizen_or_wage(interaction.user) and ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-            await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-            return
         await interaction.response.send_message(
             "**\U0001F4B3 An wen m\u00F6chtest du \u00FCberweisen?**\nW\u00E4hle den Empf\u00E4nger aus der Liste:",
             view=EmpfaengerAuswahlView(),
@@ -660,9 +651,6 @@ async def remove_money(interaction: discord.Interaction, nutzer: discord.Member,
 @app_commands.choices(limit=LIMIT_CHOICES)
 async def set_limit(interaction: discord.Interaction, nutzer: discord.Member, limit: int):
     role_ids = [r.id for r in interaction.user.roles]
-    if ADMIN_ROLE_ID not in role_ids and MOD_ROLE_ID not in role_ids:
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     eco       = load_economy()
     user_data = get_user(eco, nutzer.id)
@@ -952,9 +940,6 @@ async def hard_reset(interaction: discord.Interaction):
 )
 @app_commands.describe(nutzer="Spieler dessen Konto du einsehen m\u00f6chtest")
 async def konto_nutzer(interaction: discord.Interaction, nutzer: discord.Member):
-    if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     eco       = load_economy()
     user_data = get_user(eco, nutzer.id)
@@ -1001,9 +986,6 @@ async def konto_nutzer(interaction: discord.Interaction, nutzer: discord.Member)
     betrag="Betrag in $",
 )
 async def schwarzgeld_add(interaction: discord.Interaction, nutzer: discord.Member, betrag: int):
-    if not any(r.id in (MOD_ROLE_ID, ADMIN_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles):
-        await interaction.response.send_message("\u274c Keine Berechtigung.", ephemeral=True)
-        return
 
     if betrag <= 0:
         await interaction.response.send_message("\u274c Der Betrag muss gr\u00f6\u00dfer als 0 sein.", ephemeral=True)
