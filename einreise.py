@@ -9,10 +9,9 @@ from config import *
 from helpers import log_bot_error
 import ausweis_tokens as _at
 
-_DASHBOARD_URL = os.environ.get(
-    "DASHBOARD_URL",
-    "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev"
-)
+_DASHBOARD_URL_DEFAULT = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev"
+_raw_url = os.environ.get("DASHBOARD_URL", "").strip().rstrip("/")
+_DASHBOARD_URL = _raw_url if _raw_url.startswith("http") else _DASHBOARD_URL_DEFAULT
 
 
 # ── Ausweis Helpers ──────────────────────────────────────────────
