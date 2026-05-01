@@ -7,7 +7,10 @@
 import os, traceback, logging
 from config import *
 from helpers import log_bot_error
-import ausweis_tokens as _at
+try:
+    import ausweis_tokens as _at
+except ImportError:
+    _at = None
 
 _DASHBOARD_URL_DEFAULT = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev"
 _raw_url = os.environ.get("DASHBOARD_URL", "").strip().rstrip("/")
@@ -205,6 +208,13 @@ class EinreiseSelect(discord.ui.Select):
             if str(member.id) in ausweis_data:
                 await interaction.response.send_message(
                     "\u274C Du hast bereits einen Ausweis.",
+                    ephemeral=True
+                )
+                return
+
+            if _at is None:
+                await interaction.response.send_message(
+                    "\u274C Ausweis-System nicht verfügbar. Bitte einen Admin informieren (ausweis_tokens Modul fehlt).",
                     ephemeral=True
                 )
                 return
