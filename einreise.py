@@ -327,9 +327,6 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
     role_ids = [r.id for r in interaction.user.roles]
     is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
 
-    if CITIZEN_ROLE_ID not in role_ids and not is_team:
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     if interaction.channel.id != AUSWEIS_CHANNEL_ID and not is_team:
         await interaction.response.send_message(
@@ -376,9 +373,6 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
 @bot.tree.command(name="ausweis-remove", description="[Admin] Löscht den Ausweis eines Spielers", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="Spieler dessen Ausweis gelöscht werden soll")
 async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Member):
-    if ADMIN_ROLE_ID not in [r.id for r in interaction.user.roles]:
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
 
     ausweis_data = load_ausweis()
     uid = str(nutzer.id)
