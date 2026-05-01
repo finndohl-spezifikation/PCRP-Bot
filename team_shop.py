@@ -85,9 +85,6 @@ class TeamItemSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        if not _is_team(interaction.user):
-            await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-            return
 
         item_name = self.values[0]
         items     = load_team_shop()
@@ -172,9 +169,6 @@ class TeamShopView(TimedDisableView):
     guild=discord.Object(id=GUILD_ID)
 )
 async def items_cmd(interaction: discord.Interaction):
-    if not _is_team(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
 
     embed, total_pages = _build_team_embed(page=0)
     view = TeamShopView(page=0, total_pages=total_pages)
@@ -190,9 +184,6 @@ async def items_cmd(interaction: discord.Interaction):
 )
 @app_commands.describe(itemname="Name des Items")
 async def items_add(interaction: discord.Interaction, itemname: str):
-    if not _is_team(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
 
     itemname = itemname.strip()
     if not itemname:
@@ -227,9 +218,6 @@ async def items_add(interaction: discord.Interaction, itemname: str):
     guild=discord.Object(id=GUILD_ID)
 )
 async def teamshop_cmd(interaction: discord.Interaction):
-    if not _is_team(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
 
     embed, total_pages = _build_team_embed(page=0)
     view = TeamShopView(page=0, total_pages=total_pages)
@@ -257,9 +245,6 @@ async def _team_item_autocomplete(
 @app_commands.describe(itemname="Name des Items")
 @app_commands.autocomplete(itemname=_team_item_autocomplete)
 async def items_delete(interaction: discord.Interaction, itemname: str):
-    if not _is_team(interaction.user):
-        await interaction.response.send_message("\u274C Kein Zugriff.", ephemeral=True)
-        return
 
     items = load_team_shop()
     item  = _find_team_item(items, itemname)
