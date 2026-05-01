@@ -77,9 +77,6 @@ async def delete_messages(interaction: discord.Interaction, anzahl: int):
     nachricht="Nachricht die gesendet werden soll"
 )
 async def anonym_nachricht(interaction: discord.Interaction, user: discord.User, nachricht: str):
-    if not is_team(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -107,9 +104,6 @@ async def anonym_nachricht(interaction: discord.Interaction, user: discord.User,
 # ─────────────────────────────────────────────────────────────────────────────────
 @bot.tree.command(name="server-info", description="[Team] Zeigt Server-Informationen", guild=discord.Object(id=GUILD_ID))
 async def server_info(interaction: discord.Interaction):
-    if not is_team(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -217,9 +211,6 @@ async def setup_angelshop(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID)
 )
 async def kokain_setup(interaction: discord.Interaction):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -242,9 +233,6 @@ async def kokain_setup(interaction: discord.Interaction):
     guild=discord.Object(id=GUILD_ID)
 )
 async def weed_setup(interaction: discord.Interaction):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -271,9 +259,6 @@ async def weed_setup(interaction: discord.Interaction):
     grund="Grund der Warnung"
 )
 async def fraktions_warn(interaction: discord.Interaction, fraktion: str, grund: str):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -300,9 +285,6 @@ async def fraktions_warn(interaction: discord.Interaction, fraktion: str, grund:
     dauer="Dauer der Sperre in Stunden"
 )
 async def fraktions_sperre(interaction: discord.Interaction, fraktion: str, dauer: int):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -328,9 +310,6 @@ async def fraktions_sperre(interaction: discord.Interaction, fraktion: str, daue
     fraktion="Fraktion von der die Warnung entfernt werden soll"
 )
 async def remove_frakwarn(interaction: discord.Interaction, fraktion: str):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -353,9 +332,6 @@ async def remove_frakwarn(interaction: discord.Interaction, fraktion: str):
     guild=discord.Object(id=GUILD_ID)
 )
 async def frak_list(interaction: discord.Interaction):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -382,9 +358,6 @@ async def frak_list(interaction: discord.Interaction):
     kuerzel="Kürzel der Fraktion"
 )
 async def frak_add(interaction: discord.Interaction, name: str, kuerzel: str):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
@@ -410,9 +383,6 @@ async def frak_add(interaction: discord.Interaction, name: str, kuerzel: str):
     fraktion="Fraktion die entfernt werden soll"
 )
 async def frak_remove(interaction: discord.Interaction, fraktion: str):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("❌ Kein Zugriff.", ephemeral=True)
-        return
     
     await interaction.response.defer(ephemeral=True)
     
