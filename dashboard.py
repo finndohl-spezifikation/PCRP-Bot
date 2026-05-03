@@ -1542,15 +1542,21 @@ body::before{
 /* ── Right: photo ── */
 .photo-side{
   flex-shrink:0;
+  width:96px;
   display:flex;flex-direction:column;align-items:center;gap:6px;
   padding-top:4px;
+  overflow:hidden;
 }
-.photo-wrap img,.no-photo{
-  width:90px;height:115px;object-fit:cover;
+.photo-side img,.no-photo{
+  width:90px!important;height:115px!important;
+  min-width:0!important;min-height:0!important;
+  max-width:90px!important;max-height:115px!important;
+  object-fit:cover;
   border-radius:4px;
   border:2px solid #0a2e12;
   display:block;
   box-shadow:2px 2px 10px rgba(0,0,0,.35);
+  flex-shrink:0;
 }
 .no-photo{
   background:linear-gradient(135deg,#c0c8bc,#aab4a6);
