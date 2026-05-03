@@ -48,8 +48,7 @@ def frak_save_msg(data: dict):
 # -- Berechtigung ---------------------------------------------
 
 def frak_hat_recht(interaction: discord.Interaction) -> bool:
-    role_ids = {r.id for r in interaction.user.roles}
-    return bool(role_ids & {INHABER_ROLE_ID, ADMIN_ROLE_ID, DASH_ROLE_ID})
+    return True
 
 
 # -- Frak-Liste Embed -----------------------------------------
