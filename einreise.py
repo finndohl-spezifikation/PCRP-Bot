@@ -7,6 +7,7 @@
 import os, traceback, logging
 from config import *
 from helpers import log_bot_error
+from economy_helpers import load_economy, save_economy, get_user as _get_eco_user
 try:
     import ausweis_tokens as _at
 except ImportError:
@@ -209,8 +210,21 @@ class EinreiseSelect(discord.ui.Select):
                 guild = interaction.guild or bot.get_guild(GUILD_ID)
                 if guild:
                     await _assign_charakter_rollen(member, guild, "illegal")
+                try:
+                    _eco = load_economy()
+                    _ud  = _get_eco_user(_eco, member.id)
+                    if "inventory" not in _ud:
+                        _ud["inventory"] = []
+                    if "\U0001F697| Karin Kuruma" not in _ud["inventory"]:
+                        _ud["inventory"].append("\U0001F697| Karin Kuruma")
+                    save_economy(_eco)
+                except Exception:
+                    pass
                 await interaction.response.send_message(
-                    "\U0001F6AB Als illegaler Bewohner erhältst du keinen Ausweis.",
+                    "\u2705 Einreise erfolgreich! \u2705\n\n"
+                    "Du wurdest als **illegale Person** eingereist.\n"
+                    "Dein Fahrzeug **Karin Kuruma** wurde dir ins Inventar gelegt.\n"
+                    "Als illegaler Bewohner hast du keinen Anspruch auf einen staatlichen Ausweis.",
                     ephemeral=True
                 )
                 return
@@ -271,22 +285,166 @@ class EinreiseView(discord.ui.View):
         super().__init__(timeout=None)
         self.add_item(EinreiseSelect())
 
+    @discord.ui.button(
+        label="\U0001F465 Gruppen-Einreise",
+        style=discord.ButtonStyle.secondary,
+        custom_id="einreise_gruppe_btn",
+        row=1,
+    )
+    async def gruppen_einreise(self, interaction: discord.Interaction, button: discord.ui.Button):
+        role_ids = {r.id for r in interaction.user.roles}
+        if not (any(rid in role_ids for rid in [ADMIN_ROLE_ID, MOD_ROLE_ID, TICKET_MOD_ROLE_ID]) or
+                interaction.user.guild_permissions.administrator):
+            await interaction.response.send_message(
+                "\u274C Nur Team-Mitglieder d\u00fcrfen die Gruppen-Einreise durchf\u00fchren.",
+                ephemeral=True
+            )
+            return
+        await interaction.response.send_modal(GruppenEinreiseModal())
+
+
+class GruppenEinreiseModal(discord.ui.Modal, title="\U0001F465 Gruppen-Einreise"):
+    id1 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 1", placeholder="z.B. 123456789012345678", max_length=21)
+    id2 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 2", placeholder="z.B. 123456789012345678", max_length=21)
+    id3 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 3", placeholder="z.B. 123456789012345678", max_length=21)
+    id4 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 4", placeholder="z.B. 123456789012345678", max_length=21)
+    id5 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 5", placeholder="z.B. 123456789012345678", max_length=21)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild or bot.get_guild(GUILD_ID)
+        ausweis_data = load_ausweis()
+        ids_raw = [
+            self.id1.value.strip(), self.id2.value.strip(),
+            self.id3.value.strip(), self.id4.value.strip(),
+            self.id5.value.strip(),
+        ]
+        members_ok = []
+        errors = []
+        for raw_id in ids_raw:
+            if not raw_id:
+                continue
+            try:
+                uid = int(raw_id)
+                m = guild.get_member(uid)
+                if m is None:
+                    try:
+                        m = await guild.fetch_member(uid)
+                    except Exception:
+                        m = None
+                if m is None:
+                    errors.append(f"`{raw_id}` \u2014 nicht auf dem Server gefunden")
+                    continue
+                role_ids = {r.id for r in m.roles}
+                if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
+                    errors.append(f"{m.mention} \u2014 bereits eingereist")
+                    continue
+                members_ok.append(m)
+            except ValueError:
+                errors.append(f"`{raw_id}` \u2014 ung\u00fcltige ID")
+        if not members_ok:
+            msg = "\u274C Keine g\u00fcltigen Spieler gefunden."
+            if errors:
+                msg += "\n" + "\n".join(errors)
+            await interaction.followup.send(msg, ephemeral=True)
+            return
+        view = GruppenTypView(members_ok, errors)
+        lines = "\n".join(f"\u2022 {m.mention}" for m in members_ok)
+        msg = f"**{len(members_ok)} Spieler bereit.** W\u00e4hle die Einreiseart:\n{lines}"
+        if errors:
+            msg += f"\n\n\u26a0\ufe0f **\u00dcbersprungen ({len(errors)}):**\n" + "\n".join(errors)
+        await interaction.followup.send(msg, view=view, ephemeral=True)
+
+
+class GruppenTypView(discord.ui.View):
+    def __init__(self, members: list, errors: list):
+        super().__init__(timeout=120)
+        self.members = members
+        self.errors  = errors
+
+    @discord.ui.button(label="\u2705 Legal", style=discord.ButtonStyle.success)
+    async def legal_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._process(interaction, "legal")
+
+    @discord.ui.button(label="\U0001F6AB Illegal", style=discord.ButtonStyle.danger)
+    async def illegal_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._process(interaction, "illegal")
+
+    async def _process(self, interaction: discord.Interaction, typ: str):
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild or bot.get_guild(GUILD_ID)
+        results = []
+        for m in self.members:
+            try:
+                await _assign_charakter_rollen(m, guild, typ)
+                _eco = load_economy()
+                _ud  = _get_eco_user(_eco, m.id)
+                _ud["bank"] = _ud.get("bank", 0) + 10_000
+                if "inventory" not in _ud:
+                    _ud["inventory"] = []
+                if "\U0001F697| Enus Huntley S" not in _ud["inventory"]:
+                    _ud["inventory"].append("\U0001F697| Enus Huntley S")
+                save_economy(_eco)
+                if typ == "legal" and _at is not None:
+                    try:
+                        tok  = _at.create(m.id, "legal")
+                        link = f"{_DASHBOARD_URL}/ausweis/{tok}"
+                        dm_embed = discord.Embed(
+                            title="\u2708\ufe0f Willkommen \u2014 Gruppen-Einreise!",
+                            description=(
+                                "Du wurdest als **legale Person** eingereist.\n\n"
+                                "Klicke auf den Button um deinen Ausweis zu erstellen.\n"
+                                "\u23f1\ufe0f Der Link ist **15 Minuten** g\u00fcltig."
+                            ),
+                            color=0xFF6600,
+                        )
+                        dm_view = discord.ui.View()
+                        dm_view.add_item(discord.ui.Button(
+                            label="\U0001FAAA Ausweis erstellen",
+                            style=discord.ButtonStyle.link,
+                            url=link,
+                        ))
+                        await m.send(embed=dm_embed, view=dm_view)
+                        results.append(f"\u2705 {m.mention} \u2014 Legal | Ausweis-DM gesendet")
+                    except Exception:
+                        results.append(f"\u2705 {m.mention} \u2014 Legal | (DM nicht m\u00f6glich)")
+                elif typ == "legal":
+                    results.append(f"\u2705 {m.mention} \u2014 Legal eingereist")
+                else:
+                    results.append(f"\u2705 {m.mention} \u2014 Illegal eingereist")
+            except Exception as _ex:
+                results.append(f"\u274c {m.mention} \u2014 Fehler: {_ex}")
+        typ_label = "Legal" if typ == "legal" else "Illegal"
+        msg = (
+            f"**\U0001F465 Gruppen-Einreise abgeschlossen \u2014 {typ_label}:**\n"
+            + "\n".join(results)
+            + "\n\n\U0001F4B0 Jeder erhielt **10.000$** auf das Bankkonto"
+            + "\n\U0001F697 Jeder erhielt **Enus Huntley S** ins Inventar"
+        )
+        if typ == "illegal":
+            msg += "\n\n\u2705 Einreise erfolgreich! \u2705\nAls illegale Person erh\u00e4ltst du keinen staatlichen Ausweis."
+        await interaction.followup.send(msg, ephemeral=True)
+        self.stop()
+
+
 
 _EINREISE_MSG_FILE = DATA_DIR / "einreise_msg.json"
 
 
-def _load_einreise_msg_id() -> int | None:
+def _load_einreise_msg_id():
     if _EINREISE_MSG_FILE.exists():
         try:
-            return json.load(open(_EINREISE_MSG_FILE))["message_id"]
+            import json as _j
+            return _j.load(open(_EINREISE_MSG_FILE))["message_id"]
         except Exception:
             pass
     return None
 
 
-def _save_einreise_msg_id(mid: int):
+def _save_einreise_msg_id(mid):
+    import json as _j
     with open(_EINREISE_MSG_FILE, "w") as f:
-        json.dump({"message_id": mid}, f)
+        _j.dump({"message_id": mid}, f)
 
 
 async def auto_einreise_setup():
@@ -296,20 +454,27 @@ async def auto_einreise_setup():
             continue
 
         embed = discord.Embed(
-            title="\u2708\uFE0F Einreise — Paradise City Roleplay",
+            title="\u2708\ufe0f Einreise \u2014 Paradise City Roleplay",
             description=(
-                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
-                "\U0001F935\u200D\u2642\uFE0F **Legale Einreise**\n"
-                "\u27A4 Du reist als **legale Person** ein. Keine illegalen Aktivitäten erlaubt.\n\n"
-                "\U0001F977 **Illegale Einreise**\n"
-                "\u27A4 Du reist als **illegale Person** ein. Keine staatlichen Berufe möglich.\n\n"
-                "\u26A0\uFE0F **Hinweis:** Eine Änderung der Einreiseart ist nur durch den RP-Tod deines Charakters möglich."
+                "\u2500" * 32 + "\n"
+                "\U0001F935\u200d\u2642\ufe0f  **Legale Einreise**\n"
+                "\u27a4 Reise als **legale Person** ein und erhalte Zugang zu\n"
+                "\u00a0\u00a0\u00a0staatlichen Berufen, Ausweis & Startfahrzeug.\n\n"
+                "\U0001F977  **Illegale Einreise**\n"
+                "\u27a4 Reise als **illegale Person** ein.\n"
+                "\u00a0\u00a0\u00a0Keine staatlichen Berufe m\u00f6glich.\n"
+                "\u00a0\u00a0\u00a0\u26a0\ufe0f Als illegaler Bewohner erh\u00e4ltst du **keinen staatlichen Ausweis**.\n\n"
+                "\U0001F465  **Gruppen-Einreise** *(nur Team)*\n"
+                "\u27a4 Bis zu 5 Spieler gleichzeitig einreisen lassen.\n"
+                "\u00a0\u00a0\u00a0Jeder erh\u00e4lt **10.000$** & **Enus Huntley S** ins Inventar.\n\n"
+                "\u2500" * 32 + "\n"
+                "\u26a0\ufe0f Eine \u00c4nderung der Einreiseart ist nur durch den **RP-Tod** des Charakters m\u00f6glich."
             ),
             color=0xFF6600,
             timestamp=datetime.now(timezone.utc)
         )
         embed.set_image(url="https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev/charakter_erstellung.jpg")
-        embed.set_footer(text="\u2708\uFE0F Einreise-System \u2022 Paradise City Roleplay")
+        embed.set_footer(text="\u2708\ufe0f Einreise-System \u2022 Paradise City Roleplay")
         view = EinreiseView()
 
         mid = _load_einreise_msg_id()
@@ -329,8 +494,6 @@ async def auto_einreise_setup():
         except Exception as e:
             await log_bot_error("auto_einreise_setup fehlgeschlagen", str(e), guild)
 
-
-# ── /ausweisen ───────────────────────────────────────────────────
 
 @bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
 @app_commands.describe(nutzer="(Nur Team) Ausweis eines anderen Spielers abrufen")
