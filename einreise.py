@@ -365,7 +365,15 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
     embed.add_field(name="Ausweisnummer", value=f"`{entry['ausweisnummer']}`",             inline=False)
     embed.set_footer(text="Paradise City Roleplay — Personalausweis")
 
-    await interaction.response.send_message(embed=embed, ephemeral=is_team and nutzer is not None)
+    card_url = f"{_DASHBOARD_URL}/ausweis-karte/{target.id}"
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(
+        label="\U0001FAAA Ausweis ansehen",
+        style=discord.ButtonStyle.link,
+        url=card_url,
+    ))
+
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=is_team and nutzer is not None)
 
 
 # ── /ausweis-remove ──────────────────────────────────────────────
