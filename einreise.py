@@ -15,7 +15,10 @@ except ImportError:
 
 _DASHBOARD_URL_DEFAULT = "https://130f7b21-a902-4ec0-9019-6c1791f5924b-00-2d2m2xzo65o8p.sisko.replit.dev"
 _raw_url = os.environ.get("DASHBOARD_URL", "").strip().rstrip("/")
-_DASHBOARD_URL = _raw_url if _raw_url.startswith("http") else _DASHBOARD_URL_DEFAULT
+if not _raw_url.startswith("http"):
+    _railway = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    _raw_url = f"https://{_railway}" if _railway else _DASHBOARD_URL_DEFAULT
+_DASHBOARD_URL = _raw_url.rstrip("/")
 
 
 # ── Ausweis Helpers ──────────────────────────────────────────────
@@ -236,7 +239,12 @@ class EinreiseSelect(discord.ui.Select):
                 return
 
             if typ == "gruppe":
-                await interaction.response.send_modal(GruppenEinreiseModal())
+                await interaction.response.send_message(
+                    "\U0001F465 W\u00e4hle die Spieler f\u00fcr die Gruppen-Einreise (max. 5):\n"
+                    "\u26A0\uFE0F Nur Spieler mit der Einreise-Wartestellung werden akzeptiert.",
+                    view=GruppenMemberSelectView(),
+                    ephemeral=True
+                )
                 return
 
             ausweis_data = load_ausweis()
@@ -296,57 +304,52 @@ class EinreiseView(discord.ui.View):
         self.add_item(EinreiseSelect())
 
 
-class GruppenEinreiseModal(discord.ui.Modal, title="\U0001F465 Gruppen-Einreise"):
-    id1 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 1", placeholder="z.B. 123456789012345678", max_length=21)
-    id2 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 2", placeholder="z.B. 123456789012345678", max_length=21)
-    id3 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 3", placeholder="z.B. 123456789012345678", max_length=21)
-    id4 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 4", placeholder="z.B. 123456789012345678", max_length=21)
-    id5 = discord.ui.TextInput(label="Discord ID \u2014 Spieler 5", placeholder="z.B. 123456789012345678", max_length=21)
+class GruppenMemberSelectView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=120)
 
-    async def on_submit(self, interaction: discord.Interaction):
+    @discord.ui.select(
+        cls=discord.ui.UserSelect,
+        placeholder="\U0001F465 Spieler ausw\u00e4hlen (max. 5)...",
+        min_values=1,
+        max_values=5,
+    )
+    async def member_select(
+        self, interaction: discord.Interaction, select: discord.ui.UserSelect
+    ):
         await interaction.response.defer(ephemeral=True)
-        guild = interaction.guild or bot.get_guild(GUILD_ID)
         ausweis_data = load_ausweis()
-        ids_raw = [
-            self.id1.value.strip(), self.id2.value.strip(),
-            self.id3.value.strip(), self.id4.value.strip(),
-            self.id5.value.strip(),
-        ]
         members_ok = []
         errors = []
-        for raw_id in ids_raw:
-            if not raw_id:
+        for m in select.values:
+            if m.bot:
+                errors.append(f"{m.mention} \u2014 Bot-Account")
                 continue
-            try:
-                uid = int(raw_id)
-                m = guild.get_member(uid)
-                if m is None:
-                    try:
-                        m = await guild.fetch_member(uid)
-                    except Exception:
-                        m = None
-                if m is None:
-                    errors.append(f"`{raw_id}` \u2014 nicht auf dem Server gefunden")
-                    continue
-                role_ids = {r.id for r in m.roles}
-                if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
-                    errors.append(f"{m.mention} \u2014 bereits eingereist")
-                    continue
-                members_ok.append(m)
-            except ValueError:
-                errors.append(f"`{raw_id}` \u2014 ung\u00fcltige ID")
+            role_ids = {r.id for r in m.roles}
+            if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
+                errors.append(f"{m.mention} \u2014 bereits eingereist")
+                continue
+            if WHITELIST_ROLE_ID not in role_ids:
+                errors.append(f"{m.mention} \u2014 hat nicht die Einreise-Wartestellung")
+                continue
+            if str(m.id) in ausweis_data:
+                errors.append(f"{m.mention} \u2014 hat bereits einen Ausweis")
+                continue
+            members_ok.append(m)
         if not members_ok:
-            msg = "\u274C Keine g\u00fcltigen Spieler gefunden."
+            msg = "\u274C Keine g\u00fcltigen Spieler ausgew\u00e4hlt."
             if errors:
-                msg += "\n" + "\n".join(errors)
+                msg += "\n\n\u26A0\uFE0F **Gr\u00fcnde:**\n" + "\n".join(errors)
             await interaction.followup.send(msg, ephemeral=True)
             return
         view = GruppenTypView(members_ok, errors)
         lines = "\n".join(f"\u2022 {m.mention}" for m in members_ok)
         msg = f"**{len(members_ok)} Spieler bereit.** W\u00e4hle die Einreiseart:\n{lines}"
         if errors:
-            msg += f"\n\n\u26a0\ufe0f **\u00dcbersprungen ({len(errors)}):**\n" + "\n".join(errors)
+            msg += f"\n\n\u26A0\uFE0F **\u00dcbersprungen ({len(errors)}):**\n" + "\n".join(errors)
         await interaction.followup.send(msg, view=view, ephemeral=True)
+        self.stop()
+
 
 
 class GruppenTypView(discord.ui.View):
@@ -559,23 +562,8 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 # ── /ausweis-create ──────────────────────────────────────────────
 
 @bot.tree.command(name="ausweis-create", description="[Ausweis] Erstellt einen Ausweis für einen Spieler", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(
-    nutzer="Spieler für den der Ausweis erstellt wird",
-    einreise_typ="Einreiseart des Spielers"
-)
-@app_commands.choices(einreise_typ=[
-    app_commands.Choice(name="Legal",   value="legal"),
-    app_commands.Choice(name="Illegal", value="illegal"),
-])
-async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member,
-                         einreise_typ: str = "legal"):
-    if einreise_typ == "illegal":
-        await interaction.response.send_message(
-            "\u274C Per Webformular k\u00f6nnen nur Ausweise f\u00fcr **legale Bewohner** erstellt werden.",
-            ephemeral=True
-        )
-        return
-
+@app_commands.describe(nutzer="Spieler für den der Ausweis-Link gesendet wird")
+async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member):
     ausweis_data = load_ausweis()
     if str(nutzer.id) in ausweis_data:
         await interaction.response.send_message(
