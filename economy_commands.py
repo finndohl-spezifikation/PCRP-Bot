@@ -41,10 +41,6 @@ class EinzahlenModal(discord.ui.Modal, title="\U0001F3E6 Einzahlen"):
         role_ids = [r.id for r in interaction.user.roles]
         is_adm   = ADMIN_ROLE_ID in role_ids
 
-        if not is_adm and not has_citizen_or_wage(interaction.user):
-            await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
-            return
-
         eco       = load_economy()
         user_data = get_user(eco, interaction.user.id)
         reset_daily_if_needed(user_data)
@@ -108,10 +104,6 @@ class AuszahlenModal(discord.ui.Modal, title="\U0001F4B8 Auszahlen"):
 
         role_ids = [r.id for r in interaction.user.roles]
         is_adm   = ADMIN_ROLE_ID in role_ids
-
-        if not is_adm and not has_citizen_or_wage(interaction.user):
-            await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
-            return
 
         eco       = load_economy()
         user_data = get_user(eco, interaction.user.id)
@@ -187,10 +179,6 @@ class UeberweisungsBetragModal(discord.ui.Modal, title="\U0001F4B3 \u00DCberweis
 
         role_ids = [r.id for r in interaction.user.roles]
         is_adm   = ADMIN_ROLE_ID in role_ids
-
-        if not is_adm and not has_citizen_or_wage(interaction.user):
-            await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
-            return
 
         eco      = load_economy()
         sender   = get_user(eco, interaction.user.id)
@@ -494,12 +482,6 @@ async def setup_lohn_panel(interaction: discord.Interaction):
 # \u2500\u2500 Konto-Logik (geteilt zwischen Panel-Button) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 async def _konto_logic(interaction: discord.Interaction):
-    if not has_citizen_or_wage(interaction.user) and not any(
-        r.id in (ADMIN_ROLE_ID, MOD_ROLE_ID, INHABER_ROLE_ID) for r in interaction.user.roles
-    ):
-        await interaction.response.send_message("\u274C Du hast keine Berechtigung.", ephemeral=True)
-        return
-
     eco       = load_economy()
     user_data = get_user(eco, interaction.user.id)
     save_economy(eco)
