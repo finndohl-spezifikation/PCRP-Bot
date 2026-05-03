@@ -1227,6 +1227,10 @@ input[type=file]{display:none}
       <label>Wohnort</label>
       <input type="text" name="wohnort" placeholder="z.B. Los Santos" required maxlength="100" value="{{ wohnort or '' }}">
     </div>
+    <div class="field">
+      <label>Geburtsort</label>
+      <input type="text" name="geburtsort" placeholder="z.B. Berlin" required maxlength="80" value="{{ geburtsort or '' }}">
+    </div>
     <p class="warn-text">&#x26A0;&#xFE0F; Bitte gebe hier korrekte Informationen zu deinem RP-Charakter an.<br>Eine &#196;nderung ist sp&#228;ter nur durch den RP-Tod m&#246;glich.</p>
     <button type="submit" class="btn">&#x1FAAA; Ausweis beantragen</button>
   </form>
@@ -1332,7 +1336,7 @@ def ausweis_form(token):
                                       error="Dieser Link ist abgelaufen oder wurde bereits verwendet.")
     typ_label = "\U0001F935 Legale Einreise" if entry["einreise_typ"] == "legal" else "\U0001F977 Illegale Einreise"
     return render_template_string(_AUSWEIS_FORM_HTML, token=token, typ_label=typ_label,
-                                   name="", geburtsdatum="", alter="", nationalitaet="", wohnort="", error=None)
+                                   name="", geburtsdatum="", alter="", nationalitaet="", wohnort="", geburtsort="", error=None)
 
 
 @app.route("/ausweis/<token>", methods=["POST"])
@@ -1355,8 +1359,9 @@ def ausweis_submit(token):
     alter         = request.form.get("alter", "").strip()
     nationalitaet = request.form.get("nationalitaet", "").strip()
     wohnort       = request.form.get("wohnort", "").strip()
+    geburtsort    = request.form.get("geburtsort", "").strip()
 
-    if not all([name, geburtsdatum, alter, nationalitaet, wohnort]):
+    if not all([name, geburtsdatum, alter, nationalitaet, wohnort, geburtsort]):
         typ_label = "\U0001F935 Legale Einreise" if entry["einreise_typ"] == "legal" else "\U0001F977 Illegale Einreise"
         return render_template_string(_AUSWEIS_FORM_HTML, token=token, typ_label=typ_label,
                                        error="Bitte alle Felder ausf\u00fcllen.",
@@ -1383,6 +1388,7 @@ def ausweis_submit(token):
         "alter":         alter,
         "nationalitaet": nationalitaet,
         "wohnort":       wohnort,
+        "geburtsort":    geburtsort,
         "einreise_typ":  einreise_typ,
         "ausweisnummer": ausweisnummer,
         "discord_id":    uid,
@@ -1605,6 +1611,40 @@ body::before{
 .ftr-right{text-align:right;color:rgba(255,255,255,.4);font-size:7px;letter-spacing:1px;line-height:1.7}
 
 .hint{margin-top:14px;text-align:center;color:rgba(255,255,255,.2);font-size:11px;letter-spacing:.5px}
+
+/* Mobile responsive */
+body{overflow-x:hidden}
+.outer{overflow-x:hidden}
+@media(max-width:500px){
+  body{padding:12px 8px;justify-content:flex-start;padding-top:20px}
+  .hdr{padding:6px 10px}
+  .hdr-city{font-size:14px;letter-spacing:2px}
+  .hdr-sub{font-size:6px;letter-spacing:1px}
+  .hdr-type{font-size:11px;letter-spacing:2px}
+  .emblem{width:26px;height:30px;font-size:13px}
+  .body{padding:10px 10px 8px}
+  .row-val{font-size:12px;margin-bottom:6px}
+  .row-val.small{font-size:10px}
+  .row-label{font-size:6px}
+  .grid{grid-template-columns:1fr 1fr;gap:2px 8px}
+  .grid .row-val{font-size:10px;margin-bottom:2px}
+  .photo-side{width:76px}
+  .photo-side img,.no-photo{
+    width:70px!important;height:90px!important;
+    max-width:70px!important;max-height:90px!important;
+  }
+  .no-photo{font-size:34px}
+  .sig-wrap{width:70px}
+  .nr-val{font-size:13px;letter-spacing:1px}
+  .mrz-line{font-size:7.5px;letter-spacing:.8px}
+  .mrz-lbl{font-size:6px}
+  .barcode{font-size:16px;letter-spacing:-2px}
+  .ftr-right{font-size:6px}
+  .ftr{padding:5px 10px}
+  .goldbar{height:4px}
+  .wm{font-size:80px}
+  .fields{padding-right:8px}
+}
 </style>
 </head>
 <body>
@@ -1646,8 +1686,8 @@ body::before{
           <div class="row-val small">{{ geburtsdatum }}</div>
         </div>
         <div>
-          <div class="row-label">Alter / Age</div>
-          <div class="row-val small">{{ alter }}</div>
+          <div class="row-label">Geburtsort / Place of Birth</div>
+          <div class="row-val small">{{ geburtsort if geburtsort else "&mdash;" }}</div>
         </div>
         <div>
           <div class="row-label">Staatsangeh&ouml;rigkeit / Nationality</div>
@@ -1718,7 +1758,7 @@ def ausweis_karte(uid):
         vorname      = entry.get("vorname", "?"),
         nachname     = entry.get("nachname", "?"),
         geburtsdatum = entry.get("geburtsdatum", "?"),
-        alter        = entry.get("alter", "?"),
+        geburtsort   = entry.get("geburtsort", ""),
         nationalitaet= entry.get("nationalitaet", "?"),
         wohnort      = entry.get("wohnort", "?"),
         ausweisnummer= entry.get("ausweisnummer", "??-??????"),
