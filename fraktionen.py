@@ -78,7 +78,7 @@ def frak_build_list_embed(data: dict) -> discord.Embed:
             symbol = "\U0001f6a8"
         lines.append(f"{symbol} **{name}** \u2014 {wc}/{MAX_WARNS} Warns")
 
-    emb.description = "\n".join(lines)
+    emb.description = "\n".join(lines)[:4000]
     emb.set_footer(text=FRAK_FOOTER)
     return emb
 
