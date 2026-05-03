@@ -1411,96 +1411,243 @@ _AUSWEIS_KARTE_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ID Card</title>
+<title>ID Card &mdash; Paradise City RP</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;background:#0d0f14;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;font-family:Arial,sans-serif;padding:24px}
+body{min-height:100vh;background:#0a0c12;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:30px;
+  font-family:'Barlow Condensed',Arial,sans-serif}
 body::before{content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse 80% 60% at 20% 80%,rgba(0,55,120,.25) 0%,transparent 60%),
-             radial-gradient(ellipse 60% 50% at 80% 20%,rgba(200,168,75,.12) 0%,transparent 60%);
+  background:radial-gradient(ellipse 80% 70% at 30% 80%,rgba(0,55,120,.3) 0%,transparent 55%),
+             radial-gradient(ellipse 60% 50% at 75% 20%,rgba(180,140,40,.15) 0%,transparent 55%);
   pointer-events:none}
-.wrap{width:100%;max-width:460px;position:relative;z-index:1}
-.card{background:#fff;border-radius:14px;overflow:hidden;
-  box-shadow:0 24px 64px rgba(0,0,0,.7)}
-.hdr{background:#003778;padding:9px 14px;display:flex;
-  align-items:center;justify-content:space-between}
-.state{color:#fff;font-size:22px;font-weight:900;letter-spacing:3px}
-.stars{color:#c8a84b;font-size:11px;letter-spacing:3px;display:block}
-.r-title{text-align:right}
-.dl-label{color:#c8a84b;font-size:11px;font-weight:700;letter-spacing:2px}
-.dl-sub{color:rgba(255,255,255,.7);font-size:8px;letter-spacing:1px}
-.goldbar{background:linear-gradient(90deg,#8a6800,#c8a84b,#f5d060,#c8a84b,#8a6800);height:7px}
-.body{padding:12px 14px;display:flex;gap:14px;position:relative;overflow:hidden;min-height:130px}
-.bear{position:absolute;right:8px;top:50%;transform:translateY(-50%);
-  font-size:130px;opacity:.04;pointer-events:none;line-height:1}
-.photo-col{flex-shrink:0}
-.photo-col img,.no-photo{width:88px;height:112px;object-fit:cover;
-  border-radius:4px;border:2px solid #003778;display:block}
-.no-photo{background:#dde;display:flex;align-items:center;justify-content:center;
-  font-size:38px;color:#aab}
-.info{flex:1;font-size:11px}
-.badge{background:#003778;color:#c8a84b;font-size:7.5px;font-weight:700;
-  letter-spacing:1.5px;padding:2px 7px;border-radius:2px;display:inline-block;margin-bottom:5px}
-.dl-num{font-size:17px;font-weight:900;color:#003778;letter-spacing:1px;margin-bottom:3px}
-.dl-name{font-size:13px;font-weight:900;color:#000;text-transform:uppercase;
-  letter-spacing:.5px;margin-bottom:7px;line-height:1.2}
-.row{display:flex;gap:14px;margin-bottom:4px;flex-wrap:wrap}
-.f .lbl{font-size:7px;color:#666;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px}
-.f .val{font-size:10.5px;font-weight:700;color:#000}
-.addr{margin-top:5px}
-.cls{margin-top:6px;background:#003778;color:#fff;display:inline-block;
-  padding:2px 8px;font-size:8.5px;font-weight:700;letter-spacing:1px;border-radius:2px}
-.ftr{background:#003778;padding:6px 14px;display:flex;
-  align-items:center;justify-content:space-between}
-.barcode{font-family:monospace;font-size:26px;color:#c8a84b;letter-spacing:-3px;opacity:.9}
-.srv{color:rgba(255,255,255,.5);font-size:7.5px;font-weight:700;
-  letter-spacing:1px;text-align:right;line-height:1.5}
-.hint-box{margin-top:18px;text-align:center;color:rgba(255,255,255,.3);font-size:11px}
+.outer{position:relative;z-index:1;width:100%;max-width:540px}
+
+/* ── Card ── */
+.card{
+  background:#e8e0cc;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08);
+  position:relative;
+  /* Guilloche security background */
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(0,60,120,.04) 18px,rgba(0,60,120,.04) 19px),
+    repeating-linear-gradient(90deg,transparent,transparent 18px,rgba(0,60,120,.04) 18px,rgba(0,60,120,.04) 19px),
+    repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(180,140,30,.05) 8px,rgba(180,140,30,.05) 9px),
+    repeating-linear-gradient(-45deg,transparent,transparent 8px,rgba(180,140,30,.05) 8px,rgba(180,140,30,.05) 9px),
+    linear-gradient(135deg,#ddd6be 0%,#e8e0cc 40%,#ddd4b8 100%);
+}
+
+/* ── Header stripe ── */
+.hdr{
+  background:linear-gradient(90deg,#002a6e 0%,#003d9e 40%,#002a6e 100%);
+  padding:7px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;
+}
+.hdr::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,transparent,transparent 6px,rgba(255,255,255,.04) 6px,rgba(255,255,255,.04) 7px);
+}
+.hdr-left{display:flex;align-items:center;gap:10px;z-index:1}
+.bear-svg{font-size:28px;filter:drop-shadow(0 0 4px rgba(200,168,75,.5))}
+.hdr-state{
+  color:#fff;font-size:21px;font-weight:900;letter-spacing:3.5px;
+  text-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.hdr-sub{color:rgba(255,255,255,.65);font-size:8px;letter-spacing:2px;font-weight:600}
+.hdr-right{text-align:right;z-index:1}
+.hdr-type{color:#c8a84b;font-size:12px;font-weight:700;letter-spacing:2.5px}
+.hdr-sub2{color:rgba(255,255,255,.5);font-size:7px;letter-spacing:1px}
+.real-star{
+  background:#c8a84b;color:#002a6e;font-size:9px;font-weight:900;
+  padding:2px 6px;border-radius:3px;letter-spacing:1px;margin-bottom:3px;
+  display:inline-block;
+}
+
+/* ── Gold bar ── */
+.goldbar{
+  height:6px;
+  background:linear-gradient(90deg,#6b4e00,#a37800,#c8a84b,#f5d060,#f8e070,#c8a84b,#a37800,#6b4e00);
+}
+
+/* ── Body ── */
+.body{padding:14px 16px 10px;display:flex;gap:16px;position:relative}
+
+/* Watermark bear */
+.watermark{
+  position:absolute;right:16px;top:50%;transform:translateY(-50%);
+  font-size:140px;opacity:.06;pointer-events:none;line-height:1;
+  filter:grayscale(1);
+}
+
+/* ── Photo ── */
+.photo-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.photo-wrap img,.no-photo{
+  width:88px;height:112px;object-fit:cover;
+  border-radius:4px;
+  border:2.5px solid #002a6e;
+  display:block;
+  box-shadow:2px 2px 8px rgba(0,0,0,.3);
+}
+.no-photo{
+  background:linear-gradient(135deg,#c5bda8,#b0a890);
+  display:flex;align-items:center;justify-content:center;
+  font-size:42px;
+}
+.sig-line{width:88px;border-top:1.5px solid #002a6e;padding-top:4px;
+  font-size:8px;color:#333;text-align:center;letter-spacing:.5px}
+
+/* ── Info ── */
+.info{flex:1;min-width:0}
+
+/* DL number row */
+.dl-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;border-bottom:1px solid rgba(0,42,110,.2);padding-bottom:6px}
+.dl-num{font-size:19px;font-weight:900;color:#002a6e;letter-spacing:1.5px;font-family:'Share Tech Mono',monospace}
+.einreise-badge{
+  background:#002a6e;color:#c8a84b;
+  font-size:8px;font-weight:700;letter-spacing:1.5px;
+  padding:2px 7px;border-radius:3px;margin-left:auto;
+}
+
+/* Name */
+.name-family{font-size:8px;font-weight:700;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px}
+.name-val{font-size:16px;font-weight:900;color:#000;text-transform:uppercase;letter-spacing:.5px;line-height:1.1;margin-bottom:2px}
+.name-given{font-size:13px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px}
+
+/* Fields grid */
+.fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 10px;margin-bottom:8px}
+.field .lbl{font-size:7px;color:#666;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px}
+.field .val{font-size:11px;font-weight:700;color:#000;line-height:1.2}
+.field.wide{grid-column:span 2}
+.field.full{grid-column:span 3}
+
+/* Class & restrictions */
+.class-row{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.cls-box{background:#002a6e;color:#fff;font-size:8px;font-weight:700;
+  letter-spacing:1px;padding:2px 8px;border-radius:3px}
+.rest-box{background:#8a1010;color:#fff;font-size:8px;font-weight:700;
+  letter-spacing:1px;padding:2px 8px;border-radius:3px}
+
+/* ── MRZ ── */
+.mrz-bar{background:#f0e8d0;border-top:1px solid rgba(0,42,110,.15);padding:6px 16px}
+.mrz-label{font-size:7px;color:#888;letter-spacing:1px;margin-bottom:3px;text-transform:uppercase}
+.mrz-line{font-family:'Share Tech Mono',monospace;font-size:10px;color:#000;
+  letter-spacing:2px;word-break:break-all;line-height:1.6;opacity:.8}
+
+/* ── Footer stripe ── */
+.ftr{
+  background:linear-gradient(90deg,#002a6e 0%,#003d9e 50%,#002a6e 100%);
+  padding:6px 16px;display:flex;align-items:center;justify-content:space-between;
+}
+.barcode{font-family:'Share Tech Mono',monospace;font-size:20px;color:#c8a84b;
+  letter-spacing:-2.5px;opacity:.9}
+.ftr-right{text-align:right;color:rgba(255,255,255,.5);font-size:7px;
+  letter-spacing:1px;line-height:1.6}
+
+/* ── Page ── */
+.hint{margin-top:14px;text-align:center;color:rgba(255,255,255,.25);font-size:11px}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="outer">
   <div class="card">
+
+    <!-- Header -->
     <div class="hdr">
-      <div>
-        <div class="state">CALIFORNIA</div>
-        <span class="stars">&#x2605; &#x2605; &#x2605; &#x2605; &#x2605;</span>
+      <div class="hdr-left">
+        <span class="bear-svg">&#x1F43B;</span>
+        <div>
+          <div class="hdr-state">CALIFORNIA</div>
+          <div class="hdr-sub">DEPARTMENT OF MOTOR VEHICLES</div>
+        </div>
       </div>
-      <div class="r-title">
-        <div class="dl-label">DRIVER LICENSE</div>
-        <div class="dl-sub">PARADISE CITY ROLEPLAY</div>
+      <div class="hdr-right">
+        <div class="real-star">&#x2605; REAL ID</div>
+        <div class="hdr-type">DRIVER LICENSE</div>
+        <div class="hdr-sub2">PARADISE CITY ROLEPLAY</div>
       </div>
     </div>
     <div class="goldbar"></div>
+
+    <!-- Body -->
     <div class="body">
-      <div class="bear">&#x1F43B;</div>
-      <div class="photo-col">
+      <div class="watermark">&#x1F43B;</div>
+
+      <!-- Photo -->
+      <div class="photo-wrap">
         {% if foto %}
         <img src="{{ foto }}" alt="Foto">
         {% else %}
         <div class="no-photo">&#x1F464;</div>
         {% endif %}
+        <div class="sig-line">UNTERSCHRIFT</div>
       </div>
+
+      <!-- Data -->
       <div class="info">
-        <div class="badge">{{ einreise_typ|upper }}</div>
-        <div class="dl-num">DL&nbsp;{{ ausweisnummer }}</div>
-        <div class="dl-name">{{ nachname }},&nbsp;{{ vorname }}</div>
-        <div class="row">
-          <div class="f"><div class="lbl">DOB</div><div class="val">{{ geburtsdatum }}</div></div>
-          <div class="f"><div class="lbl">AGE</div><div class="val">{{ alter }}</div></div>
-          <div class="f"><div class="lbl">NATION</div><div class="val">{{ nationalitaet }}</div></div>
+        <div class="dl-row">
+          <div class="dl-num">DL&nbsp;{{ ausweisnummer }}</div>
+          <div class="einreise-badge">{{ einreise_typ|upper }}</div>
         </div>
-        <div class="addr f"><div class="lbl">ADDRESS</div><div class="val">{{ wohnort }}, CA</div></div>
-        <div class="cls">CLASS C &nbsp;|&nbsp; PCRP</div>
+
+        <div class="name-family">Familienname / Last Name</div>
+        <div class="name-val">{{ nachname }}</div>
+        <div class="name-family">Vorname / First Name</div>
+        <div class="name-given">{{ vorname }}</div>
+
+        <div class="fields">
+          <div class="field">
+            <div class="lbl">Geburtsdatum / DOB</div>
+            <div class="val">{{ geburtsdatum }}</div>
+          </div>
+          <div class="field">
+            <div class="lbl">Alter / Age</div>
+            <div class="val">{{ alter }}</div>
+          </div>
+          <div class="field">
+            <div class="lbl">Nationalit&auml;t</div>
+            <div class="val">{{ nationalitaet }}</div>
+          </div>
+          <div class="field wide">
+            <div class="lbl">Adresse / Address</div>
+            <div class="val">{{ wohnort }}, CA 90001</div>
+          </div>
+          <div class="field">
+            <div class="lbl">Ausgestellt / ISS</div>
+            <div class="val">{{ iss_date }}</div>
+          </div>
+        </div>
+
+        <div class="class-row">
+          <div class="cls-box">CLASS&nbsp;C</div>
+          <div class="cls-box">PCRP&nbsp;RP</div>
+          {% if einreise_typ == 'illegal' %}
+          <div class="rest-box">&#x26A0;&nbsp;ILLEGAL</div>
+          {% else %}
+          <div class="cls-box">&#x2713;&nbsp;LEGAL</div>
+          {% endif %}
+        </div>
       </div>
     </div>
-    <div class="ftr">
-      <div class="barcode">||| || |||| ||||| || ||||</div>
-      <div class="srv">PARADISE CITY<br>ROLEPLAY &#x1F3D9;</div>
+
+    <!-- MRZ zone -->
+    <div class="mrz-bar">
+      <div class="mrz-label">Machine Readable Zone</div>
+      <div class="mrz-line">IDUSA{{ ausweisnummer|replace('-','') }}{{ '0' * (9 - (ausweisnummer|replace('-','')|length)) }}9{{ geburtsdatum|replace('.','') }}&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
+      <div class="mrz-line">{{ nachname|upper }}&lt;&lt;{{ vorname|upper }}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
     </div>
+
+    <!-- Footer -->
+    <div class="ftr">
+      <div class="barcode">||| |||| || ||||| ||| |||| |||</div>
+      <div class="ftr-right">PARADISE CITY ROLEPLAY<br>LOS SANTOS &bull; CA &bull; USA</div>
+    </div>
+
   </div>
-  <div class="hint-box">Paradise City Roleplay &mdash; Personalausweis</div>
+  <div class="hint">Paradise City Roleplay &mdash; Offizieller Personalausweis</div>
 </div>
 </body>
 </html>"""
@@ -1514,6 +1661,7 @@ def ausweis_karte(uid):
     if not entry:
         return render_template_string(_AUSWEIS_ERROR_HTML,
                                       error="Kein Ausweis f\u00fcr diesen Spieler gefunden.")
+    from datetime import datetime as _dt
     return render_template_string(
         _AUSWEIS_KARTE_HTML,
         vorname      = entry.get("vorname", "?"),
@@ -1522,9 +1670,10 @@ def ausweis_karte(uid):
         alter        = entry.get("alter", "?"),
         nationalitaet= entry.get("nationalitaet", "?"),
         wohnort      = entry.get("wohnort", "?"),
-        einreise_typ = entry.get("einreise_typ", "PCRP"),
+        einreise_typ = entry.get("einreise_typ", "pcrp"),
         ausweisnummer= entry.get("ausweisnummer", "??-??????"),
         foto         = entry.get("foto_b64") or "",
+        iss_date     = _dt.now().strftime("%d.%m.%Y"),
     )
 
 
