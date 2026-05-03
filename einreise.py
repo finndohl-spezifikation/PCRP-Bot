@@ -456,19 +456,19 @@ async def auto_einreise_setup():
         embed = discord.Embed(
             title="\u2708\ufe0f Einreise \u2014 Paradise City Roleplay",
             description=(
-                "\u2500" * 32 + "\n"
+                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
                 "\U0001F935\u200d\u2642\ufe0f  **Legale Einreise**\n"
                 "\u27a4 Reise als **legale Person** ein und erhalte Zugang zu\n"
-                "\u00a0\u00a0\u00a0staatlichen Berufen, Ausweis & Startfahrzeug.\n\n"
+                "\u00a0\u00a0staatlichen Berufen, Ausweis & Startfahrzeug.\n\n"
                 "\U0001F977  **Illegale Einreise**\n"
                 "\u27a4 Reise als **illegale Person** ein.\n"
-                "\u00a0\u00a0\u00a0Keine staatlichen Berufe m\u00f6glich.\n"
-                "\u00a0\u00a0\u00a0\u26a0\ufe0f Als illegaler Bewohner erh\u00e4ltst du **keinen staatlichen Ausweis**.\n\n"
+                "\u00a0\u00a0Keine staatlichen Berufe m\u00f6glich.\n"
+                "\u00a0\u00a0\u26a0\ufe0f Kein staatlicher Ausweis m\u00f6glich.\n\n"
                 "\U0001F465  **Gruppen-Einreise** *(nur Team)*\n"
                 "\u27a4 Bis zu 5 Spieler gleichzeitig einreisen lassen.\n"
-                "\u00a0\u00a0\u00a0Jeder erh\u00e4lt **10.000$** & **Enus Huntley S** ins Inventar.\n\n"
-                "\u2500" * 32 + "\n"
-                "\u26a0\ufe0f Eine \u00c4nderung der Einreiseart ist nur durch den **RP-Tod** des Charakters m\u00f6glich."
+                "\u00a0\u00a0Jeder erh\u00e4lt **10.000$** & **Enus Huntley S**.\n\n"
+                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+                "\u26a0\ufe0f \u00c4nderung der Einreiseart nur durch den **RP-Tod** m\u00f6glich."
             ),
             color=0xFF6600,
             timestamp=datetime.now(timezone.utc)
