@@ -273,3 +273,78 @@ async def hackban(interaction: discord.Interaction, user_id: str, grund: str = "
             await log_ch.send(embed=log_embed)
     except Exception:
         pass
+
+
+# \u2500\u2500 /unban \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+@bot.tree.command(
+    name="unban",
+    description="Nutzer per ID entbannen",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    user_id="Discord Nutzer-ID des zu entbannenden Spielers",
+    grund="Grund f\u00fcr den Unban"
+)
+async def unban(interaction: discord.Interaction, user_id: str, grund: str = "Kein Grund angegeben"):
+    try:
+        uid = int(user_id.strip())
+    except ValueError:
+        await interaction.response.send_message(
+            "\u274C Ung\u00fcltige Discord ID \u2014 bitte eine g\u00fcltige Zahlenkombination eingeben.",
+            ephemeral=True
+        )
+        return
+
+    guild = interaction.guild
+    try:
+        await guild.unban(
+            discord.Object(id=uid),
+            reason=f"[Unban] {grund} | Entbannt von: {interaction.user} ({interaction.user.id})"
+        )
+    except discord.NotFound:
+        await interaction.response.send_message(
+            "\u274C Nutzer nicht gefunden oder nicht gebannt.", ephemeral=True
+        )
+        return
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "\u274C Keine Berechtigung diesen Nutzer zu entbannen (fehlende Bot-Rechte).",
+            ephemeral=True
+        )
+        return
+    except Exception as _e:
+        await interaction.response.send_message(f"\u274C Fehler: `{_e}`", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="\U0001F513 Unban ausgef\u00fchrt",
+        description=(
+            f"**Nutzer ID:** `{uid}`\n"
+            f"**Grund:** {grund}\n"
+            f"**Entbannt von:** {interaction.user.mention} (`{interaction.user}`)"
+        ),
+        color=0x2ECC71,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 Unban")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    try:
+        log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
+        if log_ch:
+            log_embed = discord.Embed(
+                title="\U0001F513 Unban",
+                description=(
+                    f"**Nutzer ID:** `{uid}`\n"
+                    f"**Grund:** {grund}\n"
+                    f"**Ausgef\u00fchrt von:** {interaction.user.mention} (`{interaction.user}`)"
+                ),
+                color=0x2ECC71,
+                timestamp=datetime.now(timezone.utc)
+            )
+            log_embed.set_footer(text="Paradise City Roleplay \u2022 Unban")
+            await log_ch.send(embed=log_embed)
+    except Exception:
+        pass
+
