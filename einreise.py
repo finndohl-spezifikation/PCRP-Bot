@@ -204,6 +204,14 @@ class EinreiseSelect(discord.ui.Select):
                 return
 
             typ = self.values[0]
+
+            if typ == "illegal":
+                await interaction.response.send_message(
+                    "\U0001F6AB Als illegaler Bewohner erhältst du keinen Ausweis.",
+                    ephemeral=True
+                )
+                return
+
             ausweis_data = load_ausweis()
             if str(member.id) in ausweis_data:
                 await interaction.response.send_message(
