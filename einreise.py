@@ -81,10 +81,10 @@ class AusweisCreateModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen (
         placeholder="TT.MM.JJJJ",
         max_length=10,
     )
-    alter = discord.ui.TextInput(
-        label="Alter",
-        placeholder="z.B. 25",
-        max_length=3,
+    geburtsort = discord.ui.TextInput(
+        label="Geburtsort",
+        placeholder="z.B. Berlin",
+        max_length=80,
     )
     nationalitaet = discord.ui.TextInput(
         label="Nationalität / Herkunft",
@@ -121,7 +121,7 @@ class AusweisCreateModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen (
                 "vorname":       vorname,
                 "nachname":      nachname,
                 "geburtsdatum":  self.geburtsdatum.value,
-                "alter":         self.alter.value,
+                "geburtsort":    self.geburtsort.value,
                 "nationalitaet": self.nationalitaet.value,
                 "wohnort":       self.wohnort.value,
                 "einreise_typ":  self.einreise_typ,
@@ -142,8 +142,8 @@ class AusweisCreateModal(discord.ui.Modal, title="\U0001FAAA Ausweis erstellen (
             )
             embed.add_field(name="Spieler",        value=member.mention,          inline=False)
             embed.add_field(name="Name",           value=f"{vorname} {nachname}", inline=True)
-            embed.add_field(name="Geburtsdatum",   value=self.geburtsdatum.value, inline=True)
-            embed.add_field(name="Alter",          value=self.alter.value,        inline=True)
+            embed.add_field(name="Geburtsdatum",   value=self.geburtsdatum.value,  inline=True)
+            embed.add_field(name="Geburtsort",     value=self.geburtsort.value,    inline=True)
             embed.add_field(name="Nationalität",   value=self.nationalitaet.value, inline=True)
             embed.add_field(name="Wohnort",        value=self.wohnort.value,      inline=True)
             embed.add_field(name="Einreiseart",    value=typ_label,               inline=True)
