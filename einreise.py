@@ -587,14 +587,57 @@ async def ausweis_remove(interaction: discord.Interaction, nutzer: discord.Membe
 ])
 async def ausweis_create(interaction: discord.Interaction, nutzer: discord.Member,
                          einreise_typ: str = "legal"):
-    ausweis_data = load_ausweis()
-    if str(nutzer.id) in ausweis_data:
+    if einreise_typ == "illegal":
         await interaction.response.send_message(
-            f"\u274C {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove löschen.",
+            "\u274C Per Webformular k\u00f6nnen nur Ausweise f\u00fcr **legale Bewohner** erstellt werden.",
             ephemeral=True
         )
         return
 
-    await interaction.response.send_modal(
-        AusweisCreateModal(target=nutzer, einreise_typ=einreise_typ)
+    ausweis_data = load_ausweis()
+    if str(nutzer.id) in ausweis_data:
+        await interaction.response.send_message(
+            f"\u274C {nutzer.mention} hat bereits einen Ausweis. Bitte zuerst mit /ausweis-remove l\u00f6schen.",
+            ephemeral=True
+        )
+        return
+
+    if _at is None:
+        await interaction.response.send_message(
+            "\u274C Ausweis-Token-System nicht verf\u00fcgbar.",
+            ephemeral=True
+        )
+        return
+
+    tok  = _at.create(nutzer.id, "legal")
+    link = f"{_DASHBOARD_URL}/ausweis/{tok}"
+
+    dm_embed = discord.Embed(
+        title="\U0001FAAA Ausweis erstellen",
+        description=(
+            "Ein Team-Mitglied hat dir einen Ausweis-Link ausgestellt.\n\n"
+            "Klicke auf den Button und f\u00fclle das Formular aus.\n"
+            "\u23f1\ufe0f Der Link ist **15 Minuten** g\u00fcltig."
+        ),
+        color=0xFF6600
     )
+    dm_view = discord.ui.View()
+    dm_view.add_item(discord.ui.Button(
+        label="\U0001FAAA Ausweis erstellen",
+        style=discord.ButtonStyle.link,
+        url=link,
+    ))
+    try:
+        await nutzer.send(embed=dm_embed, view=dm_view)
+        await interaction.response.send_message(
+            f"\u2705 DM mit Ausweis-Link wurde an {nutzer.mention} gesendet.\n"
+            f"\u23f1\ufe0f G\u00fcltig f\u00fcr **15 Minuten**.\n"
+            f"\U0001F517 Direktlink (falls DM fehlschl\u00e4gt): {link}",
+            ephemeral=True
+        )
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            f"\u274C Konnte keine DM an {nutzer.mention} senden (DMs deaktiviert).\n"
+            f"\U0001F517 Link direkt weitergeben: {link}",
+            ephemeral=True
+        )
