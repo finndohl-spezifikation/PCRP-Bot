@@ -424,6 +424,57 @@ class GruppenTypView(discord.ui.View):
         if typ == "illegal":
             msg += "\n\n\u2705 Einreise erfolgreich! \u2705\nAls illegale Person erh\u00e4ltst du keinen staatlichen Ausweis."
         await interaction.followup.send(msg, ephemeral=True)
+
+        # Mod-Log: Gruppen-Einreise Boni protokollieren
+        try:
+            log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
+            if log_ch:
+                member_lines = "\n".join(
+                    f"\u2022 {m.mention} (`{m}`)" for m in self.members
+                )
+                log_embed = discord.Embed(
+                    title="\U0001F6C2 Gruppen-Einreise \u2014 Start-Boni vergeben",
+                    color=0xFF6600,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                log_embed.add_field(
+                    name="\U0001F464 Durchgef\u00fchrt von",
+                    value=interaction.user.mention,
+                    inline=True,
+                )
+                log_embed.add_field(
+                    name="\U0001F6C2 Einreiseart",
+                    value=typ_label,
+                    inline=True,
+                )
+                log_embed.add_field(
+                    name="\U0001F465 Anzahl Spieler",
+                    value=str(len(self.members)),
+                    inline=True,
+                )
+                log_embed.add_field(
+                    name="\U0001F4CB Mitglieder",
+                    value=member_lines or "\u2014",
+                    inline=False,
+                )
+                log_embed.add_field(
+                    name="\U0001F381 Start-Boni",
+                    value=(
+                        "\U0001F4B0 **10.000$** aufs Bankkonto\n"
+                        "\U0001F697 **Enus Huntley S** ins Inventar"
+                    ),
+                    inline=False,
+                )
+                log_embed.add_field(
+                    name="\U0001F4CB Ergebnisse",
+                    value="\n".join(results) or "\u2014",
+                    inline=False,
+                )
+                log_embed.set_footer(text="Paradise City \u2022 Einreise-System")
+                await log_ch.send(embed=log_embed)
+        except Exception:
+            pass
+
         self.stop()
 
 
