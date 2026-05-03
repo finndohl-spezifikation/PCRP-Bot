@@ -189,7 +189,7 @@ class EinreiseSelect(discord.ui.Select):
                 label="Gruppen-Einreise",
                 emoji="\U0001F465",
                 value="gruppe",
-                description="Bis zu 5 Spieler einreisen (nur Team)"
+                description="Bis zu 5 Spieler gleichzeitig einreisen"
             ),
         ]
         super().__init__(
@@ -236,14 +236,6 @@ class EinreiseSelect(discord.ui.Select):
                 return
 
             if typ == "gruppe":
-                role_ids2 = {r.id for r in member.roles}
-                if not (any(rid in role_ids2 for rid in [ADMIN_ROLE_ID, MOD_ROLE_ID, TICKET_MOD_ROLE_ID])
-                        or interaction.user.guild_permissions.administrator):
-                    await interaction.response.send_message(
-                        "\u274C Nur Team-Mitglieder d\u00fcrfen die Gruppen-Einreise durchf\u00fchren.",
-                        ephemeral=True
-                    )
-                    return
                 await interaction.response.send_modal(GruppenEinreiseModal())
                 return
 
@@ -465,7 +457,7 @@ async def auto_einreise_setup():
                 + "\u27a4 Reise als **illegale Person** ein.\n"
                 + "\u00a0\u00a0\u00a0Keine staatlichen Berufe m\u00f6glich.\n"
                 + "\u00a0\u00a0\u00a0\u26a0\ufe0f Als illegaler Bewohner erh\u00e4ltst du **keinen staatlichen Ausweis**.\n\n"
-                + "\U0001F465  **Gruppen-Einreise** *(nur Team)*\n"
+                + "\U0001F465  **Gruppen-Einreise**\n"
                 + "\u27a4 Bis zu 5 Spieler gleichzeitig einreisen lassen.\n"
                 + "\u00a0\u00a0\u00a0Jeder erh\u00e4lt **10.000$** als Starthilfe.\n\n"
                 + "\u2015" * 20 + "\n"
@@ -497,19 +489,9 @@ async def auto_einreise_setup():
 
 
 @bot.tree.command(name="ausweisen", description="[Ausweis] Zeige deinen Ausweis vor", guild=discord.Object(id=GUILD_ID))
-@app_commands.describe(nutzer="(Nur Team) Ausweis eines anderen Spielers abrufen")
+@app_commands.describe(nutzer="Ausweis eines Spielers abrufen")
 async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = None):
-    role_ids = [r.id for r in interaction.user.roles]
-    is_team  = ADMIN_ROLE_ID in role_ids or MOD_ROLE_ID in role_ids
-
-
-    if interaction.channel.id != AUSWEIS_CHANNEL_ID and not is_team:
-        await interaction.response.send_message(
-            f"\u274C Diesen Command kannst du nur in <#{AUSWEIS_CHANNEL_ID}> benutzen.", ephemeral=True
-        )
-        return
-
-    target = nutzer if (is_team and nutzer) else interaction.user
+    target = nutzer if nutzer else interaction.user
 
     ausweis_data = load_ausweis()
     entry = ausweis_data.get(str(target.id))
