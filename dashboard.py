@@ -1425,7 +1425,7 @@ _AUSWEIS_KARTE_HTML = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Personalausweis &mdash; Los Angeles</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+/* fonts loaded from system fallbacks for performance */
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   min-height:100vh;
@@ -1713,7 +1713,7 @@ def ausweis_karte(uid):
                                       error="Als illegaler Bewohner erhältst du keinen Ausweis.")
     from datetime import datetime as _dt, timedelta as _td
     _now = _dt.now()
-    return render_template_string(
+    resp = make_response(render_template_string(
         _AUSWEIS_KARTE_HTML,
         vorname      = entry.get("vorname", "?"),
         nachname     = entry.get("nachname", "?"),
@@ -1724,7 +1724,9 @@ def ausweis_karte(uid):
         ausweisnummer= entry.get("ausweisnummer", "??-??????"),
         foto         = entry.get("foto_b64") or "",
         valid_until  = (_now + _td(days=1825)).strftime("%d.%m.%Y"),
-    )
+    ))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 
