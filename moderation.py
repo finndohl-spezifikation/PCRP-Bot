@@ -212,10 +212,6 @@ async def check_spam(message):
     grund="Grund f\u00fcr den Bann"
 )
 async def hackban(interaction: discord.Interaction, user_id: str, grund: str = "Kein Grund angegeben"):
-    if not is_mod_or_admin(interaction.user):
-        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
-        return
-
     try:
         uid = int(user_id.strip())
     except ValueError:
