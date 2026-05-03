@@ -353,9 +353,6 @@ async def on_member_update(before, after):
     if before.roles == after.roles:
         return
     guild  = after.guild
-    log_ch = guild.get_channel(ROLE_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
     added   = [r for r in after.roles if r not in before.roles]
     removed = [r for r in before.roles if r not in after.roles]
     if not added and not removed:
@@ -383,32 +380,11 @@ async def on_member_update(before, after):
     _dh.log_activity("ROLLE",
         f"{after} â€” Rollen geÃ¤ndert: +[{', '.join(r.name for r in added)}] -[{', '.join(r.name for r in removed)}]",
         after.id)
-    description = f"**Benutzer:** {after.mention} (`{after}`)\n"
-    if added:
-        description += f"**Hinzugef\u00FCgt:** {', '.join(r.mention for r in added)}\n"
-    if removed:
-        description += f"**Entfernt:** {', '.join(r.mention for r in removed)}\n"
-    try:
-        async for entry in guild.audit_logs(limit=3, action=discord.AuditLogAction.member_role_update):
-            if entry.target.id == after.id:
-                description += f"**Ge\u00E4ndert von:** {entry.user.mention} (`{entry.user}`)"
-                break
-    except Exception:
-        pass
-    embed = discord.Embed(
-        title="\U0001F3AD Rollen ge\u00E4ndert",
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await log_ch.send(embed=embed)
+    # Embed-Log wird von logs_events.py uebernommen (kein Duplikat)
 
 
 @bot.event
 async def on_member_ban(guild, user):
-    log_ch = guild.get_channel(MEMBER_LOG_CHANNEL_ID)
-    if not log_ch:
-        return
     reason = "Kein Grund angegeben"
     banner = None
     try:
@@ -419,21 +395,12 @@ async def on_member_ban(guild, user):
                 break
     except Exception:
         pass
-    description = f"**Benutzer:** {user.mention} (`{user}`)\n**Grund:** {reason}"
-    if banner:
-        description += f"\n**Gebannt von:** {banner.mention} (`{banner}`)"
     _dh.log_activity(
         'BAN',
         f'{user} ({user.id}) gebannt â€” Grund: {reason}' + (f' | Von: {banner}' if banner else ''),
         user.id,
     )
-    embed = discord.Embed(
-        title="\U0001F528 Mitglied gebannt",
-        description=description,
-        color=LOG_COLOR,
-        timestamp=datetime.now(timezone.utc)
-    )
-    await log_ch.send(embed=embed)
+    # Embed-Log wird von logs_events.py uebernommen (kein Duplikat)
 
 
 @bot.event
@@ -481,6 +448,7 @@ async def on_member_remove(member):
             g_embed.add_field(name="\U0001F464 Mitglied", value=str(member), inline=True)
             g_embed.add_field(name="\U0001F194 ID",       value=str(member.id), inline=True)
             g_embed.set_footer(text=f"Paradise City Roleplay \u2022 Noch {guild.member_count} Mitglieder")
+            g_embed.set_image(url="https://share.creavite.co/69f65164a7750554df625064.gif")
             await goodbye_ch.send(embed=g_embed)
         except Exception:
             pass
@@ -672,6 +640,7 @@ async def on_member_join(member):
             color=0xE67E22
         )
         embed.set_footer(text="Paradise City Roleplay \u2022 Willkommen!")
+        embed.set_image(url="https://share.creavite.co/69f65164a7750554df625064.gif")
         await member.send(content=member.mention, embed=embed)
     except Exception:
         pass
@@ -692,6 +661,7 @@ async def on_member_join(member):
             w_embed.add_field(name="\U0001F464 Mitglied", value=str(member), inline=True)
             w_embed.add_field(name="\U0001F194 ID", value=str(member.id), inline=True)
             w_embed.set_footer(text=f"Paradise City Roleplay \u2022 Mitglied #{guild.member_count}")
+            w_embed.set_image(url="https://share.creavite.co/69f65164a7750554df625064.gif")
             await welcome_ch.send(embed=w_embed)
         except Exception:
             pass
