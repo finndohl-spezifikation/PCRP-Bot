@@ -1168,6 +1168,14 @@ input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.15)}
 .btn:hover{opacity:.9}.btn:active{transform:scale(.98)}
 .hint{color:rgba(255,255,255,.25);font-size:11px;text-align:center;margin-top:20px}
 .warn-text{color:#e74c3c;font-size:11px;text-align:center;margin-top:14px;margin-bottom:0;line-height:1.5}
+.photo-upload{margin-bottom:22px;text-align:center}
+.photo-label{display:block;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px}
+.photo-box{width:110px;height:138px;border-radius:10px;border:2px dashed rgba(255,107,0,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;margin:0 auto;overflow:hidden;background:rgba(255,255,255,.04);transition:border-color .2s;position:relative}
+.photo-box:hover{border-color:#FF6B00}
+.photo-box img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.photo-box .ph{font-size:30px;display:block;margin-bottom:5px}
+.photo-box .ph-hint{font-size:10px;color:rgba(255,255,255,.3)}
+input[type=file]{display:none}
 </style>
 </head>
 <body>
@@ -1181,7 +1189,24 @@ input:focus{border-color:#FF6B00;box-shadow:0 0 0 3px rgba(255,107,0,.15)}
   {% if error %}
   <div class="error-msg">&#x274C; {{ error }}</div>
   {% endif %}
-  <form method="POST" action="/ausweis/{{ token }}">
+  <form method="POST" action="/ausweis/{{ token }}" enctype="multipart/form-data">
+    <div class="photo-upload">
+      <span class="photo-label">Ausweis-Foto</span>
+      <div class="photo-box" id="photoBox" onclick="document.getElementById('fotoInput').click()">
+        <img id="photoPreview" src="" alt="" style="display:none">
+        <span class="ph" id="phIcon">&#x1F4F7;</span>
+        <span class="ph-hint" id="phHint">Foto hochladen</span>
+      </div>
+      <input type="file" id="fotoInput" name="foto" accept="image/*" onchange="previewPhoto(this)">
+      <p style="color:rgba(255,255,255,.3);font-size:10px;margin-top:6px">Max. 5 MB &bull; JPG, PNG</p>
+    </div>
+    <script>
+    function previewPhoto(i){if(!i.files||!i.files[0])return;
+    var r=new FileReader();r.onload=function(e){
+    var img=document.getElementById('photoPreview');img.src=e.target.result;img.style.display='block';
+    document.getElementById('phIcon').style.display='none';document.getElementById('phHint').style.display='none';};
+    r.readAsDataURL(i.files[0]);}
+    </script>
     <div class="field">
       <label>Vollst&#228;ndiger Name</label>
       <input type="text" name="name" placeholder="Vorname Nachname" required maxlength="100" value="{{ name or '' }}">
@@ -1318,6 +1343,14 @@ def ausweis_submit(token):
                                       error="Dieser Link ist abgelaufen oder wurde bereits verwendet.")
 
     name          = request.form.get("name", "").strip()
+    # Foto verarbeiten
+    foto_b64 = None
+    foto_file = request.files.get("foto")
+    if foto_file and foto_file.filename:
+        import base64 as _b64
+        raw = foto_file.read(5 * 1024 * 1024)  # max 5 MB
+        mime = foto_file.content_type or "image/jpeg"
+        foto_b64 = f"data:{mime};base64," + _b64.b64encode(raw).decode()
     geburtsdatum  = request.form.get("geburtsdatum", "").strip()
     alter         = request.form.get("alter", "").strip()
     nationalitaet = request.form.get("nationalitaet", "").strip()
@@ -1353,6 +1386,7 @@ def ausweis_submit(token):
         "einreise_typ":  einreise_typ,
         "ausweisnummer": ausweisnummer,
         "discord_id":    uid,
+        "foto_b64":      foto_b64,
     }
     save_ausweis(ausweis_data)
 
@@ -1369,6 +1403,130 @@ def ausweis_submit(token):
                                    name=f"{vorname} {nachname}",
                                    ausweisnummer=ausweisnummer,
                                    typ_label=typ_label)
+
+
+
+_AUSWEIS_KARTE_HTML = """<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ID Card</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#0d0f14;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-family:Arial,sans-serif;padding:24px}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 20% 80%,rgba(0,55,120,.25) 0%,transparent 60%),
+             radial-gradient(ellipse 60% 50% at 80% 20%,rgba(200,168,75,.12) 0%,transparent 60%);
+  pointer-events:none}
+.wrap{width:100%;max-width:460px;position:relative;z-index:1}
+.card{background:#fff;border-radius:14px;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.7)}
+.hdr{background:#003778;padding:9px 14px;display:flex;
+  align-items:center;justify-content:space-between}
+.state{color:#fff;font-size:22px;font-weight:900;letter-spacing:3px}
+.stars{color:#c8a84b;font-size:11px;letter-spacing:3px;display:block}
+.r-title{text-align:right}
+.dl-label{color:#c8a84b;font-size:11px;font-weight:700;letter-spacing:2px}
+.dl-sub{color:rgba(255,255,255,.7);font-size:8px;letter-spacing:1px}
+.goldbar{background:linear-gradient(90deg,#8a6800,#c8a84b,#f5d060,#c8a84b,#8a6800);height:7px}
+.body{padding:12px 14px;display:flex;gap:14px;position:relative;overflow:hidden;min-height:130px}
+.bear{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  font-size:130px;opacity:.04;pointer-events:none;line-height:1}
+.photo-col{flex-shrink:0}
+.photo-col img,.no-photo{width:88px;height:112px;object-fit:cover;
+  border-radius:4px;border:2px solid #003778;display:block}
+.no-photo{background:#dde;display:flex;align-items:center;justify-content:center;
+  font-size:38px;color:#aab}
+.info{flex:1;font-size:11px}
+.badge{background:#003778;color:#c8a84b;font-size:7.5px;font-weight:700;
+  letter-spacing:1.5px;padding:2px 7px;border-radius:2px;display:inline-block;margin-bottom:5px}
+.dl-num{font-size:17px;font-weight:900;color:#003778;letter-spacing:1px;margin-bottom:3px}
+.dl-name{font-size:13px;font-weight:900;color:#000;text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:7px;line-height:1.2}
+.row{display:flex;gap:14px;margin-bottom:4px;flex-wrap:wrap}
+.f .lbl{font-size:7px;color:#666;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px}
+.f .val{font-size:10.5px;font-weight:700;color:#000}
+.addr{margin-top:5px}
+.cls{margin-top:6px;background:#003778;color:#fff;display:inline-block;
+  padding:2px 8px;font-size:8.5px;font-weight:700;letter-spacing:1px;border-radius:2px}
+.ftr{background:#003778;padding:6px 14px;display:flex;
+  align-items:center;justify-content:space-between}
+.barcode{font-family:monospace;font-size:26px;color:#c8a84b;letter-spacing:-3px;opacity:.9}
+.srv{color:rgba(255,255,255,.5);font-size:7.5px;font-weight:700;
+  letter-spacing:1px;text-align:right;line-height:1.5}
+.hint-box{margin-top:18px;text-align:center;color:rgba(255,255,255,.3);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="hdr">
+      <div>
+        <div class="state">CALIFORNIA</div>
+        <span class="stars">&#x2605; &#x2605; &#x2605; &#x2605; &#x2605;</span>
+      </div>
+      <div class="r-title">
+        <div class="dl-label">DRIVER LICENSE</div>
+        <div class="dl-sub">PARADISE CITY ROLEPLAY</div>
+      </div>
+    </div>
+    <div class="goldbar"></div>
+    <div class="body">
+      <div class="bear">&#x1F43B;</div>
+      <div class="photo-col">
+        {% if foto %}
+        <img src="{{ foto }}" alt="Foto">
+        {% else %}
+        <div class="no-photo">&#x1F464;</div>
+        {% endif %}
+      </div>
+      <div class="info">
+        <div class="badge">{{ einreise_typ|upper }}</div>
+        <div class="dl-num">DL&nbsp;{{ ausweisnummer }}</div>
+        <div class="dl-name">{{ nachname }},&nbsp;{{ vorname }}</div>
+        <div class="row">
+          <div class="f"><div class="lbl">DOB</div><div class="val">{{ geburtsdatum }}</div></div>
+          <div class="f"><div class="lbl">AGE</div><div class="val">{{ alter }}</div></div>
+          <div class="f"><div class="lbl">NATION</div><div class="val">{{ nationalitaet }}</div></div>
+        </div>
+        <div class="addr f"><div class="lbl">ADDRESS</div><div class="val">{{ wohnort }}, CA</div></div>
+        <div class="cls">CLASS C &nbsp;|&nbsp; PCRP</div>
+      </div>
+    </div>
+    <div class="ftr">
+      <div class="barcode">||| || |||| ||||| || ||||</div>
+      <div class="srv">PARADISE CITY<br>ROLEPLAY &#x1F3D9;</div>
+    </div>
+  </div>
+  <div class="hint-box">Paradise City Roleplay &mdash; Personalausweis</div>
+</div>
+</body>
+</html>"""
+
+
+@app.route("/ausweis-karte/<int:uid>")
+def ausweis_karte(uid):
+    from einreise import load_ausweis
+    ausweis_data = load_ausweis()
+    entry = ausweis_data.get(str(uid))
+    if not entry:
+        return render_template_string(_AUSWEIS_ERROR_HTML,
+                                      error="Kein Ausweis f\u00fcr diesen Spieler gefunden.")
+    return render_template_string(
+        _AUSWEIS_KARTE_HTML,
+        vorname      = entry.get("vorname", "?"),
+        nachname     = entry.get("nachname", "?"),
+        geburtsdatum = entry.get("geburtsdatum", "?"),
+        alter        = entry.get("alter", "?"),
+        nationalitaet= entry.get("nationalitaet", "?"),
+        wohnort      = entry.get("wohnort", "?"),
+        einreise_typ = entry.get("einreise_typ", "PCRP"),
+        ausweisnummer= entry.get("ausweisnummer", "??-??????"),
+        foto         = entry.get("foto_b64") or "",
+    )
+
 
 
 def get_ausweis_url(uid: int, einreise_typ: str) -> str:
