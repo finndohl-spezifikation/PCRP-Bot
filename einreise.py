@@ -185,9 +185,15 @@ class EinreiseSelect(discord.ui.Select):
                 value="illegal",
                 description="Einreise als illegale Person"
             ),
+            discord.SelectOption(
+                label="Gruppen-Einreise",
+                emoji="\U0001F465",
+                value="gruppe",
+                description="Bis zu 5 Spieler einreisen (nur Team)"
+            ),
         ]
         super().__init__(
-            placeholder="\u2708\uFE0F Wähle deine Einreiseart...",
+            placeholder="\u2708\ufe0f Wähle deine Einreiseart...",
             options=options,
             custom_id="einreise_select_main"
         )
@@ -227,6 +233,18 @@ class EinreiseSelect(discord.ui.Select):
                     "Als illegaler Bewohner hast du keinen Anspruch auf einen staatlichen Ausweis.",
                     ephemeral=True
                 )
+                return
+
+            if typ == "gruppe":
+                role_ids2 = {r.id for r in member.roles}
+                if not (any(rid in role_ids2 for rid in [ADMIN_ROLE_ID, MOD_ROLE_ID, TICKET_MOD_ROLE_ID])
+                        or interaction.user.guild_permissions.administrator):
+                    await interaction.response.send_message(
+                        "\u274C Nur Team-Mitglieder d\u00fcrfen die Gruppen-Einreise durchf\u00fchren.",
+                        ephemeral=True
+                    )
+                    return
+                await interaction.response.send_modal(GruppenEinreiseModal())
                 return
 
             ausweis_data = load_ausweis()
@@ -284,23 +302,6 @@ class EinreiseView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(EinreiseSelect())
-
-    @discord.ui.button(
-        label="\U0001F465 Gruppen-Einreise",
-        style=discord.ButtonStyle.secondary,
-        custom_id="einreise_gruppe_btn",
-        row=1,
-    )
-    async def gruppen_einreise(self, interaction: discord.Interaction, button: discord.ui.Button):
-        role_ids = {r.id for r in interaction.user.roles}
-        if not (any(rid in role_ids for rid in [ADMIN_ROLE_ID, MOD_ROLE_ID, TICKET_MOD_ROLE_ID]) or
-                interaction.user.guild_permissions.administrator):
-            await interaction.response.send_message(
-                "\u274C Nur Team-Mitglieder d\u00fcrfen die Gruppen-Einreise durchf\u00fchren.",
-                ephemeral=True
-            )
-            return
-        await interaction.response.send_modal(GruppenEinreiseModal())
 
 
 class GruppenEinreiseModal(discord.ui.Modal, title="\U0001F465 Gruppen-Einreise"):
@@ -456,19 +457,19 @@ async def auto_einreise_setup():
         embed = discord.Embed(
             title="\u2708\ufe0f Einreise \u2014 Paradise City Roleplay",
             description=(
-                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
+                "\u2500" * 32 + "\n"
                 "\U0001F935\u200d\u2642\ufe0f  **Legale Einreise**\n"
                 "\u27a4 Reise als **legale Person** ein und erhalte Zugang zu\n"
-                "\u00a0\u00a0staatlichen Berufen, Ausweis & Startfahrzeug.\n\n"
+                "\u00a0\u00a0\u00a0staatlichen Berufen.\n\n"
                 "\U0001F977  **Illegale Einreise**\n"
                 "\u27a4 Reise als **illegale Person** ein.\n"
-                "\u00a0\u00a0Keine staatlichen Berufe m\u00f6glich.\n"
-                "\u00a0\u00a0\u26a0\ufe0f Kein staatlicher Ausweis m\u00f6glich.\n\n"
+                "\u00a0\u00a0\u00a0Keine staatlichen Berufe m\u00f6glich.\n"
+                "\u00a0\u00a0\u00a0\u26a0\ufe0f Als illegaler Bewohner erh\u00e4ltst du **keinen staatlichen Ausweis**.\n\n"
                 "\U0001F465  **Gruppen-Einreise** *(nur Team)*\n"
                 "\u27a4 Bis zu 5 Spieler gleichzeitig einreisen lassen.\n"
-                "\u00a0\u00a0Jeder erh\u00e4lt **10.000$** & **Enus Huntley S**.\n\n"
-                "\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n"
-                "\u26a0\ufe0f \u00c4nderung der Einreiseart nur durch den **RP-Tod** m\u00f6glich."
+                "\u00a0\u00a0\u00a0Jeder erh\u00e4lt **10.000$** als Starthilfe.\n\n"
+                "\u2500" * 32 + "\n"
+                "\u26a0\ufe0f Eine \u00c4nderung der Einreiseart ist nur durch den **RP-Tod** des Charakters m\u00f6glich."
             ),
             color=0xFF6600,
             timestamp=datetime.now(timezone.utc)
@@ -529,29 +530,18 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
         )
         return
 
-    embed = discord.Embed(
-        title="\U0001FAAA Personalausweis",
-        color=0x000000,
-        timestamp=datetime.now(timezone.utc)
-    )
-    embed.set_thumbnail(url=target.display_avatar.url)
-    embed.add_field(name="Name",          value=f"{entry['vorname']} {entry['nachname']}", inline=True)
-    embed.add_field(name="Geburtsdatum",  value=entry["geburtsdatum"],                     inline=True)
-    embed.add_field(name="Alter",         value=entry.get("alter", "?"),                   inline=True)
-    embed.add_field(name="Nationalität",  value=entry["nationalitaet"],                    inline=True)
-    embed.add_field(name="Wohnort",       value=entry["wohnort"],                          inline=True)
-    embed.add_field(name="Ausweisnummer", value=f"`{entry['ausweisnummer']}`",             inline=False)
-    embed.set_footer(text="Los Angeles — Personalausweis")
-
     card_url = f"{_DASHBOARD_URL}/ausweis-karte/{target.id}"
     view = discord.ui.View()
     view.add_item(discord.ui.Button(
-        label="\U0001FAAA Ausweis ansehen",
+        label="\U0001FAAA Klicke hier um den Personalausweis abzurufen",
         style=discord.ButtonStyle.link,
         url=card_url,
     ))
-
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=is_team and nutzer is not None)
+    await interaction.response.send_message(
+        "\U0001FAAA **Personalausweis**",
+        view=view,
+        ephemeral=True
+    )
 
 
 # ── /ausweis-remove ──────────────────────────────────────────────
