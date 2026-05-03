@@ -206,6 +206,9 @@ class EinreiseSelect(discord.ui.Select):
             typ = self.values[0]
 
             if typ == "illegal":
+                guild = interaction.guild or bot.get_guild(GUILD_ID)
+                if guild:
+                    await _assign_charakter_rollen(member, guild, "illegal")
                 await interaction.response.send_message(
                     "\U0001F6AB Als illegaler Bewohner erhältst du keinen Ausweis.",
                     ephemeral=True
