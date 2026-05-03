@@ -1366,7 +1366,7 @@ def ausweis_submit(token):
         return render_template_string(_AUSWEIS_FORM_HTML, token=token, typ_label=typ_label,
                                        error="Bitte alle Felder ausf\u00fcllen.",
                                        name=name, geburtsdatum=geburtsdatum,
-                                       alter=alter, nationalitaet=nationalitaet, wohnort=wohnort)
+                                       alter=alter, nationalitaet=nationalitaet, wohnort=wohnort, geburtsort=geburtsort)
 
     uid          = entry["uid"]
     einreise_typ = entry["einreise_typ"]
