@@ -80,18 +80,8 @@ async def apply_timeout_restrictions(member, guild, duration_h=None, duration_m=
             f"- Bot-Rolle ist niedriger als die Ziel-Rolle",
             guild
         )
-    roles_removed = []
-    try:
-        roles_to_remove = [
-            r for r in member.roles
-            if r != guild.default_role and not r.managed
-        ]
-        if roles_to_remove:
-            await member.remove_roles(*roles_to_remove, reason=f"Timeout: {reason}")
-            roles_removed = roles_to_remove
-    except Exception as e:
-        await log_bot_error("Rollen entfernen fehlgeschlagen", str(e), guild)
-    return timeout_ok, roles_removed
+    # Rollen werden bei Timeout NICHT entfernt
+    return timeout_ok, []
 
 
 def has_citizen_or_wage(member):
