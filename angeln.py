@@ -318,29 +318,17 @@ def _roll_fang(user_id: int, bonus_chance: int = 0) -> tuple[list[tuple[str,int,
 
 # \u2500\u2500 on_message: Foto startet Angeln \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
-import time as _time  # f\u00FCr Zeitstempel im Duplikatschutz
+# In-Memory-Set fuer Duplikatschutz (kein JSON-I/O, keine Race-Condition)
+
+
+_angeln_seen_msg_ids: set = set()
 
 
 def _angeln_msg_bereits_verarbeitet(msg_id: int) -> bool:
-    """Pr\u00FCft ob die Nachrichten-ID schon verarbeitet wurde.
-    Speichert den Zustand in der Economy-JSON, damit auch mehrere
-    Bot-Prozesse (z.B. lokal + Railway) keine Doppelnachrichten senden."""
-    try:
-        eco  = load_economy()
-        seen = eco.get("_angeln_seen_msgs", {})
-        now  = _time.time()
-        # Eintr\u00E4ge \u00E4lter als 2 Minuten bereinigen
-        seen = {k: v for k, v in seen.items() if now - v < 120}
-        if str(msg_id) in seen:
-            eco["_angeln_seen_msgs"] = seen
-            save_economy(eco)
-            return True
-        seen[str(msg_id)] = now
-        eco["_angeln_seen_msgs"] = seen
-        save_economy(eco)
-        return False
-    except Exception:
-        return False
+    if msg_id in _angeln_seen_msg_ids:
+        return True
+    _angeln_seen_msg_ids.add(msg_id)
+    return False
 
 
 async def angeln_bild_listener(message: discord.Message):
