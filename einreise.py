@@ -319,34 +319,38 @@ class GruppenMemberSelectView(discord.ui.View):
     ):
         await interaction.response.defer(ephemeral=True)
         ausweis_data = load_ausweis()
-        members_ok = []
         errors = []
+        members_ok = []
         for m in select.values:
             if m.bot:
-                errors.append(f"{m.mention} \u2014 Bot-Account")
+                errors.append(f"\u274C {m.mention} \u2014 Bot-Account")
                 continue
             role_ids = {r.id for r in m.roles}
             if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
-                errors.append(f"{m.mention} \u2014 bereits eingereist")
+                errors.append(f"\u274C {m.mention} \u2014 bereits eingereist")
                 continue
             if WHITELIST_ROLE_ID not in role_ids:
-                errors.append(f"{m.mention} \u2014 hat nicht die Einreise-Wartestellung")
+                errors.append(f"\u274C {m.mention} \u2014 hat nicht die Einreise-Wartestellung")
                 continue
             if str(m.id) in ausweis_data:
-                errors.append(f"{m.mention} \u2014 hat bereits einen Ausweis")
+                errors.append(f"\u274C {m.mention} \u2014 hat bereits einen Ausweis")
                 continue
             members_ok.append(m)
-        if not members_ok:
-            msg = "\u274C Keine g\u00fcltigen Spieler ausgew\u00e4hlt."
-            if errors:
-                msg += "\n\n\u26A0\uFE0F **Gr\u00fcnde:**\n" + "\n".join(errors)
+        # Bei EINEM einzigen Problem: Fehler zeigen, View bleibt aktiv -> erneut auswaehlen
+        if errors:
+            msg = (
+                "\u274C **Auswahl ung\u00fcltig \u2014 bitte neue Spieler ausw\u00e4hlen!**\n\n"
+                + "\n".join(errors)
+                + "\n\n\U0001F504 W\u00e4hle erneut \u2014 **alle** ausgew\u00e4hlten Spieler m\u00fcssen g\u00fcltig sein."
+            )
             await interaction.followup.send(msg, ephemeral=True)
             return
-        view = GruppenTypView(members_ok, errors)
+        if not members_ok:
+            await interaction.followup.send("\u274C Keine Spieler ausgew\u00e4hlt.", ephemeral=True)
+            return
+        view = GruppenTypView(members_ok, [])
         lines = "\n".join(f"\u2022 {m.mention}" for m in members_ok)
-        msg = f"**{len(members_ok)} Spieler bereit.** W\u00e4hle die Einreiseart:\n{lines}"
-        if errors:
-            msg += f"\n\n\u26A0\uFE0F **\u00dcbersprungen ({len(errors)}):**\n" + "\n".join(errors)
+        msg = f"**\u2705 {len(members_ok)} Spieler bereit.** W\u00e4hle die Einreiseart:\n{lines}"
         await interaction.followup.send(msg, view=view, ephemeral=True)
         self.stop()
 
