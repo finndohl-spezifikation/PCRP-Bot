@@ -3,7 +3,7 @@ import json, os, sys, time, threading, asyncio, psutil
 from pathlib import Path
 from datetime import datetime, timezone
 from functools import wraps
-from flask import (Flask, render_template_string, redirect, url_for, request,
+from flask import (Flask, make_response, render_template_string, redirect, url_for, request,
                    session, jsonify, abort, send_from_directory)
 
 from config import (DATA_DIR, ECONOMY_FILE, SHOP_FILE, WARNS_FILE,
