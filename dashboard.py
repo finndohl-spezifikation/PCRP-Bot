@@ -1396,6 +1396,18 @@ def ausweis_submit(token):
         if member:
             _call_async(_assign_charakter_rollen(member, guild, einreise_typ))
 
+    if einreise_typ == "legal":
+        try:
+            from economy_helpers import load_economy as _le, save_economy as _se, get_user as _gu
+            _eco = _le()
+            _ud  = _gu(_eco, uid)
+            if "inventory" not in _ud:
+                _ud["inventory"] = []
+            _ud["inventory"].append("🚗| Declasse Rhapsody")
+            _se(_eco)
+        except Exception:
+            pass
+
     _at.consume(token)
 
     typ_label = "\U0001F935 Legale Einreise" if einreise_typ == "legal" else "\U0001F977 Illegale Einreise"
