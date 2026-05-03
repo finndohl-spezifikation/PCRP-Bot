@@ -198,3 +198,82 @@ async def check_spam(message):
             await message.author.send(content=message.author.mention, embed=embed)
         except Exception:
             pass
+
+
+# ── /hackban ──────────────────────────────────────────
+
+@bot.tree.command(
+    name="hackban",
+    description="[Mod] Nutzer dauerhaft per ID bannen (inkl. IP-Sperre)",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.describe(
+    user_id="Discord Nutzer-ID des zu bannenden Spielers",
+    grund="Grund f\u00fcr den Bann"
+)
+async def hackban(interaction: discord.Interaction, user_id: str, grund: str = "Kein Grund angegeben"):
+    if not is_mod_or_admin(interaction.user):
+        await interaction.response.send_message("\u274C Keine Berechtigung.", ephemeral=True)
+        return
+
+    try:
+        uid = int(user_id.strip())
+    except ValueError:
+        await interaction.response.send_message(
+            "\u274C Ung\u00fcltige Discord ID \u2014 bitte eine g\u00fcltige Zahlenkombination eingeben.",
+            ephemeral=True
+        )
+        return
+
+    guild = interaction.guild
+    try:
+        await guild.ban(
+            discord.Object(id=uid),
+            reason=f"[HackBan] {grund} | Gebannt von: {interaction.user} ({interaction.user.id})",
+            delete_message_days=0
+        )
+    except discord.NotFound:
+        await interaction.response.send_message("\u274C Nutzer nicht gefunden.", ephemeral=True)
+        return
+    except discord.Forbidden:
+        await interaction.response.send_message(
+            "\u274C Keine Berechtigung diesen Nutzer zu bannen (fehlende Bot-Rechte oder h\u00f6here Rolle).",
+            ephemeral=True
+        )
+        return
+    except Exception as _e:
+        await interaction.response.send_message(f"\u274C Fehler: `{_e}`", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="\U0001F528 HackBan ausgef\u00fchrt",
+        description=(
+            f"**Nutzer ID:** `{uid}`\n"
+            f"**Grund:** {grund}\n"
+            f"**Gebannt von:** {interaction.user.mention} (`{interaction.user}`)\n\n"
+            "Die Person wurde dauerhaft gebannt inkl. IP-Sperre."
+        ),
+        color=0xFF0000,
+        timestamp=datetime.now(timezone.utc)
+    )
+    embed.set_footer(text="Paradise City Roleplay \u2022 HackBan")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Mod-Log
+    try:
+        log_ch = guild.get_channel(MOD_LOG_CHANNEL_ID)
+        if log_ch:
+            log_embed = discord.Embed(
+                title="\U0001F528 HackBan",
+                description=(
+                    f"**Nutzer ID:** `{uid}`\n"
+                    f"**Grund:** {grund}\n"
+                    f"**Ausgef\u00fchrt von:** {interaction.user.mention} (`{interaction.user}`)"
+                ),
+                color=0xFF0000,
+                timestamp=datetime.now(timezone.utc)
+            )
+            log_embed.set_footer(text="Paradise City Roleplay \u2022 HackBan")
+            await log_ch.send(embed=log_embed)
+    except Exception:
+        pass
