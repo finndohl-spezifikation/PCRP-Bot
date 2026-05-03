@@ -348,7 +348,12 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
         await interaction.response.send_message(msg, ephemeral=True)
         return
 
-    typ_label = "\U0001F935 Legale Einreise" if entry.get("einreise_typ") == "legal" else "\U0001F977 Illegale Einreise"
+    if entry.get("einreise_typ") == "illegal":
+        await interaction.response.send_message(
+            "\U0001F6AB Als illegaler Bewohner erhältst du keinen Ausweis.",
+            ephemeral=True
+        )
+        return
 
     embed = discord.Embed(
         title="\U0001FAAA Personalausweis",
@@ -361,9 +366,8 @@ async def ausweisen(interaction: discord.Interaction, nutzer: discord.Member = N
     embed.add_field(name="Alter",         value=entry.get("alter", "?"),                   inline=True)
     embed.add_field(name="Nationalität",  value=entry["nationalitaet"],                    inline=True)
     embed.add_field(name="Wohnort",       value=entry["wohnort"],                          inline=True)
-    embed.add_field(name="Einreiseart",   value=typ_label,                                 inline=True)
     embed.add_field(name="Ausweisnummer", value=f"`{entry['ausweisnummer']}`",             inline=False)
-    embed.set_footer(text="Paradise City Roleplay — Personalausweis")
+    embed.set_footer(text="Los Angeles — Personalausweis")
 
     card_url = f"{_DASHBOARD_URL}/ausweis-karte/{target.id}"
     view = discord.ui.View()
