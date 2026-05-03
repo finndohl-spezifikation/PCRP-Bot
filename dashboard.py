@@ -1411,243 +1411,272 @@ _AUSWEIS_KARTE_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ID Card &mdash; Paradise City RP</title>
+<title>Personalausweis &mdash; Paradise City RP</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;background:#0a0c12;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;padding:30px;
-  font-family:'Barlow Condensed',Arial,sans-serif}
-body::before{content:'';position:fixed;inset:0;
-  background:radial-gradient(ellipse 80% 70% at 30% 80%,rgba(0,55,120,.3) 0%,transparent 55%),
-             radial-gradient(ellipse 60% 50% at 75% 20%,rgba(180,140,40,.15) 0%,transparent 55%);
-  pointer-events:none}
-.outer{position:relative;z-index:1;width:100%;max-width:540px}
+body{
+  min-height:100vh;
+  background:#111318;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:30px;
+  font-family:'Barlow Condensed',Arial,sans-serif;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 70% 60% at 20% 80%,rgba(10,60,30,.35) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%,rgba(60,100,40,.2)  0%,transparent 55%);
+  pointer-events:none;
+}
+.outer{position:relative;z-index:1;width:100%;max-width:560px}
 
-/* ── Card ── */
+/* ── Card shell ── */
 .card{
-  background:#e8e0cc;
-  border-radius:14px;
+  border-radius:13px;
   overflow:hidden;
-  box-shadow:0 30px 80px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08);
+  box-shadow:0 30px 80px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.07);
   position:relative;
-  /* Guilloche security background */
-  background-image:
-    repeating-linear-gradient(0deg,transparent,transparent 18px,rgba(0,60,120,.04) 18px,rgba(0,60,120,.04) 19px),
-    repeating-linear-gradient(90deg,transparent,transparent 18px,rgba(0,60,120,.04) 18px,rgba(0,60,120,.04) 19px),
-    repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(180,140,30,.05) 8px,rgba(180,140,30,.05) 9px),
-    repeating-linear-gradient(-45deg,transparent,transparent 8px,rgba(180,140,30,.05) 8px,rgba(180,140,30,.05) 9px),
-    linear-gradient(135deg,#ddd6be 0%,#e8e0cc 40%,#ddd4b8 100%);
+  /* Guilloche pattern */
+  background:
+    repeating-linear-gradient(0deg,  transparent,transparent 16px,rgba(0,80,20,.04) 16px,rgba(0,80,20,.04) 17px),
+    repeating-linear-gradient(90deg, transparent,transparent 16px,rgba(0,80,20,.04) 16px,rgba(0,80,20,.04) 17px),
+    repeating-linear-gradient(45deg, transparent,transparent 7px, rgba(180,160,30,.05) 7px,rgba(180,160,30,.05) 8px),
+    repeating-linear-gradient(-45deg,transparent,transparent 7px, rgba(180,160,30,.05) 7px,rgba(180,160,30,.05) 8px),
+    linear-gradient(160deg,#dfe8dc 0%,#eef0e8 45%,#dde5d8 100%);
 }
 
-/* ── Header stripe ── */
+/* ── Header ── */
 .hdr{
-  background:linear-gradient(90deg,#002a6e 0%,#003d9e 40%,#002a6e 100%);
-  padding:7px 16px;
+  background:linear-gradient(90deg,#0a2e12 0%,#144a20 50%,#0a2e12 100%);
+  padding:8px 16px;
   display:flex;align-items:center;justify-content:space-between;
   position:relative;overflow:hidden;
 }
 .hdr::before{
   content:'';position:absolute;inset:0;
-  background:repeating-linear-gradient(90deg,transparent,transparent 6px,rgba(255,255,255,.04) 6px,rgba(255,255,255,.04) 7px);
+  background:repeating-linear-gradient(90deg,transparent,transparent 5px,rgba(255,255,255,.03) 5px,rgba(255,255,255,.03) 6px);
 }
-.hdr-left{display:flex;align-items:center;gap:10px;z-index:1}
-.bear-svg{font-size:28px;filter:drop-shadow(0 0 4px rgba(200,168,75,.5))}
-.hdr-state{
-  color:#fff;font-size:21px;font-weight:900;letter-spacing:3.5px;
-  text-shadow:0 1px 3px rgba(0,0,0,.4);
+.hdr-left{z-index:1;display:flex;align-items:center;gap:10px}
+/* Shield emblem instead of bear */
+.emblem{
+  width:34px;height:38px;
+  background:linear-gradient(160deg,#c8a84b,#f5d060,#a37800);
+  clip-path:polygon(50% 0%,100% 15%,100% 60%,50% 100%,0% 60%,0% 15%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;line-height:1;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.5));
 }
-.hdr-sub{color:rgba(255,255,255,.65);font-size:8px;letter-spacing:2px;font-weight:600}
+.hdr-city{
+  color:#fff;font-size:18px;font-weight:900;letter-spacing:3px;
+  text-shadow:0 1px 4px rgba(0,0,0,.5);
+}
+.hdr-sub{color:rgba(255,255,255,.55);font-size:7.5px;letter-spacing:2px;font-weight:600}
 .hdr-right{text-align:right;z-index:1}
-.hdr-type{color:#c8a84b;font-size:12px;font-weight:700;letter-spacing:2.5px}
-.hdr-sub2{color:rgba(255,255,255,.5);font-size:7px;letter-spacing:1px}
-.real-star{
-  background:#c8a84b;color:#002a6e;font-size:9px;font-weight:900;
-  padding:2px 6px;border-radius:3px;letter-spacing:1px;margin-bottom:3px;
+.hdr-type{color:#c8a84b;font-size:14px;font-weight:900;letter-spacing:3px}
+.hdr-type-en{color:rgba(255,255,255,.4);font-size:8px;letter-spacing:2px;margin-top:1px}
+.chip-badge{
+  background:#c8a84b;color:#0a2e12;
+  font-size:7px;font-weight:900;letter-spacing:1px;
+  padding:2px 7px;border-radius:3px;margin-bottom:3px;
   display:inline-block;
 }
 
 /* ── Gold bar ── */
 .goldbar{
-  height:6px;
-  background:linear-gradient(90deg,#6b4e00,#a37800,#c8a84b,#f5d060,#f8e070,#c8a84b,#a37800,#6b4e00);
+  height:5px;
+  background:linear-gradient(90deg,#5c3d00,#a37800,#c8a84b,#f5d060,#f8e070,#c8a84b,#a37800,#5c3d00);
 }
 
 /* ── Body ── */
-.body{padding:14px 16px 10px;display:flex;gap:16px;position:relative}
-
-/* Watermark bear */
-.watermark{
-  position:absolute;right:16px;top:50%;transform:translateY(-50%);
-  font-size:140px;opacity:.06;pointer-events:none;line-height:1;
-  filter:grayscale(1);
+.body{
+  display:flex;gap:0;
+  padding:14px 16px 12px;
+  position:relative;
+}
+/* Watermark */
+.wm{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  font-size:110px;opacity:.05;pointer-events:none;line-height:1;
 }
 
-/* ── Photo ── */
-.photo-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:6px}
-.photo-wrap img,.no-photo{
-  width:88px;height:112px;object-fit:cover;
+/* ── Left: fields ── */
+.fields{flex:1;min-width:0;padding-right:14px}
+
+.row-label{font-size:7px;font-weight:700;color:#4a6b50;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:1px}
+.row-val{font-size:15px;font-weight:900;color:#0a1a0d;text-transform:uppercase;letter-spacing:.4px;line-height:1.15;margin-bottom:9px}
+.row-val.small{font-size:12px}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px}
+.grid .row-val{font-size:12px;margin-bottom:4px}
+
+/* Nr box */
+.nr-box{
+  margin-top:6px;
+  background:rgba(10,46,18,.08);
+  border:1px solid rgba(10,46,18,.18);
+  border-radius:5px;
+  padding:5px 10px;
+  display:inline-flex;flex-direction:column;
+}
+.nr-box .row-label{margin-bottom:2px}
+.nr-box .nr-val{
+  font-family:'Share Tech Mono',monospace;
+  font-size:17px;font-weight:700;color:#0a2e12;letter-spacing:2px;
+}
+
+/* Chip */
+.chip{
+  width:32px;height:24px;
+  background:linear-gradient(135deg,#c8a84b 0%,#f5d060 40%,#a37800 100%);
   border-radius:4px;
-  border:2.5px solid #002a6e;
+  border:1px solid rgba(0,0,0,.15);
+  margin-top:10px;
+  position:relative;overflow:hidden;
+}
+.chip::before{content:'';position:absolute;inset:3px;
+  border:1px solid rgba(0,0,0,.12);border-radius:2px;}
+.chip::after{content:'';position:absolute;top:50%;left:0;right:0;
+  height:1px;background:rgba(0,0,0,.1);}
+
+/* ── Right: photo ── */
+.photo-side{
+  flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding-top:4px;
+}
+.photo-wrap img,.no-photo{
+  width:90px;height:115px;object-fit:cover;
+  border-radius:4px;
+  border:2px solid #0a2e12;
   display:block;
-  box-shadow:2px 2px 8px rgba(0,0,0,.3);
+  box-shadow:2px 2px 10px rgba(0,0,0,.35);
 }
 .no-photo{
-  background:linear-gradient(135deg,#c5bda8,#b0a890);
+  background:linear-gradient(135deg,#c0c8bc,#aab4a6);
   display:flex;align-items:center;justify-content:center;
-  font-size:42px;
+  font-size:44px;
 }
-.sig-line{width:88px;border-top:1.5px solid #002a6e;padding-top:4px;
-  font-size:8px;color:#333;text-align:center;letter-spacing:.5px}
-
-/* ── Info ── */
-.info{flex:1;min-width:0}
-
-/* DL number row */
-.dl-row{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;border-bottom:1px solid rgba(0,42,110,.2);padding-bottom:6px}
-.dl-num{font-size:19px;font-weight:900;color:#002a6e;letter-spacing:1.5px;font-family:'Share Tech Mono',monospace}
-.einreise-badge{
-  background:#002a6e;color:#c8a84b;
-  font-size:8px;font-weight:700;letter-spacing:1.5px;
-  padding:2px 7px;border-radius:3px;margin-left:auto;
-}
-
-/* Name */
-.name-family{font-size:8px;font-weight:700;color:#555;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px}
-.name-val{font-size:16px;font-weight:900;color:#000;text-transform:uppercase;letter-spacing:.5px;line-height:1.1;margin-bottom:2px}
-.name-given{font-size:13px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:.3px;margin-bottom:10px}
-
-/* Fields grid */
-.fields{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 10px;margin-bottom:8px}
-.field .lbl{font-size:7px;color:#666;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:1px}
-.field .val{font-size:11px;font-weight:700;color:#000;line-height:1.2}
-.field.wide{grid-column:span 2}
-.field.full{grid-column:span 3}
-
-/* Class & restrictions */
-.class-row{display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap}
-.cls-box{background:#002a6e;color:#fff;font-size:8px;font-weight:700;
-  letter-spacing:1px;padding:2px 8px;border-radius:3px}
-.rest-box{background:#8a1010;color:#fff;font-size:8px;font-weight:700;
-  letter-spacing:1px;padding:2px 8px;border-radius:3px}
+.sig-wrap{width:90px;border-top:1.5px solid #0a2e12;padding-top:4px;text-align:center}
+.sig-lbl{font-size:7px;color:#4a6b50;letter-spacing:.8px;text-transform:uppercase}
 
 /* ── MRZ ── */
-.mrz-bar{background:#f0e8d0;border-top:1px solid rgba(0,42,110,.15);padding:6px 16px}
-.mrz-label{font-size:7px;color:#888;letter-spacing:1px;margin-bottom:3px;text-transform:uppercase}
-.mrz-line{font-family:'Share Tech Mono',monospace;font-size:10px;color:#000;
-  letter-spacing:2px;word-break:break-all;line-height:1.6;opacity:.8}
-
-/* ── Footer stripe ── */
-.ftr{
-  background:linear-gradient(90deg,#002a6e 0%,#003d9e 50%,#002a6e 100%);
-  padding:6px 16px;display:flex;align-items:center;justify-content:space-between;
+.mrz-bar{
+  background:rgba(10,46,18,.06);
+  border-top:1px solid rgba(10,46,18,.12);
+  padding:7px 16px 6px;
 }
-.barcode{font-family:'Share Tech Mono',monospace;font-size:20px;color:#c8a84b;
-  letter-spacing:-2.5px;opacity:.9}
-.ftr-right{text-align:right;color:rgba(255,255,255,.5);font-size:7px;
-  letter-spacing:1px;line-height:1.6}
+.mrz-lbl{font-size:7px;color:#4a6b50;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.mrz-line{
+  font-family:'Share Tech Mono',monospace;
+  font-size:10.5px;color:#0a1a0d;
+  letter-spacing:2px;word-break:break-all;line-height:1.7;
+  opacity:.75;
+}
 
-/* ── Page ── */
-.hint{margin-top:14px;text-align:center;color:rgba(255,255,255,.25);font-size:11px}
+/* ── Footer ── */
+.ftr{
+  background:linear-gradient(90deg,#0a2e12 0%,#144a20 50%,#0a2e12 100%);
+  padding:6px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.barcode{
+  font-family:'Share Tech Mono',monospace;font-size:21px;
+  color:#c8a84b;letter-spacing:-2.5px;opacity:.9;
+}
+.ftr-right{text-align:right;color:rgba(255,255,255,.4);font-size:7px;letter-spacing:1px;line-height:1.7}
+
+.hint{margin-top:14px;text-align:center;color:rgba(255,255,255,.2);font-size:11px;letter-spacing:.5px}
 </style>
 </head>
 <body>
 <div class="outer">
-  <div class="card">
+<div class="card">
 
-    <!-- Header -->
-    <div class="hdr">
-      <div class="hdr-left">
-        <span class="bear-svg">&#x1F43B;</span>
-        <div>
-          <div class="hdr-state">CALIFORNIA</div>
-          <div class="hdr-sub">DEPARTMENT OF MOTOR VEHICLES</div>
-        </div>
-      </div>
-      <div class="hdr-right">
-        <div class="real-star">&#x2605; REAL ID</div>
-        <div class="hdr-type">DRIVER LICENSE</div>
-        <div class="hdr-sub2">PARADISE CITY ROLEPLAY</div>
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="emblem">&#x2605;</div>
+      <div>
+        <div class="hdr-city">PARADISE CITY</div>
+        <div class="hdr-sub">EINWOHNERMELDEAMT &bull; BÜRGERAMT</div>
       </div>
     </div>
-    <div class="goldbar"></div>
-
-    <!-- Body -->
-    <div class="body">
-      <div class="watermark">&#x1F43B;</div>
-
-      <!-- Photo -->
-      <div class="photo-wrap">
-        {% if foto %}
-        <img src="{{ foto }}" alt="Foto">
-        {% else %}
-        <div class="no-photo">&#x1F464;</div>
-        {% endif %}
-        <div class="sig-line">UNTERSCHRIFT</div>
-      </div>
-
-      <!-- Data -->
-      <div class="info">
-        <div class="dl-row">
-          <div class="dl-num">DL&nbsp;{{ ausweisnummer }}</div>
-          <div class="einreise-badge">{{ einreise_typ|upper }}</div>
-        </div>
-
-        <div class="name-family">Familienname / Last Name</div>
-        <div class="name-val">{{ nachname }}</div>
-        <div class="name-family">Vorname / First Name</div>
-        <div class="name-given">{{ vorname }}</div>
-
-        <div class="fields">
-          <div class="field">
-            <div class="lbl">Geburtsdatum / DOB</div>
-            <div class="val">{{ geburtsdatum }}</div>
-          </div>
-          <div class="field">
-            <div class="lbl">Alter / Age</div>
-            <div class="val">{{ alter }}</div>
-          </div>
-          <div class="field">
-            <div class="lbl">Nationalit&auml;t</div>
-            <div class="val">{{ nationalitaet }}</div>
-          </div>
-          <div class="field wide">
-            <div class="lbl">Adresse / Address</div>
-            <div class="val">{{ wohnort }}, CA 90001</div>
-          </div>
-          <div class="field">
-            <div class="lbl">Ausgestellt / ISS</div>
-            <div class="val">{{ iss_date }}</div>
-          </div>
-        </div>
-
-        <div class="class-row">
-          <div class="cls-box">CLASS&nbsp;C</div>
-          <div class="cls-box">PCRP&nbsp;RP</div>
-          {% if einreise_typ == 'illegal' %}
-          <div class="rest-box">&#x26A0;&nbsp;ILLEGAL</div>
-          {% else %}
-          <div class="cls-box">&#x2713;&nbsp;LEGAL</div>
-          {% endif %}
-        </div>
-      </div>
+    <div class="hdr-right">
+      <div class="chip-badge">&#x26A1; ePA 2.0</div>
+      <div class="hdr-type">PERSONALAUSWEIS</div>
+      <div class="hdr-type-en">IDENTITY CARD &bull; CARTE D'IDENTITÉ</div>
     </div>
-
-    <!-- MRZ zone -->
-    <div class="mrz-bar">
-      <div class="mrz-label">Machine Readable Zone</div>
-      <div class="mrz-line">IDUSA{{ ausweisnummer|replace('-','') }}{{ '0' * (9 - (ausweisnummer|replace('-','')|length)) }}9{{ geburtsdatum|replace('.','') }}&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
-      <div class="mrz-line">{{ nachname|upper }}&lt;&lt;{{ vorname|upper }}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
-    </div>
-
-    <!-- Footer -->
-    <div class="ftr">
-      <div class="barcode">||| |||| || ||||| ||| |||| |||</div>
-      <div class="ftr-right">PARADISE CITY ROLEPLAY<br>LOS SANTOS &bull; CA &bull; USA</div>
-    </div>
-
   </div>
-  <div class="hint">Paradise City Roleplay &mdash; Offizieller Personalausweis</div>
+  <div class="goldbar"></div>
+
+  <!-- Body -->
+  <div class="body">
+    <div class="wm">&#x1F6E1;</div>
+
+    <!-- Fields left -->
+    <div class="fields">
+      <div class="row-label">Familienname / Surname</div>
+      <div class="row-val">{{ nachname }}</div>
+
+      <div class="row-label">Vorname(n) / Given Name(s)</div>
+      <div class="row-val">{{ vorname }}</div>
+
+      <div class="grid">
+        <div>
+          <div class="row-label">Geburtsdatum / Date of Birth</div>
+          <div class="row-val small">{{ geburtsdatum }}</div>
+        </div>
+        <div>
+          <div class="row-label">Alter / Age</div>
+          <div class="row-val small">{{ alter }}</div>
+        </div>
+        <div>
+          <div class="row-label">Staatsangeh&ouml;rigkeit / Nationality</div>
+          <div class="row-val small">{{ nationalitaet }}</div>
+        </div>
+        <div>
+          <div class="row-label">Wohnort / Place of Residence</div>
+          <div class="row-val small">{{ wohnort }}</div>
+        </div>
+      </div>
+
+      <div class="nr-box">
+        <div class="row-label">Ausweisnummer / Document No.</div>
+        <div class="nr-val">{{ ausweisnummer }}</div>
+      </div>
+
+      <div class="chip"></div>
+    </div>
+
+    <!-- Photo right -->
+    <div class="photo-side">
+      {% if foto %}
+      <img src="{{ foto }}" alt="Foto">
+      {% else %}
+      <div class="no-photo">&#x1F464;</div>
+      {% endif %}
+      <div class="sig-wrap">
+        <div class="sig-lbl">Unterschrift</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MRZ -->
+  <div class="mrz-bar">
+    <div class="mrz-lbl">Maschinenlesbarer Bereich / Machine Readable Zone</div>
+    <div class="mrz-line">IDP{{ 'CR' }}{{ ausweisnummer|replace('-','') }}{{ '0'*(9-(ausweisnummer|replace('-','')|length)) }}9{{ '7' }}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
+    <div class="mrz-line">{{ geburtsdatum|replace('.','') }}&lt;{{ '0' }}{{ nachname|upper|replace(' ','<') }}&lt;&lt;{{ vorname|upper|replace(' ','<') }}&lt;&lt;&lt;&lt;&lt;</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ftr">
+    <div class="barcode">||| |||| || ||||| ||| |||| |||</div>
+    <div class="ftr-right">PARADISE CITY ROLEPLAY<br>G&uuml;ltig bis / Valid until: {{ valid_until }}</div>
+  </div>
+
+</div>
+<div class="hint">Paradise City Roleplay &mdash; Offizieller Personalausweis</div>
 </div>
 </body>
 </html>"""
@@ -1661,7 +1690,8 @@ def ausweis_karte(uid):
     if not entry:
         return render_template_string(_AUSWEIS_ERROR_HTML,
                                       error="Kein Ausweis f\u00fcr diesen Spieler gefunden.")
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timedelta as _td
+    _now = _dt.now()
     return render_template_string(
         _AUSWEIS_KARTE_HTML,
         vorname      = entry.get("vorname", "?"),
@@ -1670,10 +1700,9 @@ def ausweis_karte(uid):
         alter        = entry.get("alter", "?"),
         nationalitaet= entry.get("nationalitaet", "?"),
         wohnort      = entry.get("wohnort", "?"),
-        einreise_typ = entry.get("einreise_typ", "pcrp"),
         ausweisnummer= entry.get("ausweisnummer", "??-??????"),
         foto         = entry.get("foto_b64") or "",
-        iss_date     = _dt.now().strftime("%d.%m.%Y"),
+        valid_until  = (_now + _td(days=1825)).strftime("%d.%m.%Y"),
     )
 
 
