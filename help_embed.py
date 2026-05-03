@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
-# help_embed.py \u2014 Automatisches Command-\xdcbersicht Embed
+# ══════════════════════════════════════════════════════════════════════════════
+# help_embed.py — Automatisches Command-Übersicht Embed
 # Paradise City Roleplay Discord Bot
 #
 # Liest alle registrierten Slash-Commands aus dem Bot-Tree,
-# gruppiert sie nach Kategorie-Pr\xe4fix ([Kategorie]) und
-# postet / aktualisiert ein hellblaues Embed im Info-Kanal.
+# gruppiert sie nach Kategorie-Präfix ([Kategorie]) und
+# postet / aktualisiert ein Embed im Info-Kanal.
 #
 # Speichert die Nachrichten-ID in data/help_message_id.json
 # damit die Nachricht bei jedem Neustart editiert wird.
-# \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+# ══════════════════════════════════════════════════════════════════════════════
 
 import re
 import json
@@ -18,23 +18,32 @@ from config import *
 
 HELP_CHANNEL_ID  = 1491624319598460958
 MESSAGE_ID_FILE  = str(DATA_DIR / "help_message_id.json")
-EMBED_COLOR      = 0xE67E22   # Hellblau
+EMBED_COLOR      = 0xE67E22
 
-# \u2500\u2500 Kategorie-Konfiguration \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-# Schl\xfcssel = Pr\xe4fix in der Command-Beschreibung ([Pr\xe4fix])
+# ── Kategorie-Konfiguration ────────────────────────────────────────────────
+# Schlüssel = Präfix in der Command-Beschreibung ([Präfix])
 # Wert      = (Emoji, Anzeigename, Wer darf es nutzen)
 CATEGORY_MAP = {
-    "Konto":    ("\U0001f4b0", "Konto",                   "Alle Spieler"),
-    "Inventar": ("\U0001f392", "Inventar",                "Alle Spieler"),
-    "Shop":     ("\U0001f3ea", "Shop",                    "Alle Spieler / Shop-Admin"),
-    "Ausweis":  ("\U0001faaa", "Ausweis",                 "B\xfcrger / Admin / Mod"),
-    "Beh\xf6rde":  ("\U0001f697", "F\xfchrerschein / Beh\xf6rde",  "Beh\xf6rden-Team"),
-    "IC":       ("\U0001f3ad", "IC Aktionen",             "Alle Spieler"),
-    "Aktien":   ("\U0001f4c8", "Aktienmarkt",             "Alle Spieler"),
+    "Konto":        ("\U0001f4b0", "Konto",                    "Alle Spieler"),
+    "Inventar":     ("\U0001f392", "Inventar",                 "Alle Spieler"),
+    "Shop":         ("\U0001f3ea", "Shop",                     "Alle Spieler / Shop-Admin"),
+    "Ausweis":      ("\U0001faaa", "Ausweis",                  "Bürger / Admin / Mod"),
+    "Behörde":      ("\U0001f697", "Führerschein / Behörde",   "Behörden-Team"),
+    "IC":           ("\U0001f3ad", "IC Aktionen",              "Alle Spieler"),
+    "Aktien":       ("\U0001f4c8", "Aktienmarkt",              "Alle Spieler"),
+    "Angeln":       ("\U0001f3a3", "Angeln",                   "Alle Spieler"),
+    "Angler Shop":  ("\U0001f3ea", "Angler Shop",              "Alle Spieler"),
+    "Lotto":        ("\U0001f3b0", "Lotto",                    "Alle Spieler"),
+    "Casino":       ("\U0001f3b2", "Casino",                   "Alle Spieler"),
+    "Bingo":        ("\U0001f4b0", "Bingo",                    "Alle Spieler"),
+    "Weed":         ("\U0001f33f", "Weed-Farm",                "Alle Spieler"),
+    "Kokain":       ("\u2697\ufe0f", "Kokain-Labor",           "Alle Spieler"),
+    "Fraktion":     ("\U0001f3f3\ufe0f", "Fraktionen",         "Alle Spieler"),
+    "Einreise":     ("\u2708\ufe0f", "Einreise",               "Alle Spieler"),
+    "Sonstiges":    ("\U0001f4cc", "Sonstiges",                "Alle Spieler"),
 }
 
-# Commands ohne [Kategorie]-Pr\xe4fix werden hier manuell zugeordnet
-# Schl\xfcssel = Command-Name, Wert = Kategorie-Schl\xfcssel
+# Commands ohne [Kategorie]-Präfix werden hier manuell zugeordnet
 NAME_CATEGORY_MAP: dict[str, str] = {
     "erste-hilfe":    "IC",
     "ortung":         "IC",
@@ -42,13 +51,17 @@ NAME_CATEGORY_MAP: dict[str, str] = {
     "aktie-kaufen":   "Aktien",
     "aktie-verkaufen":"Aktien",
     "depot":          "Aktien",
+    "ausweisen":      "Ausweis",
+    "ausweis-remove": "Ausweis",
 }
 
-# Staff-only Kategorien werden nicht angezeigt
-HIDDEN_CATEGORIES = {"Warn", "Admin", "Mod", "Team", "LOBBY", "Allgemein", "__other__"}
+# Staff-only Kategorien werden NICHT angezeigt
+HIDDEN_CATEGORIES = {"Warn", "Admin", "Mod", "Team", "LOBBY", "Allgemein"}
 
 CATEGORY_ORDER = [
-    "Konto", "Inventar", "Shop", "Ausweis", "Beh\xf6rde", "IC", "Aktien",
+    "Konto", "Inventar", "Shop", "Ausweis", "Behörde", "IC", "Aktien",
+    "Angeln", "Angler Shop", "Lotto", "Casino", "Bingo",
+    "Weed", "Kokain", "Fraktion", "Einreise", "Sonstiges",
 ]
 
 
@@ -69,18 +82,19 @@ def _save_message_id(message_id: int):
 
 def _get_prefix(description: str) -> str:
     match = re.match(r"\[([^\]]+)\]", description)
-    return match.group(1) if match else "__other__"
+    # Kein Präfix → landet in Sonstiges
+    return match.group(1) if match else "Sonstiges"
 
 
 def _strip_prefix(description: str) -> str:
-    """Entfernt den [Kategorie]-Pr\xe4fix aus der Command-Beschreibung."""
+    """Entfernt den [Kategorie]-Präfix aus der Command-Beschreibung."""
     return re.sub(r"^\[[^\]]+\]\s*", "", description)
 
 
 def _build_embed(commands: list) -> discord.Embed:
     grouped = {}
     for cmd in commands:
-        # Zuerst pr\xfcfen ob Command manuell einer Kategorie zugeordnet ist
+        # Zuerst prüfen ob Command manuell einer Kategorie zugeordnet ist
         if cmd.name in NAME_CATEGORY_MAP:
             category = NAME_CATEGORY_MAP[cmd.name]
         else:
@@ -89,6 +103,10 @@ def _build_embed(commands: list) -> discord.Embed:
         if category in HIDDEN_CATEGORIES:
             continue
 
+        # Unbekannte Kategorien → Sonstiges
+        if category not in CATEGORY_MAP:
+            category = "Sonstiges"
+
         clean_desc = _strip_prefix(cmd.description)
         grouped.setdefault(category, []).append((cmd.name, clean_desc))
 
@@ -96,7 +114,10 @@ def _build_embed(commands: list) -> discord.Embed:
 
     embed = discord.Embed(
         title="\U0001f4cb Paradise City Roleplay \u2014 Commands",
-        description="Alle verf\xfcgbaren Slash-Commands auf einem Blick.\nTippe `/` um loszulegen.\n\u200b",
+        description=(
+            "Alle verfügbaren Slash-Commands auf einem Blick.\n"
+            "Tippe `/` um loszulegen.\n\u200b"
+        ),
         color=EMBED_COLOR,
         timestamp=datetime.now(timezone.utc),
     )
@@ -106,9 +127,9 @@ def _build_embed(commands: list) -> discord.Embed:
             continue
         emoji, cat_name, who = CATEGORY_MAP.get(key, ("\U0001f4cc", key, "Alle"))
 
-        # Jeder Command auf eigener Zeile: /name \u2500 Beschreibung
         lines = "\n".join(
-            f"\u2570 `/{name}` \u2014 {desc}" for name, desc in sorted(grouped[key], key=lambda x: x[0])
+            f"\u2570 `/{name}` \u2014 {desc}"
+            for name, desc in sorted(grouped[key], key=lambda x: x[0])
         )
 
         embed.add_field(
@@ -117,7 +138,7 @@ def _build_embed(commands: list) -> discord.Embed:
             inline=False,
         )
 
-    embed.set_footer(text=f"Paradise City Roleplay  \u2022  {total} Commands verf\xfcgbar")
+    embed.set_footer(text=f"Paradise City Roleplay  \u2022  {total} Commands verfügbar")
     return embed
 
 
@@ -154,7 +175,7 @@ async def update_help_embed():
 
 @bot.tree.command(
     name="help-update",
-    description="Aktualisiert das Command-\u00DCbersicht Embed manuell",
+    description="Aktualisiert das Command-Übersicht Embed manuell",
     guild=discord.Object(id=GUILD_ID),
 )
 async def help_update(interaction: discord.Interaction):
