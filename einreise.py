@@ -326,7 +326,7 @@ class GruppenMemberSelectView(discord.ui.View):
                 errors.append(f"\u274C {m.mention} \u2014 Bot-Account")
                 continue
             role_ids = {r.id for r in m.roles}
-            if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids:
+            if LEGAL_ROLE_ID in role_ids or ILLEGAL_ROLE_ID in role_ids or CITIZEN_ROLE_ID in role_ids:
                 errors.append(f"\u274C {m.mention} \u2014 bereits eingereist")
                 continue
             if WHITELIST_ROLE_ID not in role_ids:
