@@ -523,10 +523,11 @@ async def _konto_logic(interaction: discord.Interaction):
     tx_log = user_data.get("transaktionen", [])
     if tx_log:
         lines = []
-        for t in reversed(tx_log):
+        for t in reversed(tx_log[-15:]):
             sign = "+" if t["betrag"] >= 0 else ""
             lines.append(f"`{t['ts']}` {t['text']}: **{sign}{t['betrag']:,} $**")
-        embed.add_field(name="\U0001F4CB Letzte Transaktionen", value="\n".join(lines), inline=False)
+        tx_val = "\n".join(lines)[:1000]
+        embed.add_field(name="\U0001F4CB Letzte Transaktionen (max. 15)", value=tx_val, inline=False)
 
     embed.set_thumbnail(url=interaction.user.display_avatar.url)
     embed.set_footer(text="\U0001F3DB\uFE0F Maze Bank \u2022 Paradise City Roleplay")
@@ -964,10 +965,11 @@ async def konto_nutzer(interaction: discord.Interaction, nutzer: discord.Member)
     tx_log = user_data.get("transaktionen", [])
     if tx_log:
         tx_lines = []
-        for t in reversed(tx_log):
+        for t in reversed(tx_log[-15:]):
             sign = "+" if t["betrag"] >= 0 else ""
             tx_lines.append(f"`{t['ts']}` {t['text']}: **{sign}{t['betrag']:,} $**")
-        embed.add_field(name="\U0001f4cb Letzte Transaktionen", value="\n".join(tx_lines), inline=False)
+        tx_val = "\n".join(tx_lines)[:1000]
+        embed.add_field(name="\U0001f4cb Letzte Transaktionen (max. 15)", value=tx_val, inline=False)
 
     embed.set_thumbnail(url=nutzer.display_avatar.url)
     embed.set_footer(text=f"\U0001f451 {interaction.user.display_name} \u2022 Paradise City Roleplay")
