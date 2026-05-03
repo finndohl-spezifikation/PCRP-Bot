@@ -1411,7 +1411,7 @@ _AUSWEIS_KARTE_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Personalausweis &mdash; Paradise City RP</title>
+<title>Personalausweis &mdash; Los Angeles</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -1425,8 +1425,8 @@ body{
 body::before{
   content:'';position:fixed;inset:0;
   background:
-    radial-gradient(ellipse 70% 60% at 20% 80%,rgba(10,60,30,.35) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 20%,rgba(60,100,40,.2)  0%,transparent 55%);
+    radial-gradient(ellipse 70% 60% at 20% 80%,rgba(120,50,0,.35) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%,rgba(180,80,0,.2)  0%,transparent 55%);
   pointer-events:none;
 }
 .outer{position:relative;z-index:1;width:100%;max-width:560px}
@@ -1439,8 +1439,8 @@ body::before{
   position:relative;
   /* Guilloche pattern */
   background:
-    repeating-linear-gradient(0deg,  transparent,transparent 16px,rgba(0,80,20,.04) 16px,rgba(0,80,20,.04) 17px),
-    repeating-linear-gradient(90deg, transparent,transparent 16px,rgba(0,80,20,.04) 16px,rgba(0,80,20,.04) 17px),
+    repeating-linear-gradient(0deg,  transparent,transparent 16px,rgba(120,50,0,.04) 16px,rgba(120,50,0,.04) 17px),
+    repeating-linear-gradient(90deg, transparent,transparent 16px,rgba(120,50,0,.04) 16px,rgba(120,50,0,.04) 17px),
     repeating-linear-gradient(45deg, transparent,transparent 7px, rgba(180,160,30,.05) 7px,rgba(180,160,30,.05) 8px),
     repeating-linear-gradient(-45deg,transparent,transparent 7px, rgba(180,160,30,.05) 7px,rgba(180,160,30,.05) 8px),
     linear-gradient(160deg,#dfe8dc 0%,#eef0e8 45%,#dde5d8 100%);
@@ -1448,7 +1448,7 @@ body::before{
 
 /* ── Header ── */
 .hdr{
-  background:linear-gradient(90deg,#0a2e12 0%,#144a20 50%,#0a2e12 100%);
+  background:linear-gradient(90deg,#7a2c00 0%,#b84400 50%,#7a2c00 100%);
   padding:8px 16px;
   display:flex;align-items:center;justify-content:space-between;
   position:relative;overflow:hidden;
@@ -1476,7 +1476,7 @@ body::before{
 .hdr-type{color:#c8a84b;font-size:14px;font-weight:900;letter-spacing:3px}
 .hdr-type-en{color:rgba(255,255,255,.4);font-size:8px;letter-spacing:2px;margin-top:1px}
 .chip-badge{
-  background:#c8a84b;color:#0a2e12;
+  background:#c8a84b;color:#7a2c00;
   font-size:7px;font-weight:900;letter-spacing:1px;
   padding:2px 7px;border-radius:3px;margin-bottom:3px;
   display:inline-block;
@@ -1503,8 +1503,8 @@ body::before{
 /* ── Left: fields ── */
 .fields{flex:1;min-width:0;padding-right:14px}
 
-.row-label{font-size:7px;font-weight:700;color:#4a6b50;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:1px}
-.row-val{font-size:15px;font-weight:900;color:#0a1a0d;text-transform:uppercase;letter-spacing:.4px;line-height:1.15;margin-bottom:9px}
+.row-label{font-size:7px;font-weight:700;color:#7a4520;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:1px}
+.row-val{font-size:15px;font-weight:900;color:#1a0800;text-transform:uppercase;letter-spacing:.4px;line-height:1.15;margin-bottom:9px}
 .row-val.small{font-size:12px}
 
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:2px}
@@ -1513,8 +1513,8 @@ body::before{
 /* Nr box */
 .nr-box{
   margin-top:6px;
-  background:rgba(10,46,18,.08);
-  border:1px solid rgba(10,46,18,.18);
+  background:rgba(120,60,0,.08);
+  border:1px solid rgba(120,60,0,.18);
   border-radius:5px;
   padding:5px 10px;
   display:inline-flex;flex-direction:column;
@@ -1522,7 +1522,7 @@ body::before{
 .nr-box .row-label{margin-bottom:2px}
 .nr-box .nr-val{
   font-family:'Share Tech Mono',monospace;
-  font-size:17px;font-weight:700;color:#0a2e12;letter-spacing:2px;
+  font-size:17px;font-weight:700;color:#7a2c00;letter-spacing:2px;
 }
 
 /* Chip */
@@ -1553,7 +1553,7 @@ body::before{
   max-width:90px!important;max-height:115px!important;
   object-fit:cover;
   border-radius:4px;
-  border:2px solid #0a2e12;
+  border:2px solid #7a2c00;
   display:block;
   box-shadow:2px 2px 10px rgba(0,0,0,.35);
   flex-shrink:0;
@@ -1563,26 +1563,26 @@ body::before{
   display:flex;align-items:center;justify-content:center;
   font-size:44px;
 }
-.sig-wrap{width:90px;border-top:1.5px solid #0a2e12;padding-top:4px;text-align:center}
-.sig-lbl{font-size:7px;color:#4a6b50;letter-spacing:.8px;text-transform:uppercase}
+.sig-wrap{width:90px;border-top:1.5px solid #7a2c00;padding-top:4px;text-align:center}
+.sig-lbl{font-size:7px;color:#7a4520;letter-spacing:.8px;text-transform:uppercase}
 
 /* ── MRZ ── */
 .mrz-bar{
-  background:rgba(10,46,18,.06);
-  border-top:1px solid rgba(10,46,18,.12);
+  background:rgba(120,60,0,.06);
+  border-top:1px solid rgba(120,60,0,.12);
   padding:7px 16px 6px;
 }
-.mrz-lbl{font-size:7px;color:#4a6b50;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.mrz-lbl{font-size:7px;color:#7a4520;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
 .mrz-line{
   font-family:'Share Tech Mono',monospace;
-  font-size:10.5px;color:#0a1a0d;
+  font-size:10.5px;color:#1a0800;
   letter-spacing:2px;word-break:break-all;line-height:1.7;
   opacity:.75;
 }
 
 /* ── Footer ── */
 .ftr{
-  background:linear-gradient(90deg,#0a2e12 0%,#144a20 50%,#0a2e12 100%);
+  background:linear-gradient(90deg,#7a2c00 0%,#b84400 50%,#7a2c00 100%);
   padding:6px 16px;
   display:flex;align-items:center;justify-content:space-between;
 }
@@ -1604,7 +1604,7 @@ body::before{
     <div class="hdr-left">
       <div class="emblem">&#x2605;</div>
       <div>
-        <div class="hdr-city">PARADISE CITY</div>
+        <div class="hdr-city">LOS ANGELES</div>
         <div class="hdr-sub">EINWOHNERMELDEAMT &bull; BÜRGERAMT</div>
       </div>
     </div>
@@ -1678,11 +1678,11 @@ body::before{
   <!-- Footer -->
   <div class="ftr">
     <div class="barcode">||| |||| || ||||| ||| |||| |||</div>
-    <div class="ftr-right">PARADISE CITY ROLEPLAY<br>G&uuml;ltig bis / Valid until: {{ valid_until }}</div>
+    <div class="ftr-right">LOS ANGELES<br>G&uuml;ltig bis / Valid until: {{ valid_until }}</div>
   </div>
 
 </div>
-<div class="hint">Paradise City Roleplay &mdash; Offizieller Personalausweis</div>
+<div class="hint">Los Angeles &mdash; Offizieller Personalausweis</div>
 </div>
 </body>
 </html>"""
@@ -1696,6 +1696,9 @@ def ausweis_karte(uid):
     if not entry:
         return render_template_string(_AUSWEIS_ERROR_HTML,
                                       error="Kein Ausweis f\u00fcr diesen Spieler gefunden.")
+    if entry.get("einreise_typ") == "illegal":
+        return render_template_string(_AUSWEIS_ERROR_HTML,
+                                      error="Als illegaler Bewohner erhältst du keinen Ausweis.")
     from datetime import datetime as _dt, timedelta as _td
     _now = _dt.now()
     return render_template_string(
