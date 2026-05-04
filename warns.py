@@ -10,6 +10,32 @@ from economy_helpers import (
     load_team_warns, save_team_warns, get_user_team_warns
 )
 
+# Warn-Rollen: Warn-Anzahl -> Rollen-ID
+WARN_ROLLEN: dict[int, int] = {
+    1: 1490855747192361000,
+    2: 1490855745842053221,
+    3: 1490855744868716695,
+    4: 1490855743610552491,
+    5: 1490855743015092405,
+}
+
+
+async def _assign_warn_rolle(member: discord.Member, guild: discord.Guild, warn_count: int) -> None:
+    """Entfernt alle alten Warn-Rollen und setzt die passende für warn_count."""
+    try:
+        alle_warn_role_ids = set(WARN_ROLLEN.values())
+        alte = [r for r in member.roles if r.id in alle_warn_role_ids]
+        if alte:
+            await member.remove_roles(*alte, reason="Warn-Rollen aktualisieren")
+        neue_id = WARN_ROLLEN.get(warn_count)
+        if neue_id:
+            neue_rolle = guild.get_role(neue_id)
+            if neue_rolle:
+                await member.add_roles(neue_rolle, reason=f"Verwarnung #{warn_count}")
+    except Exception as _e:
+        print(f"[warns] Warn-Rolle Fehler: {_e}")
+
+
 
 # Log-Kanal für alle Warn-Aktionen
 _WARN_LOG_ID = 1490878132230819840
@@ -39,6 +65,11 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
     save_warns(warns)
     warn_count = len(user_warns)
 
+    # Warn-Rolle automatisch vergeben
+    guild_obj = interaction.guild or bot.get_guild(GUILD_ID)
+    if guild_obj:
+        await _assign_warn_rolle(nutzer, guild_obj, warn_count)
+
     badge = "\U0001F534" if warn_count >= 5 else "\U0001F7E1" if warn_count >= 3 else "\U0001F7E2"
     embed = discord.Embed(
         title=f"\u26A0\uFE0F Verwarnung ausgestellt",
@@ -65,12 +96,7 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
             await nutzer.timeout(timeout_dur, reason=f"Automatischer Timeout: {WARN_AUTO_TIMEOUT_COUNT} Warns erreicht")
         except Exception:
             pass
-        try:
-            roles_to_remove = [r for r in nutzer.roles if r != interaction.guild.default_role and not r.managed]
-            if roles_to_remove:
-                await nutzer.remove_roles(*roles_to_remove, reason="Automatischer Timeout: 3 Warns")
-        except Exception:
-            pass
+        # Rollen werden bei Timeout nicht entfernt
         try:
             dm_embed = discord.Embed(
                 title="\U0001F507 Du wurdest getimeoutet",
@@ -95,7 +121,6 @@ async def warn(interaction: discord.Interaction, nutzer: discord.Member, grund: 
                 f"**Spieler:** {nutzer.mention}\n"
                 f"**Grund:** {WARN_AUTO_TIMEOUT_COUNT} Warns erreicht\n"
                 f"**Dauer:** 2 Tage\n"
-                f"**Rollen entfernt:** \u2705"
             ),
             color=MOD_COLOR,
             timestamp=datetime.now(timezone.utc)
