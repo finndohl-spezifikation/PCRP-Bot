@@ -22,4 +22,15 @@ public static class EmbedFactory
             .WithTitle(title)
             .WithDescription(description)
             .Build();
+
+    /// <summary>
+    /// Erstellt einen EmbedBuilder mit einem winzig-kleinen Icon unten links (Footer-Icon).
+    /// Wird ausschließlich für das Bot-Neustart-Embed verwendet – die einzige Ausnahme von
+    /// der „kein Footer"-Regel, da der Nutzer dies explizit für Bot-Neustarts gewünscht hat.
+    /// Als Footer-Text wird ein unsichtbares Zeichen genutzt, damit das Icon angezeigt wird.
+    /// </summary>
+    public static EmbedBuilder CreateWithFooterIcon(string iconUrl)
+        => Create().WithFooter(new EmbedFooterBuilder()
+            .WithIconUrl(iconUrl)
+            .WithText("\u200b")); // unsichtbares Zeichen – kein sichtbarer Footer-Text
 }

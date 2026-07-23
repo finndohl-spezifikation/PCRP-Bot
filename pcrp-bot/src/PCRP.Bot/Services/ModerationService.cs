@@ -30,6 +30,7 @@ public partial class ModerationService : BackgroundService
     private static partial Regex SixSevenPattern();
 
     private readonly DiscordSocketClient _client;
+    private readonly LoggingService _logging;
     private readonly ILogger<ModerationService> _logger;
 
     // Spam-Tracking
@@ -38,9 +39,10 @@ public partial class ModerationService : BackgroundService
     private ConcurrentDictionary<ulong, int> _spamOffenses = new();
     private readonly string _offensesFile = DataStore.GetPath("spam_offenses.json");
 
-    public ModerationService(DiscordSocketClient client, ILogger<ModerationService> logger)
+    public ModerationService(DiscordSocketClient client, LoggingService logging, ILogger<ModerationService> logger)
     {
         _client = client;
+        _logging = logging;
         _logger = logger;
     }
 
@@ -64,9 +66,16 @@ public partial class ModerationService : BackgroundService
         try
         {
             // 1. Wortfilter – sofort löschen.
-            if (WordFilter.ContainsBannedWord(message.Content))
+            if (WordFilter.TryGetBannedWord(message.Content, out var matchedWord))
             {
                 await message.DeleteAsync();
+                await _logging.LogModerationAsync(channel.Guild,
+                    "🔤 Wortfilter ausgelöst",
+                    $"**Nutzer:** {user.Mention} | {user.Username} (`{user.Id}`)\n" +
+                    $"**Kanal:** {channel.Mention}\n" +
+                    $"**Erkanntes Wort:** `{matchedWord}`\n" +
+                    $"**Aktion:** Nachricht sofort gelöscht\n" +
+                    $"**Nachrichteninhalt:**\n```\n{(message.Content.Length > 800 ? message.Content[..800] + "…" : message.Content)}\n```");
                 return;
             }
 
@@ -125,6 +134,14 @@ public partial class ModerationService : BackgroundService
             $"**Aktion:** Fremder Discord-Server-Link wurde gepostet und gelöscht, 14 Tage Timeout vergeben.\n" +
             $"**Link:** `{match.Value}`");
 
+        await _logging.LogModerationAsync(channel.Guild,
+            "🔗 Eigenwerbung – Link entfernt",
+            $"**Nutzer:** {user.Mention} | {user.Username} (`{user.Id}`)\n" +
+            $"**Kanal:** {channel.Mention}\n" +
+            $"**Erkannter Link:** `{match.Value}`\n" +
+            $"**Aktionen:** Nachricht gelöscht · 14 Tage Timeout vergeben · DM gesendet\n" +
+            $"**Vollständiger Nachrichteninhalt:**\n```\n{(message.Content.Length > 700 ? message.Content[..700] + "…" : message.Content)}\n```");
+
         return true;
     }
 
@@ -135,6 +152,14 @@ public partial class ModerationService : BackgroundService
         var fixedContent = SixSevenRegex.Replace(message.Content, m =>
             m.Value.Equals("67", StringComparison.Ordinal) ? "69" :
             m.Value.All(char.IsDigit) ? "69" : "sixnine");
+
+        await _logging.LogModerationAsync(channel.Guild,
+            "🔢 67-Filter ausgelöst",
+            $"**Nutzer:** {user.Mention} | {user.Username} (`{user.Id}`)\n" +
+            $"**Kanal:** {channel.Mention}\n" +
+            $"**Aktion:** Nachricht gelöscht · erneut als korrigierte Version gepostet\n" +
+            $"**Original:**\n```\n{(message.Content.Length > 450 ? message.Content[..450] + "…" : message.Content)}\n```\n" +
+            $"**Korrigiert:**\n```\n{(fixedContent.Length > 450 ? fixedContent[..450] + "…" : fixedContent)}\n```");
 
         await message.DeleteAsync();
 
@@ -183,6 +208,13 @@ public partial class ModerationService : BackgroundService
                 "Verwarnung – Spamschutz",
                 "Du hast in kürzester Zeit zu viele Nachrichten auf **PCRP** gesendet.\n\n" +
                 "Dies ist deine **Verwarnung**. Beim nächsten Verstoß erhältst du automatisch einen **10-minütigen Timeout**."));
+
+            await _logging.LogModerationAsync(message.Channel is SocketTextChannel stc ? stc.Guild : user.Guild,
+                "⚠️ Spam – Verwarnung ausgesprochen",
+                $"**Nutzer:** {user.Mention} | {user.Username} (`{user.Id}`)\n" +
+                $"**Kanal:** {(message.Channel is SocketTextChannel ch ? ch.Mention : "Unbekannt")}\n" +
+                $"**Verstoß Nr.:** {offenses}\n" +
+                $"**Aktion:** DM-Verwarnung gesendet (nächster Verstoß = 10 Min. Timeout)");
         }
         else
         {
@@ -191,6 +223,13 @@ public partial class ModerationService : BackgroundService
                 "Timeout – Spamschutz",
                 "Du wurdest trotz Verwarnung erneut wegen Spam auffällig.\n\n" +
                 "Du hast automatisch einen **10-minütigen Timeout** erhalten."));
+
+            await _logging.LogModerationAsync(message.Channel is SocketTextChannel stc2 ? stc2.Guild : user.Guild,
+                "🔇 Spam – 10 Min. Timeout vergeben",
+                $"**Nutzer:** {user.Mention} | {user.Username} (`{user.Id}`)\n" +
+                $"**Kanal:** {(message.Channel is SocketTextChannel ch2 ? ch2.Mention : "Unbekannt")}\n" +
+                $"**Verstoß Nr.:** {offenses}\n" +
+                $"**Aktion:** 10 Minuten Timeout · DM gesendet");
         }
     }
 
