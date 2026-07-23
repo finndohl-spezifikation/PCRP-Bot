@@ -58,7 +58,7 @@ public class LoggingListener extends ListenerAdapter {
             .addField("📦 Version",    "Java 19  ·  JDA 5.2.2", true)
             .addField("🌐 Server",     String.valueOf(jda.getGuilds().size()), true)
             .addField("🕐 Zeitpunkt",  "<t:" + now + ":F>", false)
-            .setTimestamp(Instant.now());
+;
 
         for (Guild guild : jda.getGuilds())
             log(guild, LoggingConfig.PLAYER_LOG_CHANNEL_ID, embed.build());
@@ -137,7 +137,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**Typ:** " + formatChannelType(ch) + "\n" +
                     "**ID:** `" + ch.getId() + "`\n" +
                     auditUser("Erstellt von", entry))
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -152,7 +152,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**Typ:** " + formatChannelType(ch) + "\n" +
                     "**ID:** `" + ch.getId() + "`\n" +
                     auditUser("Gelöscht von", entry))
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -262,7 +262,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**Grund:** " + (entry != null && entry.getReason() != null ? entry.getReason() : "Kein Grund angegeben") + "\n" +
                     auditUser("Ausgeführt von", entry))
                 .setThumbnail(user.getEffectiveAvatarUrl())
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -276,7 +276,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**Nutzer:** " + user.getAsMention() + " | " + user.getName() + " (`" + user.getId() + "`)\n" +
                     auditUser("Aufgehoben von", entry))
                 .setThumbnail(user.getEffectiveAvatarUrl())
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -295,7 +295,7 @@ public class LoggingListener extends ListenerAdapter {
                         "**Timeout bis:** <t:" + newEnd.toEpochSecond() + ":F>\n" +
                         auditUser("Ausgeführt von", entry))
                     .setThumbnail(member.getEffectiveAvatarUrl())
-                    .setTimestamp(Instant.now())
+
                     .build());
             } else if (oldEnd != null) {
                 log(e.getGuild(), LoggingConfig.MODERATION_LOG_CHANNEL_ID, EmbedFactory.create()
@@ -304,7 +304,7 @@ public class LoggingListener extends ListenerAdapter {
                         "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
                         auditUser("Aufgehoben von", entry))
                     .setThumbnail(member.getEffectiveAvatarUrl())
-                    .setTimestamp(Instant.now())
+
                     .build());
             }
         });
@@ -331,7 +331,7 @@ public class LoggingListener extends ListenerAdapter {
                 "**Konto erstellt:** <t:" + member.getUser().getTimeCreated().toEpochSecond() + ":F>\n" +
                 "**Kontoalter:** " + accountAgeDays + " Tage" + warning)
             .setThumbnail(member.getEffectiveAvatarUrl())
-            .setTimestamp(Instant.now())
+
             .build());
     }
 
@@ -359,7 +359,7 @@ public class LoggingListener extends ListenerAdapter {
                 "**Nutzer:** " + user.getAsMention() + " | " + user.getName() + " (`" + user.getId() + "`)\n" +
                 "**Zeit auf dem Server:** " + timeOnServer + roles)
             .setThumbnail(user.getEffectiveAvatarUrl())
-            .setTimestamp(Instant.now())
+
             .build());
     }
 
@@ -376,7 +376,7 @@ public class LoggingListener extends ListenerAdapter {
                         e.getNewNickname() != null ? e.getNewNickname() : "_(kein Nickname)_") + "\n" +
                     auditUser("Geändert von", entry))
                 .setThumbnail(member.getEffectiveAvatarUrl())
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -414,7 +414,7 @@ public class LoggingListener extends ListenerAdapter {
             log(guild, LoggingConfig.MESSAGE_LOG_CHANNEL_ID, EmbedFactory.create()
                 .setTitle("🗑️ Nachricht gelöscht")
                 .setDescription(desc.toString())
-                .setTimestamp(Instant.now())
+
                 .build());
         });
 
@@ -442,7 +442,7 @@ public class LoggingListener extends ListenerAdapter {
                 "**[Zur Nachricht](https://discord.com/channels/" + e.getGuild().getId() + "/" + e.getChannel().getId() + "/" + e.getMessageId() + ")**\n\n" +
                 "**📝 Vorher:**\n```\n" + truncate(oldContent, 450) + "\n```\n" +
                 "**📝 Nachher:**\n```\n" + truncate(newContent, 450) + "\n```")
-            .setTimestamp(Instant.now())
+
             .build());
 
         // Cache aktualisieren
@@ -481,7 +481,7 @@ public class LoggingListener extends ListenerAdapter {
             EmbedBuilder embed = EmbedFactory.create()
                 .setTitle("💥 Massenlöschung – " + ids.size() + " Nachrichten")
                 .setDescription(desc.toString())
-                .setTimestamp(Instant.now());
+;
 
             if (list.length() > 0)
                 embed.addField("Nachrichtenliste (aus Cache)", list.toString(), false);
@@ -508,7 +508,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**Position:** " + role.getPosition() + "\n" +
                     auditUser("Erstellt von", entry) + "\n" +
                     "**Berechtigungen:** " + formatPermissions(role.getPermissionsRaw()))
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -523,7 +523,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**Farbe:** " + formatColor(role.getColor()) + "\n" +
                     auditUser("Gelöscht von", entry) + "\n" +
                     "**Hatte diese Berechtigungen:** " + formatPermissions(role.getPermissionsRaw()))
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -568,7 +568,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**➕ Hinzugefügte Rollen:** " + added.stream().map(Role::getAsMention).reduce("", (a, b) -> a + " " + b) + "\n" +
                     auditUser("Ausgeführt von", entry))
                 .setThumbnail(member.getEffectiveAvatarUrl())
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -584,7 +584,7 @@ public class LoggingListener extends ListenerAdapter {
                     "**➖ Entfernte Rollen:** " + removed.stream().map(Role::getAsMention).reduce("", (a, b) -> a + " " + b) + "\n" +
                     auditUser("Ausgeführt von", entry))
                 .setThumbnail(member.getEffectiveAvatarUrl())
-                .setTimestamp(Instant.now())
+
                 .build()));
     }
 
@@ -605,14 +605,14 @@ public class LoggingListener extends ListenerAdapter {
             log(guild, LoggingConfig.SERVER_LOG_CHANNEL_ID,
                 EmbedFactory.create().setTitle(title)
                     .setDescription(description + "\n" + auditUser("Ausgeführt von", entry))
-                    .setTimestamp(Instant.now()).build()));
+.build()));
     }
 
     private void roleLog(Guild guild, Role role, String title, String description) {
         log(guild, LoggingConfig.ROLE_LOG_CHANNEL_ID, EmbedFactory.create()
             .setTitle(title)
             .setDescription("**Rolle:** " + role.getName() + " (`" + role.getId() + "`)\n" + description)
-            .setTimestamp(Instant.now())
+
             .build());
     }
 

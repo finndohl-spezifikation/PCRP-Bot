@@ -168,7 +168,7 @@ public class CommandListener extends ListenerAdapter {
                 .addField("👮 Ausgeführt von", event.getUser().getAsMention() + " | " + event.getUser().getName(), true)
                 .addField("🔢 Anzahl",          String.valueOf(deleteCount),                                true)
                 .addField("📝 Nachrichteninhalt", truncated.isBlank() ? "*(kein Inhalt)*" : truncated,    false)
-                .setTimestamp(Instant.now());
+;
 
             logChannel.sendMessageEmbeds(logEmbed.build()).queue();
         });

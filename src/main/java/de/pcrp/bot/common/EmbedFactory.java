@@ -31,7 +31,7 @@ public final class EmbedFactory {
         return create()
                 .setTitle(title)
                 .setDescription(description)
-                .setTimestamp(Instant.now())
+
                 .build();
     }
 
