@@ -26,6 +26,15 @@ public final class LoggingConfig {
     /** Alles rund um Tickets und Transkripte (für spätere Implementierung). */
     public static final long TICKET_LOG_CHANNEL_ID     = 1529636431784317019L;
 
+    /** Willkommensnachrichten bei Serverbeitritt. */
+    public static final long WELCOME_CHANNEL_ID        = 1529636467096293586L;
+
+    /** Abschiedsnachrichten beim Verlassen. */
+    public static final long GOODBYE_CHANNEL_ID        = 1529636469524791296L;
+
+    /** Einladungs-Tracker (Beitritt und Verlassen). */
+    public static final long INVITE_LOG_CHANNEL_ID     = 1529636468476088480L;
+
     /**
      * Java-Logo URL – winzig-kleines Icon unten links im Bot-Neustart-Embed.
      * (Ausnahme von der „kein Footer"-Regel, explizit für Bot-Neustarts gewünscht.)

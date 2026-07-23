@@ -48,14 +48,16 @@ public class LoggingListener extends ListenerAdapter {
 
     @Override
     public void onReady(ReadyEvent event) {
-        JDA jda = event.getJDA();
+        JDA  jda = event.getJDA();
+        long now = Instant.now().getEpochSecond();
+
+        // Neustart-Embed: Java-Logo klein unten links, keine Discord-Bilder, übersichtliche Felder
         EmbedBuilder embed = EmbedFactory.createWithFooterIcon(LoggingConfig.JAVA_LOGO_URL)
-            .setTitle("🟢 Bot gestartet / neugestartet")
-            .setDescription(
-                "**Bot:** " + jda.getSelfUser().getAsTag() + " (`" + jda.getSelfUser().getId() + "`)\n" +
-                "**Version:** Java · JDA 5\n" +
-                "**Verbundene Server:** " + jda.getGuilds().size() + "\n" +
-                "**Neustart-Zeit:** <t:" + Instant.now().getEpochSecond() + ":F>")
+            .setTitle("🟢 PCRP-Bot wurde neugestartet")
+            .addField("🤖 Bot",        jda.getSelfUser().getName() + "  (`" + jda.getSelfUser().getId() + "`)", false)
+            .addField("📦 Version",    "Java 19  ·  JDA 5.2.2", true)
+            .addField("🌐 Server",     String.valueOf(jda.getGuilds().size()), true)
+            .addField("🕐 Zeitpunkt",  "<t:" + now + ":F>", false)
             .setTimestamp(Instant.now());
 
         for (Guild guild : jda.getGuilds())

@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -112,7 +113,7 @@ public class CommandListener extends ListenerAdapter {
             .filter(m -> m.getTimeCreated().isAfter(cutoff))
             .limit(requested)
             .toList();
-        int skipped = all.size() - toDelete.size();
+        final int skipped = all.size() - toDelete.size();
 
         if (toDelete.isEmpty()) {
             event.getHook().sendMessageEmbeds(embed("Keine Nachrichten",
@@ -122,14 +123,51 @@ public class CommandListener extends ListenerAdapter {
             return;
         }
 
+        // Nachrichteninhalt vor dem Löschen sichern
+        StringBuilder contentLog = new StringBuilder();
+        for (Message m : toDelete) {
+            String text = m.getContentDisplay().trim();
+            if (text.isEmpty() && !m.getAttachments().isEmpty())
+                text = "[" + m.getAttachments().size() + " Anhang/Anhänge]";
+            else if (text.isEmpty())
+                text = "[kein Text]";
+            else if (text.length() > 120)
+                text = text.substring(0, 120) + "…";
+            contentLog.append("`").append(m.getAuthor().getName()).append("`: ")
+                      .append(text).append("\n");
+        }
+        final String logText    = contentLog.toString();
+        final int    deleteCount = toDelete.size();
+
         @SuppressWarnings("unchecked")
         List<CompletableFuture<Void>> futures = (List<CompletableFuture<Void>>) (List<?>) channel.purgeMessages(toDelete);
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenRun(() -> {
-            String desc = "✅ **" + toDelete.size() + " Nachricht(en) gelöscht**\n" +
+
+            // Rückmeldung an den Ausführenden (ephemeral)
+            String desc = "✅ **" + deleteCount + " Nachricht(en) gelöscht**\n" +
                 "**Kanal:** " + channel.getAsMention() + "\n" +
                 "**Ausgeführt von:** " + event.getUser().getAsMention();
             if (skipped > 0) desc += "\n⚠️ " + skipped + " Nachricht(en) übersprungen (älter als 14 Tage)";
             event.getHook().sendMessageEmbeds(embed("Nachrichten gelöscht", desc)).setEphemeral(true).queue();
+
+            // Log mit Nachrichteninhalten in den Nachrichten-Log-Kanal
+            if (event.getGuild() == null) return;
+            TextChannel logChannel = event.getGuild().getTextChannelById(LoggingConfig.MESSAGE_LOG_CHANNEL_ID);
+            if (logChannel == null) return;
+
+            String truncated = logText.length() > 1000
+                ? logText.substring(0, 1000) + "\n_… weitere Nachrichten gekürzt_"
+                : logText;
+
+            net.dv8tion.jda.api.EmbedBuilder logEmbed = EmbedFactory.create()
+                .setTitle("🗑️ " + deleteCount + " Nachrichten per Command gelöscht")
+                .addField("📍 Kanal",          channel.getAsMention(),                                     true)
+                .addField("👮 Ausgeführt von", event.getUser().getAsMention() + " | " + event.getUser().getName(), true)
+                .addField("🔢 Anzahl",          String.valueOf(deleteCount),                                true)
+                .addField("📝 Nachrichteninhalt", truncated.isBlank() ? "*(kein Inhalt)*" : truncated,    false)
+                .setTimestamp(Instant.now());
+
+            logChannel.sendMessageEmbeds(logEmbed.build()).queue();
         });
     }
 
