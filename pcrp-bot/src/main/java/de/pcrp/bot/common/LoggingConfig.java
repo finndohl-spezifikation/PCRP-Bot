@@ -41,6 +41,15 @@ public final class LoggingConfig {
     /** RP-Spiel-Einstellungen-Panel (Spieleranzeige, Minimap). */
     public static final long RP_EINSTELLUNGEN_CHANNEL_ID   = 1529636478236495983L;
 
+    /** Serverregelwerk-Panel (2 Embeds). */
+    public static final long REGELWERK_CHANNEL_ID           = 1529636481117851692L;
+
+    /** Fraktionsregelwerk-Panel. */
+    public static final long FRAKTIONSREGELWERK_CHANNEL_ID  = 1529636484070772868L;
+
+    /** Safe-Zones-Panel. */
+    public static final long SAFEZONES_CHANNEL_ID           = 1529636485454889111L;
+
     /** Willkommensnachrichten bei Serverbeitritt. */
     public static final long WELCOME_CHANNEL_ID        = 1529636467096293586L;
 
