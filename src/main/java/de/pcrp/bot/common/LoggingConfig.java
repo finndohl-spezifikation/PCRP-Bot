@@ -30,7 +30,16 @@ public final class LoggingConfig {
     public static final long TICKET_LOG_CHANNEL_ID     = 1529636431784317019L;
 
     /** Einwohner-Meldeamt Panel (Charakter-Erstellung). */
-    public static final long MELDEAMT_CHANNEL_ID       = 1529636473035292832L;
+    public static final long MELDEAMT_CHANNEL_ID           = 1529636473035292832L;
+
+    /** Startpunkt-Panel (Flughafen / Hafen). */
+    public static final long STARTPUNKT_CHANNEL_ID         = 1529636476038414386L;
+
+    /** Starter-Paket-Panel (Fahrzeuge & Startgeld). */
+    public static final long STARTER_PAKET_CHANNEL_ID      = 1529636476961161277L;
+
+    /** RP-Spiel-Einstellungen-Panel (Spieleranzeige, Minimap). */
+    public static final long RP_EINSTELLUNGEN_CHANNEL_ID   = 1529636478236495983L;
 
     /** Willkommensnachrichten bei Serverbeitritt. */
     public static final long WELCOME_CHANNEL_ID        = 1529636467096293586L;

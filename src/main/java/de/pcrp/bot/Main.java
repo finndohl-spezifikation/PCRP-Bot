@@ -90,8 +90,40 @@ public class Main {
                         err -> log.error("Fehler beim Registrieren auf '{}'.", guild.getName(), err)
                     );
 
-                // Meldeamt-Panel einmalig posten (Duplikat-Schutz via DataStore)
+                // Panels einmalig posten (Duplikat-Schutz via DataStore)
                 postMeldeamtPanel(guild);
+
+                postSimplePanel(guild, "startpunkt", LoggingConfig.STARTPUNKT_CHANNEL_ID,
+                    "🗺️ Startpunkt",
+                    "__**Legale Einreise**__\n\n" +
+                    "- Startpunkt am Flughafen von Los Angeles\n\n" +
+                    "__**Illegale Einreise**__\n\n" +
+                    "- Startpunkt am Hafen von Los Angeles");
+
+                postSimplePanel(guild, "starterpaket", LoggingConfig.STARTER_PAKET_CHANNEL_ID,
+                    "🎁 Starter Paket",
+                    "__**Legale Einreise**__\n\n" +
+                    "- 5.000$\n" +
+                    "- Declasse Rhapsody\n\n" +
+                    "__**Illegale Einreise**__\n\n" +
+                    "- 5.000$\n" +
+                    "- Karin Kuruma\n\n" +
+                    "__**Legale Gruppeneinreise**__\n\n" +
+                    "- 10.000$ Pro Person\n" +
+                    "- Enus Huntley S 1 Pro Person\n\n" +
+                    "__**Illegale Gruppeneinreise**__\n\n" +
+                    "- 10.000$ Pro Person\n" +
+                    "- Enus Huntley S 1 Pro Person");
+
+                postSimplePanel(guild, "rpeinstellungen", LoggingConfig.RP_EINSTELLUNGEN_CHANNEL_ID,
+                    "🎮 RP Spiel Einstellungen",
+                    "__**Spieleranzeige**__\n\n" +
+                    "- Online\n" +
+                    "- Optionen\n" +
+                    "- Spieleranzeige auf aus Stellen\n\n" +
+                    "__**Minimap**__\n\n" +
+                    "- Einstellungen\n" +
+                    "- Radar auf aus Stellen");
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
@@ -151,6 +183,39 @@ public class Main {
             .queue(
                 msg -> DataStore.writeString(key, msg.getId() + "|" + webUrl),
                 err -> log.error("[Meldeamt] Panel konnte nicht gepostet werden.", err)
+            );
+        }
+
+        private static void postSimplePanel(Guild guild, String panelKey, long channelId,
+                                             String title, String description) {
+            String key = "panel-" + panelKey + "-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(channelId);
+            if (ch == null) { log.warn("[Panel] Kanal für '{}' nicht gefunden.", panelKey); return; }
+
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored.trim()).queue(
+                    msg -> log.info("[Panel] '{}' aktiv (ID: {}), kein Neuversand.", panelKey, stored.trim()),
+                    err -> {
+                        DataStore.deleteKey(key);
+                        sendSimplePanel(ch, key, title, description);
+                    }
+                );
+            } else {
+                sendSimplePanel(ch, key, title, description);
+            }
+        }
+
+        private static void sendSimplePanel(TextChannel ch, String key, String title, String description) {
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle(title)
+                    .setDescription(description)
+                    .setTimestamp(Instant.now())
+                    .build()
+            ).queue(
+                msg -> DataStore.writeString(key, msg.getId()),
+                err -> log.error("[Panel] '{}' konnte nicht gesendet werden.", key, err)
             );
         }
 
