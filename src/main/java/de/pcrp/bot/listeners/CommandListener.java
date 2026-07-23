@@ -39,7 +39,8 @@ public class CommandListener extends ListenerAdapter {
             case "bannen"    -> handleBannen(event);
             case "entbannen" -> handleEntbannen(event);
             case "timeout"   -> handleTimeout(event);
-            case "ausweis"   -> handleAusweis(event);
+            case "ausweis"      -> handleAusweis(event);
+            case "set-einreise" -> handleSetEinreise(event);
         }
     }
 
@@ -346,6 +347,74 @@ public class CommandListener extends ListenerAdapter {
                     "Timeout fehlgeschlagen. Prüfe Rollen-Hierarchie und Bot-Berechtigungen."))
                     .setEphemeral(true).queue();
             });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /set-einreise
+    // ════════════════════════════════════════════════════════════
+
+    private void handleSetEinreise(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        // Nur Owner
+        if (event.getUser().getIdLong() != ModerationConfig.OWNER_ID) {
+            event.replyEmbeds(embed("Kein Zugriff", "Dieser Command ist nur für den Owner."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+        String key    = "panel-meldeamt-" + event.getGuild().getId();
+
+        net.dv8tion.jda.api.entities.channel.concrete.TextChannel ch =
+            event.getGuild().getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Meldeamt-Kanal nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        // Altes Panel löschen falls vorhanden
+        String stored = DataStore.readString(key);
+        if (stored != null && !stored.isBlank()) {
+            String oldId = stored.contains("|") ? stored.split("\\|", 2)[0] : stored.trim();
+            ch.retrieveMessageById(oldId).queue(
+                msg -> msg.delete().queue(null, null),
+                err -> {}
+            );
+            DataStore.deleteKey(key);
+        }
+
+        // Neues Panel senden
+        ch.sendMessageEmbeds(
+            EmbedFactory.create()
+                .setTitle("🏛️ Paradise City Einwohner Meldeamt")
+                .setDescription(
+                    "__**Legale Einreise**__\n\n" +
+                    "- Ausweis,\n" +
+                    "- Zugang zur Staatlichen Jobs,\n" +
+                    "- Zugang zur Legalen Routen,\n\n" +
+                    "__**Illegale Einreise**__\n\n" +
+                    "- Keinen Ausweis,\n" +
+                    "- Zugang zur Keinen Staatlichen Jobs,\n" +
+                    "- Zugang zur Illegalen Routen,\n\n" +
+                    "__**Gruppen Einreise**__\n\n" +
+                    "- Ab 4 Personen,\n" +
+                    "- Mehr Startgeld,\n" +
+                    "- Exklusives Starterfahrzeug")
+                .setTimestamp(java.time.Instant.now())
+                .build()
+        )
+        .addActionRow(net.dv8tion.jda.api.interactions.components.buttons.Button.link(webUrl, "🏛️ Jetzt Einreisen"))
+        .queue(
+            msg -> {
+                DataStore.writeString(key, msg.getId() + "|" + webUrl);
+                event.replyEmbeds(embed("✅ Erfolgreich", "Einwohner-Meldeamt Panel wurde gesendet."))
+                    .setEphemeral(true).queue();
+            },
+            err -> event.replyEmbeds(embed("Fehler", "Panel konnte nicht gesendet werden: " + err.getMessage()))
+                .setEphemeral(true).queue()
+        );
     }
 
     // ════════════════════════════════════════════════════════════
