@@ -11,8 +11,11 @@ public final class LoggingConfig {
     /** Alles rund um Moderation (Bans, Timeouts, Wortfilter, Spam…). */
     public static final long MODERATION_LOG_CHANNEL_ID = 1529636417636929707L;
 
-    /** Bot-Neustarts und alles rund um Spieler (Beitritt, Verlassen, Nickname). */
+    /** Bot-Neustarts (Neustart-Embed). */
     public static final long PLAYER_LOG_CHANNEL_ID     = 1529636419071639735L;
+
+    /** Servermitglieder-Logs: Beitritt, Verlassen, Nickname-Änderung. */
+    public static final long MEMBER_LOG_CHANNEL_ID     = 1529636422389076039L;
 
     /** Alles rund um Nachrichten (gelöscht, bearbeitet, Massenlöschung). */
     public static final long MESSAGE_LOG_CHANNEL_ID    = 1529636425337667714L;
