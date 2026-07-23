@@ -98,14 +98,30 @@ public class Main {
         }
 
         private static void postMeldeamtPanel(Guild guild) {
-            String key     = "panel-meldeamt-" + guild.getId();
-            String webUrl  = System.getenv().getOrDefault("WEB_URL", "https://example.com");
-
-            if (DataStore.readString(key) != null) return; // bereits gepostet
+            String key    = "panel-meldeamt-" + guild.getId();
+            String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
 
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
 
+            String existingId = DataStore.readString(key);
+            if (existingId != null && !existingId.isBlank()) {
+                // Prüfen ob die Nachricht noch im Kanal existiert
+                ch.retrieveMessageById(existingId.trim()).queue(
+                    msg -> log.info("[Meldeamt] Panel ist noch aktiv (ID: {}), wird nicht neu gesendet.", existingId.trim()),
+                    err -> {
+                        // Nachricht gelöscht oder nicht mehr vorhanden → neu senden
+                        log.info("[Meldeamt] Gespeichertes Panel nicht mehr vorhanden, sende neu.");
+                        DataStore.deleteKey(key);
+                        sendPanel(ch, key, webUrl);
+                    }
+                );
+            } else {
+                sendPanel(ch, key, webUrl);
+            }
+        }
+
+        private static void sendPanel(TextChannel ch, String key, String webUrl) {
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
                     .setTitle("🏛️ Paradise City Einwohner Meldeamt")
