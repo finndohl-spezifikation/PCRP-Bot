@@ -11,7 +11,9 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.*;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -37,9 +39,10 @@ public class Main {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
         WebServer.start(port);
 
-        ModerationListener   moderationListener  = new ModerationListener();
-        GuildProtectionListener protectionListener = new GuildProtectionListener();
-        WelcomeListener      welcomeListener     = new WelcomeListener();
+        ModerationListener      moderationListener  = new ModerationListener();
+        GuildProtectionListener protectionListener  = new GuildProtectionListener();
+        WelcomeListener         welcomeListener     = new WelcomeListener();
+        TicketListener          ticketListener      = new TicketListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -62,7 +65,8 @@ public class Main {
                 protectionListener,
                 new LoggingListener(),
                 new CommandListener(),
-                welcomeListener
+                welcomeListener,
+                ticketListener
             )
             .build();
     }
@@ -125,6 +129,7 @@ public class Main {
                     "- Einstellungen\n" +
                     "- Radar auf aus Stellen");
 
+                postTicketPanel(guild);
                 postRegelwerkPanels(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -159,6 +164,52 @@ public class Main {
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
+        }
+
+        private static void postTicketPanel(Guild guild) {
+            String key = "panel-ticket-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.TICKET_PANEL_CHANNEL_ID);
+            if (ch == null) { log.warn("[Ticket] Panel-Kanal nicht gefunden."); return; }
+
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored.trim()).queue(
+                    msg -> log.info("[Ticket] Panel aktiv (ID: {}), kein Neuversand.", stored.trim()),
+                    err -> { DataStore.deleteKey(key); sendTicketPanel(ch, key); }
+                );
+            } else {
+                sendTicketPanel(ch, key);
+            }
+        }
+
+        private static void sendTicketPanel(TextChannel ch, String key) {
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🎫 Ticket System — Paradise City Roleplay")
+                    .setDescription(
+                        "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
+                        "**📋 Verfügbare Kategorien**\n\n" +
+                        "🔵 **Support** — Allgemeine Fragen & Hilfe\n" +
+                        "🔴 **Beschwerde** — Meldung von Regelverstößen\n" +
+                        "🟣 **Highteam** — Anliegen an das Highteam\n" +
+                        "🟠 **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
+                        "⚫ **Team Bewerbung** — Demnächst verfügbar\n\n" +
+                        "ℹ️ Pro Person ist nur **1 offenes Ticket** erlaubt.\n" +
+                        "Tickets können ausschließlich von Teammitgliedern geschlossen werden.")
+                    .build()
+            ).addActionRow(
+                StringSelectMenu.create(TicketListener.SELECT_ID)
+                    .setPlaceholder("Ticket-Kategorie auswählen…")
+                    .addOption("Support",              "support",        "Allgemeine Fragen & Hilfe",       net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔵"))
+                    .addOption("Beschwerde",           "beschwerde",     "Meldung von Regelverstößen",      net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔴"))
+                    .addOption("Highteam",             "highteam",       "Anliegen an das Highteam",        net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🟣"))
+                    .addOption("Fraktions Bewerbung",  "fraktion",       "Bewerbung für eine Fraktion",     net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🟠"))
+                    .addOption("Team Bewerbung",       "team-bewerbung", "Demnächst verfügbar",             net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("⚫"))
+                    .build()
+            ).queue(
+                msg -> DataStore.writeString(key, msg.getId()),
+                err -> log.error("[Ticket] Panel konnte nicht gepostet werden.", err)
+            );
         }
 
         private static void postRegelwerkPanels(Guild guild) {

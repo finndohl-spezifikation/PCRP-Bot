@@ -1,0 +1,524 @@
+package de.pcrp.bot.listeners;
+
+import de.pcrp.bot.common.*;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.*;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
+import net.dv8tion.jda.api.requests.restaction.ChannelAction;
+import net.dv8tion.jda.api.utils.FileUpload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+public class TicketListener extends ListenerAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(TicketListener.class);
+
+    // ── Kategorie-IDs (wo Ticket-Kanäle erstellt werden) ──────────────────────
+    private static final long SUPPORT_CATEGORY_ID  = 1529636378059472948L;
+    private static final long HIGHTEAM_CATEGORY_ID = 1529636379062046740L;
+    private static final long FRAKTION_CATEGORY_ID = 1529636379451986053L;
+
+    // ── Kanal-IDs ──────────────────────────────────────────────────────────────
+    private static final long TRANSCRIPT_CHANNEL_ID = 1529636431784317019L;
+    private static final long RATING_CHANNEL_ID     = 1529636514294923284L;
+
+    // ── Rollen-IDs ─────────────────────────────────────────────────────────────
+    private static final long SUPPORT_ROLE_ID  = 1529636282148458538L;
+    private static final long HIGHTEAM_ROLE_ID = 1529636280365748345L;
+    private static final long FRAKTION_ROLE_ID = 1529636285159837807L;
+
+    // ── Komponenten-IDs ────────────────────────────────────────────────────────
+    public static final String SELECT_ID  = "ticket-select";
+    public static final String CLAIM_BTN  = "ticket-claim";
+    public static final String ASSIGN_BTN = "ticket-assign";
+    public static final String CLOSE_BTN  = "ticket-close";
+    public static final String ASSIGN_SEL = "ticket-assign-sel";
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Ticket-Typ wählen
+    // ──────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
+        if (!event.getComponentId().equals(SELECT_ID)) return;
+
+        String value  = event.getValues().get(0);
+        Guild  guild  = event.getGuild();
+        Member member = event.getMember();
+        if (guild == null || member == null) return;
+
+        if ("team-bewerbung".equals(value)) {
+            event.reply("🔜 **Team Bewerbungen** sind demnächst verfügbar.").setEphemeral(true).queue();
+            return;
+        }
+
+        // Max 1 offenes Ticket prüfen
+        String openKey    = "ticket-open-" + guild.getId() + "-" + member.getId();
+        String existingId = DataStore.readString(openKey);
+        if (existingId != null && !existingId.isBlank()) {
+            TextChannel existing = guild.getTextChannelById(existingId.trim());
+            if (existing != null) {
+                event.reply("❌ Du hast bereits ein offenes Ticket: " + existing.getAsMention()).setEphemeral(true).queue();
+                return;
+            }
+            DataStore.deleteKey(openKey);
+        }
+
+        // Kategorie + Rolle bestimmen
+        long   categoryId;
+        long   roleId;
+        String typeLabel;
+        switch (value) {
+            case "support":
+                categoryId = SUPPORT_CATEGORY_ID;  roleId = SUPPORT_ROLE_ID;  typeLabel = "Support";             break;
+            case "beschwerde":
+                categoryId = SUPPORT_CATEGORY_ID;  roleId = SUPPORT_ROLE_ID;  typeLabel = "Beschwerde";          break;
+            case "highteam":
+                categoryId = HIGHTEAM_CATEGORY_ID; roleId = HIGHTEAM_ROLE_ID; typeLabel = "Highteam";            break;
+            case "fraktion":
+                categoryId = FRAKTION_CATEGORY_ID; roleId = FRAKTION_ROLE_ID; typeLabel = "Fraktions Bewerbung"; break;
+            default:
+                event.reply("❌ Unbekannte Kategorie.").setEphemeral(true).queue();
+                return;
+        }
+
+        event.deferReply(true).queue();
+
+        // Ticket-Nummer hochzählen
+        String counterKey = "ticket-counter-" + guild.getId();
+        String cs         = DataStore.readString(counterKey);
+        int    num        = (cs != null && !cs.isBlank()) ? Integer.parseInt(cs.trim()) + 1 : 1;
+        DataStore.writeString(counterKey, String.valueOf(num));
+
+        String   ticketName = "ticket-" + String.format("%04d", num);
+        Category cat        = guild.getCategoryById(categoryId);
+        Role     teamRole   = guild.getRoleById(roleId);
+
+        ChannelAction<TextChannel> action = guild.createTextChannel(ticketName);
+        if (cat != null) action = action.setParent(cat);
+
+        // Berechtigungen setzen
+        action = action
+            .addPermissionOverride(guild.getPublicRole(),
+                null,
+                EnumSet.of(Permission.VIEW_CHANNEL))
+            .addPermissionOverride(member,
+                EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND,
+                           Permission.MESSAGE_HISTORY, Permission.MESSAGE_ATTACH_FILES),
+                null);
+
+        if (teamRole != null) {
+            action = action.addPermissionOverride(teamRole,
+                EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND,
+                           Permission.MESSAGE_HISTORY, Permission.MANAGE_CHANNEL),
+                null);
+        }
+        // Highteam hat immer Zugriff
+        if (roleId != HIGHTEAM_ROLE_ID) {
+            Role htRole = guild.getRoleById(HIGHTEAM_ROLE_ID);
+            if (htRole != null) {
+                action = action.addPermissionOverride(htRole,
+                    EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND,
+                               Permission.MESSAGE_HISTORY, Permission.MANAGE_CHANNEL),
+                    null);
+            }
+        }
+
+        final long   fRoleId    = roleId;
+        final String fTypeLabel = typeLabel;
+        final String fOpenKey   = openKey;
+        final int    fNum       = num;
+
+        action.queue(ch -> {
+            DataStore.writeString(fOpenKey, ch.getId());
+            String dataKey = "ticket-data-" + guild.getId() + "-" + ch.getId();
+            // Format: creatorId|roleId|typeLabel|claimedBy|assignedUsers
+            DataStore.writeString(dataKey, member.getId() + "|" + fRoleId + "|" + fTypeLabel + "||");
+
+            ch.sendMessageEmbeds(buildTicketEmbed(fNum, fTypeLabel, member.getId(), ""))
+                .addActionRow(
+                    Button.success(CLAIM_BTN,  "🙋 Ticket claimen"),
+                    Button.primary(ASSIGN_BTN, "👤 Person zuweisen"),
+                    Button.danger(CLOSE_BTN,   "🔒 Ticket schließen")
+                )
+                .queue();
+
+            if (teamRole != null) {
+                ch.sendMessage(teamRole.getAsMention())
+                  .queue(m -> m.delete().queueAfter(3, TimeUnit.SECONDS, null, e -> {}));
+            }
+
+            event.getHook().sendMessage("✅ Dein Ticket wurde erstellt: " + ch.getAsMention()).queue();
+            log.info("[Ticket] #{} ({}) erstellt von {}.", fNum, fTypeLabel, member.getUser().getName());
+
+        }, err -> {
+            log.error("[Ticket] Kanal konnte nicht erstellt werden.", err);
+            event.getHook().sendMessage("❌ Fehler beim Erstellen des Tickets.").queue();
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Button-Interaktionen
+    // ──────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        String id = event.getComponentId();
+        if (id.equals(CLAIM_BTN))   { handleClaim(event);      return; }
+        if (id.equals(ASSIGN_BTN))  { handleAssign(event);     return; }
+        if (id.equals(CLOSE_BTN))   { handleClose(event);      return; }
+        if (id.startsWith("rate-")) { handleRateButton(event); return; }
+    }
+
+    // ─── Claim ───────────────────────────────────────────────────────────────
+
+    private void handleClaim(ButtonInteractionEvent event) {
+        Guild  guild  = event.getGuild();
+        Member member = event.getMember();
+        if (guild == null || member == null) return;
+
+        TextChannel ch    = (TextChannel) event.getChannel();
+        String      dKey  = "ticket-data-" + guild.getId() + "-" + ch.getId();
+        String[]    parts = loadData(dKey);
+        if (parts == null) { event.reply("❌ Ticket-Daten nicht gefunden.").setEphemeral(true).queue(); return; }
+
+        if (!hasTeamPerm(member, Long.parseLong(parts[1]))) {
+            event.reply("❌ Nur Teammitglieder können das Ticket claimen.").setEphemeral(true).queue();
+            return;
+        }
+        if (!parts[3].isBlank()) {
+            event.reply("ℹ️ Das Ticket wurde bereits von <@" + parts[3] + "> geclaimit.").setEphemeral(true).queue();
+            return;
+        }
+
+        parts[3] = member.getId();
+        DataStore.writeString(dKey, String.join("|", parts));
+
+        int ticketNum = parseTicketNum(event.getMessage().getEmbeds().isEmpty()
+            ? "" : event.getMessage().getEmbeds().get(0).getTitle());
+
+        event.getMessage().editMessageEmbeds(
+            buildTicketEmbed(ticketNum, parts[2], parts[0], member.getId())
+        ).queue();
+
+        event.reply("✅ " + member.getAsMention() + " hat das Ticket übernommen.").queue();
+    }
+
+    // ─── Assign ──────────────────────────────────────────────────────────────
+
+    private void handleAssign(ButtonInteractionEvent event) {
+        Guild  guild  = event.getGuild();
+        Member member = event.getMember();
+        if (guild == null || member == null) return;
+
+        TextChannel ch    = (TextChannel) event.getChannel();
+        String[]    parts = loadData("ticket-data-" + guild.getId() + "-" + ch.getId());
+        if (parts == null) { event.reply("❌ Ticket-Daten nicht gefunden.").setEphemeral(true).queue(); return; }
+
+        if (!hasTeamPerm(member, Long.parseLong(parts[1]))) {
+            event.reply("❌ Nur Teammitglieder können Personen zuweisen.").setEphemeral(true).queue();
+            return;
+        }
+
+        EntitySelectMenu menu = EntitySelectMenu
+            .create(ASSIGN_SEL, EntitySelectMenu.SelectTarget.USER)
+            .setPlaceholder("Mitglied auswählen…")
+            .setRequiredRange(1, 1)
+            .build();
+
+        event.reply("👤 Wähle ein Mitglied aus, das dem Ticket zugewiesen werden soll:")
+            .addActionRow(menu)
+            .setEphemeral(true)
+            .queue();
+    }
+
+    // ─── Assign-Select ───────────────────────────────────────────────────────
+
+    @Override
+    public void onEntitySelectInteraction(EntitySelectInteractionEvent event) {
+        if (!event.getComponentId().equals(ASSIGN_SEL)) return;
+
+        Guild  guild  = event.getGuild();
+        Member member = event.getMember();
+        if (guild == null || member == null) return;
+
+        TextChannel ch    = (TextChannel) event.getChannel();
+        String      dKey  = "ticket-data-" + guild.getId() + "-" + ch.getId();
+        String[]    parts = loadData(dKey);
+        if (parts == null) { event.reply("❌ Ticket-Daten nicht gefunden.").setEphemeral(true).queue(); return; }
+
+        List<Member> selected = event.getMentions().getMembers();
+        if (selected.isEmpty()) { event.reply("❌ Kein gültiges Mitglied ausgewählt.").setEphemeral(true).queue(); return; }
+
+        Member target = selected.get(0);
+
+        ch.getPermissionContainer().upsertPermissionOverride(target)
+            .grant(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_HISTORY)
+            .queue();
+
+        parts[4] = parts[4].isBlank() ? target.getId() : parts[4] + "," + target.getId();
+        DataStore.writeString(dKey, String.join("|", parts));
+
+        event.reply("✅ " + target.getAsMention() + " wurde dem Ticket zugewiesen.").queue();
+        ch.sendMessage("👤 **" + target.getEffectiveName() + "** wurde von "
+            + member.getAsMention() + " diesem Ticket zugewiesen.").queue();
+    }
+
+    // ─── Close ───────────────────────────────────────────────────────────────
+
+    private void handleClose(ButtonInteractionEvent event) {
+        Guild  guild  = event.getGuild();
+        Member member = event.getMember();
+        if (guild == null || member == null) return;
+
+        TextChannel ch    = (TextChannel) event.getChannel();
+        String      dKey  = "ticket-data-" + guild.getId() + "-" + ch.getId();
+        String[]    parts = loadData(dKey);
+        if (parts == null) { event.reply("❌ Ticket-Daten nicht gefunden.").setEphemeral(true).queue(); return; }
+
+        String creatorId  = parts[0];
+        long   roleId     = Long.parseLong(parts[1]);
+        String typeLabel  = parts[2];
+        String claimedBy  = parts[3];
+        String ticketId   = ch.getId();
+        String ticketName = ch.getName();
+
+        if (!hasTeamPerm(member, roleId)) {
+            event.reply("❌ Nur Teammitglieder können das Ticket schließen.").setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply().queue();
+
+        ch.getIterableHistory().takeAsync(200).thenAccept(msgs -> {
+
+            // Transkript
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== ").append(ticketName).append(" | ").append(typeLabel).append(" ===\n");
+            sb.append("Erstellt von:    ").append(creatorId).append("\n");
+            sb.append("Bearbeiter:      ").append(claimedBy.isBlank() ? "—" : claimedBy).append("\n");
+            sb.append("Geschlossen von: ").append(member.getUser().getAsTag()).append("\n\n");
+
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+            List<Message> ordered = new ArrayList<>(msgs);
+            Collections.reverse(ordered);
+            for (Message m : ordered) {
+                sb.append("[").append(m.getTimeCreated().format(fmt)).append("] ")
+                  .append(m.getAuthor().getName()).append(": ")
+                  .append(m.getContentDisplay());
+                if (!m.getAttachments().isEmpty())
+                    sb.append(" [").append(m.getAttachments().size()).append(" Anhang/Anhänge]");
+                sb.append("\n");
+            }
+
+            // DataStore bereinigen, Rating-Daten aufbewahren
+            DataStore.deleteKey("ticket-open-" + guild.getId() + "-" + creatorId);
+            DataStore.deleteKey(dKey);
+            DataStore.writeString("ticket-rating-data-" + ticketId,
+                creatorId + "|" + claimedBy + "|" + typeLabel + "|" + ticketName);
+
+            // Transkript senden
+            TextChannel transcriptCh = guild.getTextChannelById(TRANSCRIPT_CHANNEL_ID);
+            if (transcriptCh != null) {
+                byte[]     bytes  = sb.toString().getBytes(StandardCharsets.UTF_8);
+                FileUpload upload = FileUpload.fromData(new ByteArrayInputStream(bytes), ticketName + ".txt");
+                transcriptCh.sendMessageEmbeds(EmbedFactory.create()
+                    .setTitle("📋 Transkript — " + ticketName)
+                    .setDescription(
+                        "**Kategorie:** " + typeLabel + "\n" +
+                        "**Erstellt von:** <@" + creatorId + ">\n" +
+                        "**Bearbeiter:** " + (claimedBy.isBlank() ? "—" : "<@" + claimedBy + ">") + "\n" +
+                        "**Geschlossen von:** " + member.getAsMention())
+                    .build()
+                ).addFiles(upload).queue();
+            }
+
+            // Kanal sofort löschen
+            ch.delete().reason("Ticket geschlossen von " + member.getUser().getName()).queue();
+
+            // DM mit Bewertungs-Buttons an Ersteller
+            guild.retrieveMemberById(creatorId).queue(creator -> {
+                if (creator == null) return;
+                creator.getUser().openPrivateChannel().queue(pm ->
+                    pm.sendMessageEmbeds(EmbedFactory.create()
+                        .setTitle("🎫 Dein Ticket wurde geschlossen")
+                        .setDescription(
+                            "Dein Ticket **" + ticketName + "** (" + typeLabel + ") wurde geschlossen.\n\n" +
+                            "Wie war deine Erfahrung? Klicke auf eine Bewertung.\n" +
+                            "Du kannst jedes Ticket nur **einmal** bewerten.")
+                        .build())
+                        .addActionRow(
+                            Button.secondary("rate-" + ticketId + "-1", "⭐"),
+                            Button.secondary("rate-" + ticketId + "-2", "⭐⭐"),
+                            Button.secondary("rate-" + ticketId + "-3", "⭐⭐⭐"),
+                            Button.secondary("rate-" + ticketId + "-4", "⭐⭐⭐⭐"),
+                            Button.secondary("rate-" + ticketId + "-5", "⭐⭐⭐⭐⭐")
+                        )
+                        .queue(null, e -> log.warn("[Ticket] DM an {} fehlgeschlagen.", creatorId))
+                );
+            }, e -> log.warn("[Ticket] Creator {} nicht abrufbar.", creatorId));
+
+        }).exceptionally(e -> { log.error("[Ticket] Fehler beim Schließen.", e); return null; });
+    }
+
+    // ─── Bewertungs-Button ───────────────────────────────────────────────────
+
+    private void handleRateButton(ButtonInteractionEvent event) {
+        // Format: rate-{ticketId}-{stars}  (ticketId = Snowflake, keine Bindestriche)
+        String id    = event.getComponentId();
+        int    lastD = id.lastIndexOf('-');
+        if (lastD < 0) return;
+        String stars    = id.substring(lastD + 1);
+        String ticketId = id.substring(5, lastD); // "rate-" = 5 Zeichen
+
+        if (DataStore.readString("ticket-rated-" + ticketId) != null) {
+            event.reply("❌ Du hast dieses Ticket bereits bewertet.").setEphemeral(true).queue();
+            return;
+        }
+
+        Modal modal = Modal.create("ticket-rate-modal:" + ticketId + ":" + stars, "Ticket bewerten")
+            .addComponents(ActionRow.of(
+                TextInput.create("comment", "Optionaler Kommentar (kann leer bleiben)", TextInputStyle.PARAGRAPH)
+                    .setPlaceholder("Dein Feedback…")
+                    .setRequired(false)
+                    .setMaxLength(500)
+                    .build()))
+            .build();
+
+        event.replyModal(modal).queue();
+    }
+
+    // ─── Modal — Bewertung absenden ──────────────────────────────────────────
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        String modalId = event.getModalId();
+        if (!modalId.startsWith("ticket-rate-modal:")) return;
+
+        String[] p        = modalId.split(":");
+        if (p.length < 3) return;
+        String ticketId   = p[1];
+        String stars      = p[2];
+
+        String ratedKey = "ticket-rated-" + ticketId;
+        if (DataStore.readString(ratedKey) != null) {
+            event.reply("❌ Du hast dieses Ticket bereits bewertet.").setEphemeral(true).queue();
+            return;
+        }
+        DataStore.writeString(ratedKey, "true");
+
+        String comment = event.getValue("comment") != null
+            ? event.getValue("comment").getAsString().trim() : "";
+
+        // Ticket-Daten
+        String rdData    = DataStore.readString("ticket-rating-data-" + ticketId);
+        String creatorId = "?", claimedBy = "", typeLabel = "?", channelName = "?";
+        if (rdData != null) {
+            String[] rd = rdData.split("\\|", -1);
+            if (rd.length >= 4) { creatorId = rd[0]; claimedBy = rd[1]; typeLabel = rd[2]; channelName = rd[3]; }
+        }
+
+        int    starCount = Integer.parseInt(stars);
+        String starStr   = "⭐".repeat(starCount) + "☆".repeat(5 - starCount);
+
+        // Rating-Embed senden
+        final String fCreator = creatorId, fClaimed = claimedBy,
+                     fType = typeLabel, fChannel = channelName, fComment = comment;
+
+        if (BotContext.getJda() != null) {
+            for (Guild g : BotContext.getJda().getGuilds()) {
+                TextChannel rCh = g.getTextChannelById(RATING_CHANNEL_ID);
+                if (rCh == null) continue;
+                StringBuilder desc = new StringBuilder()
+                    .append("**Ticket:** ").append(fChannel).append("\n")
+                    .append("**Kategorie:** ").append(fType).append("\n")
+                    .append("**Erstellt von:** <@").append(fCreator).append(">\n")
+                    .append("**Bearbeiter:** ").append(fClaimed.isBlank() ? "—" : "<@" + fClaimed + ">").append("\n")
+                    .append("**Bewertung:** ").append(starStr);
+                if (!fComment.isBlank()) desc.append("\n**Kommentar:** ").append(fComment);
+                rCh.sendMessageEmbeds(EmbedFactory.create()
+                    .setTitle("⭐ Ticket-Bewertung")
+                    .setDescription(desc.toString())
+                    .build()
+                ).queue();
+            }
+        }
+
+        event.reply("✅ Danke für deine Bewertung! (" + starStr + ")").setEphemeral(true).queue();
+
+        // Buttons im DM deaktivieren
+        if (event.getMessage() != null) {
+            event.getMessage().editMessageComponents(ActionRow.of(
+                Button.secondary("rate-" + ticketId + "-1", "⭐").asDisabled(),
+                Button.secondary("rate-" + ticketId + "-2", "⭐⭐").asDisabled(),
+                Button.secondary("rate-" + ticketId + "-3", "⭐⭐⭐").asDisabled(),
+                Button.secondary("rate-" + ticketId + "-4", "⭐⭐⭐⭐").asDisabled(),
+                Button.secondary("rate-" + ticketId + "-5", "⭐⭐⭐⭐⭐").asDisabled()
+            )).queue(null, e -> {});
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Hilfsmethoden
+    // ──────────────────────────────────────────────────────────────────────────
+
+    private static String[] loadData(String key) {
+        String raw = DataStore.readString(key);
+        if (raw == null || raw.isBlank()) return null;
+        String[] parts = raw.split("\\|", -1);
+        if (parts.length < 5) {
+            String[] padded = new String[]{"", "", "", "", ""};
+            System.arraycopy(parts, 0, padded, 0, parts.length);
+            return padded;
+        }
+        return parts;
+    }
+
+    private boolean hasTeamPerm(Member member, long roleId) {
+        if (member.hasPermission(Permission.ADMINISTRATOR)) return true;
+        for (Role r : member.getRoles()) {
+            long rid = r.getIdLong();
+            if (rid == roleId || rid == HIGHTEAM_ROLE_ID) return true;
+        }
+        return false;
+    }
+
+    private static MessageEmbed buildTicketEmbed(int num, String typeLabel, String creatorId, String claimedById) {
+        String handler = claimedById.isBlank() ? "—" : "<@" + claimedById + ">";
+        return EmbedFactory.create()
+            .setTitle("🎫 Ticket #" + String.format("%04d", num) + " — " + typeLabel)
+            .setDescription(
+                "**Erstellt von:** <@" + creatorId + ">\n" +
+                "**Kategorie:** " + typeLabel + "\n" +
+                "**Bearbeiter:** " + handler + "\n\n" +
+                "Beschreibe dein Anliegen. Ein Teammitglied wird sich so bald wie möglich um dich kümmern.")
+            .build();
+    }
+
+    private static int parseTicketNum(String title) {
+        if (title == null) return 0;
+        try {
+            int hash = title.indexOf('#');
+            int sp   = title.indexOf(' ', hash + 1);
+            if (hash >= 0 && sp > hash)
+                return Integer.parseInt(title.substring(hash + 1, sp));
+        } catch (NumberFormatException ignored) {}
+        return 0;
+    }
+}

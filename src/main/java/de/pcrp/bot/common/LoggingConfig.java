@@ -41,6 +41,12 @@ public final class LoggingConfig {
     /** RP-Spiel-Einstellungen-Panel (Spieleranzeige, Minimap). */
     public static final long RP_EINSTELLUNGEN_CHANNEL_ID   = 1529636478236495983L;
 
+    /** Ticket-Panel (Haupt-Embed zum Erstellen von Tickets). */
+    public static final long TICKET_PANEL_CHANNEL_ID        = 1529636489732952264L;
+
+    /** Ticket-Bewertungen. */
+    public static final long TICKET_RATING_CHANNEL_ID       = 1529636514294923284L;
+
     /** Serverregelwerk-Panel (2 Embeds). */
     public static final long REGELWERK_CHANNEL_ID           = 1529636481117851692L;
 
