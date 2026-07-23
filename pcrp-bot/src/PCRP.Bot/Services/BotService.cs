@@ -32,10 +32,10 @@ public class BotService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var token = Environment.GetEnvironmentVariable("DISCORD_BOT_TOKEN");
+        var token = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
         if (string.IsNullOrWhiteSpace(token))
         {
-            _logger.LogCritical("DISCORD_BOT_TOKEN ist nicht gesetzt. Bot kann nicht starten.");
+            _logger.LogCritical("DISCORD_TOKEN ist nicht gesetzt. Bot kann nicht starten.");
             return;
         }
 
