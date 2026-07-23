@@ -159,7 +159,7 @@ public class Main {
                         "- Zugang zur Keinen Staatlichen Jobs,\n" +
                         "- Zugang zur Illegalen Routen,\n\n" +
                         "__**Gruppen Einreise**__\n\n" +
-                        "- Ab 4 Personen,\n" +
+                        "- Ab 5 Personen,\n" +
                         "- Mehr Startgeld,\n" +
                         "- Exklusives Starterfahrzeug")
                     .setTimestamp(Instant.now())
