@@ -176,7 +176,7 @@ public class Main {
                         "- Ab 5 Personen,\n" +
                         "- Mehr Startgeld,\n" +
                         "- Exklusives Starterfahrzeug")
-                    .setTimestamp(Instant.now())
+
                     .build()
             )
             .addActionRow(Button.link(webUrl, "🏛️ Jetzt Einreisen"))
@@ -211,7 +211,7 @@ public class Main {
                 EmbedFactory.create()
                     .setTitle(title)
                     .setDescription(description)
-                    .setTimestamp(Instant.now())
+
                     .build()
             ).queue(
                 msg -> DataStore.writeString(key, msg.getId()),

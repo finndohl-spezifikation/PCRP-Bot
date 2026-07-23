@@ -120,7 +120,7 @@ public class WelcomeListener extends ListenerAdapter {
                         "Willkommen auf **Paradise City Roleplay**,\n" +
                         "du bist unser **" + memberCount + ".** Mitglied! 🎉")
                     .setThumbnail(user.getEffectiveAvatarUrl())
-                    .setTimestamp(Instant.now())
+
                     .build()
             ).queue();
         }
@@ -179,7 +179,7 @@ public class WelcomeListener extends ListenerAdapter {
                                 "Er wurde von " + inviterMention + " eingeladen,\n" +
                                 "der jetzt **" + finalUses + " Einladung" + (finalUses == 1 ? "" : "en") + "** hat.")
                             .setThumbnail(user.getEffectiveAvatarUrl())
-                            .setTimestamp(Instant.now())
+
                             .build()
                     ).queue();
             }
@@ -210,7 +210,7 @@ public class WelcomeListener extends ListenerAdapter {
                         "hat **Paradise City Roleplay** verlassen.\n\n" +
                         "Es befinden sich noch **" + memberCount + " Mitglieder** auf dem Server.")
                     .setThumbnail(user.getEffectiveAvatarUrl())
-                    .setTimestamp(Instant.now())
+
                     .build()
             ).queue();
         }
@@ -227,7 +227,7 @@ public class WelcomeListener extends ListenerAdapter {
                         "**" + user.getName() + "** hat den Server verlassen.\n\n" +
                         "Er wurde von " + inviterStr + " eingeladen.")
                     .setThumbnail(user.getEffectiveAvatarUrl())
-                    .setTimestamp(Instant.now())
+
                     .build()
             ).queue();
         }
