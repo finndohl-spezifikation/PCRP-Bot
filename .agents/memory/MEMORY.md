@@ -1,0 +1,1 @@
+- [PCRP Discord bot conventions](pcrp-bot-conventions.md) — external C# bot repo in pcrp-bot/, pushed to GitHub, hosted on Railway; strict embed rules (dark orange, no footers, auto-post panels once).
