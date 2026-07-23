@@ -324,7 +324,7 @@ public class LoggingListener extends ListenerAdapter {
         String warning = accountAgeDays < 7
             ? "\n⚠️ **Neues Konto! Weniger als 7 Tage alt.**" : "";
 
-        log(e.getGuild(), LoggingConfig.PLAYER_LOG_CHANNEL_ID, EmbedFactory.create()
+        log(e.getGuild(), LoggingConfig.MEMBER_LOG_CHANNEL_ID, EmbedFactory.create()
             .setTitle("📥 Mitglied beigetreten")
             .setDescription(
                 "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
@@ -353,7 +353,7 @@ public class LoggingListener extends ListenerAdapter {
                 roles = "\n**Hatte diese Rollen:** " + String.join(" ", roleList.subList(0, Math.min(roleList.size(), 20)));
         }
 
-        log(e.getGuild(), LoggingConfig.PLAYER_LOG_CHANNEL_ID, EmbedFactory.create()
+        log(e.getGuild(), LoggingConfig.MEMBER_LOG_CHANNEL_ID, EmbedFactory.create()
             .setTitle("📤 Mitglied verlassen")
             .setDescription(
                 "**Nutzer:** " + user.getAsMention() + " | " + user.getName() + " (`" + user.getId() + "`)\n" +
@@ -367,7 +367,7 @@ public class LoggingListener extends ListenerAdapter {
     public void onGuildMemberUpdateNickname(GuildMemberUpdateNicknameEvent e) {
         Member member = e.getMember();
         withAudit(e.getGuild(), ActionType.MEMBER_UPDATE, entry ->
-            log(e.getGuild(), LoggingConfig.PLAYER_LOG_CHANNEL_ID, EmbedFactory.create()
+            log(e.getGuild(), LoggingConfig.MEMBER_LOG_CHANNEL_ID, EmbedFactory.create()
                 .setTitle("✏️ Nickname geändert")
                 .setDescription(
                     "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +

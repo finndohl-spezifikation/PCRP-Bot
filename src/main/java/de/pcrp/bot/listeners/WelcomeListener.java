@@ -22,12 +22,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Invite-Tracker-Logik:
  *  - Beim Startup alle Einladungen cachen (uses-Anzahl pro Code).
  *  - Beim Beitritt: neuen Stand abrufen, geänderten Code = benutzte Einladung.
- *  - Einlader → neues Mitglied-Mapping persistent in DataStore speichern.
- *  - Beim Verlassen: gespeichertes Mapping lesen, Einlader im Log nennen.
+ *  - Einlader wird gepingt; bekommt +1.000 Münzen.
+ *  - Mapping "wer hat wen eingeladen" wird persistent gespeichert.
+ *  - Beim Verlassen: Einlader wird im Invite-Log genannt.
+ *    Die 1.000 Münzen werden dem Einlader wieder abgezogen.
  */
 public class WelcomeListener extends ListenerAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(WelcomeListener.class);
+    private static final Logger log  = LoggerFactory.getLogger(WelcomeListener.class);
     private static final Gson   GSON = new GsonBuilder().setPrettyPrinting().create();
 
     // Invite-Cache: guildId → (inviteCode → InviteData)
@@ -49,8 +51,8 @@ public class WelcomeListener extends ListenerAdapter {
                 User inviter = inv.getInviter();
                 map.put(inv.getCode(), new InviteData(
                     inv.getUses(),
-                    inviter != null ? inviter.getIdLong() : 0L,
-                    inviter != null ? inviter.getName()   : "Unbekannt",
+                    inviter != null ? inviter.getIdLong()    : 0L,
+                    inviter != null ? inviter.getName()      : "Unbekannt",
                     inviter != null ? inviter.getAsMention() : "Unbekannt"
                 ));
             }
@@ -65,7 +67,7 @@ public class WelcomeListener extends ListenerAdapter {
 
     @Override
     public void onGuildInviteCreate(GuildInviteCreateEvent event) {
-        Invite inv  = event.getInvite();
+        Invite inv   = event.getInvite();
         User inviter = inv.getInviter();
         cache.computeIfAbsent(event.getGuild().getIdLong(), k -> new ConcurrentHashMap<>())
              .put(inv.getCode(), new InviteData(
@@ -91,8 +93,20 @@ public class WelcomeListener extends ListenerAdapter {
         Guild  guild  = event.getGuild();
         Member member = event.getMember();
         User   user   = member.getUser();
+        if (user.isBot()) return;
 
-        // Mitgliederanzahl ohne Bots (inkl. gerade beigetretener Nutzer)
+        // ── Auto-Rolle ────────────────────────────────────────────
+        Role autoRole = guild.getRoleById(ModerationConfig.AUTO_ROLE_ID);
+        if (autoRole != null) {
+            guild.addRoleToMember(member, autoRole).queue(
+                ok  -> log.info("[AutoRole] {} → Rolle vergeben.", user.getName()),
+                err -> log.warn("[AutoRole] Konnte Rolle nicht vergeben an {}.", user.getName(), err)
+            );
+        } else {
+            log.warn("[AutoRole] Rolle {} nicht gefunden auf '{}'.", ModerationConfig.AUTO_ROLE_ID, guild.getName());
+        }
+
+        // ── Mitgliederanzahl ohne Bots ────────────────────────────
         long memberCount = guild.getMembers().stream().filter(m -> !m.getUser().isBot()).count();
 
         // ── Willkommens-Embed ─────────────────────────────────────
@@ -100,7 +114,7 @@ public class WelcomeListener extends ListenerAdapter {
         if (welcomeChannel != null) {
             welcomeChannel.sendMessageEmbeds(
                 EmbedFactory.create()
-                    .setTitle("👋 Willkommen auf Paradise City Roleplay!")
+                    .setTitle("👋 Neues Mitglied")
                     .setDescription(
                         user.getAsMention() + "\n\n" +
                         "Willkommen auf **Paradise City Roleplay**,\n" +
@@ -111,11 +125,10 @@ public class WelcomeListener extends ListenerAdapter {
             ).queue();
         }
 
-        // ── Invite-Tracker ────────────────────────────────────────
+        // ── Invite-Tracker: welcher Invite wurde benutzt ──────────
         guild.retrieveInvites().queue(currentInvites -> {
             Map<String, InviteData> oldCache = cache.getOrDefault(guild.getIdLong(), new ConcurrentHashMap<>());
 
-            // Benutzte Einladung finden: Uses-Zahl hat sich erhöht
             InviteData usedInvite = null;
             int        newUses    = 0;
             for (Invite inv : currentInvites) {
@@ -140,29 +153,35 @@ public class WelcomeListener extends ListenerAdapter {
             }
             cache.put(guild.getIdLong(), newMap);
 
-            // Mapping persistieren
             final String inviterName    = usedInvite != null ? usedInvite.inviterName    : "Unbekannt";
             final String inviterMention = usedInvite != null ? usedInvite.inviterMention : "Unbekannt";
             final long   inviterId      = usedInvite != null ? usedInvite.inviterId      : 0L;
             final int    finalUses      = newUses;
 
-            if (usedInvite != null)
+            // Mapping + Economy persistieren
+            if (usedInvite != null && inviterId != 0L) {
                 persistInvitedBy(guild.getIdLong(), user.getIdLong(), inviterId, inviterName, inviterMention, finalUses);
+                EconomyStore.addCoins(guild.getIdLong(), inviterId, EconomyStore.INVITE_REWARD);
+                log.info("[Economy] +{} für {} (Einladung von {}).",
+                    EconomyStore.INVITE_REWARD, user.getName(), inviterName);
+            }
 
-            // ── Invite-Log: Beitritt ──────────────────────────────
+            // ── Invite-Log: Beitritt (+ Ping des Einladers) ───────
             TextChannel inviteLog = guild.getTextChannelById(LoggingConfig.INVITE_LOG_CHANNEL_ID);
             if (inviteLog != null) {
-                inviteLog.sendMessageEmbeds(
-                    EmbedFactory.create()
-                        .setTitle("📨 Neues Mitglied")
-                        .setDescription(
-                            "**" + user.getName() + "** hat den Server betreten\n\n" +
-                            "Er wurde von **" + inviterName + "** eingeladen,\n" +
-                            "der jetzt **" + finalUses + " Einladung" + (finalUses == 1 ? "" : "en") + "** hat.")
-                        .setThumbnail(user.getEffectiveAvatarUrl())
-                        .setTimestamp(Instant.now())
-                        .build()
-                ).queue();
+                String content = inviterId != 0L ? inviterMention : ""; // Ping außerhalb des Embeds
+                inviteLog.sendMessage(content)
+                    .addEmbeds(
+                        EmbedFactory.create()
+                            .setTitle("📨 Neues Mitglied")
+                            .setDescription(
+                                "**" + user.getName() + "** hat den Server betreten.\n\n" +
+                                "Er wurde von " + inviterMention + " eingeladen,\n" +
+                                "der jetzt **" + finalUses + " Einladung" + (finalUses == 1 ? "" : "en") + "** hat.")
+                            .setThumbnail(user.getEffectiveAvatarUrl())
+                            .setTimestamp(Instant.now())
+                            .build()
+                    ).queue();
             }
         }, err -> log.warn("[Invite-Tracker] Einladungen nicht abrufbar beim Beitritt von '{}'.", user.getName(), err));
     }
@@ -175,6 +194,7 @@ public class WelcomeListener extends ListenerAdapter {
     public void onGuildMemberRemove(GuildMemberRemoveEvent event) {
         Guild guild = event.getGuild();
         User  user  = event.getUser();
+        if (user.isBot()) return;
 
         // Mitgliederanzahl ohne Bots (Mitglied ist bereits weg)
         long memberCount = guild.getMembers().stream().filter(m -> !m.getUser().isBot()).count();
@@ -195,7 +215,7 @@ public class WelcomeListener extends ListenerAdapter {
             ).queue();
         }
 
-        // ── Invite-Log: Verlassen ─────────────────────────────────
+        // ── Invite-Log: Verlassen + Economy-Abzug ─────────────────
         InviterRecord record = loadInvitedBy(guild.getIdLong(), user.getIdLong());
         TextChannel inviteLog = guild.getTextChannelById(LoggingConfig.INVITE_LOG_CHANNEL_ID);
         if (inviteLog != null) {
@@ -210,6 +230,13 @@ public class WelcomeListener extends ListenerAdapter {
                     .setTimestamp(Instant.now())
                     .build()
             ).queue();
+        }
+
+        // Economy: Einladungs-Bonus wieder abziehen
+        if (record != null && record.inviterId != 0L) {
+            EconomyStore.subtractCoins(guild.getIdLong(), record.inviterId, EconomyStore.INVITE_REWARD);
+            log.info("[Economy] -{} für {} (verlassen: {}).",
+                EconomyStore.INVITE_REWARD, record.inviterName, user.getName());
         }
     }
 
@@ -236,15 +263,20 @@ public class WelcomeListener extends ListenerAdapter {
     private static InviterRecord loadInvitedBy(long guildId, long memberId) {
         String raw = DataStore.readString(inviteFile(guildId));
         if (raw == null) return null;
-        JsonObject root = JsonParser.parseString(raw).getAsJsonObject();
-        JsonElement el  = root.get(String.valueOf(memberId));
-        if (el == null || !el.isJsonObject()) return null;
-        JsonObject obj = el.getAsJsonObject();
-        return new InviterRecord(
-            obj.get("inviterId").getAsLong(),
-            obj.get("inviterName").getAsString(),
-            obj.get("inviterMention").getAsString()
-        );
+        try {
+            JsonObject root = JsonParser.parseString(raw).getAsJsonObject();
+            JsonElement el  = root.get(String.valueOf(memberId));
+            if (el == null || !el.isJsonObject()) return null;
+            JsonObject obj = el.getAsJsonObject();
+            return new InviterRecord(
+                obj.get("inviterId").getAsLong(),
+                obj.get("inviterName").getAsString(),
+                obj.get("inviterMention").getAsString()
+            );
+        } catch (Exception e) {
+            log.warn("[Invite-Persistenz] Fehler beim Lesen für Mitglied {}.", memberId, e);
+            return null;
+        }
     }
 
     // ════════════════════════════════════════════════════════════

@@ -8,6 +8,9 @@ public final class ModerationConfig {
     /** Inhaber – hat keinerlei Einschränkungen und wird bei Aktivitätswarnungen gepingt. */
     public static final long OWNER_ID = 1259265007791636540L;
 
+    /** Auto-Rolle – wird jedem neuen Mitglied beim Beitritt zugewiesen. */
+    public static final long AUTO_ROLE_ID = 1529636301907689486L;
+
     /** Kanal für Aktivitätswarnungen (Anti-Nuke, Eigenwerbung usw.). */
     public static final long ALERT_CHANNEL_ID = 1529636455079608431L;
 
