@@ -99,7 +99,7 @@ public class Main {
 
         private static void postMeldeamtPanel(Guild guild) {
             String key    = "panel-meldeamt-" + guild.getId();
-            String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+            String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
 
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
@@ -170,6 +170,15 @@ public class Main {
                 msg -> DataStore.writeString(key, msg.getId() + "|" + webUrl),
                 err -> log.error("[Meldeamt] Panel konnte nicht gepostet werden.", err)
             );
+        }
+
+        private static String normalizeUrl(String url) {
+            if (url == null || url.isBlank()) return "https://example.com";
+            url = url.trim();
+            if (!url.startsWith("http://") && !url.startsWith("https://")) {
+                url = "https://" + url;
+            }
+            return url;
         }
 
         private static List<CommandData> buildCommands() {

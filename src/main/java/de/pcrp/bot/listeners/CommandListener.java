@@ -363,7 +363,8 @@ public class CommandListener extends ListenerAdapter {
             return;
         }
 
-        String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+        String rawUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com").trim();
+        String webUrl = (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) ? "https://" + rawUrl : rawUrl;
         String key    = "panel-meldeamt-" + event.getGuild().getId();
 
         net.dv8tion.jda.api.entities.channel.concrete.TextChannel ch =
