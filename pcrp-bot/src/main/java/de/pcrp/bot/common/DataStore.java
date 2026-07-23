@@ -54,4 +54,13 @@ public final class DataStore {
             log.warn("Datei konnte nicht geschrieben werden: {}", filename, e);
         }
     }
+
+    /** Löscht eine Datei aus dem Datenverzeichnis (ignoriert falls nicht vorhanden). */
+    public static void deleteKey(String filename) {
+        try {
+            Files.deleteIfExists(getPath(filename));
+        } catch (IOException e) {
+            log.warn("Datei konnte nicht gelöscht werden: {}", filename, e);
+        }
+    }
 }
