@@ -104,18 +104,42 @@ public class Main {
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
 
-            String existingId = DataStore.readString(key);
-            if (existingId != null && !existingId.isBlank()) {
-                // Prüfen ob die Nachricht noch im Kanal existiert
-                ch.retrieveMessageById(existingId.trim()).queue(
-                    msg -> log.info("[Meldeamt] Panel ist noch aktiv (ID: {}), wird nicht neu gesendet.", existingId.trim()),
-                    err -> {
-                        // Nachricht gelöscht oder nicht mehr vorhanden → neu senden
-                        log.info("[Meldeamt] Gespeichertes Panel nicht mehr vorhanden, sende neu.");
-                        DataStore.deleteKey(key);
-                        sendPanel(ch, key, webUrl);
-                    }
-                );
+            // Format gespeicherter Wert: "messageId|webUrl"
+            String stored     = DataStore.readString(key);
+            String storedMsgId  = null;
+            String storedUrl    = null;
+            if (stored != null && stored.contains("|")) {
+                storedMsgId = stored.split("\\|", 2)[0];
+                storedUrl   = stored.split("\\|", 2)[1];
+            } else if (stored != null && !stored.isBlank()) {
+                // Altes Format (nur Message-ID, kein URL-Teil) → neu senden
+                storedMsgId = stored.trim();
+            }
+
+            boolean urlChanged = !webUrl.equals(storedUrl);
+
+            if (storedMsgId != null) {
+                final String msgId = storedMsgId;
+                if (urlChanged) {
+                    // Domain hat sich geändert → altes Panel löschen und frisches senden
+                    ch.retrieveMessageById(msgId).queue(
+                        msg -> msg.delete().queue(
+                            v   -> sendPanel(ch, key, webUrl),
+                            err -> sendPanel(ch, key, webUrl)
+                        ),
+                        err -> sendPanel(ch, key, webUrl)
+                    );
+                } else {
+                    // URL gleich → nur prüfen ob Nachricht noch existiert
+                    ch.retrieveMessageById(msgId).queue(
+                        msg -> log.info("[Meldeamt] Panel aktiv (ID: {}), kein Neuversand.", msgId),
+                        err -> {
+                            log.info("[Meldeamt] Panel wurde gelöscht, sende neu.");
+                            DataStore.deleteKey(key);
+                            sendPanel(ch, key, webUrl);
+                        }
+                    );
+                }
             } else {
                 sendPanel(ch, key, webUrl);
             }
@@ -143,7 +167,7 @@ public class Main {
             )
             .addActionRow(Button.link(webUrl, "🏛️ Jetzt Einreisen"))
             .queue(
-                msg -> DataStore.writeString(key, msg.getId()),
+                msg -> DataStore.writeString(key, msg.getId() + "|" + webUrl),
                 err -> log.error("[Meldeamt] Panel konnte nicht gepostet werden.", err)
             );
         }
