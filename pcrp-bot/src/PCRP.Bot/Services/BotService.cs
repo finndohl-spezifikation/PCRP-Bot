@@ -57,8 +57,10 @@ public class BotService : BackgroundService
 
     private async Task OnReadyAsync()
     {
+        // Alle globalen Commands löschen – verhindert Dopplungen neben den Server-Commands.
+        await _client.Rest.DeleteAllGlobalCommandsAsync();
+
         // Server-spezifisch registrieren – Befehle sind SOFORT verfügbar (kein 1-Stunden-Delay).
-        // Global-Registrierung kann bis zu 1h brauchen und eignet sich nicht für einen einzelnen Server.
         foreach (var guild in _client.Guilds)
         {
             await _interactions.RegisterCommandsToGuildAsync(guild.Id, deleteMissing: true);
