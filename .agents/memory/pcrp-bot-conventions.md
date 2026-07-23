@@ -4,7 +4,9 @@ description: Rules and setup for the user's external C# GTA RP Discord bot (Rail
 ---
 
 - Project lives in `pcrp-bot/` (clone of github.com/finndohl-spezifikation/PCRP-Bot). Not a Replit artifact; user hosts on Railway via Dockerfile. Push to `main` after each finished feature.
-- The secret `PCRP_BOT_TOKEN` is the **GitHub access token** (clone remote already embeds it), NOT the Discord token. Discord token is `DISCORD_BOT_TOKEN`, set by the user on Railway; bot is not run on Replit.
+- The secret `PCRP_BOT_TOKEN` is the **GitHub access token**, NOT the Discord token. Discord token env var is `DISCORD_TOKEN`, set by the user on Railway; bot is not run on Replit.
+- Railway mounts a persistent volume at `/app/data` — all persistent state goes through `Common/DataStore.cs` (`DATA_DIR` overridable locally).
+- `pcrp-bot/` has NO own `.git` (the workspace strips nested repos). To push: clone repo to `/tmp/pcrp-push` with the token, copy files over (exclude bin/obj), commit, push.
 - User rules (mandatory, all future features):
   - Every embed must be dark orange — use `EmbedFactory` (`Common/EmbedFactory.cs`), never build embeds directly.
   - No footer text in any embed — embeds stay clean.
