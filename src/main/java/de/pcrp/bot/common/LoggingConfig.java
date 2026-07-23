@@ -1,0 +1,37 @@
+package de.pcrp.bot.common;
+
+/**
+ * Kanal-IDs für das Log-System.
+ */
+public final class LoggingConfig {
+
+    /** Alles rund um den Server (Guild, Kanäle, Einladungen, Voice). */
+    public static final long SERVER_LOG_CHANNEL_ID     = 1529636412628930723L;
+
+    /** Alles rund um Moderation (Bans, Timeouts, Wortfilter, Spam…). */
+    public static final long MODERATION_LOG_CHANNEL_ID = 1529636417636929707L;
+
+    /** Bot-Neustarts und alles rund um Spieler (Beitritt, Verlassen, Nickname). */
+    public static final long PLAYER_LOG_CHANNEL_ID     = 1529636419071639735L;
+
+    /** Alles rund um Nachrichten (gelöscht, bearbeitet, Massenlöschung). */
+    public static final long MESSAGE_LOG_CHANNEL_ID    = 1529636425337667714L;
+
+    /** Alles rund um Rollen (erstellt, gelöscht, geändert, vergeben/entzogen). */
+    public static final long ROLE_LOG_CHANNEL_ID       = 1529636428370280509L;
+
+    /** Alles rund um Gelder/Wirtschaft (für spätere Implementierung). */
+    public static final long MONEY_LOG_CHANNEL_ID      = 1529636430362574968L;
+
+    /** Alles rund um Tickets und Transkripte (für spätere Implementierung). */
+    public static final long TICKET_LOG_CHANNEL_ID     = 1529636431784317019L;
+
+    /**
+     * Java-Logo URL – winzig-kleines Icon unten links im Bot-Neustart-Embed.
+     * (Ausnahme von der „kein Footer"-Regel, explizit für Bot-Neustarts gewünscht.)
+     */
+    public static final String JAVA_LOGO_URL =
+        "https://upload.wikimedia.org/wikipedia/en/thumb/3/30/Java_programming_language_logo.svg/121px-Java_programming_language_logo.svg.png";
+
+    private LoggingConfig() {}
+}

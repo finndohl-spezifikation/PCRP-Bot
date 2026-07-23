@@ -1,11 +1,17 @@
-# Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY . .
-RUN dotnet publish src/PCRP.Bot/PCRP.Bot.csproj -c Release -o /app/publish
-
-# Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# ── Build-Stage ──────────────────────────────────────────────────────────────
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
-COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "PCRP.Bot.dll"]
+# Abhängigkeiten vorab laden (besseres Layer-Caching)
+COPY pom.xml .
+RUN mvn dependency:go-offline -q
+# Quellcode kompilieren und Fat-JAR erzeugen
+COPY src ./src
+RUN mvn package -DskipTests -q
+
+# ── Runtime-Stage ─────────────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+# Persistentes Datenverzeichnis (wird von Railway als Volume gemountet)
+RUN mkdir -p /app/data
+COPY --from=build /app/target/pcrp-bot.jar app.jar
+CMD ["java", "-jar", "app.jar"]

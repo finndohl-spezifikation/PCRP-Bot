@@ -1,7 +1,8 @@
-bin/
-obj/
-*.user
-.vs/
+target/
+*.class
+*.log
+*.iml
 .idea/
-publish/
-*.env
+.vscode/
+.DS_Store
+/app/data/

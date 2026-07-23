@@ -1,37 +1,48 @@
 # PCRP-Bot
 
-Custom Discord Roleplay Bot für den PCRP GTA RP Server (C# / .NET 8, Discord.Net).
+Discord-Bot für den PCRP GTA-RP-Server – geschrieben in **Java** mit **JDA 5**.
+Läuft auf **Railway** via Docker, Quellcode auf GitHub.
 
 ## Features
 
-- `/hallo` — der Bot begrüßt den Nutzer
-- **Moderationssystem**
-  - Wortfilter: vulgäre Kraftausdrücke werden sofort gelöscht
-  - Spamschutz: mehr als 7 Nachrichten in kürzester Zeit → DM-Verwarnung, beim 2. Mal 10 Minuten Timeout
-  - Anti-Nuke: fremde Bots werden sofort permanent gebannt (DM an Einladenden + Aktivitätswarnung)
-  - Serverschutz: Massenlöschung von Kanälen/Kategorien/Rollen → 14 Tage Timeout, DM, Aktivitätswarnung und automatische Wiederherstellung (Name, Berechtigungen, Rollenfarbe)
-  - 67/sixseven wird automatisch zu 69/sixnine geändert
-  - Fremde Discord-Server-Links: löschen, 14 Tage Timeout, DM + Aktivitätswarnung
-  - Aktivitätswarnungen gehen in den konfigurierten Kanal und pingen den Inhaber
-  - Der Inhaber hat keinerlei Einschränkungen
+### Moderationssystem
+- **Wortfilter** – vulgäre Kraftausdrücke sofort löschen (Deutsch + Englisch, Leetspeak-Normalisierung)
+- **Spamschutz** – mehr als 7 Nachrichten in ~10 Sekunden → DM-Verwarnung, beim 2. Mal 10 Min. Timeout
+- **67-Filter** – „67" / „sixseven" wird automatisch zu „69" / „sixnine" (im Namen des Nutzers neu gepostet)
+- **Eigenwerbungs-Schutz** – fremde Discord-Links: löschen, 14 Tage Timeout, DM + Alert
+- **Anti-Nuke (Fremdbots)** – sofortiger Perma-Bann + DM an Einladenden + Alert
+- **Serverschutz (Massenlöschung)** – Kanäle/Kategorien/Rollen: 14 Tage Timeout, DM, Alert + automatische Wiederherstellung
 
-**Benötigte Bot-Berechtigungen:** Nachrichten verwalten, Mitglieder moderieren (Timeout), Mitglieder bannen, Webhooks verwalten, Audit-Log einsehen.
-**Wichtig:** Im Discord Developer Portal müssen die Privileged Intents **Server Members** und **Message Content** aktiviert sein.
+### Slash-Commands
+| Befehl | Berechtigung | Funktion |
+|--------|-------------|---------|
+| `/löschen [anzahl: 1-200]` | Nachrichten verwalten | Löscht Nachrichten im Kanal |
+| `/bannen [mitglied] [grund?]` | Mitglieder bannen | Permanenter Bann + DM |
+| `/entbannen [nutzer]` | Mitglieder bannen | Bann aufheben (Autocomplete aus Bannliste) |
+| `/timeout [mitglied] [dauer] [grund?]` | Mitglieder moderieren | Timeout mit Dropdown-Auswahl (5 Min – 14 Tage) |
 
-## Regeln (Projektstandard)
+### Log-System (7 Kanäle)
+- Server-Logs, Moderations-Logs, Spieler-Logs, Nachrichten-Logs, Rollen-Logs, Geld-Logs, Ticket-Logs
 
-- Alle Embeds sind **dunkelorange** (`EmbedFactory`), keine Ausnahmen
-- **Keine Footer-Texte** in Embeds
-- Panels/Embeds werden automatisch beim Bot-Start einmalig gesendet (kein `/setup`)
+## Technisches
 
-## Deployment (Railway)
+- **Sprache:** Java 21 · JDA 5.2.2
+- **Build:** Maven → Fat-JAR via `maven-shade-plugin`
+- **Deployment:** Railway erkennt `Dockerfile` automatisch
+- **Persistenz:** Railway Volume bei `/app/data` (via `DATA_DIR` Umgebungsvariable überschreibbar)
 
-1. Repo mit Railway verbinden — das `Dockerfile` wird automatisch erkannt
-2. Environment Variable setzen: `DISCORD_TOKEN` (Discord Bot Token)
-3. Volume unter `/app/data` mounten — dort speichert der Bot alle persistenten Daten
+## Benötigte Discord-Berechtigungen
 
-## Lokal starten
+Der Bot braucht: **Administrator** (oder einzeln: Nachrichten verwalten, Mitglieder moderieren, Mitglieder bannen, Webhooks verwalten, Audit-Log einsehen)
 
-```bash
-DISCORD_TOKEN=... DATA_DIR=./data dotnet run --project src/PCRP.Bot
-```
+## Benötigte Privileged Intents (Discord Developer Portal)
+
+- **Server Members Intent** ✅ aktivieren
+- **Message Content Intent** ✅ aktivieren
+
+## Umgebungsvariablen (Railway)
+
+| Variable | Beschreibung |
+|----------|-------------|
+| `DISCORD_TOKEN` | Discord Bot Token |
+| `DATA_DIR` | (Optional) Pfad für persistente Daten, Standard: `/app/data` |
