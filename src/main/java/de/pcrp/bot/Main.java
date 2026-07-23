@@ -124,9 +124,141 @@ public class Main {
                     "__**Minimap**__\n\n" +
                     "- Einstellungen\n" +
                     "- Radar auf aus Stellen");
+
+                postRegelwerkPanels(guild);
+
+                postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
+                    "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
+                    "Dieses Regelwerk gilt für alle Fraktionen. Jedes Mitglied ist verpflichtet, die folgenden Bestimmungen einzuhalten.\n\n" +
+                    "**⚔️ Verhalten**\n" +
+                    "`§1` Grundloser Angriff auf Spieler, Beamte oder andere Fraktionen ohne RP-Hintergrund ist untersagt. Unrealistisches Verhalten ist zu unterlassen.\n" +
+                    "`§2` Fraktionen dürfen illegale Routen beanspruchen — Klärung und Durchsetzung erfolgt ausschließlich IC.\n" +
+                    "`§3` Gambo-Verhalten (nicht RP-basiertes Kampfverhalten) ist untersagt. Verstöße → Fraktionsverwarnung. Wiederholung → Auflösung.\n\n" +
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                    "**🏢 Organisation**\n" +
+                    "`§4` Bewerbung vor Gründung erforderlich. Entscheidung liegt bei der Projektleitung. Kein Anspruch auf Genehmigung.\n" +
+                    "`§5` Echtnamen sowie Fraktionsnamen anderer Server sind erlaubt.\n" +
+                    "`§6` Keine Einschränkungen bei Kleidung, Fahrzeugen oder Immobilien — Nutzung muss im RP erfolgen.\n" +
+                    "`§7` Kein festes Mitgliederlimit. Ab 15 Mitgliedern kann eine Aufteilung angeordnet werden.\n\n" +
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                    "**📦 Ressourcen**\n" +
+                    "`§8` Keine Fraktionsgüter vom Server. Fahrzeuge, Immobilien, Waffen und Gegenstände werden IC erworben. Ausnahme: Kleidung.\n\n" +
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                    "**⚠️ Sanktionen**\n" +
+                    "`§9` Wiederholtes Fehlverhalten → Fraktionsverwarnung. Im Extremfall → Sperre oder Auflösung. Einzelvergehen werden individuell bestraft. Fehlverhalten im Fraktionsnamen kann die gesamte Fraktion sanktionieren.\n" +
+                    "`§10` Die Projektleitung behält sich das Recht vor, das Regelwerk jederzeit zu ändern. Änderungen treten sofort in Kraft.");
+
+                postSimplePanel(guild, "safezones", LoggingConfig.SAFEZONES_CHANNEL_ID,
+                    "🛡️ Safe Zones — Paradise City Roleplay",
+                    "Regierungsgebäude, alle Flächen und Objekte staatlicher Unternehmen sowie Spieler, die sich dort befinden, dürfen weder angegriffen noch entführt werden.\n\n" +
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                    "**⚠️ Ausnahme — PD-Gebäude**\n" +
+                    "Wenn ein Überfall geplant ist oder sich ein Fraktionsmitglied in Gewahrsam befindet, darf das betroffene Mitglied befreit werden.\n\n" +
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                    "Verstöße jeglicher Art werden sanktioniert.");
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
+        }
+
+        private static void postRegelwerkPanels(Guild guild) {
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.REGELWERK_CHANNEL_ID);
+            if (ch == null) { log.warn("[Regelwerk] Panel-Kanal nicht gefunden."); return; }
+
+            String key1 = "panel-regelwerk1-" + guild.getId();
+            String key2 = "panel-regelwerk2-" + guild.getId();
+
+            String desc1 =
+                "**🔤 RP-Grundlagen & Begriffe**\n\n" +
+                "Du übernimmst eine fiktive Rolle in einer realistischen Spielwelt und handelst als dein Charakter — realistisch und glaubwürdig.\n\n" +
+                "`IC` — In Character | Alles innerhalb deiner Rolle\n" +
+                "`OOC` — Out of Character | Alles außerhalb deines Charakters\n" +
+                "`Metagaming` — Externe Infos im RP nutzen → **Verboten**\n" +
+                "`PowerRP` — Zwangshandlungen ohne Reaktionsmöglichkeit → **Verboten**\n" +
+                "`FearRP` — Angemessenes Angstverhalten bei Gefahr → **Pflicht**\n" +
+                "`FailRP` — Unrealistisches Verhalten → **Verboten**\n" +
+                "`RDM` — Töten ohne RP-Grund → **Verboten**\n" +
+                "`VDM` — Fahrzeug als Waffe → **Verboten**\n" +
+                "`Combat Log` — Verlassen einer RP-Situation → **Verboten**\n" +
+                "`IC/OOC Mixing` — Vermischung von IC und OOC → **Verboten**\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**👤 Einreise & Charakter**\n" +
+                "`§1` Discord-ID wird für die Dauer der Aktivität gespeichert.\n" +
+                "`§1.1` Keine Whitelist — realistische Angaben Pflicht. Charakteränderung nur durch RP-Tod.\n" +
+                "`§1.2` Einreisearten: Legal · Illegal · Gruppeneinreise (ab 5 Personen)\n" +
+                "`§1.3` Gruppeneinreise: Nachweis im Support erforderlich.\n" +
+                "`§1.4` Zweitcharaktere: Nur mit Support-Anmeldung erlaubt.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**🤝 Verhalten auf dem Server**\n" +
+                "`§2` Respekt ist Pflicht. Diskriminierung und Beleidigungen sind verboten.\n" +
+                "`§2.1` Keine Werbung · keine Serverlinks · kein Spam.\n" +
+                "`§2.2` Kein privater Kontakt zu Teammitgliedern.\n" +
+                "`§2.3` Support: richtige Kategorie nutzen, kein Spam, Geduld zeigen.\n" +
+                "`§2.4` Griefing und Sabotage sind verboten.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**🎫 Support & Systeme**\n" +
+                "`§3` Nur über Tickets oder Supportbereiche erreichbar.\n" +
+                "`§3.1` Ingame-Support nur bei Team-Genehmigung — ausschließlich in einem CO.\n" +
+                "`§3.2` Clips dürfen ausschließlich im Support verwendet werden.\n" +
+                "`§3.3` Verwarnungen sind anfechtbar — Einspruch ist möglich.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**🔒 Serversicherheit**\n" +
+                "`§4` Bugs, Glitches und Exploits sind streng verboten.\n" +
+                "`§4.1` Bot-Fehler sofort melden — Nutzung ist verboten.\n" +
+                "`§4.2` Serverangriffe führen zum sofortigen Ausschluss.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**📡 Kommunikation & UI**\n" +
+                "`§5` Ausschließlich GTA-Ingame-Voice erlaubt.\n" +
+                "`§5.1` Funk erlaubt, solange die Lobby nicht voll ist — bei voller Lobby auflösen.\n" +
+                "`§5.2` Minimap & Spieleranzeige beim Betreten der Lobby deaktivieren.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**🎮 Ingame-Regeln**\n" +
+                "`§6` Alles muss realistisch gespielt werden.\n" +
+                "`§6.1` Schusscall: Pflicht — 15 Minuten gültig.\n" +
+                "`§6.2` Bewusstlosigkeit: maximal 10 Minuten.\n" +
+                "`§6.3` Bewusstlosen Spieler: Dispatch absetzen oder Erstversorgung durchführen.\n" +
+                "`§6.4` RP-Tod: Der Charakter verliert alle Items.";
+
+            String desc2 =
+                "**🎒 Inventar & Besitzsystem**\n" +
+                "`§7` Nur verwenden, was im RP besessen wird.\n" +
+                "`§7.1` Fahrzeuge müssen im RP erworben sein — Fahrzeugdiebstahl verboten.\n" +
+                "`§7.2` Nur eigene Waffen und Items erlaubt.\n" +
+                "`§7.3` Items im Lager dürfen nicht verwendet werden.\n" +
+                "`§7.4` Immobilien nur mit RP-Besitz nutzbar.\n" +
+                "`§7.5` Items anderer Spieler ohne RP-Hintergrund zu entwenden ist verboten und wird verwarnt.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**🚔 Polizei & Medizin**\n" +
+                "`§8` Kein grundloser Angriff auf die Polizei (PD).\n" +
+                "`§8.1` Der Medizinische Dienst (MD) darf nicht ausgeraubt oder entführt werden.\n\n" +
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                "**💰 Wirtschaft & Aktivitäten**\n" +
+                "`§9` Farmen nur nach Vorgabe erlaubt.\n" +
+                "`§9.1` Minijobs: nur eine Aktivität gleichzeitig erlaubt.\n" +
+                "`§9.2` Raubüberfälle: geltende Regeln sind einzuhalten.\n" +
+                "`§9.3` Safezones: keine Gewalt erlaubt.";
+
+            // Part 1
+            String stored1 = DataStore.readString(key1);
+            if (stored1 != null && !stored1.isBlank()) {
+                ch.retrieveMessageById(stored1.trim()).queue(
+                    msg -> log.info("[Regelwerk] Teil 1 aktiv (ID: {}), kein Neuversand.", stored1.trim()),
+                    err -> { DataStore.deleteKey(key1); sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1); }
+                );
+            } else {
+                sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1);
+            }
+
+            // Part 2
+            String stored2 = DataStore.readString(key2);
+            if (stored2 != null && !stored2.isBlank()) {
+                ch.retrieveMessageById(stored2.trim()).queue(
+                    msg -> log.info("[Regelwerk] Teil 2 aktiv (ID: {}), kein Neuversand.", stored2.trim()),
+                    err -> { DataStore.deleteKey(key2); sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2); }
+                );
+            } else {
+                sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2);
+            }
         }
 
         private static void postMeldeamtPanel(Guild guild) {
