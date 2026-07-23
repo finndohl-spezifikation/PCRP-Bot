@@ -15,10 +15,11 @@ Custom Discord Roleplay Bot für den PCRP GTA RP Server (C# / .NET 8, Discord.Ne
 ## Deployment (Railway)
 
 1. Repo mit Railway verbinden — das `Dockerfile` wird automatisch erkannt
-2. Environment Variable setzen: `DISCORD_BOT_TOKEN` (Discord Bot Token)
+2. Environment Variable setzen: `DISCORD_TOKEN` (Discord Bot Token)
+3. Volume unter `/app/data` mounten — dort speichert der Bot alle persistenten Daten
 
 ## Lokal starten
 
 ```bash
-DISCORD_BOT_TOKEN=... dotnet run --project src/PCRP.Bot
+DISCORD_TOKEN=... DATA_DIR=./data dotnet run --project src/PCRP.Bot
 ```
