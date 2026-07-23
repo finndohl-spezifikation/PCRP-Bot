@@ -1,5 +1,6 @@
 package de.pcrp.bot.listeners;
 
+import com.google.gson.JsonObject;
 import de.pcrp.bot.common.*;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
@@ -8,6 +9,7 @@ import net.dv8tion.jda.api.events.interaction.command.*;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,7 @@ public class CommandListener extends ListenerAdapter {
             case "bannen"    -> handleBannen(event);
             case "entbannen" -> handleEntbannen(event);
             case "timeout"   -> handleTimeout(event);
+            case "ausweis"   -> handleAusweis(event);
         }
     }
 
@@ -343,6 +346,80 @@ public class CommandListener extends ListenerAdapter {
                     "Timeout fehlgeschlagen. Prüfe Rollen-Hierarchie und Bot-Berechtigungen."))
                     .setEphemeral(true).queue();
             });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /ausweis
+    // ════════════════════════════════════════════════════════════
+
+    private void handleAusweis(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        // Nur im Ausweis-Kanal erlaubt
+        if (event.getChannelIdLong() != RoleConfig.AUSWEIS_CHANNEL_ID) {
+            event.replyEmbeds(embed("Falscher Kanal",
+                "Dieser Command kann nur im <#" + RoleConfig.AUSWEIS_CHANNEL_ID + "> verwendet werden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        Member executor = event.getMember();
+        if (executor == null) return;
+
+        // Nur legale Bewohner
+        boolean hasRole = executor.getRoles().stream()
+            .anyMatch(r -> r.getIdLong() == RoleConfig.LEGAL_RESIDENT_ROLE_ID);
+        if (!hasRole) {
+            event.replyEmbeds(embed("Kein Zugriff",
+                "Nur legale Bewohner <@&" + RoleConfig.LEGAL_RESIDENT_ROLE_ID + "> können einen Ausweis einsehen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        // Optionaler Fremd-Ausweis
+        String targetUsername = event.getOption("nutzer", OptionMapping::getAsString);
+        long   targetId;
+        String targetName;
+
+        if (targetUsername != null && !targetUsername.isBlank()) {
+            Member target = BotContext.findMemberByUsername(targetUsername);
+            if (target == null) {
+                event.replyEmbeds(embed("Nicht gefunden",
+                    "Kein Mitglied mit dem Nutzernamen **" + targetUsername + "** gefunden."))
+                    .setEphemeral(true).queue();
+                return;
+            }
+            targetId   = target.getIdLong();
+            targetName = target.getUser().getName();
+        } else {
+            targetId   = executor.getIdLong();
+            targetName = executor.getUser().getName();
+        }
+
+        // Charakter prüfen
+        JsonObject character = CharacterStore.get(event.getGuild().getIdLong(), targetId);
+        if (character == null) {
+            event.replyEmbeds(embed("Kein Ausweis",
+                "Für **" + targetName + "** wurde kein registrierter Charakter gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        if (!"legal".equals(CharacterStore.str(character, "type"))) {
+            event.replyEmbeds(embed("Kein Ausweis",
+                "**" + targetName + "** ist illegal eingereist und besitzt keinen Ausweis."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String webUrl     = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+        String ausweisUrl = webUrl + "/ausweis/" + targetId;
+
+        event.replyEmbeds(embed("🪪 Personalausweis",
+                "Ausweis von **" + CharacterStore.str(character, "firstName") + " "
+                + CharacterStore.str(character, "lastName") + "**"))
+            .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis einsehen"))
+            .setEphemeral(true)
+            .queue();
     }
 
     // ════════════════════════════════════════════════════════════
