@@ -1,13 +1,17 @@
 package de.pcrp.bot;
 
+import de.pcrp.bot.common.*;
 import de.pcrp.bot.listeners.*;
+import de.pcrp.bot.web.WebServer;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.*;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -15,6 +19,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 
 public class Main {
@@ -28,9 +33,13 @@ public class Main {
             System.exit(1);
         }
 
-        ModerationListener moderationListener = new ModerationListener();
+        // Web-Server starten (PORT wird von Railway gesetzt, Standard 8080)
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+        WebServer.start(port);
+
+        ModerationListener   moderationListener  = new ModerationListener();
         GuildProtectionListener protectionListener = new GuildProtectionListener();
-        WelcomeListener welcomeListener = new WelcomeListener();
+        WelcomeListener      welcomeListener     = new WelcomeListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -58,7 +67,7 @@ public class Main {
             .build();
     }
 
-    // ─── Startup: globale Commands löschen + Server-Commands sofort registrieren ─
+    // ─── Startup ────────────────────────────────────────────────────────────────
 
     public static class StartupListener extends ListenerAdapter {
 
@@ -67,14 +76,12 @@ public class Main {
         @Override
         public void onReady(ReadyEvent event) {
             JDA jda = event.getJDA();
+            BotContext.setJda(jda);
 
-            // Alle globalen Commands entfernen (verhindert Doppelungen)
+            // Globale Commands entfernen (kein 1h-Delay)
             jda.updateCommands().queue();
 
-            // Slash-Commands definieren
             List<CommandData> commands = buildCommands();
-
-            // Server-spezifisch registrieren → sofort sichtbar, kein 1-Stunden-Delay
             for (Guild guild : jda.getGuilds()) {
                 guild.updateCommands()
                     .addCommands(commands)
@@ -82,12 +89,50 @@ public class Main {
                         ok  -> log.info("Commands auf '{}' registriert.", guild.getName()),
                         err -> log.error("Fehler beim Registrieren auf '{}'.", guild.getName(), err)
                     );
+
+                // Meldeamt-Panel einmalig posten (Duplikat-Schutz via DataStore)
+                postMeldeamtPanel(guild);
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
         }
 
-        private List<CommandData> buildCommands() {
+        private static void postMeldeamtPanel(Guild guild) {
+            String key     = "panel-meldeamt-" + guild.getId();
+            String webUrl  = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+
+            if (DataStore.readString(key) != null) return; // bereits gepostet
+
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
+            if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
+
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🏛️ Paradise City Einwohner Meldeamt")
+                    .setDescription(
+                        "__**Legale Einreise**__\n\n" +
+                        "- Ausweis,\n" +
+                        "- Zugang zur Staatlichen Jobs,\n" +
+                        "- Zugang zur Legalen Routen,\n\n" +
+                        "__**Illegale Einreise**__\n\n" +
+                        "- Keinen Ausweis,\n" +
+                        "- Zugang zur Keinen Staatlichen Jobs,\n" +
+                        "- Zugang zur Illegalen Routen,\n\n" +
+                        "__**Gruppen Einreise**__\n\n" +
+                        "- Ab 4 Personen,\n" +
+                        "- Mehr Startgeld,\n" +
+                        "- Exklusives Starterfahrzeug")
+                    .setTimestamp(Instant.now())
+                    .build()
+            )
+            .addActionRow(Button.link(webUrl, "🏛️ Jetzt Einreisen"))
+            .queue(
+                msg -> DataStore.writeString(key, msg.getId()),
+                err -> log.error("[Meldeamt] Panel konnte nicht gepostet werden.", err)
+            );
+        }
+
+        private static List<CommandData> buildCommands() {
             return List.of(
 
                 Commands.slash("löschen", "Löscht 1–200 Nachrichten im aktuellen Kanal")
@@ -124,7 +169,12 @@ public class Main {
                             .addChoice("14 Tage",    "14d"))
                     .addOption(OptionType.STRING, "grund", "Grund für den Timeout", false)
                     .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("ausweis", "Zeigt deinen Personalausweis (nur im Ausweis-Kanal)")
+                    .addOptions(new OptionData(OptionType.STRING, "nutzer",
+                        "Discord-Nutzername für fremden Ausweis (optional)", false))
+                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED)
             );
         }
     }

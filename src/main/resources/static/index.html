@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paradise City Einwohner Meldeamt</title>
+  <style>
+    :root {
+      --bg:       #080810;
+      --card:     #10101e;
+      --border:   #2a2a40;
+      --orange:   #CC5500;
+      --orange2:  #e86010;
+      --gold:     #c8a048;
+      --blue:     #1a3a6c;
+      --text:     #e8e8f0;
+      --muted:    #666688;
+      --success:  #2db860;
+      --error:    #e04444;
+      --input-bg: #0c0c1a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-image: radial-gradient(ellipse at 20% 50%, rgba(204,85,0,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(26,58,108,0.06) 0%, transparent 60%);
+    }
+
+    /* ── Popup ─────────────────────────────────────── */
+    #overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(6px);
+    }
+    .popup {
+      background: linear-gradient(160deg, #12121f 0%, #0e0e1a 100%);
+      border: 1px solid var(--gold);
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 520px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(200,160,72,0.15);
+    }
+    .popup-badge { font-size: 3.5rem; margin-bottom: 8px; }
+    .popup h1 { color: var(--gold); font-size: 1.1rem; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 4px; }
+    .popup h2 { color: var(--orange); font-size: 1.6rem; font-weight: 700; margin-bottom: 28px; }
+    .popup-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 20px 0; }
+    .popup p { color: #b0b0c8; font-size: 0.92rem; line-height: 1.7; margin-bottom: 10px; }
+    .popup .warning { color: #d4904a; font-size: 0.82rem; margin-top: 4px; }
+    .btn-confirm {
+      margin-top: 28px;
+      background: linear-gradient(90deg, var(--orange), var(--orange2));
+      color: #fff; border: none; border-radius: 8px;
+      padding: 14px 48px; font-size: 1rem; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer; transition: opacity .15s;
+    }
+    .btn-confirm:hover { opacity: 0.88; }
+
+    /* ── Main container ─────────────────────────────── */
+    #main { display: none; width: 100%; max-width: 780px; padding: 24px; }
+
+    .page-header { text-align: center; margin-bottom: 36px; }
+    .page-header .logo { font-size: 2.4rem; margin-bottom: 6px; }
+    .page-header h1 { color: var(--gold); font-size: 0.9rem; letter-spacing: 4px; text-transform: uppercase; }
+    .page-header h2 { color: var(--text); font-size: 1.8rem; font-weight: 700; margin-top: 4px; }
+
+    /* ── Step indicator ─────────────────────────────── */
+    .steps { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 36px; }
+    .step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background .3s; }
+    .step-dot.active { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+    .step-dot.done   { background: var(--success); }
+    .step-line { flex: 1; max-width: 60px; height: 2px; background: var(--border); border-radius: 1px; }
+
+    /* ── Step card ──────────────────────────────────── */
+    .step { display: none; }
+    .step.visible { display: block; animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    .step-title { text-align: center; color: var(--muted); font-size: 0.78rem; letter-spacing: 3px;
+                  text-transform: uppercase; margin-bottom: 24px; }
+
+    /* ── Selection cards ───────────────────────────── */
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .sel-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      position: relative;
+    }
+    .sel-card:hover:not(.disabled) { border-color: var(--orange); background: #14142a; transform: translateY(-2px); }
+    .sel-card .icon { font-size: 2.8rem; margin-bottom: 12px; }
+    .sel-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .sel-card p  { color: var(--muted); font-size: 0.83rem; line-height: 1.5; }
+    .sel-card.disabled { opacity: 0.4; cursor: not-allowed; }
+    .soon-badge { position: absolute; top: 12px; right: 12px; background: #2a2a40;
+                  color: var(--muted); font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; letter-spacing: 1px; }
+    .sel-card.legal:hover:not(.disabled) { border-color: var(--success); }
+    .sel-card.illegal:hover:not(.disabled) { border-color: var(--error); }
+    .sel-card.legal h3   { color: var(--success); }
+    .sel-card.illegal h3 { color: var(--error); }
+
+    /* ── Form ───────────────────────────────────────── */
+    .form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+    }
+    .form-card h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+    .form-card .form-subtitle { color: var(--muted); font-size: 0.84rem; margin-bottom: 28px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label { font-size: 0.75rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .form-group .req { color: var(--orange); }
+    input[type="text"], input[type="date"], input[type="file"] {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      transition: border-color .2s;
+      outline: none;
+      width: 100%;
+    }
+    input[type="text"]:focus, input[type="date"]:focus { border-color: var(--orange); }
+    input[type="date"] { color-scheme: dark; }
+    input[type="file"] { padding: 8px; cursor: pointer; }
+
+    .validate-wrap { display: flex; gap: 8px; }
+    .validate-wrap input { flex: 1; }
+    .btn-check {
+      background: var(--blue); color: #fff; border: none; border-radius: 8px;
+      padding: 10px 16px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: opacity .15s;
+    }
+    .btn-check:hover { opacity: 0.85; }
+    .validation-status { font-size: 0.78rem; margin-top: 4px; height: 16px; }
+    .validation-status.ok  { color: var(--success); }
+    .validation-status.err { color: var(--error); }
+    .validation-status.loading { color: var(--muted); }
+
+    /* Photo preview */
+    .photo-preview-wrap { position: relative; }
+    .photo-hint { color: var(--muted); font-size: 0.75rem; margin-top: 6px; }
+    #photoPreview { margin-top: 10px; max-height: 160px; border-radius: 8px;
+                    border: 1px solid var(--border); display: none; }
+
+    /* Submit button */
+    .btn-submit {
+      margin-top: 28px;
+      width: 100%;
+      background: linear-gradient(90deg, var(--orange), var(--orange2));
+      color: #fff; border: none; border-radius: 10px;
+      padding: 15px; font-size: 1rem; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer; transition: opacity .15s;
+    }
+    .btn-submit:hover:not(:disabled) { opacity: 0.88; }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .form-error { color: var(--error); font-size: 0.84rem; margin-top: 12px;
+                  padding: 10px 14px; background: rgba(224,68,68,0.1);
+                  border-radius: 8px; border: 1px solid rgba(224,68,68,0.2); display: none; }
+
+    /* Back link */
+    .back-link { text-align: center; margin-top: 16px; }
+    .back-link a { color: var(--muted); font-size: 0.82rem; cursor: pointer; text-decoration: underline; }
+
+    /* Success */
+    .success-card {
+      background: var(--card); border: 1px solid var(--success);
+      border-radius: 14px; padding: 48px; text-align: center;
+      box-shadow: 0 0 30px rgba(45,184,96,0.1);
+    }
+    .success-icon { font-size: 4rem; margin-bottom: 16px; }
+    .success-card h2 { color: var(--success); font-size: 1.5rem; margin-bottom: 12px; }
+    .success-card p  { color: var(--muted); line-height: 1.7; }
+
+    @media (max-width: 600px) {
+      .cards { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ WILLKOMMENS-POPUP ══════════════════════════════════════════ -->
+<div id="overlay">
+  <div class="popup">
+    <div class="popup-badge">🏛️</div>
+    <h1>Paradise City</h1>
+    <h2>Einwohner Meldeamt</h2>
+    <div class="popup-divider"></div>
+    <p>
+      Herzlich Willkommen im Einwohner Meldeamt von Paradise City.
+      Wähle im nächsten Schritt deine Einreiseart aus und erstelle
+      deinen Charakter, um Zugriff zu unserem Server zu erhalten.
+    </p>
+    <p class="warning">
+      ⚠️ Achte dabei darauf, dass du korrekte Angaben zu deinem Charakter machst,
+      da Änderungen später nicht mehr möglich sind.
+    </p>
+    <p>Viel Erfolg bei der Einreise!</p>
+    <button class="btn-confirm" onclick="closePopup()">Bestätigen</button>
+  </div>
+</div>
+
+<!-- ═══ HAUPTBEREICH ═══════════════════════════════════════════════ -->
+<div id="main">
+  <div class="page-header">
+    <div class="logo">🏛️</div>
+    <h1>Paradise City</h1>
+    <h2>Einwohner Meldeamt</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-line"></div>
+    <div class="step-dot" id="dot3"></div>
+  </div>
+
+  <!-- Step 1: Einzel / Gruppe -->
+  <div class="step visible" id="s1">
+    <div class="step-title">Schritt 1 — Einreiseart wählen</div>
+    <div class="cards">
+      <div class="sel-card" onclick="chooseType('einzel')">
+        <div class="icon">👤</div>
+        <h3>Einzel Einreise</h3>
+        <p>Tritt alleine ein und erstelle deinen eigenen Charakter.</p>
+      </div>
+      <div class="sel-card disabled">
+        <span class="soon-badge">BALD</span>
+        <div class="icon">👥</div>
+        <h3>Gruppen Einreise</h3>
+        <p>Tritt zusammen mit deiner Gruppe ein (ab 4 Personen).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Legal / Illegal -->
+  <div class="step" id="s2">
+    <div class="step-title">Schritt 2 — Art der Einreise</div>
+    <div class="cards">
+      <div class="sel-card legal" onclick="chooseEntry('legal')">
+        <div class="icon">⚖️</div>
+        <h3>Legale Einreise</h3>
+        <p>Erhalte deinen Ausweis, Zugang zu staatlichen Jobs und legalen Routen.</p>
+      </div>
+      <div class="sel-card illegal" onclick="chooseEntry('illegal')">
+        <div class="icon">🔴</div>
+        <h3>Illegale Einreise</h3>
+        <p>Kein Ausweis, kein Zugang zu staatlichen Jobs — dafür illegale Routen.</p>
+      </div>
+    </div>
+    <div class="back-link"><a onclick="goBack(1)">← Zurück</a></div>
+  </div>
+
+  <!-- Step 3a: Legales Formular -->
+  <div class="step" id="s3-legal">
+    <div class="form-card">
+      <h2>⚖️ Legale Einreise</h2>
+      <div class="form-subtitle">Fülle alle Felder korrekt aus. Änderungen sind später nicht möglich.</div>
+
+      <div class="form-grid">
+
+        <!-- Discord Username -->
+        <div class="form-group full">
+          <label>Discord Benutzername <span class="req">*</span></label>
+          <div class="validate-wrap">
+            <input type="text" id="l-discord" placeholder="deinnutzername" autocomplete="off">
+            <button class="btn-check" onclick="validateUser('l')">Prüfen</button>
+          </div>
+          <div class="validation-status" id="l-vstatus"></div>
+          <input type="hidden" id="l-userId">
+        </div>
+
+        <!-- PSN -->
+        <div class="form-group full">
+          <label>PSN Name <span class="req">*</span></label>
+          <input type="text" id="l-psn" placeholder="DeinPSNName">
+        </div>
+
+        <!-- Name -->
+        <div class="form-group">
+          <label>Charakter Vorname <span class="req">*</span></label>
+          <input type="text" id="l-fn" placeholder="John">
+        </div>
+        <div class="form-group">
+          <label>Charakter Nachname <span class="req">*</span></label>
+          <input type="text" id="l-ln" placeholder="Doe">
+        </div>
+
+        <!-- Geburtsdaten -->
+        <div class="form-group">
+          <label>Geburtsdatum <span class="req">*</span></label>
+          <input type="date" id="l-bd">
+        </div>
+        <div class="form-group">
+          <label>Geburtsort <span class="req">*</span></label>
+          <input type="text" id="l-bp" placeholder="Los Angeles">
+        </div>
+
+        <!-- Nationalität / Wohnort -->
+        <div class="form-group">
+          <label>Nationalität <span class="req">*</span></label>
+          <input type="text" id="l-nat" placeholder="Amerikanisch">
+        </div>
+        <div class="form-group">
+          <label>Wohnort <span class="req">*</span></label>
+          <input type="text" id="l-res" placeholder="Los Santos">
+        </div>
+
+        <!-- Foto -->
+        <div class="form-group full photo-preview-wrap">
+          <label>GTA Charakter Foto <span class="req">*</span></label>
+          <input type="file" id="l-photo" accept="image/*" onchange="previewPhoto(this)">
+          <div class="photo-hint">Das Gesicht muss klar sichtbar sein. Normale Kleidung tragen. Max. 10 MB.</div>
+          <img id="photoPreview" alt="Foto-Vorschau">
+        </div>
+
+      </div>
+
+      <div class="form-error" id="l-error"></div>
+      <button class="btn-submit" id="l-submit" onclick="submitLegal()">✅ Einreise bestätigen</button>
+    </div>
+    <div class="back-link"><a onclick="goBack(2)">← Zurück</a></div>
+  </div>
+
+  <!-- Step 3b: Illegales Formular -->
+  <div class="step" id="s3-illegal">
+    <div class="form-card">
+      <h2>🔴 Illegale Einreise</h2>
+      <div class="form-subtitle">Fülle alle Felder korrekt aus. Änderungen sind später nicht möglich.</div>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Discord Benutzername <span class="req">*</span></label>
+          <div class="validate-wrap">
+            <input type="text" id="i-discord" placeholder="deinnutzername" autocomplete="off">
+            <button class="btn-check" onclick="validateUser('i')">Prüfen</button>
+          </div>
+          <div class="validation-status" id="i-vstatus"></div>
+          <input type="hidden" id="i-userId">
+        </div>
+
+        <div class="form-group full">
+          <label>PSN Name <span class="req">*</span></label>
+          <input type="text" id="i-psn" placeholder="DeinPSNName">
+        </div>
+
+        <div class="form-group">
+          <label>Charakter Vorname <span class="req">*</span></label>
+          <input type="text" id="i-fn" placeholder="John">
+        </div>
+        <div class="form-group">
+          <label>Charakter Nachname <span class="req">*</span></label>
+          <input type="text" id="i-ln" placeholder="Doe">
+        </div>
+      </div>
+
+      <div class="form-error" id="i-error"></div>
+      <button class="btn-submit" id="i-submit" onclick="submitIllegal()">✅ Einreise bestätigen</button>
+    </div>
+    <div class="back-link"><a onclick="goBack(2)">← Zurück</a></div>
+  </div>
+
+  <!-- Erfolg -->
+  <div class="step" id="s-success">
+    <div class="success-card">
+      <div class="success-icon">✅</div>
+      <h2>Einreise erfolgreich!</h2>
+      <p>
+        Dein Charakter wurde registriert und deine Rollen wurden vergeben.<br>
+        Du erhältst zudem <strong>5.000 $</strong> Startkapital auf dein Konto.<br><br>
+        Du kannst dieses Fenster jetzt schließen und auf dem Discord-Server weitermachen.
+      </p>
+    </div>
+  </div>
+
+</div><!-- #main -->
+
+<script>
+  // ── State ─────────────────────────────────────────────
+  let validatedUserId = { l: null, i: null };
+  let currentStep = 1;
+
+  // ── Popup ─────────────────────────────────────────────
+  function closePopup() {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+  }
+
+  // ── Navigation ────────────────────────────────────────
+  function showStep(id) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('visible'));
+    document.getElementById(id).classList.add('visible');
+  }
+
+  function updateDots(step) {
+    currentStep = step;
+    for (let i = 1; i <= 3; i++) {
+      const d = document.getElementById('dot' + i);
+      d.classList.remove('active', 'done');
+      if (i < step)       d.classList.add('done');
+      else if (i === step) d.classList.add('active');
+    }
+  }
+
+  function chooseType(type) {
+    if (type === 'einzel') { showStep('s2'); updateDots(2); }
+  }
+
+  function chooseEntry(entry) {
+    if (entry === 'legal')   { showStep('s3-legal');   updateDots(3); }
+    if (entry === 'illegal') { showStep('s3-illegal'); updateDots(3); }
+  }
+
+  function goBack(to) {
+    if (to === 1) { showStep('s1'); updateDots(1); }
+    if (to === 2) { showStep('s2'); updateDots(2); }
+    validatedUserId = { l: null, i: null };
+    document.querySelectorAll('.validation-status').forEach(el => { el.textContent = ''; el.className = 'validation-status'; });
+    document.querySelectorAll('input[type="hidden"]').forEach(el => el.value = '');
+  }
+
+  // ── Foto-Vorschau ─────────────────────────────────────
+  function previewPhoto(input) {
+    const preview = document.getElementById('photoPreview');
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+      reader.readAsDataURL(input.files[0]);
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+
+  // ── Discord-Validierung ───────────────────────────────
+  async function validateUser(prefix) {
+    const input  = document.getElementById(prefix + '-discord');
+    const status = document.getElementById(prefix + '-vstatus');
+    const username = input.value.trim();
+    if (!username) { setStatus(status, 'err', 'Bitte gib deinen Discord-Nutzernamen ein.'); return; }
+
+    setStatus(status, 'loading', '⏳ Wird geprüft…');
+    try {
+      const res = await fetch('/api/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      const data = await res.json();
+      if (data.valid) {
+        validatedUserId[prefix] = data.userId;
+        document.getElementById(prefix + '-userId').value = data.userId;
+        setStatus(status, 'ok', '✅ Verifiziert – ' + data.displayName);
+      } else {
+        validatedUserId[prefix] = null;
+        setStatus(status, 'err', '❌ ' + (data.reason || 'Unbekannter Fehler'));
+      }
+    } catch (e) {
+      setStatus(status, 'err', '❌ Server nicht erreichbar. Bitte versuche es erneut.');
+    }
+  }
+
+  function setStatus(el, cls, text) {
+    el.className = 'validation-status ' + cls;
+    el.textContent = text;
+  }
+
+  // ── Legale Einreise ───────────────────────────────────
+  async function submitLegal() {
+    const err = document.getElementById('l-error');
+    err.style.display = 'none';
+
+    if (!validatedUserId.l) { showError(err, 'Bitte prüfe zuerst deinen Discord-Nutzernamen.'); return; }
+    const fields = ['l-psn','l-fn','l-ln','l-bd','l-bp','l-nat','l-res'];
+    for (const f of fields) {
+      if (!document.getElementById(f).value.trim()) {
+        showError(err, 'Bitte fülle alle Pflichtfelder aus.'); return;
+      }
+    }
+    const photo = document.getElementById('l-photo').files[0];
+    if (!photo) { showError(err, 'Bitte lade ein Foto deines GTA-Charakters hoch.'); return; }
+    if (photo.size > 10 * 1024 * 1024) { showError(err, 'Das Foto ist zu groß (max. 10 MB).'); return; }
+
+    const btn = document.getElementById('l-submit');
+    btn.disabled = true; btn.textContent = '⏳ Wird verarbeitet…';
+
+    const form = new FormData();
+    form.append('userId',      validatedUserId.l);
+    form.append('psnName',     document.getElementById('l-psn').value.trim());
+    form.append('firstName',   document.getElementById('l-fn').value.trim());
+    form.append('lastName',    document.getElementById('l-ln').value.trim());
+    form.append('birthDate',   document.getElementById('l-bd').value);
+    form.append('birthPlace',  document.getElementById('l-bp').value.trim());
+    form.append('nationality', document.getElementById('l-nat').value.trim());
+    form.append('residence',   document.getElementById('l-res').value.trim());
+    form.append('photo',       photo);
+
+    try {
+      const res  = await fetch('/api/register/legal', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.success) { showStep('s-success'); updateDots(3); }
+      else { showError(err, data.error || 'Unbekannter Fehler.'); btn.disabled = false; btn.textContent = '✅ Einreise bestätigen'; }
+    } catch (e) {
+      showError(err, 'Verbindungsfehler. Bitte versuche es erneut.');
+      btn.disabled = false; btn.textContent = '✅ Einreise bestätigen';
+    }
+  }
+
+  // ── Illegale Einreise ─────────────────────────────────
+  async function submitIllegal() {
+    const err = document.getElementById('i-error');
+    err.style.display = 'none';
+
+    if (!validatedUserId.i) { showError(err, 'Bitte prüfe zuerst deinen Discord-Nutzernamen.'); return; }
+    const fields = ['i-psn','i-fn','i-ln'];
+    for (const f of fields) {
+      if (!document.getElementById(f).value.trim()) {
+        showError(err, 'Bitte fülle alle Pflichtfelder aus.'); return;
+      }
+    }
+
+    const btn = document.getElementById('i-submit');
+    btn.disabled = true; btn.textContent = '⏳ Wird verarbeitet…';
+
+    const form = new FormData();
+    form.append('userId',    validatedUserId.i);
+    form.append('psnName',   document.getElementById('i-psn').value.trim());
+    form.append('firstName', document.getElementById('i-fn').value.trim());
+    form.append('lastName',  document.getElementById('i-ln').value.trim());
+
+    try {
+      const res  = await fetch('/api/register/illegal', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.success) { showStep('s-success'); updateDots(3); }
+      else { showError(err, data.error || 'Unbekannter Fehler.'); btn.disabled = false; btn.textContent = '✅ Einreise bestätigen'; }
+    } catch (e) {
+      showError(err, 'Verbindungsfehler. Bitte versuche es erneut.');
+      btn.disabled = false; btn.textContent = '✅ Einreise bestätigen';
+    }
+  }
+
+  function showError(el, msg) {
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+</script>
+</body>
+</html>

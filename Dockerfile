@@ -14,4 +14,6 @@ WORKDIR /app
 # Persistentes Datenverzeichnis (wird von Railway als Volume gemountet)
 RUN mkdir -p /app/data
 COPY --from=build /app/target/pcrp-bot.jar app.jar
+# PORT wird von Railway automatisch gesetzt; der Web-Server lauscht darauf
+EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
