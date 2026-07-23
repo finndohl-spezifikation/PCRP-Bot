@@ -214,7 +214,11 @@ public class Main {
                 Commands.slash("ausweis", "Zeigt deinen Personalausweis (nur im Ausweis-Kanal)")
                     .addOptions(new OptionData(OptionType.STRING, "nutzer",
                         "Discord-Nutzername für fremden Ausweis (optional)", false))
-                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED)
+                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
+
+                Commands.slash("set-einreise", "Sendet das Einwohner-Meldeamt Panel (nur Owner)")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.ADMINISTRATOR))
             );
         }
     }
