@@ -13,12 +13,20 @@ builder.Services.AddSingleton(new DiscordSocketConfig
                    | GatewayIntents.GuildMessages
                    | GatewayIntents.MessageContent
                    | GatewayIntents.GuildMembers
-                   | GatewayIntents.GuildBans,
+                   | GatewayIntents.GuildBans
+                   | GatewayIntents.GuildInvites       // Einladungen erstellt/gelöscht
+                   | GatewayIntents.GuildVoiceStates,  // Voice-Beitritte/-Verlassen
     LogLevel = LogSeverity.Info,
+    AlwaysDownloadUsers = true, // Mitglieder immer vorabraden (nötig für GuildMemberUpdated-Cache)
+    MessageCacheSize = 1000,    // Nachrichten im Cache halten (nötig für Message-Logs)
 });
 builder.Services.AddSingleton<DiscordSocketClient>();
 builder.Services.AddSingleton(sp =>
     new InteractionService(sp.GetRequiredService<DiscordSocketClient>()));
+
+// LoggingService zuerst registrieren – ModerationService und GuildProtectionService nutzen es.
+builder.Services.AddSingleton<LoggingService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<LoggingService>());
 
 builder.Services.AddSingleton<ModerationService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<ModerationService>());

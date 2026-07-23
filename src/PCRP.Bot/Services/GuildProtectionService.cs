@@ -19,16 +19,19 @@ public class GuildProtectionService : BackgroundService
 {
     private readonly DiscordSocketClient _client;
     private readonly ModerationService _moderation;
+    private readonly LoggingService _logging;
     private readonly ILogger<GuildProtectionService> _logger;
 
     // Lösch-Tracking pro Nutzer
     private readonly ConcurrentDictionary<ulong, List<DateTimeOffset>> _deletions = new();
     private readonly ConcurrentDictionary<ulong, DateTimeOffset> _flagged = new();
 
-    public GuildProtectionService(DiscordSocketClient client, ModerationService moderation, ILogger<GuildProtectionService> logger)
+    public GuildProtectionService(DiscordSocketClient client, ModerationService moderation,
+        LoggingService logging, ILogger<GuildProtectionService> logger)
     {
         _client = client;
         _moderation = moderation;
+        _logging = logging;
         _logger = logger;
     }
 
@@ -70,6 +73,13 @@ public class GuildProtectionService : BackgroundService
                 $"**Versuch:** Ein fremder Bot wurde auf den Server eingeladen.\n" +
                 $"**Bot:** {user.Username} (`{user.Id}`) – wurde **permanent gebannt**.\n" +
                 $"**Eingeladen von:** {(inviter is not null ? $"{inviter.Mention} (`{inviter.Id}`)" : "Unbekannt")}");
+
+            await _logging.LogModerationAsync(user.Guild,
+                "🤖 Anti-Nuke – Fremder Bot gebannt",
+                $"**Bot:** {user.Username} (`{user.Id}`)\n" +
+                $"**Bot-ID:** `{user.Id}`\n" +
+                $"**Eingeladen von:** {(inviter is not null ? $"{inviter.Mention} | {inviter.Username} (`{inviter.Id}`)" : "Unbekannt")}\n" +
+                $"**Aktion:** Permanenter Bann · DM an Einladenden · Aktivitätswarnung gesendet");
         }
         catch (Exception ex)
         {
@@ -189,6 +199,12 @@ public class GuildProtectionService : BackgroundService
             $"**Nutzer:** {executor.Mention} (`{executor.Id}`)\n" +
             $"**Versuch:** Es wurden in kürzester Zeit mehrere **{whatWasDeleted}** gelöscht.\n" +
             $"**Maßnahmen:** 14 Tage Timeout vergeben, gelöschte Inhalte werden automatisch wiederhergestellt.");
+
+        await _logging.LogModerationAsync(guild,
+            "💣 Anti-Nuke – Massenlöschung gestoppt",
+            $"**Ausführender Nutzer:** {executor.Mention} | {executor.Username} (`{executor.Id}`)\n" +
+            $"**Gelöschte Objekte:** {whatWasDeleted}\n" +
+            $"**Aktionen:** 14 Tage Timeout vergeben · DM gesendet · Inhalte werden automatisch wiederhergestellt · Aktivitätswarnung gesendet");
     }
 
     private bool RegisterDeletion(ulong userId)

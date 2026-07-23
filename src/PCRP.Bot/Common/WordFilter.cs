@@ -23,12 +23,22 @@ public static class WordFilter
 
     /// <summary>Prüft, ob der Text einen vulgären Kraftausdruck enthält.</summary>
     public static bool ContainsBannedWord(string content)
+        => TryGetBannedWord(content, out _);
+
+    /// <summary>
+    /// Prüft, ob der Text einen vulgären Kraftausdruck enthält und gibt ihn zurück.
+    /// Wird vom Log-System genutzt, um den gefundenen Begriff zu protokollieren.
+    /// </summary>
+    public static bool TryGetBannedWord(string content, out string? matchedWord)
     {
+        matchedWord = null;
         if (string.IsNullOrWhiteSpace(content))
             return false;
 
         var normalized = Normalize(content);
-        return BannedWords.Any(word => normalized.Contains(word, StringComparison.Ordinal));
+        matchedWord = BannedWords.FirstOrDefault(word =>
+            normalized.Contains(word, StringComparison.Ordinal));
+        return matchedWord is not null;
     }
 
     /// <summary>Kleinbuchstaben + einfache Leetspeak-Umschreibungen auflösen.</summary>
