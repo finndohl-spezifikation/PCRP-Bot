@@ -39,8 +39,11 @@ public final class RoleConfig {
     /** Kanal, in dem /ausweis ausgeführt werden darf. */
     public static final long AUSWEIS_CHANNEL_ID = 1529636558628716586L;
 
-    /** Registrations-Bonus in Münzen (Economy). */
+    /** Registrations-Bonus für Einzeleinreise in Münzen. */
     public static final long REGISTRATION_REWARD = 5_000L;
+
+    /** Registrations-Bonus pro Person bei Gruppeneinreise in Münzen. */
+    public static final long GROUP_REGISTRATION_REWARD = 10_000L;
 
     private RoleConfig() {}
 }
