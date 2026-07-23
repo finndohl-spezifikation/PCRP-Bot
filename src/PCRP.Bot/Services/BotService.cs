@@ -57,8 +57,13 @@ public class BotService : BackgroundService
 
     private async Task OnReadyAsync()
     {
-        // Global registrieren – auf allen Servern verfügbar.
-        await _interactions.RegisterCommandsGloballyAsync();
+        // Server-spezifisch registrieren – Befehle sind SOFORT verfügbar (kein 1-Stunden-Delay).
+        // Global-Registrierung kann bis zu 1h brauchen und eignet sich nicht für einen einzelnen Server.
+        foreach (var guild in _client.Guilds)
+        {
+            await _interactions.RegisterCommandsToGuildAsync(guild.Id, deleteMissing: true);
+            _logger.LogInformation("Slash-Commands auf Server {Guild} ({Id}) registriert.", guild.Name, guild.Id);
+        }
         _logger.LogInformation("Bot ist bereit. Eingeloggt als {User}.", _client.CurrentUser);
     }
 
