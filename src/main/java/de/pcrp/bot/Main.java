@@ -30,6 +30,7 @@ public class Main {
 
         ModerationListener moderationListener = new ModerationListener();
         GuildProtectionListener protectionListener = new GuildProtectionListener();
+        WelcomeListener welcomeListener = new WelcomeListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -51,7 +52,8 @@ public class Main {
                 moderationListener,
                 protectionListener,
                 new LoggingListener(),
-                new CommandListener()
+                new CommandListener(),
+                welcomeListener
             )
             .build();
     }
