@@ -147,7 +147,13 @@ public class Main {
             if (storedMsgId != null) {
                 final String msgId = storedMsgId;
                 ch.retrieveMessageById(msgId).queue(
-                    msg -> log.info("[Meldeamt] Panel aktiv (ID: {}), kein Neuversand.", msgId),
+                    msg -> {
+                        log.info("[Meldeamt] Altes Panel gefunden (ID: {}), lösche und sende neu.", msgId);
+                        msg.delete().queue(
+                            v -> { DataStore.deleteKey(key); sendPanel(ch, key, webUrl); },
+                            err -> { DataStore.deleteKey(key); sendPanel(ch, key, webUrl); }
+                        );
+                    },
                     err -> {
                         log.info("[Meldeamt] Panel wurde gelöscht, sende neu.");
                         DataStore.deleteKey(key);
