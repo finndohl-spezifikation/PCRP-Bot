@@ -482,14 +482,6 @@ public class CommandListener extends ListenerAdapter {
     private void handleAusweis(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
 
-        // Nur im Ausweis-Kanal erlaubt
-        if (event.getChannelIdLong() != RoleConfig.AUSWEIS_CHANNEL_ID) {
-            event.replyEmbeds(embed("Falscher Kanal",
-                "Dieser Command kann nur im <#" + RoleConfig.AUSWEIS_CHANNEL_ID + "> verwendet werden."))
-                .setEphemeral(true).queue();
-            return;
-        }
-
         Member executor = event.getMember();
         if (executor == null) return;
 

@@ -62,6 +62,9 @@ public class WebServer {
         // Lotto (kein Token — direktes Einlösen per userId)
         app.post("/api/lotto/enroll",                  WebServer::handleLottoEnrollDirect);
 
+        // User-Resolve (Username → User-ID)
+        app.post("/api/resolve-user",                  WebServer::handleResolveUser);
+
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
     }
@@ -398,6 +401,35 @@ public class WebServer {
         ctx.contentType("text/html;charset=utf-8").result(buildLottoPage());
     }
 
+    private static void handleResolveUser(Context ctx) {
+        JsonObject r = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Bot nicht bereit.");
+            ctx.status(503).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Anfrage.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String username = body != null && body.has("username") ? body.get("username").getAsString().trim() : "";
+        if (username.isEmpty()) {
+            r.addProperty("ok", false); r.addProperty("error", "Kein Benutzername angegeben.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        net.dv8tion.jda.api.entities.Member member = BotContext.findMemberByUsername(username);
+        if (member == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Kein Mitglied mit dem Namen **" + esc(username) + "** gefunden.");
+            ctx.contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        r.addProperty("ok", true);
+        r.addProperty("userId", member.getId());
+        r.addProperty("displayName", member.getEffectiveName());
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
     private static void handleLottoEnrollDirect(Context ctx) {
         JsonObject r = new JsonObject();
         Guild guild = BotContext.getGuild();
@@ -533,16 +565,17 @@ public class WebServer {
             "<div class='jp'><div class='lbl'>Heutiger Jackpot</div>" +
             "<div class='amt' id='jp'>Lädt…</div><div class='pts' id='pts'></div></div>" +
             "<hr>" +
-            // Step 1 — ID
+            // Step 1 — Benutzername
             "<div class='step on' id='s1'>" +
-            "<div class='slbl'>Schritt 1 — Deine Discord User-ID</div>" +
-            "<input id='uid' type='text' placeholder='z. B. 123456789012345678' maxlength='20'>" +
-            "<button onclick='goStep2()'>➡️ Weiter zum Lotto</button>" +
+            "<div class='slbl'>Discord-Benutzername eingeben</div>" +
+            "<input id='uname' type='text' placeholder='z. B. max_mustermann' maxlength='40'>" +
+            "<button id='nbtn' onclick='goStep2()'>➡️ Weiter zum Lotto</button>" +
             "<div class='msg' id='m1'></div>" +
             "</div>" +
             // Step 2 — Einlösen
             "<div class='step' id='s2'>" +
-            "<div class='slbl'>Schritt 2 — Lottoschein einlösen</div>" +
+            "<div class='slbl'>Lottoschein einlösen</div>" +
+            "<div style='color:#888;font-size:.82rem;text-align:center;margin-bottom:4px'>Angemeldet als <strong id='wname' style='color:#FF8800'></strong></div>" +
             "<button id='ebtn' onclick='enroll()'>🎟️ Lottoschein abgeben</button>" +
             "<div class='msg' id='m2'></div>" +
             "</div>" +
@@ -556,16 +589,25 @@ public class WebServer {
             "<div class='foot'>Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
             "</div></div>" +
             "<script>" +
-            "const K='pcrp_uid';let uid=localStorage.getItem(K)||'';" +
+            "const KN='pcrp_uname';const KI='pcrp_uid';" +
+            "let uname=localStorage.getItem(KN)||'';let uid=localStorage.getItem(KI)||'';" +
             "function show(id){['s1','s2','s3'].forEach(s=>document.getElementById(s).className='step'+(s==id?' on':''));}" +
             "function msg(id,t,c){const m=document.getElementById(id);m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
             "async function loadJp(){try{const r=await fetch('/api/lotto/status');const d=await r.json();" +
             "if(d.ok){document.getElementById('jp').textContent=d.jackpotFmt;" +
             "document.getElementById('pts').textContent='🎟️ Teilnehmer: '+d.participants;" +
             "document.getElementById('j3').textContent=d.jackpotFmt;}}catch(e){}}" +
-            "function goStep2(){const v=document.getElementById('uid').value.trim();" +
-            "if(!v||!/^\\d{10,20}$/.test(v)){msg('m1','Bitte gib eine gültige Discord User-ID ein.','err');return;}" +
-            "localStorage.setItem(K,v);uid=v;show('s2');}" +
+            "async function goStep2(){const v=document.getElementById('uname').value.trim();" +
+            "if(!v){msg('m1','Bitte gib deinen Discord-Benutzernamen ein.','err');return;}" +
+            "const btn=document.getElementById('nbtn');btn.disabled=true;" +
+            "try{const r=await fetch('/api/resolve-user',{method:'POST'," +
+            "headers:{'Content-Type':'application/json'},body:JSON.stringify({username:v})});" +
+            "const d=await r.json();" +
+            "if(!d.ok){msg('m1',d.error,'err');btn.disabled=false;return;}" +
+            "localStorage.setItem(KN,v);localStorage.setItem(KI,d.userId);" +
+            "uname=v;uid=d.userId;" +
+            "document.getElementById('wname').textContent=d.displayName;" +
+            "show('s2');}catch(e){msg('m1','Verbindungsfehler.','err');btn.disabled=false;}}" +
             "async function enroll(){const btn=document.getElementById('ebtn');btn.disabled=true;" +
             "try{const r=await fetch('/api/lotto/enroll',{method:'POST'," +
             "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});" +
@@ -574,7 +616,7 @@ public class WebServer {
             "else{msg('m2',d.error,'err');btn.disabled=false;}}" +
             "catch(e){msg('m2','Verbindungsfehler. Bitte erneut versuchen.','err');btn.disabled=false;}}" +
             "loadJp();" +
-            "if(uid)show('s2');" +
+            "if(uid&&uname){document.getElementById('uname').value=uname;document.getElementById('wname').textContent=uname;show('s2');}" +
             "</script></body></html>";
     }
 
@@ -711,8 +753,8 @@ public class WebServer {
             "<div class='top'><h1>⭐ GOLDENE 7 ⭐</h1><p>PARADISE CITY ROLEPLAY</p></div>" +
             "<div class='bdy' id='bdy'>" +
             // Step 1 — ID
-            "<div class='slbl' id='idlbl'>Deine Discord User-ID</div>" +
-            "<input id='uid' type='text' placeholder='z. B. 123456789012345678' maxlength='20'>" +
+            "<div class='slbl' id='idlbl'>Discord-Benutzername</div>" +
+            "<input id='uid' type='text' placeholder='z. B. max_mustermann' maxlength='40'>" +
             "<button id='sbtn' onclick='goScratch()'>🎰 Rubbellos einlösen</button>" +
             "<div class='msg err' id='emsg'></div>" +
             // Scratch-Karte (nach Einlösen eingeblendet)
@@ -733,16 +775,25 @@ public class WebServer {
             "<div class='foot'>GOLDENE 7 • PCRP • GEWINN BIS 30.000$</div>" +
             "</div>" +
             "<script>" +
-            "const K='pcrp_uid';let uid=localStorage.getItem(K)||'';let claimToken=null;let claimed=false;" +
-            "const rev=[false,false,false];" +
-            "if(uid)document.getElementById('uid').value=uid;" +
+            "const KN='pcrp_uname';const KI='pcrp_uid';" +
+            "let uname=localStorage.getItem(KN)||'';let uid=localStorage.getItem(KI)||'';" +
+            "let claimToken=null;let claimed=false;const rev=[false,false,false];" +
+            "if(uname)document.getElementById('uid').value=uname;" +
             "function err(t){const m=document.getElementById('emsg');m.textContent=t;m.style.display='block';}" +
             "async function goScratch(){" +
             "const v=document.getElementById('uid').value.trim();" +
-            "if(!v||!/^\\d{10,20}$/.test(v)){err('Bitte gib eine gültige Discord User-ID ein.');return;}" +
-            "localStorage.setItem(K,v);uid=v;" +
+            "if(!v){err('Bitte gib deinen Discord-Benutzernamen ein.');return;}" +
             "const btn=document.getElementById('sbtn');btn.disabled=true;" +
-            "try{const r=await fetch('/api/rubbellos/create',{method:'POST'," +
+            "document.getElementById('emsg').style.display='none';" +
+            "try{" +
+            // Step 1: Resolve username → userId
+            "const rr=await fetch('/api/resolve-user',{method:'POST'," +
+            "headers:{'Content-Type':'application/json'},body:JSON.stringify({username:v})});" +
+            "const dd=await rr.json();" +
+            "if(!dd.ok){err(dd.error);btn.disabled=false;return;}" +
+            "localStorage.setItem(KN,v);localStorage.setItem(KI,dd.userId);uname=v;uid=dd.userId;" +
+            // Step 2: Create scratch session
+            "const r=await fetch('/api/rubbellos/create',{method:'POST'," +
             "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});" +
             "const d=await r.json();" +
             "if(!d.ok){err(d.error);btn.disabled=false;return;}" +
@@ -750,14 +801,13 @@ public class WebServer {
             "document.getElementById('v0').textContent=d.c0;" +
             "document.getElementById('v1').textContent=d.c1;" +
             "document.getElementById('v2').textContent=d.c2;" +
-            // Hide ID form, show scratch card
             "document.getElementById('idlbl').style.display='none';" +
             "document.getElementById('uid').style.display='none';" +
             "document.getElementById('sbtn').style.display='none';" +
             "document.getElementById('emsg').style.display='none';" +
             "document.getElementById('los').className='los on';" +
-            "setupCards();}" +
-            "catch(e){err('Verbindungsfehler. Bitte erneut versuchen.');btn.disabled=false;}}" +
+            "setupCards();" +
+            "}catch(e){err('Verbindungsfehler. Bitte erneut versuchen.');btn.disabled=false;}}" +
             "function setupCards(){[0,1,2].forEach(i=>setup(i));}" +
             "function setup(i){const cv=document.getElementById('c'+i);" +
             "const cx=cv.getContext('2d');" +
@@ -1010,8 +1060,36 @@ public class WebServer {
         try { userId = Long.parseLong(userIdStr); }
         catch (NumberFormatException e) { ctx.status(400).html("<h1>Ungültige ID.</h1>"); return; }
         JsonObject ch = CharacterStore.get(guild.getIdLong(), userId);
-        if (ch == null) { ctx.status(404).html("<h1>Kein Charakter gefunden.</h1>"); return; }
+        if (ch == null) {
+            // Kein Charakter — Discord-Profil als Fallback anzeigen
+            net.dv8tion.jda.api.entities.Member member = guild.getMemberById(userId);
+            String name = member != null ? member.getEffectiveName() : "Unbekannt";
+            String avatar = member != null ? member.getUser().getEffectiveAvatarUrl() : "";
+            ctx.status(200).contentType("text/html;charset=utf-8").result(buildNoCharacterPage(name, avatar));
+            return;
+        }
         ctx.contentType("text/html;charset=utf-8").result(buildIdCard(ch, userIdStr));
+    }
+
+    private static String buildNoCharacterPage(String name, String avatarUrl) {
+        return "<!DOCTYPE html><html lang='de'><head><meta charset='UTF-8'>" +
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>Ausweis – " + esc(name) + "</title>" +
+            "<style>*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#0a0a0a,#0f0f1a);" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".card{width:100%;max-width:420px;background:#0d1830;border:2px solid #c8a048;" +
+            "border-radius:14px;padding:40px;text-align:center;box-shadow:0 0 40px rgba(200,160,72,.25)}" +
+            "img{width:80px;height:80px;border-radius:50%;border:3px solid #c8a048;margin-bottom:16px}" +
+            "h2{color:#c8a048;font-size:1.4rem;margin-bottom:10px}" +
+            "p{color:#aaa;font-size:.9rem;line-height:1.6}" +
+            "</style></head><body>" +
+            "<div class='card'>" +
+            (avatarUrl.isEmpty() ? "" : "<img src='" + esc(avatarUrl) + "' alt='Avatar'>") +
+            "<h2>" + esc(name) + "</h2>" +
+            "<p>Für diesen Spieler ist noch kein Charakter registriert.<br><br>" +
+            "Ein Administrator kann den Charakter über das Meldeamt anlegen.</p>" +
+            "</div></body></html>";
     }
 
     private static String buildIdCard(JsonObject ch, String userId) {
