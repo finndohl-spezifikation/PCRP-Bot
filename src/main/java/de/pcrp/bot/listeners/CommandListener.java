@@ -43,6 +43,8 @@ public class CommandListener extends ListenerAdapter {
             case "ausweis"          -> handleAusweis(event);
             case "abstimmung"       -> handleAbstimmung(event);
             case "aktivitätscheck"  -> handleAktivitaetscheck(event);
+            case "event"            -> handleEvent(event);
+            case "gewinnspiel"      -> handleGewinnspiel(event);
         }
     }
 
@@ -423,6 +425,135 @@ public class CommandListener extends ListenerAdapter {
             .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis einsehen"))
             .setEphemeral(true)
             .queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /event
+    // ════════════════════════════════════════════════════════════
+
+    private void handleEvent(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        String was          = event.getOption("was",          OptionMapping::getAsString);
+        String beschreibung = event.getOption("beschreibung", OptionMapping::getAsString);
+        String wo           = event.getOption("wo",           OptionMapping::getAsString);
+        String wann         = event.getOption("wann",         OptionMapping::getAsString);
+
+        if (was == null || beschreibung == null || wo == null || wann == null) {
+            event.replyEmbeds(embed("Fehler", "Alle Felder sind erforderlich.")).setEphemeral(true).queue();
+            return;
+        }
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.EVENT_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Event-Kanal nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        net.dv8tion.jda.api.entities.MessageEmbed eventEmbed = EmbedFactory.create()
+            .setTitle("📅 " + was)
+            .setDescription(
+                beschreibung + "\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "📍 **Wo:** " + wo + "\n" +
+                "🕐 **Wann:** " + wann)
+            .build();
+
+        final String finalWas = was;
+        ch.sendMessage("<@&" + LoggingConfig.EVENT_ROLE_ID + ">")
+          .setEmbeds(eventEmbed)
+          .queue(
+            msg -> event.getHook().sendMessageEmbeds(embed("✅ Event gepostet",
+                "Das Event **" + finalWas + "** wurde in <#" + LoggingConfig.EVENT_CHANNEL_ID + "> veröffentlicht."))
+                .setEphemeral(true).queue(),
+            err -> {
+                log.error("[Event] Konnte nicht gesendet werden.", err);
+                event.getHook().sendMessageEmbeds(embed("Fehler", "Event konnte nicht gepostet werden."))
+                    .setEphemeral(true).queue();
+            });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /gewinnspiel
+    // ════════════════════════════════════════════════════════════
+
+    private void handleGewinnspiel(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        String titel = event.getOption("titel", OptionMapping::getAsString);
+        String was   = event.getOption("was",   OptionMapping::getAsString);
+        String dauer = event.getOption("dauer", "1h", OptionMapping::getAsString);
+
+        if (titel == null || was == null) {
+            event.replyEmbeds(embed("Fehler", "Titel und Preis sind erforderlich.")).setEphemeral(true).queue();
+            return;
+        }
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.GEWINNSPIEL_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Gewinnspiel-Kanal nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        long delaySec = parseDauerSeconds(dauer);
+        long endEpoch = System.currentTimeMillis() / 1000 + delaySec;
+
+        event.deferReply(true).queue();
+
+        net.dv8tion.jda.api.entities.MessageEmbed gEmbed =
+            GiveawayListener.buildEmbed(titel, was, endEpoch, 0);
+
+        final String finalTitel = titel;
+        final String finalWas   = was;
+        final long   fDelay     = delaySec;
+        final long   fEnd       = endEpoch;
+        final long   guildId    = event.getGuild().getIdLong();
+
+        ch.sendMessage("@everyone")
+          .setEmbeds(gEmbed)
+          .queue(msg -> {
+              // Persistieren
+              String stored = "GIVEAWAY\n"
+                  + GiveawayListener.encode(finalTitel) + "\n"
+                  + GiveawayListener.encode(finalWas)   + "\n"
+                  + fEnd                                + "\n"
+                  + ch.getIdLong()                      + "\n"
+                  + guildId;
+              DataStore.writeString("giveaway-" + msg.getId(), stored);
+              GiveawayListener.addToList(msg.getId());
+
+              // 🎉 hinzufügen
+              msg.addReaction(net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode(GiveawayListener.PARTY)).queue();
+
+              // Ablauf planen
+              GiveawayListener.schedule(event.getJDA(), msg.getId(), ch.getIdLong(), guildId, fDelay);
+
+              event.getHook().sendMessageEmbeds(embed("✅ Gewinnspiel gestartet",
+                  "Das Gewinnspiel **" + finalTitel + "** wurde in <#"
+                  + LoggingConfig.GEWINNSPIEL_CHANNEL_ID + "> gepostet.\n"
+                  + "⏰ Endet <t:" + fEnd + ":R>"))
+                  .setEphemeral(true).queue();
+          }, err -> {
+              log.error("[Gewinnspiel] Konnte nicht gesendet werden.", err);
+              event.getHook().sendMessageEmbeds(embed("Fehler", "Gewinnspiel konnte nicht erstellt werden."))
+                  .setEphemeral(true).queue();
+          });
+    }
+
+    private static long parseDauerSeconds(String key) {
+        return switch (key) {
+            case "10m" -> 600L;
+            case "30m" -> 1_800L;
+            case "1h"  -> 3_600L;
+            case "6h"  -> 21_600L;
+            case "12h" -> 43_200L;
+            case "1d"  -> 86_400L;
+            case "3d"  -> 259_200L;
+            case "7d"  -> 604_800L;
+            default    -> 3_600L;
+        };
     }
 
     // ════════════════════════════════════════════════════════════

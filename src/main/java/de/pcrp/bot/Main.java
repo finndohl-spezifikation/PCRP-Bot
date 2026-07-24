@@ -45,6 +45,7 @@ public class Main {
         WelcomeListener         welcomeListener     = new WelcomeListener();
         TicketListener          ticketListener      = new TicketListener();
         PollListener            pollListener        = new PollListener();
+        GiveawayListener        giveawayListener    = new GiveawayListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -70,7 +71,8 @@ public class Main {
                 new CommandListener(),
                 welcomeListener,
                 ticketListener,
-                pollListener
+                pollListener,
+                giveawayListener
             )
             .build();
     }
@@ -472,6 +474,29 @@ public class Main {
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
 
                 Commands.slash("aktivitätscheck", "Sendet einen Aktivitätscheck in den zugehörigen Kanal")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("event", "Sendet ein Event-Embed in den Event-Kanal")
+                    .addOption(OptionType.STRING, "was",          "Name / Titel des Events",        true)
+                    .addOption(OptionType.STRING, "beschreibung", "Beschreibung des Events",        true)
+                    .addOption(OptionType.STRING, "wo",           "Wo findet das Event statt?",     true)
+                    .addOption(OptionType.STRING, "wann",         "Wann beginnt das Event?",        true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("gewinnspiel", "Startet ein Gewinnspiel im Gewinnspiel-Kanal")
+                    .addOption(OptionType.STRING, "titel", "Titel des Gewinnspiels",          true)
+                    .addOption(OptionType.STRING, "was",   "Was kann man gewinnen?",           true)
+                    .addOptions(new OptionData(OptionType.STRING, "dauer", "Dauer des Gewinnspiels", true)
+                        .addChoice("10 Minuten",  "10m")
+                        .addChoice("30 Minuten",  "30m")
+                        .addChoice("1 Stunde",    "1h")
+                        .addChoice("6 Stunden",   "6h")
+                        .addChoice("12 Stunden",  "12h")
+                        .addChoice("1 Tag",       "1d")
+                        .addChoice("3 Tage",      "3d")
+                        .addChoice("7 Tage",      "7d"))
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE))
 
