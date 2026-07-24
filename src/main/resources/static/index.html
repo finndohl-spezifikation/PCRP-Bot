@@ -97,6 +97,23 @@
     .stopp-divider { height: 2px; background: linear-gradient(90deg,transparent,#cc2222,transparent); margin: 24px 0; }
     .stopp-text { color: #ddb0b0; font-size: 1rem; line-height: 1.85; }
     .stopp-text strong { color: #ff5555; }
+    .stopp-notify-text { color: #e0c0c0; font-size: 0.92rem; margin-bottom: 14px; }
+    .stopp-input-wrap { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
+    .stopp-input-wrap input {
+      background: #2a0808; border: 1px solid #882222; border-radius: 8px;
+      color: #ffe0e0; padding: 10px 14px; font-size: 0.9rem; outline: none;
+      flex: 1; min-width: 180px; max-width: 260px;
+    }
+    .stopp-input-wrap input::placeholder { color: #884444; }
+    .stopp-input-wrap input:focus { border-color: #cc3333; }
+    .btn-notify {
+      background: linear-gradient(90deg, #991111, #cc2222);
+      color: #fff; border: none; border-radius: 8px;
+      padding: 10px 20px; font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap; transition: opacity .15s;
+    }
+    .btn-notify:hover { opacity: 0.85; }
+    #stopp-notify-status { font-size: 0.82rem; margin-top: 10px; min-height: 18px; }
 
     /* ── Popup ──────────────────────────────────────────────── */
     #overlay {
@@ -286,8 +303,18 @@
     <div class="stopp-text">
       <strong>Aktuell befinden wir uns in einem Einreise-Stopp.</strong><br><br>
       Das kann verschiedene Gründe haben.<br>
-      Wir bitten dich noch etwas <strong>Geduld</strong> aufzubringen.<br><br>
-      Du wirst benachrichtigt, sobald die Einreise wieder möglich ist.
+      Wir bitten dich noch etwas <strong>Geduld</strong> aufzubringen.
+    </div>
+    <div class="stopp-divider"></div>
+    <div class="stopp-notify-text">
+      Lasse dich von unserem Bot informieren sobald die Einreise wieder offen ist.
+    </div>
+    <div id="stopp-notify-form">
+      <div class="stopp-input-wrap">
+        <input type="text" id="stopp-username" placeholder="Dein Discord-Nutzername" autocomplete="off">
+        <button class="btn-notify" onclick="registerNotify()">🔔 Benachrichtigen</button>
+      </div>
+      <div id="stopp-notify-status"></div>
     </div>
   </div>
 </div>
@@ -502,6 +529,28 @@
       }
     } catch(e) { /* Bei Fehler normal fortfahren */ }
   })();
+
+  async function registerNotify() {
+    const username = document.getElementById('stopp-username').value.trim();
+    const status   = document.getElementById('stopp-notify-status');
+    if (!username) { status.style.color = '#ff6666'; status.textContent = 'Bitte gib deinen Discord-Nutzernamen ein.'; return; }
+    status.style.color = '#aaa'; status.textContent = 'Wird registriert…';
+    try {
+      const res  = await fetch('/api/einreise-notify', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }) });
+      const data = await res.json();
+      if (data.ok) {
+        status.style.color = '#66cc66';
+        status.textContent = '✅ Du wirst per DM benachrichtigt, sobald die Einreise wieder offen ist.';
+        document.getElementById('stopp-username').disabled = true;
+        document.querySelector('.btn-notify').disabled = true;
+      } else {
+        status.style.color = '#ff6666';
+        status.textContent = data.error || 'Nutzername nicht gefunden. Stelle sicher, dass du auf dem Server bist.';
+      }
+    } catch(e) { status.style.color = '#ff6666'; status.textContent = 'Fehler beim Verbinden. Bitte erneut versuchen.'; }
+  }
 
   // ── State ─────────────────────────────────────────────────────
   let singleIds   = { l: null, i: null };
