@@ -56,6 +56,12 @@ public final class LoggingConfig {
     /** Safe-Zones-Panel. */
     public static final long SAFEZONES_CHANNEL_ID           = 1529636485454889111L;
 
+    /** Ping-Rollen-Panel-Kanal. */
+    public static final long PING_ROLES_CHANNEL_ID       = 1529636499782631566L;
+
+    /** Verwarnung-Log-Kanal (rote Embeds). */
+    public static final long WARN_LOG_CHANNEL_ID         = 1529636503163113694L;
+
     /** Event-Kanal (/event). */
     public static final long EVENT_CHANNEL_ID            = 1529636496775057538L;
 

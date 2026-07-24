@@ -39,6 +39,13 @@ public final class RoleConfig {
     /** Kanal, in dem /ausweis ausgeführt werden darf. */
     public static final long AUSWEIS_CHANNEL_ID = 1529636558628716586L;
 
+    /** Warn-Rollen (Index 0 = 1. Warn, 1 = 2. Warn, 2 = 3. Warn). */
+    public static final long[] WARN_ROLES = {
+        1529636318374658050L,   // Warn 1
+        1529636317141401652L,   // Warn 2
+        1529636316692873276L    // Warn 3
+    };
+
     /** Registrations-Bonus für Einzeleinreise in Münzen. */
     public static final long REGISTRATION_REWARD = 5_000L;
 
