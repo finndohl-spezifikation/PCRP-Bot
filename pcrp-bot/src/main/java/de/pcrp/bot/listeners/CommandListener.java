@@ -67,6 +67,7 @@ public class CommandListener extends ListenerAdapter {
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
             case "lobby-abstimmung"    -> handleLobbyAbstimmung(event);
             case "lobby-öffnen"        -> handleLobbyOeffnen(event);
+            case "lobby-schließen"     -> handleLobbySchliessen(event);
             case "vorschlag"           -> handleVorschlag(event);
             case "vorschlag-annehmen"  -> handleVorschlagAnnehmen(event);
             case "vorschlag-ablehnen"  -> handleVorschlagAblehnen(event);
@@ -1224,6 +1225,39 @@ public class CommandListener extends ListenerAdapter {
                 .setEphemeral(true).queue(),
                 err -> {
                     log.error("[LobbyOeffnen] Fehler beim Senden.", err);
+                    event.getHook().sendMessageEmbeds(embed("Fehler", "Die Nachricht konnte nicht gesendet werden."))
+                        .setEphemeral(true).queue();
+                });
+    }
+
+    private void handleLobbySchliessen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.LOBBY_OEFFNEN_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Lobby-Kanal nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        net.dv8tion.jda.api.entities.MessageEmbed lobbyEmbed = EmbedFactory.create()
+            .setDescription(
+                "────── ⋆⋅☆⋅⋆ ──────\n\n" +
+                "❌ **LOBBY GESCHLOSSEN** ❌\n\n" +
+                "Die RP Lobby hat jetzt geschlossen, wir bedanken uns bei euch fürs Mitspielen.\n\n" +
+                "Wenn ihr Vorschläge habt schickt diese gerne in den Kanal <#1529636537292161185>\n\n" +
+                "Solltet ihr heute Probleme haben oder möchtet eine Beschwerde abgeben, " +
+                "öffnet gerne jederzeit hier ein Ticket <#1529636489732952264>")
+            .build();
+
+        event.deferReply(true).queue();
+        ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
+            .setEmbeds(lobbyEmbed)
+            .queue(msg -> event.getHook().sendMessageEmbeds(
+                embed("✅ Lobby geschlossen", "Die Nachricht wurde in <#" + LoggingConfig.LOBBY_OEFFNEN_CHANNEL_ID + "> gepostet."))
+                .setEphemeral(true).queue(),
+                err -> {
+                    log.error("[LobbySchliessen] Fehler beim Senden.", err);
                     event.getHook().sendMessageEmbeds(embed("Fehler", "Die Nachricht konnte nicht gesendet werden."))
                         .setEphemeral(true).queue();
                 });
