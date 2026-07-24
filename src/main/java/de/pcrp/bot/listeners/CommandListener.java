@@ -68,7 +68,7 @@ public class CommandListener extends ListenerAdapter {
     }
 
     private static net.dv8tion.jda.api.entities.MessageEmbed buildActiveSystemsEmbed() {
-        String owner = "<@" + ModerationConfig.OWNER_ID + "> (`" + ModerationConfig.OWNER_ID + "`)";
+        String owner = "<@" + ModerationConfig.OWNER_ID + "> · <@" + ModerationConfig.CO_OWNER_ID + ">";
         String bot   = "Bot selbst";
 
         return EmbedFactory.create()
@@ -287,7 +287,7 @@ public class CommandListener extends ListenerAdapter {
             return;
         }
         Member executor = event.getMember();
-        if (executor != null && event.getUser().getIdLong() != ModerationConfig.OWNER_ID) {
+        if (executor != null && !ModerationConfig.isExempt(event.getUser().getIdLong())) {
             if (target.canInteract(executor)) {
                 event.replyEmbeds(embed("Fehler",
                     "Du kannst kein Mitglied bannen, das die gleiche oder eine höhere Rolle hat."))
@@ -388,12 +388,12 @@ public class CommandListener extends ListenerAdapter {
             event.replyEmbeds(embed("Fehler", "Du kannst dich nicht selbst mit einem Timeout belegen.")).setEphemeral(true).queue();
             return;
         }
-        if (target.getIdLong() == ModerationConfig.OWNER_ID) {
-            event.replyEmbeds(embed("Fehler", "Der Inhaber kann keinen Timeout erhalten.")).setEphemeral(true).queue();
+        if (ModerationConfig.isExempt(target.getIdLong())) {
+            event.replyEmbeds(embed("Fehler", "Dieser Nutzer ist vom Timeout-System ausgenommen.")).setEphemeral(true).queue();
             return;
         }
         Member executor = event.getMember();
-        if (executor != null && event.getUser().getIdLong() != ModerationConfig.OWNER_ID) {
+        if (executor != null && !ModerationConfig.isExempt(event.getUser().getIdLong())) {
             if (target.canInteract(executor)) {
                 event.replyEmbeds(embed("Fehler",
                     "Du kannst kein Mitglied mit einem Timeout belegen, das die gleiche oder eine höhere Rolle hat."))

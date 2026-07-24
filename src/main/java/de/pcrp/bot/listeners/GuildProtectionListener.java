@@ -92,7 +92,7 @@ public class GuildProtectionListener extends ListenerAdapter {
             AuditLogEntry entry = recentEntry(entries);
             if (entry == null) return;
             long executorId = entry.getUserIdLong();
-            if (executorId == ModerationConfig.OWNER_ID) return;
+            if (ModerationConfig.isExempt(executorId)) return;
             if (executorId == guild.getSelfMember().getIdLong()) return;
 
             // Kanal immer sofort wiederherstellen
@@ -120,7 +120,7 @@ public class GuildProtectionListener extends ListenerAdapter {
             AuditLogEntry entry = recentEntry(entries);
             if (entry == null) return;
             long executorId = entry.getUserIdLong();
-            if (executorId == ModerationConfig.OWNER_ID) return;
+            if (ModerationConfig.isExempt(executorId)) return;
             if (executorId == guild.getSelfMember().getIdLong()) return;
 
             boolean triggered = registerDeletion(executorId);

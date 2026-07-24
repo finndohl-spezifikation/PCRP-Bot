@@ -8,6 +8,14 @@ public final class ModerationConfig {
     /** Inhaber – hat keinerlei Einschränkungen und wird bei Aktivitätswarnungen gepingt. */
     public static final long OWNER_ID = 1259265007791636540L;
 
+    /** Co-Inhaber – von allen Moderationssystemen ausgenommen (außer Anti-Nuke/Bot-Invite-Schutz). */
+    public static final long CO_OWNER_ID = 612955437062422528L;
+
+    /** Gibt true zurück wenn die Nutzer-ID von allen Moderationssystemen ausgenommen ist. */
+    public static boolean isExempt(long userId) {
+        return userId == OWNER_ID || userId == CO_OWNER_ID;
+    }
+
     /** Auto-Rolle – wird jedem neuen Mitglied beim Beitritt zugewiesen. */
     public static final long AUTO_ROLE_ID = 1529636301907689486L;
 
