@@ -4,9 +4,11 @@ import de.pcrp.bot.common.*;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -28,11 +30,11 @@ public class RucksackListener extends ListenerAdapter {
         switch (id) {
             case "rucksack-open"     -> handleOwnRucksack(event);
             case "rucksack-other"    -> handleOtherRucksackPrompt(event);
-            case "rucksack-transfer" -> handleTransferPrompt(event);
+            case "rucksack-transfer" -> handleTransferUserPrompt(event);
         }
     }
 
-    /** Eigenen Rucksack anzeigen — ephemeral mit "Item Übergeben"-Button. */
+    /** Eigenen Rucksack — ephemeral mit "Item Übergeben"-Button. */
     private void handleOwnRucksack(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
         String guildId = event.getGuild().getId();
@@ -47,101 +49,112 @@ public class RucksackListener extends ListenerAdapter {
             .queue();
     }
 
-    /** "Anderen Rucksack Öffnen" — Modal zum Eingeben der User-ID. */
+    /** "Anderen Rucksack Öffnen" → User-Suchleiste (EntitySelectMenu). */
     private void handleOtherRucksackPrompt(ButtonInteractionEvent event) {
-        Modal modal = Modal.create("rucksack-search-modal", "Anderen Rucksack öffnen")
-            .addComponents(ActionRow.of(
-                TextInput.create("spieler-id", "Discord User-ID", TextInputStyle.SHORT)
-                    .setPlaceholder("z. B. 123456789012345678")
-                    .setRequired(true)
-                    .build()
-            )).build();
-        event.replyModal(modal).queue();
+        EntitySelectMenu menu = EntitySelectMenu
+            .create("rucksack-search-select", EntitySelectMenu.SelectTarget.USER)
+            .setPlaceholder("Spieler suchen und auswählen…")
+            .setMinValues(1).setMaxValues(1)
+            .build();
+
+        event.replyEmbeds(EmbedFactory.build("🔍 Anderen Rucksack öffnen",
+            "Wähle einen Spieler aus der Liste aus."))
+            .addActionRow(menu)
+            .setEphemeral(true)
+            .queue();
     }
 
-    /** "Item Übergeben" — Modal mit Empfänger + Items. */
-    private void handleTransferPrompt(ButtonInteractionEvent event) {
-        Modal modal = Modal.create("rucksack-transfer-modal", "Items übergeben")
-            .addComponents(
-                ActionRow.of(
-                    TextInput.create("empfaenger", "Empfänger (Discord User-ID)", TextInputStyle.SHORT)
-                        .setPlaceholder("z. B. 123456789012345678")
-                        .setRequired(true)
-                        .build()),
-                ActionRow.of(
-                    TextInput.create("items", "Items (Format: ItemName: Menge, ItemName: Menge)", TextInputStyle.PARAGRAPH)
-                        .setPlaceholder("Bargeld: 500\nWaffe: 1\nDrogen: 10")
-                        .setRequired(true)
-                        .build())
-            ).build();
-        event.replyModal(modal).queue();
+    /** "Item Übergeben" → User-Suchleiste für Empfänger. */
+    private void handleTransferUserPrompt(ButtonInteractionEvent event) {
+        EntitySelectMenu menu = EntitySelectMenu
+            .create("rucksack-transfer-select", EntitySelectMenu.SelectTarget.USER)
+            .setPlaceholder("Empfänger suchen und auswählen…")
+            .setMinValues(1).setMaxValues(1)
+            .build();
+
+        event.replyEmbeds(EmbedFactory.build("📦 Item Übergeben",
+            "Wähle zuerst den Empfänger aus."))
+            .addActionRow(menu)
+            .setEphemeral(true)
+            .queue();
     }
 
-    // ── Modals ────────────────────────────────────────────────────────────────
+    // ── Entity-Select ─────────────────────────────────────────────────────────
 
     @Override
-    public void onModalInteraction(ModalInteractionEvent event) {
-        switch (event.getModalId()) {
-            case "rucksack-search-modal"   -> handleOtherRucksackView(event);
-            case "rucksack-transfer-modal" -> handleTransferExecute(event);
+    public void onEntitySelectInteraction(EntitySelectInteractionEvent event) {
+        String id = event.getComponentId();
+
+        if (id.equals("rucksack-search-select")) {
+            handleOtherRucksackView(event);
+        } else if (id.equals("rucksack-transfer-select")) {
+            handleTransferItemsPrompt(event);
         }
     }
 
-    /** Fremden Rucksack anzeigen — ephemeral, kein Transfer-Button. */
-    private void handleOtherRucksackView(ModalInteractionEvent event) {
+    /** Nach Spieler-Auswahl: Fremden Rucksack anzeigen. */
+    private void handleOtherRucksackView(EntitySelectInteractionEvent event) {
         if (event.getGuild() == null) return;
-        String spielerIdRaw = event.getValue("spieler-id") == null ? ""
-            : event.getValue("spieler-id").getAsString().trim().replaceAll("[<@!>]", "");
-
-        long targetId;
-        try { targetId = Long.parseLong(spielerIdRaw); }
-        catch (NumberFormatException e) {
-            event.replyEmbeds(EmbedFactory.build("❌ Ungültige ID",
-                "Bitte gib eine gültige Discord User-ID ein."))
+        List<Member> members = event.getMentions().getMembers();
+        if (members.isEmpty()) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Kein Mitglied ausgewählt."))
                 .setEphemeral(true).queue();
             return;
         }
-
-        event.getGuild().retrieveMemberById(targetId).queue(member -> {
-            String guildId  = event.getGuild().getId();
-            String userId   = member.getId();
-            String dispName = member.getEffectiveName();
-            event.replyEmbeds(InventoryManager.buildEmbed(guildId, userId, dispName))
-                .setEphemeral(true)
-                .queue();
-        }, err -> event.replyEmbeds(EmbedFactory.build("❌ Nicht gefunden",
-            "Kein Mitglied mit dieser ID auf dem Server gefunden."))
-            .setEphemeral(true).queue());
+        Member target = members.get(0);
+        String guildId = event.getGuild().getId();
+        event.replyEmbeds(InventoryManager.buildEmbed(guildId, target.getId(), target.getEffectiveName()))
+            .setEphemeral(true)
+            .queue();
     }
 
-    /** Transfer ausführen. */
-    private void handleTransferExecute(ModalInteractionEvent event) {
+    /** Nach Empfänger-Auswahl: Modal mit Items-Feld öffnen. */
+    private void handleTransferItemsPrompt(EntitySelectInteractionEvent event) {
         if (event.getGuild() == null) return;
-        String guildId   = event.getGuild().getId();
-        String fromId    = event.getUser().getId();
-
-        String empfRaw  = event.getValue("empfaenger") == null ? ""
-            : event.getValue("empfaenger").getAsString().trim().replaceAll("[<@!>]", "");
-        String itemsRaw = event.getValue("items") == null ? ""
-            : event.getValue("items").getAsString().trim().replace("\n", ",");
-
-        // Empfänger-ID parsen
-        long toIdL;
-        try { toIdL = Long.parseLong(empfRaw); }
-        catch (NumberFormatException e) {
-            event.replyEmbeds(EmbedFactory.build("❌ Ungültige Empfänger-ID",
-                "Bitte gib eine gültige Discord User-ID ein."))
+        List<Member> members = event.getMentions().getMembers();
+        if (members.isEmpty()) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Kein Mitglied ausgewählt."))
                 .setEphemeral(true).queue();
             return;
         }
-        if (String.valueOf(toIdL).equals(fromId)) {
+        Member target = members.get(0);
+
+        if (target.getId().equals(event.getUser().getId())) {
             event.replyEmbeds(EmbedFactory.build("❌ Ungültig",
                 "Du kannst dir selbst keine Items übergeben."))
                 .setEphemeral(true).queue();
             return;
         }
 
-        // Items parsen
+        // Modal mit Empfänger-ID im Modal-ID encodiert
+        Modal modal = Modal.create("rucksack-transfer-items:" + target.getId(), "Items übergeben an " + target.getEffectiveName())
+            .addComponents(ActionRow.of(
+                TextInput.create("items", "Items (Format: ItemName: Menge)", TextInputStyle.PARAGRAPH)
+                    .setPlaceholder("Bargeld: 500\nWaffe: 1\nDrogen: 10")
+                    .setRequired(true)
+                    .build()
+            )).build();
+        event.replyModal(modal).queue();
+    }
+
+    // ── Modal (Items-Eingabe nach User-Select) ────────────────────────────────
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        String modalId = event.getModalId();
+        if (modalId.startsWith("rucksack-transfer-items:")) {
+            String targetId = modalId.substring("rucksack-transfer-items:".length());
+            handleTransferExecute(event, targetId);
+        }
+    }
+
+    private void handleTransferExecute(ModalInteractionEvent event, String toId) {
+        if (event.getGuild() == null) return;
+        String guildId = event.getGuild().getId();
+        String fromId  = event.getUser().getId();
+        String itemsRaw = event.getValue("items") == null ? ""
+            : event.getValue("items").getAsString().trim().replace("\n", ",");
+
         List<InventoryManager.Item> transfers;
         try { transfers = InventoryManager.parseTransferInput(itemsRaw); }
         catch (InventoryManager.TransferError te) {
@@ -150,7 +163,6 @@ public class RucksackListener extends ListenerAdapter {
             return;
         }
 
-        final long toId = toIdL;
         final List<InventoryManager.Item> finalTransfers = transfers;
 
         event.getGuild().retrieveMemberById(toId).queue(toMember -> {
@@ -162,23 +174,21 @@ public class RucksackListener extends ListenerAdapter {
                 return;
             }
 
-            // Zusammenfassung
             StringBuilder sb = new StringBuilder();
-            for (InventoryManager.Item t : finalTransfers) {
+            for (InventoryManager.Item t : finalTransfers)
                 sb.append("• **").append(t.name).append("** × ").append(t.quantity).append("\n");
-            }
+
             event.replyEmbeds(EmbedFactory.build("✅ Items übergeben",
                 "Du hast folgende Items an **" + toMember.getEffectiveName() + "** übergeben:\n\n" + sb))
                 .setEphemeral(true).queue();
 
-            // Empfänger benachrichtigen (DM)
             BotLogger.tryDm(toMember.getUser(), EmbedFactory.build(
                 "📦 Items erhalten",
                 "**" + (event.getMember() != null ? event.getMember().getEffectiveName() : event.getUser().getName()) +
                 "** hat dir folgende Items übergeben:\n\n" + sb));
 
         }, err -> event.replyEmbeds(EmbedFactory.build("❌ Nicht gefunden",
-            "Kein Mitglied mit dieser ID auf dem Server gefunden."))
+            "Der ausgewählte Spieler ist nicht mehr auf dem Server."))
             .setEphemeral(true).queue());
     }
 }
