@@ -382,60 +382,49 @@ public class CommandListener extends ListenerAdapter {
         Member executor = event.getMember();
         if (executor == null) return;
 
-        // Nur legale Bewohner
-        boolean hasRole = executor.getRoles().stream()
-            .anyMatch(r -> r.getIdLong() == RoleConfig.LEGAL_RESIDENT_ROLE_ID);
-        if (!hasRole) {
-            event.replyEmbeds(embed("Kein Zugriff",
-                "Nur legale Bewohner <@&" + RoleConfig.LEGAL_RESIDENT_ROLE_ID + "> können einen Ausweis einsehen."))
-                .setEphemeral(true).queue();
-            return;
-        }
-
         // Optionaler Fremd-Ausweis
         String targetUsername = event.getOption("nutzer", OptionMapping::getAsString);
-        long   targetId;
-        String targetName;
+        Member target;
 
         if (targetUsername != null && !targetUsername.isBlank()) {
-            Member target = BotContext.findMemberByUsername(targetUsername);
+            target = BotContext.findMemberByUsername(targetUsername);
             if (target == null) {
                 event.replyEmbeds(embed("Nicht gefunden",
                     "Kein Mitglied mit dem Nutzernamen **" + targetUsername + "** gefunden."))
                     .setEphemeral(true).queue();
                 return;
             }
-            targetId   = target.getIdLong();
-            targetName = target.getUser().getName();
         } else {
-            targetId   = executor.getIdLong();
-            targetName = executor.getUser().getName();
+            target = executor;
         }
 
-        // Charakter prüfen
-        JsonObject character = CharacterStore.get(event.getGuild().getIdLong(), targetId);
-        if (character == null) {
-            event.replyEmbeds(embed("Kein Ausweis",
-                "Für **" + targetName + "** wurde kein registrierter Charakter gefunden."))
-                .setEphemeral(true).queue();
-            return;
-        }
-        if (!"legal".equals(CharacterStore.str(character, "type"))) {
-            event.replyEmbeds(embed("Kein Ausweis",
-                "**" + targetName + "** ist illegal eingereist und besitzt keinen Ausweis."))
-                .setEphemeral(true).queue();
-            return;
-        }
+        // Einreiseart aus Rollen ableiten
+        boolean isLegal   = target.getRoles().stream().anyMatch(r -> r.getIdLong() == RoleConfig.LEGAL_RESIDENT_ROLE_ID);
+        boolean isIllegal = !isLegal && target.getRoles().stream()
+            .anyMatch(r -> {
+                for (long id : RoleConfig.ILLEGAL_ROLES) if (r.getIdLong() == id) return true;
+                return false;
+            });
 
-        String webUrl     = System.getenv().getOrDefault("WEB_URL", "https://example.com");
-        String ausweisUrl = webUrl + "/ausweis/" + targetId;
+        String einreise = isLegal ? "✅ Legal" : isIllegal ? "🚫 Illegal" : "❓ Unbekannt";
 
-        event.replyEmbeds(embed("🪪 Personalausweis",
-                "Ausweis von **" + CharacterStore.str(character, "firstName") + " "
-                + CharacterStore.str(character, "lastName") + "**"))
-            .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis einsehen"))
-            .setEphemeral(true)
-            .queue();
+        // Konto-Erstellungsdatum (Epoch-Sekunden)
+        long createdEpoch = target.getUser().getTimeCreated().toEpochSecond();
+        // Beitrittsdatum
+        long joinedEpoch  = target.getTimeJoined().toEpochSecond();
+
+        net.dv8tion.jda.api.entities.MessageEmbed ausweisEmbed = EmbedFactory.create()
+            .setTitle("🪪 Personalausweis — " + target.getUser().getName())
+            .setThumbnail(target.getUser().getEffectiveAvatarUrl())
+            .setDescription(
+                "**Mitglied:** " + target.getAsMention() + "\n" +
+                "**Einreiseart:** " + einreise + "\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "📅 **Discord-Konto erstellt:** <t:" + createdEpoch + ":D>\n" +
+                "📥 **Server beigetreten:** <t:" + joinedEpoch + ":D>")
+            .build();
+
+        event.replyEmbeds(ausweisEmbed).setEphemeral(true).queue();
     }
 
     // ════════════════════════════════════════════════════════════
