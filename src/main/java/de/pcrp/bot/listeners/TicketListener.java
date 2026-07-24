@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -23,13 +24,12 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class TicketListener extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(TicketListener.class);
 
-    // ── Kategorie-IDs (wo Ticket-Kanäle erstellt werden) ──────────────────────
+    // ── Kategorie-IDs ──────────────────────────────────────────────────────────
     private static final long SUPPORT_CATEGORY_ID  = 1529636378059472948L;
     private static final long HIGHTEAM_CATEGORY_ID = 1529636379062046740L;
     private static final long FRAKTION_CATEGORY_ID = 1529636379451986053L;
@@ -44,19 +44,23 @@ public class TicketListener extends ListenerAdapter {
     private static final long FRAKTION_ROLE_ID = 1529636285159837807L;
 
     // ── Komponenten-IDs ────────────────────────────────────────────────────────
-    public static final String SELECT_ID  = "ticket-select";
-    public static final String CLAIM_BTN  = "ticket-claim";
-    public static final String ASSIGN_BTN = "ticket-assign";
-    public static final String CLOSE_BTN  = "ticket-close";
-    public static final String ASSIGN_SEL = "ticket-assign-sel";
+    public  static final String SELECT_ID  = "ticket-select";   // Panel-Auswahlmenü
+    public  static final String ACTION_SEL = "ticket-action";   // Aktionsmenü im Ticket
+    private static final String ASSIGN_SEL = "ticket-assign-sel";
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Ticket-Typ wählen
+    // Panel-Auswahlmenü: Ticket-Typ wählen
     // ──────────────────────────────────────────────────────────────────────────
 
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent event) {
-        if (!event.getComponentId().equals(SELECT_ID)) return;
+        String cid = event.getComponentId();
+
+        if (cid.equals(ACTION_SEL)) {
+            handleTicketAction(event);
+            return;
+        }
+        if (!cid.equals(SELECT_ID)) return;
 
         String value  = event.getValues().get(0);
         Guild  guild  = event.getGuild();
@@ -68,7 +72,7 @@ public class TicketListener extends ListenerAdapter {
             return;
         }
 
-        // Max 1 offenes Ticket prüfen
+        // Max 1 offenes Ticket
         String openKey    = "ticket-open-" + guild.getId() + "-" + member.getId();
         String existingId = DataStore.readString(openKey);
         if (existingId != null && !existingId.isBlank()) {
@@ -80,7 +84,6 @@ public class TicketListener extends ListenerAdapter {
             DataStore.deleteKey(openKey);
         }
 
-        // Kategorie + Rolle bestimmen
         long   categoryId;
         long   roleId;
         String typeLabel;
@@ -100,7 +103,6 @@ public class TicketListener extends ListenerAdapter {
 
         event.deferReply(true).queue();
 
-        // Ticket-Nummer hochzählen
         String counterKey = "ticket-counter-" + guild.getId();
         String cs         = DataStore.readString(counterKey);
         int    num        = (cs != null && !cs.isBlank()) ? Integer.parseInt(cs.trim()) + 1 : 1;
@@ -113,31 +115,23 @@ public class TicketListener extends ListenerAdapter {
         ChannelAction<TextChannel> action = guild.createTextChannel(ticketName);
         if (cat != null) action = action.setParent(cat);
 
-        // Berechtigungen setzen
         action = action
-            .addPermissionOverride(guild.getPublicRole(),
-                null,
-                EnumSet.of(Permission.VIEW_CHANNEL))
+            .addPermissionOverride(guild.getPublicRole(), null, EnumSet.of(Permission.VIEW_CHANNEL))
             .addPermissionOverride(member,
                 EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND,
-                           Permission.MESSAGE_HISTORY, Permission.MESSAGE_ATTACH_FILES),
-                null);
+                           Permission.MESSAGE_HISTORY, Permission.MESSAGE_ATTACH_FILES), null);
 
-        if (teamRole != null) {
+        if (teamRole != null)
             action = action.addPermissionOverride(teamRole,
                 EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND,
-                           Permission.MESSAGE_HISTORY, Permission.MANAGE_CHANNEL),
-                null);
-        }
-        // Highteam hat immer Zugriff
+                           Permission.MESSAGE_HISTORY, Permission.MANAGE_CHANNEL), null);
+
         if (roleId != HIGHTEAM_ROLE_ID) {
             Role htRole = guild.getRoleById(HIGHTEAM_ROLE_ID);
-            if (htRole != null) {
+            if (htRole != null)
                 action = action.addPermissionOverride(htRole,
                     EnumSet.of(Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND,
-                               Permission.MESSAGE_HISTORY, Permission.MANAGE_CHANNEL),
-                    null);
-            }
+                               Permission.MESSAGE_HISTORY, Permission.MANAGE_CHANNEL), null);
         }
 
         final long   fRoleId    = roleId;
@@ -147,22 +141,17 @@ public class TicketListener extends ListenerAdapter {
 
         action.queue(ch -> {
             DataStore.writeString(fOpenKey, ch.getId());
-            String dataKey = "ticket-data-" + guild.getId() + "-" + ch.getId();
             // Format: creatorId|roleId|typeLabel|claimedBy|assignedUsers
-            DataStore.writeString(dataKey, member.getId() + "|" + fRoleId + "|" + fTypeLabel + "||");
+            DataStore.writeString("ticket-data-" + guild.getId() + "-" + ch.getId(),
+                member.getId() + "|" + fRoleId + "|" + fTypeLabel + "||");
 
+            // Rolle dauerhaft pingen (kein Auto-Delete)
+            if (teamRole != null) ch.sendMessage(teamRole.getAsMention()).queue();
+
+            // Embed + Aktionsmenü
             ch.sendMessageEmbeds(buildTicketEmbed(fNum, fTypeLabel, member.getId(), ""))
-                .addActionRow(
-                    Button.success(CLAIM_BTN,  "🙋 Ticket claimen"),
-                    Button.primary(ASSIGN_BTN, "👤 Person zuweisen"),
-                    Button.danger(CLOSE_BTN,   "🔒 Ticket schließen")
-                )
+                .addActionRow(buildActionMenu())
                 .queue();
-
-            if (teamRole != null) {
-                ch.sendMessage(teamRole.getAsMention())
-                  .queue(m -> m.delete().queueAfter(3, TimeUnit.SECONDS, null, e -> {}));
-            }
 
             event.getHook().sendMessage("✅ Dein Ticket wurde erstellt: " + ch.getAsMention()).queue();
             log.info("[Ticket] #{} ({}) erstellt von {}.", fNum, fTypeLabel, member.getUser().getName());
@@ -174,25 +163,24 @@ public class TicketListener extends ListenerAdapter {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Button-Interaktionen
+    // Aktionsmenü im Ticket (Claimen / Zuweisen / Schließen)
     // ──────────────────────────────────────────────────────────────────────────
 
-    @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
-        String id = event.getComponentId();
-        if (id.equals(CLAIM_BTN))   { handleClaim(event);      return; }
-        if (id.equals(ASSIGN_BTN))  { handleAssign(event);     return; }
-        if (id.equals(CLOSE_BTN))   { handleClose(event);      return; }
-        if (id.startsWith("rate-")) { handleRateButton(event); return; }
-    }
-
-    // ─── Claim ───────────────────────────────────────────────────────────────
-
-    private void handleClaim(ButtonInteractionEvent event) {
+    private void handleTicketAction(StringSelectInteractionEvent event) {
         Guild  guild  = event.getGuild();
         Member member = event.getMember();
         if (guild == null || member == null) return;
 
+        switch (event.getValues().get(0)) {
+            case "claim":  handleClaim(event, guild, member);  break;
+            case "assign": handleAssign(event, guild, member); break;
+            case "close":  handleClose(event, guild, member);  break;
+        }
+    }
+
+    // ─── Claim ───────────────────────────────────────────────────────────────
+
+    private void handleClaim(StringSelectInteractionEvent event, Guild guild, Member member) {
         TextChannel ch    = (TextChannel) event.getChannel();
         String      dKey  = "ticket-data-" + guild.getId() + "-" + ch.getId();
         String[]    parts = loadData(dKey);
@@ -222,11 +210,7 @@ public class TicketListener extends ListenerAdapter {
 
     // ─── Assign ──────────────────────────────────────────────────────────────
 
-    private void handleAssign(ButtonInteractionEvent event) {
-        Guild  guild  = event.getGuild();
-        Member member = event.getMember();
-        if (guild == null || member == null) return;
-
+    private void handleAssign(StringSelectInteractionEvent event, Guild guild, Member member) {
         TextChannel ch    = (TextChannel) event.getChannel();
         String[]    parts = loadData("ticket-data-" + guild.getId() + "-" + ch.getId());
         if (parts == null) { event.reply("❌ Ticket-Daten nicht gefunden.").setEphemeral(true).queue(); return; }
@@ -248,7 +232,7 @@ public class TicketListener extends ListenerAdapter {
             .queue();
     }
 
-    // ─── Assign-Select ───────────────────────────────────────────────────────
+    // ─── Assign-Select (Entity-Picker) ───────────────────────────────────────
 
     @Override
     public void onEntitySelectInteraction(EntitySelectInteractionEvent event) {
@@ -282,11 +266,7 @@ public class TicketListener extends ListenerAdapter {
 
     // ─── Close ───────────────────────────────────────────────────────────────
 
-    private void handleClose(ButtonInteractionEvent event) {
-        Guild  guild  = event.getGuild();
-        Member member = event.getMember();
-        if (guild == null || member == null) return;
-
+    private void handleClose(StringSelectInteractionEvent event, Guild guild, Member member) {
         TextChannel ch    = (TextChannel) event.getChannel();
         String      dKey  = "ticket-data-" + guild.getId() + "-" + ch.getId();
         String[]    parts = loadData(dKey);
@@ -308,7 +288,6 @@ public class TicketListener extends ListenerAdapter {
 
         ch.getIterableHistory().takeAsync(200).thenAccept(msgs -> {
 
-            // Transkript
             StringBuilder sb = new StringBuilder();
             sb.append("=== ").append(ticketName).append(" | ").append(typeLabel).append(" ===\n");
             sb.append("Erstellt von:    ").append(creatorId).append("\n");
@@ -327,13 +306,11 @@ public class TicketListener extends ListenerAdapter {
                 sb.append("\n");
             }
 
-            // DataStore bereinigen, Rating-Daten aufbewahren
             DataStore.deleteKey("ticket-open-" + guild.getId() + "-" + creatorId);
             DataStore.deleteKey(dKey);
             DataStore.writeString("ticket-rating-data-" + ticketId,
                 creatorId + "|" + claimedBy + "|" + typeLabel + "|" + ticketName);
 
-            // Transkript senden
             TextChannel transcriptCh = guild.getTextChannelById(TRANSCRIPT_CHANNEL_ID);
             if (transcriptCh != null) {
                 byte[]     bytes  = sb.toString().getBytes(StandardCharsets.UTF_8);
@@ -349,10 +326,8 @@ public class TicketListener extends ListenerAdapter {
                 ).addFiles(upload).queue();
             }
 
-            // Kanal sofort löschen
             ch.delete().reason("Ticket geschlossen von " + member.getUser().getName()).queue();
 
-            // DM mit Bewertungs-Buttons an Ersteller
             guild.retrieveMemberById(creatorId).queue(creator -> {
                 if (creator == null) return;
                 creator.getUser().openPrivateChannel().queue(pm ->
@@ -377,10 +352,14 @@ public class TicketListener extends ListenerAdapter {
         }).exceptionally(e -> { log.error("[Ticket] Fehler beim Schließen.", e); return null; });
     }
 
-    // ─── Bewertungs-Button ───────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
+    // Bewertungs-Buttons (DM)
+    // ──────────────────────────────────────────────────────────────────────────
 
-    private void handleRateButton(ButtonInteractionEvent event) {
-        // Format: rate-{ticketId}-{stars}  (ticketId = Snowflake, keine Bindestriche)
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if (!event.getComponentId().startsWith("rate-")) return;
+
         String id    = event.getComponentId();
         int    lastD = id.lastIndexOf('-');
         if (lastD < 0) return;
@@ -404,17 +383,19 @@ public class TicketListener extends ListenerAdapter {
         event.replyModal(modal).queue();
     }
 
-    // ─── Modal — Bewertung absenden ──────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────────────────
+    // Modal — Bewertung absenden
+    // ──────────────────────────────────────────────────────────────────────────
 
     @Override
     public void onModalInteraction(ModalInteractionEvent event) {
         String modalId = event.getModalId();
         if (!modalId.startsWith("ticket-rate-modal:")) return;
 
-        String[] p        = modalId.split(":");
+        String[] p      = modalId.split(":");
         if (p.length < 3) return;
-        String ticketId   = p[1];
-        String stars      = p[2];
+        String ticketId = p[1];
+        String stars    = p[2];
 
         String ratedKey = "ticket-rated-" + ticketId;
         if (DataStore.readString(ratedKey) != null) {
@@ -426,7 +407,6 @@ public class TicketListener extends ListenerAdapter {
         String comment = event.getValue("comment") != null
             ? event.getValue("comment").getAsString().trim() : "";
 
-        // Ticket-Daten
         String rdData    = DataStore.readString("ticket-rating-data-" + ticketId);
         String creatorId = "?", claimedBy = "", typeLabel = "?", channelName = "?";
         if (rdData != null) {
@@ -437,7 +417,6 @@ public class TicketListener extends ListenerAdapter {
         int    starCount = Integer.parseInt(stars);
         String starStr   = "⭐".repeat(starCount) + "☆".repeat(5 - starCount);
 
-        // Rating-Embed senden
         final String fCreator = creatorId, fClaimed = claimedBy,
                      fType = typeLabel, fChannel = channelName, fComment = comment;
 
@@ -462,7 +441,6 @@ public class TicketListener extends ListenerAdapter {
 
         event.reply("✅ Danke für deine Bewertung! (" + starStr + ")").setEphemeral(true).queue();
 
-        // Buttons im DM deaktivieren
         if (event.getMessage() != null) {
             event.getMessage().editMessageComponents(ActionRow.of(
                 Button.secondary("rate-" + ticketId + "-1", "⭐").asDisabled(),
@@ -477,6 +455,16 @@ public class TicketListener extends ListenerAdapter {
     // ──────────────────────────────────────────────────────────────────────────
     // Hilfsmethoden
     // ──────────────────────────────────────────────────────────────────────────
+
+    /** Aktionsmenü das im Ticket erscheint. */
+    public static StringSelectMenu buildActionMenu() {
+        return StringSelectMenu.create(ACTION_SEL)
+            .setPlaceholder("Aktion auswählen…")
+            .addOption("Ticket claimen",    "claim",  "Ticket zur Bearbeitung übernehmen",  net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🙋"))
+            .addOption("Person zuweisen",   "assign", "Eine Person dem Ticket hinzufügen",  net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("👤"))
+            .addOption("Ticket schließen",  "close",  "Ticket schließen und Transkript senden", net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔒"))
+            .build();
+    }
 
     private static String[] loadData(String key) {
         String raw = DataStore.readString(key);
