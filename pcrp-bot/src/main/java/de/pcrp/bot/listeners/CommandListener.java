@@ -51,6 +51,8 @@ public class CommandListener extends ListenerAdapter {
             case "verwarnung"          -> handleVerwarnung(event);
             case "verwarn-liste"       -> handleVerwarnListe(event);
             case "verwarnung-löschen"  -> handleVerwarnungLoeschen(event);
+            case "einreise-sperre"     -> handleEinreiseSperre(event);
+            case "einreise-entsperren" -> handleEinreiseEntsperre(event);
         }
     }
 
@@ -857,6 +859,109 @@ public class CommandListener extends ListenerAdapter {
                   "Der Aktivitätscheck konnte nicht erstellt werden."))
                   .setEphemeral(true).queue();
           });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /einreise-sperre
+    // ════════════════════════════════════════════════════════════
+
+    private static final String EINREISE_STOPP_GIF =
+        "https://media.tenor.com/hbtAkDqFkpUAAAAM/red-alert-alert.gif";
+
+    private void handleEinreiseSperre(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String key = "einreise-sperre-" + event.getGuild().getId();
+
+        // Bereits aktiv?
+        String existing = DataStore.readString(key);
+        if (existing != null && !existing.isBlank()) {
+            event.replyEmbeds(embed("Bereits aktiv",
+                "⛔ Der Einreise-Stopp ist **bereits aktiv**. Nutze `/einreise-entsperren` um ihn aufzuheben."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Meldeamt-Kanal nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        net.dv8tion.jda.api.entities.MessageEmbed stopEmbed = new net.dv8tion.jda.api.EmbedBuilder()
+            .setColor(java.awt.Color.RED)
+            .setTitle("🚨 ⛔  E I N R E I S E   S T O P P  ⛔ 🚨")
+            .setImage(EINREISE_STOPP_GIF)
+            .setDescription(
+                "# ⛔ EINREISE STOPP ⛔\n\n" +
+                "**Aktuell befinden wir uns in einem Einreise-Stopp.**\n" +
+                "Das kann verschiedene Gründe haben.\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "Wir bitten dich noch etwas **Geduld** aufzubringen.\n" +
+                "Du wirst benachrichtigt, sobald die Einreise wieder möglich ist.\n\n" +
+                "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                "🔴 **Die Einreise ist derzeit gesperrt.**")
+            .build();
+
+        ch.sendMessageEmbeds(stopEmbed).queue(
+            msg -> {
+                DataStore.writeString(key, msg.getId());
+                event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aktiviert",
+                    "Der Einreise-Stopp wurde in <#" + LoggingConfig.MELDEAMT_CHANNEL_ID + "> veröffentlicht."))
+                    .setEphemeral(true).queue();
+            },
+            err -> {
+                log.error("[EinreiseSperre] Konnte nicht gesendet werden.", err);
+                event.getHook().sendMessageEmbeds(embed("Fehler", "Einreise-Stopp konnte nicht gepostet werden."))
+                    .setEphemeral(true).queue();
+            });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /einreise-entsperren
+    // ════════════════════════════════════════════════════════════
+
+    private void handleEinreiseEntsperre(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String key = "einreise-sperre-" + event.getGuild().getId();
+
+        String storedMsgId = DataStore.readString(key);
+        if (storedMsgId == null || storedMsgId.isBlank()) {
+            event.replyEmbeds(embed("Nicht aktiv",
+                "Es ist derzeit **kein Einreise-Stopp** aktiv."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Meldeamt-Kanal nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        ch.retrieveMessageById(storedMsgId.trim()).queue(
+            msg -> msg.delete().queue(
+                v -> {
+                    DataStore.deleteKey(key);
+                    event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
+                        "Der Einreise-Stopp wurde entfernt. Die Einreise ist wieder möglich."))
+                        .setEphemeral(true).queue();
+                },
+                err -> {
+                    DataStore.deleteKey(key);
+                    event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
+                        "Nachricht konnte nicht gelöscht werden (evtl. bereits entfernt). Status wurde zurückgesetzt."))
+                        .setEphemeral(true).queue();
+                }),
+            err -> {
+                DataStore.deleteKey(key);
+                event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
+                    "Nachricht nicht mehr vorhanden. Status wurde zurückgesetzt."))
+                    .setEphemeral(true).queue();
+            });
     }
 
     // ════════════════════════════════════════════════════════════

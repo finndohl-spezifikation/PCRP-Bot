@@ -362,6 +362,9 @@ public class Main {
                 EmbedFactory.create()
                     .setTitle("🏛️ Paradise City Einwohner Meldeamt")
                     .setDescription(
+                        "**❗ Bitte stelle sicher, dass du Direktnachrichten von Servermitgliedern " +
+                        "aktiviert hast, damit dir der Bot Nachrichten schicken kann.**\n\n" +
+                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
                         "__**Legale Einreise**__\n\n" +
                         "- Ausweis,\n" +
                         "- Zugang zur Staatlichen Jobs,\n" +
@@ -374,7 +377,6 @@ public class Main {
                         "- Ab 5 Personen,\n" +
                         "- Mehr Startgeld,\n" +
                         "- Exklusives Starterfahrzeug")
-
                     .build()
             )
             .addActionRow(Button.link(webUrl, "🏛️ Jetzt Einreisen"))
@@ -520,7 +522,15 @@ public class Main {
                         .addChoice("3 Tage",      "3d")
                         .addChoice("7 Tage",      "7d"))
                     .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE))
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("einreise-sperre", "Aktiviert den Einreise-Stopp")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("einreise-entsperren", "Hebt den Einreise-Stopp wieder auf")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 
             );
         }
