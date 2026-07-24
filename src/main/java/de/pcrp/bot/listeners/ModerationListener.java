@@ -234,22 +234,39 @@ public class ModerationListener extends ListenerAdapter {
         int offenses = spamOffenses.merge(userId, 1, Integer::sum);
         saveOffenses();
 
-        // Sofortiger Timeout – keine Vorwarnung
-        guild.timeoutFor(member, Duration.ofMinutes(ModerationConfig.SPAM_TIMEOUT_MINUTES)).queue();
+        if (offenses == 1) {
+            // 1. Verstoß: Verwarnung per DM, kein Timeout
+            BotLogger.tryDm(member.getUser(), EmbedFactory.build(
+                "⚠️ Verwarnung – Spamschutz",
+                "Du hast in kürzester Zeit zu viele Nachrichten auf **" + guild.getName() + "** gesendet.\n\n" +
+                "Deine Nachrichten wurden gelöscht. Dies ist deine **Verwarnung** — " +
+                "beim nächsten Verstoß erhältst du automatisch einen **10-minütigen Timeout**."));
 
-        BotLogger.tryDm(member.getUser(), EmbedFactory.build(
-            "🔇 Timeout – Spamschutz",
-            "Du wurdest auf **" + guild.getName() + "** automatisch für **10 Minuten** " +
-            "mit einem Timeout belegt, da du in kürzester Zeit zu viele Nachrichten gesendet hast.\n\n" +
-            "Bitte halte dich an die Serverregeln."));
+            BotLogger.logModeration(guild,
+                "⚠️ Spam – Verwarnung ausgesprochen",
+                "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
+                "**Kanal:** " + channel.getAsMention() + "\n" +
+                "**Verstoß Nr.:** " + offenses + "\n" +
+                "**Gelöschte Nachrichten:** " + spamIds.size() + "\n" +
+                "**Aktion:** Nachrichten gelöscht · DM-Verwarnung gesendet");
+        } else {
+            // 2. Verstoß+: Timeout
+            guild.timeoutFor(member, Duration.ofMinutes(ModerationConfig.SPAM_TIMEOUT_MINUTES)).queue();
 
-        BotLogger.logModeration(guild,
-            "🔇 Spam – Timeout vergeben",
-            "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
-            "**Kanal:** " + channel.getAsMention() + "\n" +
-            "**Verstoß Nr.:** " + offenses + "\n" +
-            "**Gelöschte Nachrichten:** " + spamIds.size() + "\n" +
-            "**Aktion:** 10 Min. Timeout · Nachrichten gelöscht · DM gesendet");
+            BotLogger.tryDm(member.getUser(), EmbedFactory.build(
+                "🔇 Timeout – Spamschutz",
+                "Du wurdest auf **" + guild.getName() + "** automatisch für **10 Minuten** " +
+                "mit einem Timeout belegt, da du erneut zu viele Nachrichten in kurzer Zeit gesendet hast.\n\n" +
+                "Bitte halte dich an die Serverregeln."));
+
+            BotLogger.logModeration(guild,
+                "🔇 Spam – Timeout vergeben",
+                "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
+                "**Kanal:** " + channel.getAsMention() + "\n" +
+                "**Verstoß Nr.:** " + offenses + "\n" +
+                "**Gelöschte Nachrichten:** " + spamIds.size() + "\n" +
+                "**Aktion:** 10 Min. Timeout · Nachrichten gelöscht · DM gesendet");
+        }
     }
 
     // ── Hilfs-Methoden ────────────────────────────────────────────────────────
