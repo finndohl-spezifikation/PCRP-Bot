@@ -527,11 +527,6 @@ public class Main {
 
                 Commands.slash("einreise-entsperren", "Hebt den Einreise-Stopp wieder auf")
                     .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
-
-                Commands.slash("direkt-nachricht", "Sendet eine Direkt-Nachricht via Bot-DM")
-                    .addOption(OptionType.USER, "mitglied", "Bestimmtes Mitglied (leer lassen = an alle)", false)
-                    .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 
             );

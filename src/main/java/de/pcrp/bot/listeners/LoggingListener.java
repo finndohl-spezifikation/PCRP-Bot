@@ -67,8 +67,7 @@ public class LoggingListener extends ListenerAdapter {
             if (ch != null)
                 ch.sendMessageEmbeds(embed.build())
                     .addActionRow(
-                        Button.primary("status-aktive-systeme", "🛡️ Aktive Systeme"),
-                        Button.primary("dm-menu", "📨 Direkt-Nachricht"))
+                        Button.primary("status-aktive-systeme", "🛡️ Aktive Systeme"))
                     .queue();
         }
     }
