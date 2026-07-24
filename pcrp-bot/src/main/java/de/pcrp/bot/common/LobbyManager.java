@@ -86,9 +86,7 @@ public final class LobbyManager {
 
     /** Initialer Embed beim Erstellen (alle Votes = 0, GIF noch als Attachment). */
     public static MessageEmbed buildInitialEmbed(String uhrzeit) {
-        return buildDescription(uhrzeit, 0, 0, 0, 0)
-            .setImage("attachment://lobby-banner.png")
-            .build();
+        return buildDescription(uhrzeit, 0, 0, 0, 0).build();
     }
 
     /** Aktualisiertes Embed nach einem Vote (ohne Attachment, Bild bleibt via URL). */

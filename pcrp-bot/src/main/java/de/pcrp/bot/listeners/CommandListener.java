@@ -66,6 +66,7 @@ public class CommandListener extends ListenerAdapter {
             case "frak-sperren"        -> handleFrakSperren(event);
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
             case "lobby-abstimmung"    -> handleLobbyAbstimmung(event);
+            case "lobby-öffnen"        -> handleLobbyOeffnen(event);
             case "vorschlag"           -> handleVorschlag(event);
             case "vorschlag-annehmen"  -> handleVorschlagAnnehmen(event);
             case "vorschlag-ablehnen"  -> handleVorschlagAblehnen(event);
@@ -1170,17 +1171,9 @@ public class CommandListener extends ListenerAdapter {
 
         event.deferReply(true).queue();
 
-        InputStream banner = CommandListener.class.getResourceAsStream("/static/lobby-banner.png");
-        if (banner == null) {
-            event.getHook().sendMessageEmbeds(embed("Fehler", "Banner-Bild nicht gefunden."))
-                .setEphemeral(true).queue();
-            return;
-        }
-
         final String finalUhrzeit = uhrzeit;
         ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
             .setEmbeds(LobbyManager.buildInitialEmbed(finalUhrzeit))
-            .addFiles(FileUpload.fromData(banner, "lobby-banner.png"))
             .queue(msg -> {
                 LobbyManager.storeUhrzeit(msg.getId(), finalUhrzeit);
 
@@ -1198,6 +1191,42 @@ public class CommandListener extends ListenerAdapter {
                     "Die Abstimmung konnte nicht erstellt werden."))
                     .setEphemeral(true).queue();
             });
+    }
+
+    private void handleLobbyOeffnen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String host = event.getOption("lobbyhost", OptionMapping::getAsString);
+        if (host == null) return;
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.LOBBY_OEFFNEN_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Lobby-Öffnen-Kanal nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        net.dv8tion.jda.api.entities.MessageEmbed lobbyEmbed = EmbedFactory.create()
+            .setDescription(
+                "────── ⋆⋅☆⋅⋆ ──────\n\n" +
+                "🎉 **LOBBY GEÖFFNET** 🎉\n\n" +
+                "👤 **LOBBY HOST** 👤\n" +
+                host + "\n\n" +
+                "Wir wünschen euch viel Spaß im RP\n\n" +
+                "Solltest du noch nicht in der Crew sein öffne hier ein Support Ticket " +
+                "<#1529636489732952264> und stelle eine Crew Anfrage")
+            .build();
+
+        event.deferReply(true).queue();
+        ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
+            .setEmbeds(lobbyEmbed)
+            .queue(msg -> event.getHook().sendMessageEmbeds(
+                embed("✅ Lobby geöffnet", "Die Nachricht wurde in <#" + LoggingConfig.LOBBY_OEFFNEN_CHANNEL_ID + "> gepostet."))
+                .setEphemeral(true).queue(),
+                err -> {
+                    log.error("[LobbyOeffnen] Fehler beim Senden.", err);
+                    event.getHook().sendMessageEmbeds(embed("Fehler", "Die Nachricht konnte nicht gesendet werden."))
+                        .setEphemeral(true).queue();
+                });
     }
 
     private void handleVorschlag(SlashCommandInteractionEvent event) {

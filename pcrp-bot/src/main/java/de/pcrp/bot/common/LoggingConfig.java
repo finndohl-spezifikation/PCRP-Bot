@@ -114,6 +114,9 @@ public final class LoggingConfig {
     /** Lobby-Abstimmungs-Kanal (/lobby-abstimmung). */
     public static final long LOBBY_ABSTIMMUNG_CHANNEL_ID = 1529636545957597214L;
 
+    /** Lobby-Öffnen-Kanal (/lobby-öffnen). */
+    public static final long LOBBY_OEFFNEN_CHANNEL_ID    = 1529636547169615872L;
+
     /** Rolle die bei Lobby-Abstimmungen gepingt wird. */
     public static final long LOBBY_ABSTIMMUNG_ROLE_ID    = 1529636309633863752L;
 

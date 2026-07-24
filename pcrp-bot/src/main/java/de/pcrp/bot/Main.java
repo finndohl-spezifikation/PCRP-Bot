@@ -626,7 +626,9 @@ public class Main {
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("lobby-abstimmung", "Startet eine Lobby-Abstimmung")
-                    .addOption(OptionType.STRING, "uhrzeit", "RP-Startzeit (z. B. 20:00 Uhr)", true)
+                    .addOption(OptionType.STRING, "uhrzeit", "RP-Startzeit (z. B. 20:00 Uhr)", true),
+                Commands.slash("lobby-öffnen", "Öffnet die Lobby und benachrichtigt die Community")
+                    .addOption(OptionType.STRING, "lobbyhost", "Name des Lobby Hosts", true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
