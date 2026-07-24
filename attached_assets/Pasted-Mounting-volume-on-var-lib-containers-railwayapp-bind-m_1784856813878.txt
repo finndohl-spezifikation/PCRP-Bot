@@ -1,0 +1,32 @@
+Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/5a82f40a-bfac-4731-bc4f-030b5c9c5663/vol_mny7h7b26e0jd5cg
+Starting Container
+01:32:51 [main] INFO  o.e.j.s.s.DefaultSessionIdManager - Session workerName=node0
+01:32:51 [main] INFO  o.e.j.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@258d79be{/,null,AVAILABLE}
+01:32:51 [main] INFO  io.javalin.Javalin - Starting Javalin ...
+01:32:51 [main] INFO  org.eclipse.jetty.server.Server - jetty-11.0.23; built: 2024-08-14T01:40:17.906Z; git: 6fcf5ccaebd7ca13a0cb96c96adca699a24080a0; jvm 21.0.11+10-LTS
+       __                  ___           _____
+      / /___ __   ______ _/ (_)___      / ___/
+01:32:51 [main] INFO  o.e.jetty.server.AbstractConnector - Started ServerConnector@33bc72d1{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+01:32:51 [main] INFO  org.eclipse.jetty.server.Server - Started Server@6cb107fd{STARTING}[11.0.23,sto=0] @441ms
+01:32:51 [main] INFO  io.javalin.Javalin - 
+ __  / / __ `/ | / / __ `/ / / __ \    / __ \
+/ /_/ / /_/ /| |/ / /_/ / / / / / /   / /_/ /
+\____/\__,_/ |___/\__,_/_/_/_/ /_/    \____/
+       https://javalin.io/documentation
+01:32:51 [main] INFO  io.javalin.Javalin - Javalin started in 143ms \o/
+01:32:51 [main] INFO  io.javalin.Javalin - Listening on http://localhost:8080/
+01:32:51 [main] INFO  io.javalin.Javalin - You are running Javalin 6.3.0 (released August 22, 2024. Your Javalin version is 700 days old. Consider checking for a newer version.).
+01:32:51 [main] INFO  de.pcrp.bot.web.WebServer - [WebServer] Einwohner-Meldeamt läuft auf Port 8080.
+01:32:52 [JDA MainWS-ReadThread] INFO  de.pcrp.bot.Main$StartupListener - Bot bereit – eingeloggt als Paradise City System#1333.
+01:32:52 [ForkJoinPool.commonPool-worker-1] INFO  d.p.bot.listeners.RoleMenuListener - [PingRoles] Panel aktiv (ID: 1530020835237036095), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-1] INFO  de.pcrp.bot.Main$StartupListener - [Panel] 'rpeinstellungen' aktiv (ID: 1529975077603512432), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-2] INFO  de.pcrp.bot.Main$StartupListener - [Ticket] Panel aktiv (ID: 1529992534997078057), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  d.pcrp.bot.listeners.WelcomeListener - [Invite-Cache] 'Paradise City Roleplay' – 5 Einladungen geladen.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Panel] 'starterpaket' aktiv (ID: 1529975077377150999), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Panel] 'startpunkt' aktiv (ID: 1529975077574021181), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Panel] 'safezones' aktiv (ID: 1529979405890355261), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Panel] 'fraktionen' aktiv (ID: 1529979405902811299), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Meldeamt] Altes Panel gefunden (ID: 1530024172808306842), lösche und sende neu.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Regelwerk] Teil 1 aktiv (ID: 1529979405940690945), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-3] INFO  de.pcrp.bot.Main$StartupListener - [Regelwerk] Teil 2 aktiv (ID: 1529979406674563234), kein Neuversand.
+01:32:52 [ForkJoinPool.commonPool-worker-2] INFO  de.pcrp.bot.Main$StartupListener - Commands auf 'Paradise City Roleplay' registriert.
