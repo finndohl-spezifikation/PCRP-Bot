@@ -16,7 +16,10 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import net.dv8tion.jda.api.utils.FileUpload;
+
 import java.awt.Color;
+import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -62,6 +65,7 @@ public class CommandListener extends ListenerAdapter {
             case "frakwarn-entfernen"  -> handleFrakWarnEntfernen(event);
             case "frak-sperren"        -> handleFrakSperren(event);
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
+            case "lobby-abstimmung"    -> handleLobbyAbstimmung(event);
             case "vorschlag"           -> handleVorschlag(event);
             case "vorschlag-annehmen"  -> handleVorschlagAnnehmen(event);
             case "vorschlag-ablehnen"  -> handleVorschlagAblehnen(event);
@@ -1147,6 +1151,65 @@ public class CommandListener extends ListenerAdapter {
     // ════════════════════════════════════════════════════════════
     //  /vorschlag  /vorschlag-annehmen  /vorschlag-ablehnen
     // ════════════════════════════════════════════════════════════
+
+    // ════════════════════════════════════════════════════════════
+    //  /lobby-abstimmung
+    // ════════════════════════════════════════════════════════════
+
+    private void handleLobbyAbstimmung(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String uhrzeit = event.getOption("uhrzeit", OptionMapping::getAsString);
+        if (uhrzeit == null) return;
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.LOBBY_ABSTIMMUNG_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Lobby-Abstimmungs-Kanal nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        InputStream banner = CommandListener.class.getResourceAsStream("/static/lobby-banner.png");
+        if (banner == null) {
+            event.getHook().sendMessageEmbeds(embed("Fehler", "Banner-Bild nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        net.dv8tion.jda.api.entities.MessageEmbed lobbyEmbed = EmbedFactory.create()
+            .setDescription(
+                "────── ⋆⋅☆⋅⋆ ──────\n" +
+                "📋 **LOBBY-ABSTIMMUNG** 📋\n\n" +
+                "🕒 **RP-START** 🕒\n" +
+                uhrzeit + "\n\n" +
+                "🗳️ **OPTIONEN** 🗳️\n" +
+                "✅ ── Ich komme\n" +
+                "🕒 ── Ich komme später\n" +
+                "🤔 ── Ich komme vielleicht\n" +
+                "❌ ── Ich komme nicht")
+            .setImage("attachment://lobby-banner.png")
+            .build();
+
+        ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
+            .setEmbeds(lobbyEmbed)
+            .addFiles(FileUpload.fromData(banner, "lobby-banner.png"))
+            .queue(msg -> {
+                msg.addReaction(Emoji.fromUnicode("✅")).queue();
+                msg.addReaction(Emoji.fromUnicode("🕒")).queue();
+                msg.addReaction(Emoji.fromUnicode("🤔")).queue();
+                msg.addReaction(Emoji.fromUnicode("❌")).queue();
+
+                event.getHook().sendMessageEmbeds(embed("✅ Lobby-Abstimmung gesendet",
+                    "Die Abstimmung für **" + uhrzeit + "** wurde gepostet."))
+                    .setEphemeral(true).queue();
+            }, err -> {
+                log.error("[LobbyAbstimmung] Fehler beim Senden.", err);
+                event.getHook().sendMessageEmbeds(embed("Fehler",
+                    "Die Abstimmung konnte nicht erstellt werden."))
+                    .setEphemeral(true).queue();
+            });
+    }
 
     private void handleVorschlag(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;

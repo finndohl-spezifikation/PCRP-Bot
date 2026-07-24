@@ -624,6 +624,11 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
+                Commands.slash("lobby-abstimmung", "Startet eine Lobby-Abstimmung")
+                    .addOption(OptionType.STRING, "uhrzeit", "RP-Startzeit (z. B. 20:00 Uhr)", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
                 Commands.slash("vorschlag", "Erstellt einen Vorschlag (nur im Vorschlag-Kanal)")
                     .addOption(OptionType.STRING, "titel",       "Titel des Vorschlags",       true)
                     .addOption(OptionType.STRING, "beschreibung","Beschreibung des Vorschlags", true),

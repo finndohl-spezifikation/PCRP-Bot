@@ -111,6 +111,12 @@ public final class LoggingConfig {
     /** Rolle die das Fraktions-Liste Embed bearbeiten darf. */
     public static final long FRAK_MANAGER_ROLE_ID    = 1529636285159837807L;
 
+    /** Lobby-Abstimmungs-Kanal (/lobby-abstimmung). */
+    public static final long LOBBY_ABSTIMMUNG_CHANNEL_ID = 1529636545957597214L;
+
+    /** Rolle die bei Lobby-Abstimmungen gepingt wird. */
+    public static final long LOBBY_ABSTIMMUNG_ROLE_ID    = 1529636309633863752L;
+
     /** Vorschlag-Kanal (/vorschlag). */
     public static final long VORSCHLAG_CHANNEL_ID    = 1529636537292161185L;
 
