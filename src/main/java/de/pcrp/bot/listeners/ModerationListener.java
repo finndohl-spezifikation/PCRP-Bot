@@ -41,10 +41,10 @@ public class ModerationListener extends ListenerAdapter {
         "\\b67\\b|sixseven",
         Pattern.CASE_INSENSITIVE);
 
-    // Spam-Tracking
-    private final ConcurrentHashMap<Long, ArrayDeque<Long>> messageTimes = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, Long>             lastSpamAction = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<Long, Integer>                spamOffenses   = new ConcurrentHashMap<>();
+    // Spam-Tracking: [0]=timestamp ms, [1]=messageId
+    private final ConcurrentHashMap<Long, ArrayDeque<long[]>> messageQueue   = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Long>               lastSpamAction = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<Long, Integer>                  spamOffenses   = new ConcurrentHashMap<>();
     private static final String OFFENSES_FILE = "spam_offenses.json";
     private static final Gson   GSON          = new Gson();
 
@@ -210,18 +210,23 @@ public class ModerationListener extends ListenerAdapter {
         long now    = Instant.now().toEpochMilli();
         long userId = member.getIdLong();
 
-        ArrayDeque<Long> times = messageTimes.computeIfAbsent(userId, k -> new ArrayDeque<>());
+        ArrayDeque<long[]> queue = messageQueue.computeIfAbsent(userId, k -> new ArrayDeque<>());
+        List<String> spamIds;
         int count;
-        synchronized (times) {
-            times.addLast(now);
-            while (!times.isEmpty() && now - times.peekFirst() > ModerationConfig.SPAM_WINDOW_MS)
-                times.pollFirst();
-            count = times.size();
+        synchronized (queue) {
+            queue.addLast(new long[]{now, message.getIdLong()});
+            queue.removeIf(e -> now - e[0] > ModerationConfig.SPAM_WINDOW_MS);
+            count   = queue.size();
+            spamIds = new ArrayList<>();
+            for (long[] e : queue) spamIds.add(String.valueOf(e[1]));
         }
 
         if (count <= ModerationConfig.SPAM_MESSAGE_LIMIT) return;
 
-        // Nicht mehrfach innerhalb derselben Spamwelle bestrafen
+        // Alle Spam-Nachrichten sofort löschen
+        channel.purgeMessagesById(spamIds);
+
+        // Innerhalb derselben Welle nicht erneut bestrafen
         Long last = lastSpamAction.get(userId);
         if (last != null && now - last < 30_000L) return;
         lastSpamAction.put(userId, now);
@@ -229,33 +234,22 @@ public class ModerationListener extends ListenerAdapter {
         int offenses = spamOffenses.merge(userId, 1, Integer::sum);
         saveOffenses();
 
-        if (offenses == 1) {
-            BotLogger.tryDm(member.getUser(), EmbedFactory.build(
-                "Verwarnung – Spamschutz",
-                "Du hast in kürzester Zeit zu viele Nachrichten auf **PCRP** gesendet.\n\n" +
-                "Dies ist deine **Verwarnung**. Beim nächsten Verstoß erhältst du automatisch einen **10-minütigen Timeout**."));
+        // Sofortiger Timeout – keine Vorwarnung
+        guild.timeoutFor(member, Duration.ofMinutes(ModerationConfig.SPAM_TIMEOUT_MINUTES)).queue();
 
-            BotLogger.logModeration(guild,
-                "⚠️ Spam – Verwarnung ausgesprochen",
-                "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
-                "**Kanal:** " + channel.getAsMention() + "\n" +
-                "**Verstoß Nr.:** " + offenses + "\n" +
-                "**Aktion:** DM-Verwarnung gesendet (nächster Verstoß = 10 Min. Timeout)");
-        } else {
-            guild.timeoutFor(member, Duration.ofMinutes(ModerationConfig.SPAM_TIMEOUT_MINUTES)).queue();
+        BotLogger.tryDm(member.getUser(), EmbedFactory.build(
+            "🔇 Timeout – Spamschutz",
+            "Du wurdest auf **" + guild.getName() + "** automatisch für **10 Minuten** " +
+            "mit einem Timeout belegt, da du in kürzester Zeit zu viele Nachrichten gesendet hast.\n\n" +
+            "Bitte halte dich an die Serverregeln."));
 
-            BotLogger.tryDm(member.getUser(), EmbedFactory.build(
-                "Timeout – Spamschutz",
-                "Du wurdest trotz Verwarnung erneut wegen Spam auffällig.\n\n" +
-                "Du hast automatisch einen **10-minütigen Timeout** erhalten."));
-
-            BotLogger.logModeration(guild,
-                "🔇 Spam – 10 Min. Timeout vergeben",
-                "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
-                "**Kanal:** " + channel.getAsMention() + "\n" +
-                "**Verstoß Nr.:** " + offenses + "\n" +
-                "**Aktion:** 10 Minuten Timeout · DM gesendet");
-        }
+        BotLogger.logModeration(guild,
+            "🔇 Spam – Timeout vergeben",
+            "**Nutzer:** " + member.getAsMention() + " | " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
+            "**Kanal:** " + channel.getAsMention() + "\n" +
+            "**Verstoß Nr.:** " + offenses + "\n" +
+            "**Gelöschte Nachrichten:** " + spamIds.size() + "\n" +
+            "**Aktion:** 10 Min. Timeout · Nachrichten gelöscht · DM gesendet");
     }
 
     // ── Hilfs-Methoden ────────────────────────────────────────────────────────
