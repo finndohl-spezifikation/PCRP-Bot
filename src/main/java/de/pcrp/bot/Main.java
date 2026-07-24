@@ -46,6 +46,7 @@ public class Main {
         TicketListener          ticketListener      = new TicketListener();
         PollListener            pollListener        = new PollListener();
         GiveawayListener        giveawayListener    = new GiveawayListener();
+        RoleMenuListener        roleMenuListener    = new RoleMenuListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -72,7 +73,8 @@ public class Main {
                 welcomeListener,
                 ticketListener,
                 pollListener,
-                giveawayListener
+                giveawayListener,
+                roleMenuListener
             )
             .build();
     }
@@ -137,6 +139,7 @@ public class Main {
 
                 postTicketPanel(guild);
                 postRegelwerkPanels(guild);
+                RoleMenuListener.postPanel(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -484,6 +487,25 @@ public class Main {
                     .addOption(OptionType.STRING, "wann",         "Wann beginnt das Event?",        true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("verwarnung", "Gibt einem Mitglied eine Verwarnung")
+                    .addOption(OptionType.USER,   "mitglied",    "Das Mitglied, das verwarnt werden soll", true)
+                    .addOption(OptionType.STRING,  "grund",       "Grund der Verwarnung",                   true)
+                    .addOption(OptionType.STRING,  "konsequenz",  "Konsequenz / Maßnahme",                  true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("verwarn-liste", "Zeigt alle Verwarnungen eines Mitglieds")
+                    .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("verwarnung-löschen", "Entfernt eine Verwarnung von einem Mitglied")
+                    .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
+                    .addOptions(new OptionData(OptionType.STRING, "warn-id",
+                        "Welche Verwarnung soll entfernt werden?", true, true))
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("gewinnspiel", "Startet ein Gewinnspiel im Gewinnspiel-Kanal")
                     .addOption(OptionType.STRING, "titel", "Titel des Gewinnspiels",          true)

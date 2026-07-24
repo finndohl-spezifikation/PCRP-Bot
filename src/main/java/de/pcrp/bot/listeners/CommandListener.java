@@ -2,6 +2,7 @@ package de.pcrp.bot.listeners;
 
 import com.google.gson.JsonObject;
 import de.pcrp.bot.common.*;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -14,9 +15,11 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.Color;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -43,8 +46,11 @@ public class CommandListener extends ListenerAdapter {
             case "ausweis"          -> handleAusweis(event);
             case "abstimmung"       -> handleAbstimmung(event);
             case "aktivitätscheck"  -> handleAktivitaetscheck(event);
-            case "event"            -> handleEvent(event);
-            case "gewinnspiel"      -> handleGewinnspiel(event);
+            case "event"               -> handleEvent(event);
+            case "gewinnspiel"         -> handleGewinnspiel(event);
+            case "verwarnung"          -> handleVerwarnung(event);
+            case "verwarn-liste"       -> handleVerwarnListe(event);
+            case "verwarnung-löschen"  -> handleVerwarnungLoeschen(event);
         }
     }
 
@@ -54,8 +60,12 @@ public class CommandListener extends ListenerAdapter {
 
     @Override
     public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
-        if (!"entbannen".equals(event.getName())) return;
         if (event.getGuild() == null) return;
+        if ("verwarnung-löschen".equals(event.getName())) {
+            handleVerwarnungLoeschenAutocomplete(event);
+            return;
+        }
+        if (!"entbannen".equals(event.getName())) return;
 
         String query = event.getFocusedOption().getValue().toLowerCase();
 
@@ -118,6 +128,7 @@ public class CommandListener extends ListenerAdapter {
     private void doDelete(TextChannel channel, List<Message> all, int requested, SlashCommandInteractionEvent event) {
         OffsetDateTime cutoff = OffsetDateTime.now().minusDays(14);
         List<Message> toDelete = all.stream()
+            .filter(m -> m.getEmbeds().isEmpty())              // Embeds werden nie gelöscht
             .filter(m -> m.getTimeCreated().isAfter(cutoff))
             .limit(requested)
             .toList();
@@ -425,6 +436,215 @@ public class CommandListener extends ListenerAdapter {
             .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis einsehen"))
             .setEphemeral(true)
             .queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /verwarnung
+    // ════════════════════════════════════════════════════════════
+
+    private void handleVerwarnung(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        String grund       = event.getOption("grund",      OptionMapping::getAsString);
+        String konsequenz  = event.getOption("konsequenz", OptionMapping::getAsString);
+
+        if (target == null || grund == null || konsequenz == null) {
+            event.replyEmbeds(embed("Fehler", "Alle Felder sind erforderlich.")).setEphemeral(true).queue();
+            return;
+        }
+        if (target.getUser().isBot()) {
+            event.replyEmbeds(embed("Fehler", "Bots können nicht verwarnt werden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        long guildId = event.getGuild().getIdLong();
+        long userId  = target.getIdLong();
+        List<WarnStore.WarnEntry> existing = WarnStore.getWarns(guildId, userId);
+
+        if (existing.size() >= 3) {
+            event.replyEmbeds(embed("Maximum erreicht",
+                target.getAsMention() + " hat bereits **3 Verwarnungen** und kann keine weiteren erhalten."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        WarnStore.WarnEntry warn = new WarnStore.WarnEntry(
+            grund, konsequenz,
+            event.getUser().getId(), event.getUser().getName());
+        int total = WarnStore.addWarn(guildId, userId, warn);
+
+        // Rollen-Handling
+        applyWarnRole(event.getGuild(), target, total);
+
+        // Log-Embed (rot)
+        TextChannel logCh = event.getGuild().getTextChannelById(LoggingConfig.WARN_LOG_CHANNEL_ID);
+        if (logCh != null) {
+            logCh.sendMessageEmbeds(buildWarnEmbed(total, event.getUser(), target.getUser(), grund, konsequenz))
+                 .queue();
+        }
+
+        // Auto-Timeout bei 3 Warns
+        if (total == 3) {
+            Duration dur = Duration.ofDays(3);
+            BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+                "⚠️ Du hast 3 Verwarnungen erhalten",
+                "Du hast auf **" + event.getGuild().getName() + "** die dritte Verwarnung erhalten " +
+                "und wurdest automatisch für **3 Tage** mit einem Timeout belegt.\n\n" +
+                "**Letzte Verwarnung**\n" +
+                "**Grund:** " + grund + "\n" +
+                "**Konsequenz:** " + konsequenz));
+            event.getGuild().timeoutFor(target, dur).queue(
+                v -> log.info("[Warn] Auto-Timeout für {} (3 Warns).", target.getUser().getName()),
+                e -> log.warn("[Warn] Auto-Timeout fehlgeschlagen.", e));
+        }
+
+        event.getHook().sendMessageEmbeds(embed("✅ Verwarnung erteilt",
+            target.getAsMention() + " hat jetzt **" + total + "/3** Verwarnungen." +
+            (total == 3 ? "\n⏱️ Automatischer **3-Tage-Timeout** wurde verhängt." : "")))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /verwarn-liste
+    // ════════════════════════════════════════════════════════════
+
+    private void handleVerwarnListe(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        List<WarnStore.WarnEntry> warns = WarnStore.getWarns(
+            event.getGuild().getIdLong(), target.getIdLong());
+
+        if (warns.isEmpty()) {
+            event.replyEmbeds(embed("Keine Verwarnungen",
+                target.getAsMention() + " hat keine Verwarnungen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("**").append(target.getUser().getName())
+          .append("** — ").append(warns.size()).append("/3 Verwarnungen\n\n");
+        sb.append("━━━━━━━━━━━━━━━━━━━━━━\n\n");
+
+        for (int i = 0; i < warns.size(); i++) {
+            WarnStore.WarnEntry w = warns.get(i);
+            sb.append("**").append(i + 1).append(". Verwarnung** (").append(w.dateString()).append(")\n");
+            sb.append("📝 **Grund:** ").append(w.reason).append("\n");
+            sb.append("⚖️ **Konsequenz:** ").append(w.consequence).append("\n");
+            sb.append("👮 **Von:** <@").append(w.byId).append(">\n");
+            sb.append("`ID: ").append(w.id, 0, 8).append("…`\n");
+            if (i < warns.size() - 1) sb.append("\n");
+        }
+
+        event.replyEmbeds(buildWarnListEmbed(sb.toString()))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /verwarnung-löschen  +  Autocomplete
+    // ════════════════════════════════════════════════════════════
+
+    private void handleVerwarnungLoeschenAutocomplete(CommandAutoCompleteInteractionEvent event) {
+        OptionMapping memberOpt = event.getOption("mitglied");
+        if (memberOpt == null) { event.replyChoices().queue(null, e -> {}); return; }
+
+        long userId;
+        try { userId = Long.parseLong(memberOpt.getAsString()); }
+        catch (NumberFormatException e) { event.replyChoices().queue(null, ex -> {}); return; }
+
+        List<WarnStore.WarnEntry> warns = WarnStore.getWarns(event.getGuild().getIdLong(), userId);
+        String query = event.getFocusedOption().getValue().toLowerCase();
+
+        List<Command.Choice> choices = new ArrayList<>();
+        for (int i = 0; i < warns.size(); i++) {
+            WarnStore.WarnEntry w = warns.get(i);
+            String label = (i + 1) + ". " + truncate(w.reason, 40) + " — " + w.dateString();
+            if (query.isBlank() || label.toLowerCase().contains(query) || w.id.startsWith(query)) {
+                choices.add(new Command.Choice(truncate(label, 100), w.id));
+            }
+        }
+        event.replyChoices(choices).queue(null, e -> {});
+    }
+
+    private void handleVerwarnungLoeschen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        String warnId  = event.getOption("warn-id",  OptionMapping::getAsString);
+
+        if (target == null || warnId == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied oder Verwarnung nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        long guildId = event.getGuild().getIdLong();
+        long userId  = target.getIdLong();
+
+        boolean removed = WarnStore.removeWarn(guildId, userId, warnId);
+        if (!removed) {
+            event.replyEmbeds(embed("Nicht gefunden",
+                "Verwarnung mit dieser ID wurde nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        // Rolle nach neuer Anzahl anpassen
+        List<WarnStore.WarnEntry> remaining = WarnStore.getWarns(guildId, userId);
+        applyWarnRole(event.getGuild(), target, remaining.size());
+
+        event.replyEmbeds(embed("✅ Verwarnung entfernt",
+            "Eine Verwarnung von " + target.getAsMention() + " wurde gelöscht.\n" +
+            "Aktuelle Verwarnungen: **" + remaining.size() + "/3**"))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  Warn-Hilfsmethoden
+    // ════════════════════════════════════════════════════════════
+
+    private static void applyWarnRole(net.dv8tion.jda.api.entities.Guild guild, Member member, int warnCount) {
+        long[] warnRoleIds = RoleConfig.WARN_ROLES;
+
+        // Alle alten Warn-Rollen entfernen
+        for (long rid : warnRoleIds) {
+            Role r = guild.getRoleById(rid);
+            if (r != null && member.getRoles().stream().anyMatch(mr -> mr.getIdLong() == rid)) {
+                guild.removeRoleFromMember(member, r).queue(null, e -> {});
+            }
+        }
+        // Neue Warn-Rolle vergeben (falls noch Warns vorhanden)
+        if (warnCount >= 1 && warnCount <= 3) {
+            Role r = guild.getRoleById(warnRoleIds[warnCount - 1]);
+            if (r != null) guild.addRoleToMember(member, r).queue(null, e -> {});
+        }
+    }
+
+    private static net.dv8tion.jda.api.entities.MessageEmbed buildWarnEmbed(
+            int total, User by, User target, String grund, String konsequenz) {
+        return new EmbedBuilder()
+            .setColor(Color.RED)
+            .setTitle("⚠️ Verwarnung " + total + "/3")
+            .addField("👮 Von",         by.getAsMention()     + " | " + by.getName(),     true)
+            .addField("🎯 An",          target.getAsMention() + " | " + target.getName(), true)
+            .addField("📝 Grund",       grund,      false)
+            .addField("⚖️ Konsequenz", konsequenz, false)
+            .build();
+    }
+
+    private static net.dv8tion.jda.api.entities.MessageEmbed buildWarnListEmbed(String description) {
+        return new EmbedBuilder()
+            .setColor(Color.RED)
+            .setTitle("📋 Verwarnungsliste")
+            .setDescription(description)
+            .build();
     }
 
     // ════════════════════════════════════════════════════════════
