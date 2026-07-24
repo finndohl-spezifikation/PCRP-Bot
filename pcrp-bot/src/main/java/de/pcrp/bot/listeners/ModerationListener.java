@@ -78,12 +78,22 @@ public class ModerationListener extends ListenerAdapter {
             String matched = WordFilter.getMatchedWord(message.getContentRaw());
             if (matched != null) {
                 message.delete().queue();
+
+                guild.timeoutFor(member, Duration.ofMinutes(ModerationConfig.SPAM_TIMEOUT_MINUTES)).queue();
+
+                BotLogger.tryDm(author, EmbedFactory.build(
+                    "⚠️ Verwarnung – Verbotenes Wort",
+                    "Deine Nachricht auf **" + guild.getName() + "** wurde gelöscht, weil sie " +
+                    "einen verbotenen Ausdruck enthielt.\n\n" +
+                    "Du hast daher automatisch einen **10-minütigen Timeout** erhalten.\n\n" +
+                    "Bitte halte dich an die Serverregeln."));
+
                 BotLogger.logModeration(guild,
                     "🔤 Wortfilter ausgelöst",
                     "**Nutzer:** " + member.getAsMention() + " | " + author.getName() + " (`" + author.getId() + "`)\n" +
                     "**Kanal:** " + channel.getAsMention() + "\n" +
                     "**Erkanntes Wort:** `" + matched + "`\n" +
-                    "**Aktion:** Nachricht sofort gelöscht\n" +
+                    "**Aktion:** Nachricht gelöscht · 10 Min. Timeout · DM gesendet\n" +
                     "**Nachrichteninhalt:**\n```\n" + truncate(message.getContentRaw(), 900) + "\n```");
                 return;
             }
