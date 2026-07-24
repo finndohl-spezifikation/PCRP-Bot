@@ -2,6 +2,7 @@ package de.pcrp.bot;
 
 import de.pcrp.bot.common.*;
 import de.pcrp.bot.listeners.*;
+import de.pcrp.bot.listeners.PollListener;
 import de.pcrp.bot.web.WebServer;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
@@ -43,6 +44,7 @@ public class Main {
         GuildProtectionListener protectionListener  = new GuildProtectionListener();
         WelcomeListener         welcomeListener     = new WelcomeListener();
         TicketListener          ticketListener      = new TicketListener();
+        PollListener            pollListener        = new PollListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -51,7 +53,8 @@ public class Main {
                 GatewayIntent.GUILD_MEMBERS,
                 GatewayIntent.GUILD_MODERATION,
                 GatewayIntent.GUILD_INVITES,
-                GatewayIntent.GUILD_VOICE_STATES
+                GatewayIntent.GUILD_VOICE_STATES,
+                GatewayIntent.GUILD_MESSAGE_REACTIONS
             )
             .enableCache(
                 CacheFlag.VOICE_STATE,
@@ -66,7 +69,8 @@ public class Main {
                 new LoggingListener(),
                 new CommandListener(),
                 welcomeListener,
-                ticketListener
+                ticketListener,
+                pollListener
             )
             .build();
     }
@@ -459,7 +463,18 @@ public class Main {
                 Commands.slash("ausweis", "Zeigt deinen Personalausweis (nur im Ausweis-Kanal)")
                     .addOptions(new OptionData(OptionType.STRING, "nutzer",
                         "Discord-Nutzername für fremden Ausweis (optional)", false))
-                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED)
+                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
+
+                Commands.slash("abstimmung", "Erstellt eine Abstimmung im Abstimmungs-Kanal")
+                    .addOption(OptionType.STRING, "titel",    "Titel der Abstimmung",             true)
+                    .addOption(OptionType.STRING, "text",     "Beschreibungstext der Abstimmung", true)
+                    .addOption(OptionType.STRING, "optionen", "Zusätzliche Hinweise / Optionen",  false)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("aktivitätscheck", "Sendet einen Aktivitätscheck in den zugehörigen Kanal")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE))
 
             );
         }

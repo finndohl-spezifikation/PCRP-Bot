@@ -5,6 +5,7 @@ import de.pcrp.bot.common.*;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.*;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
@@ -35,11 +36,13 @@ public class CommandListener extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         switch (event.getName()) {
-            case "löschen"   -> handleLoeschen(event);
-            case "bannen"    -> handleBannen(event);
-            case "entbannen" -> handleEntbannen(event);
-            case "timeout"   -> handleTimeout(event);
-            case "ausweis"      -> handleAusweis(event);
+            case "löschen"          -> handleLoeschen(event);
+            case "bannen"           -> handleBannen(event);
+            case "entbannen"        -> handleEntbannen(event);
+            case "timeout"          -> handleTimeout(event);
+            case "ausweis"          -> handleAusweis(event);
+            case "abstimmung"       -> handleAbstimmung(event);
+            case "aktivitätscheck"  -> handleAktivitaetscheck(event);
         }
     }
 
@@ -420,6 +423,102 @@ public class CommandListener extends ListenerAdapter {
             .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis einsehen"))
             .setEphemeral(true)
             .queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /abstimmung
+    // ════════════════════════════════════════════════════════════
+
+    private void handleAbstimmung(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        String titel    = event.getOption("titel",    OptionMapping::getAsString);
+        String text     = event.getOption("text",     OptionMapping::getAsString);
+        String optionen = event.getOption("optionen", "", OptionMapping::getAsString);
+
+        if (titel == null || text == null) {
+            event.replyEmbeds(embed("Fehler", "Titel und Text sind erforderlich.")).setEphemeral(true).queue();
+            return;
+        }
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.ABSTIMMUNG_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Abstimmungs-Kanal nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        net.dv8tion.jda.api.entities.MessageEmbed pollEmbed =
+            PollListener.buildPollEmbed(titel, text, optionen, 0, 0);
+
+        final String finalTitel    = titel;
+        final String finalText     = text;
+        final String finalOptionen = optionen;
+
+        ch.sendMessage("<@&" + LoggingConfig.ABSTIMMUNG_ROLE_ID + ">")
+          .setEmbeds(pollEmbed)
+          .queue(msg -> {
+              // Abstimmungsdaten speichern
+              String stored = "POLL\n"
+                  + PollListener.encode(finalTitel) + "\n"
+                  + PollListener.encode(finalText)  + "\n"
+                  + PollListener.encode(finalOptionen);
+              DataStore.writeString("poll-" + msg.getId(), stored);
+
+              // Reaktionen hinzufügen (sequenziell, um Reihenfolge zu garantieren)
+              msg.addReaction(Emoji.fromUnicode(PollListener.THUMB_UP)).queue(
+                  v -> msg.addReaction(Emoji.fromUnicode(PollListener.THUMB_DOWN)).queue()
+              );
+
+              event.getHook().sendMessageEmbeds(embed("✅ Abstimmung erstellt",
+                  "Die Abstimmung **" + finalTitel + "** wurde in <#"
+                  + LoggingConfig.ABSTIMMUNG_CHANNEL_ID + "> gepostet."))
+                  .setEphemeral(true).queue();
+          }, err -> {
+              log.error("[Abstimmung] Konnte nicht gesendet werden.", err);
+              event.getHook().sendMessageEmbeds(embed("Fehler",
+                  "Die Abstimmung konnte nicht erstellt werden."))
+                  .setEphemeral(true).queue();
+          });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /aktivitätscheck
+    // ════════════════════════════════════════════════════════════
+
+    private void handleAktivitaetscheck(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.AKTIVITAETSCHECK_CHANNEL_ID);
+        if (ch == null) {
+            event.replyEmbeds(embed("Fehler", "Aktivitätscheck-Kanal nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        final String title = "Aktivitätscheck";
+        net.dv8tion.jda.api.entities.MessageEmbed actEmbed = PollListener.buildActivityEmbed(title, 0);
+
+        ch.sendMessage("@everyone")
+          .setEmbeds(actEmbed)
+          .queue(msg -> {
+              DataStore.writeString("poll-" + msg.getId(),
+                  "ACTIVITY\n" + PollListener.encode(title));
+
+              msg.addReaction(Emoji.fromUnicode(PollListener.CHECK)).queue();
+
+              event.getHook().sendMessageEmbeds(embed("✅ Aktivitätscheck gesendet",
+                  "Der Aktivitätscheck wurde in <#"
+                  + LoggingConfig.AKTIVITAETSCHECK_CHANNEL_ID + "> gepostet."))
+                  .setEphemeral(true).queue();
+          }, err -> {
+              log.error("[Aktivitätscheck] Konnte nicht gesendet werden.", err);
+              event.getHook().sendMessageEmbeds(embed("Fehler",
+                  "Der Aktivitätscheck konnte nicht erstellt werden."))
+                  .setEphemeral(true).queue();
+          });
     }
 
     // ════════════════════════════════════════════════════════════
