@@ -199,13 +199,11 @@ public class Main {
                     .setDescription(
                         "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
                         "**📋 Verfügbare Kategorien**\n\n" +
-                        "🔵 **Support** — Allgemeine Fragen & Hilfe\n" +
-                        "🔴 **Beschwerde** — Meldung von Regelverstößen\n" +
-                        "🟣 **Highteam** — Anliegen an das Highteam\n" +
-                        "🟠 **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
-                        "⚫ **Team Bewerbung** — Demnächst verfügbar\n\n" +
-                        "ℹ️ Pro Person ist nur **1 offenes Ticket** erlaubt.\n" +
-                        "Tickets können ausschließlich von Teammitgliedern geschlossen werden.")
+                        "- **Support** — Allgemeine Fragen & Hilfe\n" +
+                        "- **Beschwerde** — Meldung von Regelverstößen\n" +
+                        "- **Highteam** — Anliegen an das Highteam\n" +
+                        "- **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
+                        "- **Team Bewerbung** — Demnächst verfügbar")
                     .build()
             ).addActionRow(
                 StringSelectMenu.create(TicketListener.SELECT_ID)
