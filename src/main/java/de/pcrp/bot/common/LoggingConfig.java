@@ -56,6 +56,15 @@ public final class LoggingConfig {
     /** Safe-Zones-Panel. */
     public static final long SAFEZONES_CHANNEL_ID           = 1529636485454889111L;
 
+    /** Abstimmungs-Kanal (/abstimmung). */
+    public static final long ABSTIMMUNG_CHANNEL_ID       = 1529636494765981856L;
+
+    /** Rolle, die bei Abstimmungen gepingt wird. */
+    public static final long ABSTIMMUNG_ROLE_ID          = 1529636308559855810L;
+
+    /** Aktivitätscheck-Kanal (/aktivitätscheck). */
+    public static final long AKTIVITAETSCHECK_CHANNEL_ID = 1529636495848374554L;
+
     /** Willkommensnachrichten bei Serverbeitritt. */
     public static final long WELCOME_CHANNEL_ID        = 1529636467096293586L;
 
