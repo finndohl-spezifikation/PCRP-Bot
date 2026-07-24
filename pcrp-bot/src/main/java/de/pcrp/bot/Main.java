@@ -40,6 +40,9 @@ public class Main {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
         WebServer.start(port);
 
+        // Lotto-Scheduler starten (zieht täglich um 12:00 Uhr)
+        new LottoScheduler().start();
+
         ModerationListener      moderationListener  = new ModerationListener();
         GuildProtectionListener protectionListener  = new GuildProtectionListener();
         WelcomeListener         welcomeListener     = new WelcomeListener();
@@ -149,6 +152,7 @@ public class Main {
                 postBoostPanel(guild);
                 postFrakListPanel(guild);
                 postRucksackPanel(guild);
+                postLottoPanel(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -458,6 +462,36 @@ public class Main {
         }
 
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
+
+        private static void postLottoPanel(Guild guild) {
+            String key = "panel-lotto-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
+            if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored).queue(
+                    msg -> { /* bereits vorhanden */ },
+                    err -> { DataStore.deleteKey(key); sendLottoPanel(ch, key, guild); });
+            } else {
+                sendLottoPanel(ch, key, guild);
+            }
+        }
+
+        private static void sendLottoPanel(TextChannel ch, String key, Guild guild) {
+            String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
+            int jackpot = LottoManager.getCurrentJackpot(guild.getId());
+            ch.sendMessageEmbeds(EmbedFactory.build(
+                "🎰 Paradise City Lotto",
+                "**Heutiger Jackpot: " + LottoManager.formatAmount(jackpot) + "**\n\n" +
+                "Kaufe einen Lottoschein und löse ihn täglich ein.\n" +
+                "Die Ziehung findet jeden Tag um **12:00 Uhr** statt.\n\n" +
+                "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
+                "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
+                .addActionRow(Button.link(webUrl + "/lotto", "🎟️ Jetzt Mitspielen"))
+                .queue(
+                    msg -> DataStore.writeString(key, msg.getId()),
+                    err -> log.error("[Lotto] Panel konnte nicht gesendet werden.", err));
+        }
 
         private static void postRucksackPanel(Guild guild) {
             String key = "panel-rucksack-" + guild.getId();

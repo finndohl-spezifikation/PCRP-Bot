@@ -123,6 +123,12 @@ public final class LoggingConfig {
     /** Rucksack-Panel-Kanal. */
     public static final long RUCKSACK_CHANNEL_ID     = 1529636560264232980L;
 
+    /** Lotto-Panel-Kanal. */
+    public static final long LOTTO_CHANNEL_ID        = 1529636566434185227L;
+
+    /** Lotto-Ziehungs-Ergebnis-Kanal (normale Nachrichten). */
+    public static final long LOTTO_RESULT_CHANNEL_ID = 1490890318214860890L;
+
     /** Vorschlag-Kanal (/vorschlag). */
     public static final long VORSCHLAG_CHANNEL_ID    = 1529636537292161185L;
 
