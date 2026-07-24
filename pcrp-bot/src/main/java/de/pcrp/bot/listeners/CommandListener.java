@@ -632,8 +632,8 @@ public class CommandListener extends ListenerAdapter {
         return new EmbedBuilder()
             .setColor(Color.RED)
             .setTitle("⚠️ Verwarnung " + total + "/3")
-            .addField("👮 Von",         by.getAsMention()     + " | " + by.getName(),     true)
-            .addField("🎯 An",          target.getAsMention() + " | " + target.getName(), true)
+            .addField("👮 Von",         by.getAsMention(),     true)
+            .addField("🎯 An",          target.getAsMention(), true)
             .addField("📝 Grund",       grund,      false)
             .addField("⚖️ Konsequenz", konsequenz, false)
             .build();
