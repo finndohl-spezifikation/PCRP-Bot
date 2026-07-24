@@ -35,6 +35,7 @@ public class WebServer {
 
         // API Status
         app.get("/api/einreise-status",        WebServer::handleEinreiseStatus);
+        app.post("/api/einreise-notify",        WebServer::handleEinreiseNotify);
 
         // API Einzeleinreise
         app.post("/api/validate",              WebServer::handleValidate);
@@ -62,6 +63,37 @@ public class WebServer {
         JsonObject r = new JsonObject();
         r.addProperty("sperre", active);
         ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    // ── /api/einreise-notify ───────────────────────────────────
+
+    private static void handleEinreiseNotify(Context ctx) {
+        Guild guild = BotContext.getGuild();
+        JsonObject out = new JsonObject();
+        if (guild == null) { out.addProperty("ok", false); out.addProperty("error", "Server nicht erreichbar."); ctx.contentType("application/json").result(GSON.toJson(out)); return; }
+
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); } catch (Exception e) { out.addProperty("ok", false); out.addProperty("error", "Ungültige Anfrage."); ctx.contentType("application/json").result(GSON.toJson(out)); return; }
+        String username = body.has("username") ? body.get("username").getAsString().trim() : "";
+        if (username.isEmpty()) { out.addProperty("ok", false); out.addProperty("error", "Kein Nutzername angegeben."); ctx.contentType("application/json").result(GSON.toJson(out)); return; }
+
+        Member member = BotContext.findMemberByUsername(username);
+        if (member == null) { out.addProperty("ok", false); out.addProperty("error", "Nutzername nicht gefunden. Stelle sicher, dass du auf dem Server bist."); ctx.contentType("application/json").result(GSON.toJson(out)); return; }
+
+        String key = "einreise-notify-" + guild.getId();
+        String raw = DataStore.readString(key);
+        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+        if (raw != null && !raw.isBlank()) {
+            try { arr = GSON.fromJson(raw, com.google.gson.JsonArray.class); } catch (Exception ignored) {}
+        }
+        // Duplikat vermeiden
+        String userId = member.getId();
+        boolean already = false;
+        for (com.google.gson.JsonElement el : arr) if (el.getAsString().equals(userId)) { already = true; break; }
+        if (!already) { arr.add(userId); DataStore.writeString(key, GSON.toJson(arr)); }
+
+        out.addProperty("ok", true);
+        ctx.contentType("application/json").result(GSON.toJson(out));
     }
 
     // ── index.html ─────────────────────────────────────────────

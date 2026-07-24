@@ -364,9 +364,6 @@ public class Main {
                 EmbedFactory.create()
                     .setTitle("🏛️ Paradise City Einwohner Meldeamt")
                     .setDescription(
-                        "**❗ Bitte stelle sicher, dass du Direktnachrichten von Servermitgliedern " +
-                        "aktiviert hast, damit dir der Bot Nachrichten schicken kann.**\n\n" +
-                        "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
                         "__**Legale Einreise**__\n\n" +
                         "- Ausweis,\n" +
                         "- Zugang zur Staatlichen Jobs,\n" +

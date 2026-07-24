@@ -1144,24 +1144,44 @@ public class CommandListener extends ListenerAdapter {
 
         ch.retrieveMessageById(storedMsgId.trim()).queue(
             msg -> msg.delete().queue(
-                v -> {
-                    DataStore.deleteKey(key);
-                    event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
-                        "Der Einreise-Stopp wurde entfernt. Die Einreise ist wieder möglich."))
-                        .setEphemeral(true).queue();
-                },
-                err -> {
-                    DataStore.deleteKey(key);
-                    event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
-                        "Nachricht konnte nicht gelöscht werden (evtl. bereits entfernt). Status wurde zurückgesetzt."))
-                        .setEphemeral(true).queue();
-                }),
-            err -> {
-                DataStore.deleteKey(key);
-                event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
-                    "Nachricht nicht mehr vorhanden. Status wurde zurückgesetzt."))
-                    .setEphemeral(true).queue();
-            });
+                v -> finishEinreiseEntsperre(event, key),
+                err -> finishEinreiseEntsperre(event, key)),
+            err -> finishEinreiseEntsperre(event, key));
+    }
+
+    private void finishEinreiseEntsperre(SlashCommandInteractionEvent event, String sperreKey) {
+        Guild guild = event.getGuild();
+        DataStore.deleteKey(sperreKey);
+
+        // Notify-Liste abarbeiten
+        String notifyKey = "einreise-notify-" + guild.getId();
+        String raw = DataStore.readString(notifyKey);
+        int notified = 0;
+        if (raw != null && !raw.isBlank()) {
+            try {
+                com.google.gson.JsonArray arr = new com.google.gson.Gson().fromJson(raw, com.google.gson.JsonArray.class);
+                net.dv8tion.jda.api.entities.MessageEmbed dmEmbed = new EmbedBuilder()
+                    .setColor(new java.awt.Color(0x22CC55))
+                    .setTitle("✅ Die Einreise ist wieder offen!")
+                    .setDescription("Der Einreise-Stopp auf **Paradise City Roleplay** wurde aufgehoben.\n" +
+                                    "Du kannst dich jetzt im Einwohner Meldeamt registrieren.")
+                    .build();
+                for (com.google.gson.JsonElement el : arr) {
+                    try {
+                        Member m = guild.getMemberById(el.getAsString());
+                        if (m != null) { BotLogger.tryDm(m.getUser(), dmEmbed); notified++; }
+                    } catch (Exception ignored) {}
+                }
+                DataStore.deleteKey(notifyKey);
+            } catch (Exception e) {
+                log.warn("Fehler beim Versenden der Einreise-Benachrichtigungen: {}", e.getMessage());
+            }
+        }
+
+        String extra = notified > 0 ? "\n**" + notified + " Mitglieder** wurden per DM benachrichtigt." : "";
+        event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
+            "Der Einreise-Stopp wurde entfernt. Die Einreise ist wieder möglich." + extra))
+            .setEphemeral(true).queue();
     }
 
     // ════════════════════════════════════════════════════════════
