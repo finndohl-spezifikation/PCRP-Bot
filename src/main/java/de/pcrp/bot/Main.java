@@ -170,6 +170,8 @@ public class Main {
                     "Wenn ein Überfall geplant ist oder sich ein Fraktionsmitglied in Gewahrsam befindet, darf das betroffene Mitglied befreit werden.\n\n" +
                     "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
                     "Verstöße jeglicher Art werden sanktioniert.");
+
+                postStatusMessage(guild);
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
@@ -411,11 +413,47 @@ public class Main {
                 EmbedFactory.create()
                     .setTitle(title)
                     .setDescription(description)
-
                     .build()
             ).queue(
                 msg -> DataStore.writeString(key, msg.getId()),
                 err -> log.error("[Panel] '{}' konnte nicht gesendet werden.", key, err)
+            );
+        }
+
+        // ── Status-Nachricht mit „Aktive Systeme"-Button ──────────────────────
+
+        private static void postStatusMessage(Guild guild) {
+            String key = "status-startup-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.MODERATION_LOG_CHANNEL_ID);
+            if (ch == null) { log.warn("[Status] Modlog-Kanal nicht gefunden."); return; }
+
+            // Immer löschen und neu posten → zeigt immer den letzten Startzeit
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored.trim()).queue(
+                    msg -> msg.delete().queue(
+                        v  -> { DataStore.deleteKey(key); sendStatusMessage(ch, key); },
+                        e  -> { DataStore.deleteKey(key); sendStatusMessage(ch, key); }),
+                    err -> { DataStore.deleteKey(key); sendStatusMessage(ch, key); });
+            } else {
+                sendStatusMessage(ch, key);
+            }
+        }
+
+        private static void sendStatusMessage(TextChannel ch, String key) {
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🤖 Paradise City System — Online")
+                    .setDescription(
+                        "Der Bot ist gestartet und alle Systeme sind aktiv.\n\n" +
+                        "Klicke auf **Aktive Systeme** für eine vollständige Übersicht " +
+                        "aller Moderationssysteme und der jeweiligen Ausnahmen.")
+                    .build()
+            ).addActionRow(
+                Button.primary("status-aktive-systeme", "🛡️ Aktive Systeme")
+            ).queue(
+                msg -> DataStore.writeString(key, msg.getId()),
+                err -> log.error("[Status] Startnachricht konnte nicht gesendet werden.", err)
             );
         }
 
