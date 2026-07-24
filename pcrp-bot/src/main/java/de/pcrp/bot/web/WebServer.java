@@ -50,7 +50,6 @@ public class WebServer {
         // Lotto
         app.get("/lotto",                       WebServer::serveLotto);
         app.get("/api/lotto/status",            WebServer::handleLottoStatus);
-        app.post("/api/lotto/enroll",           WebServer::handleLottoEnroll);
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
@@ -405,40 +404,6 @@ public class WebServer {
         ctx.contentType("application/json").result(GSON.toJson(r));
     }
 
-    private static void handleLottoEnroll(Context ctx) {
-        Guild guild = BotContext.getGuild();
-        JsonObject r = new JsonObject();
-        if (guild == null) {
-            r.addProperty("ok", false); r.addProperty("error", "Bot nicht bereit.");
-            ctx.status(503).contentType("application/json").result(GSON.toJson(r)); return;
-        }
-        JsonObject body;
-        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
-        catch (Exception e) {
-            r.addProperty("ok", false); r.addProperty("error", "Ungültige Anfrage.");
-            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
-        }
-        String userId = body.has("userId") ? body.get("userId").getAsString().trim() : "";
-        if (userId.isEmpty()) {
-            r.addProperty("ok", false); r.addProperty("error", "Keine User-ID angegeben.");
-            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
-        }
-        // Mitglied prüfen
-        try { Long.parseLong(userId); } catch (NumberFormatException e) {
-            r.addProperty("ok", false); r.addProperty("error", "Ungültige Discord User-ID.");
-            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
-        }
-        String error = LottoManager.enroll(guild.getId(), userId);
-        if (error != null) {
-            r.addProperty("ok", false); r.addProperty("error", error);
-            ctx.contentType("application/json").result(GSON.toJson(r)); return;
-        }
-        r.addProperty("ok", true);
-        r.addProperty("message", "✅ Du nimmst an der heutigen Ziehung teil! Viel Erfolg!");
-        r.addProperty("jackpotFmt", LottoManager.formatAmount(LottoManager.getCurrentJackpot(guild.getId())));
-        ctx.contentType("application/json").result(GSON.toJson(r));
-    }
-
     private static String buildLottoPage() {
         return "<!DOCTYPE html><html lang=\"de\"><head>" +
             "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
@@ -459,22 +424,9 @@ public class WebServer {
             "text-shadow:0 0 20px rgba(255,136,0,.4)}" +
             ".jackpot .participants{color:#888;font-size:.85rem;margin-top:8px}" +
             ".divider{border:none;border-top:1px solid #CC550030;margin:0 0 24px}" +
-            ".info{color:#aaa;font-size:.82rem;text-align:center;margin-bottom:20px;line-height:1.6}" +
+            ".info{color:#aaa;font-size:.9rem;text-align:center;line-height:1.7}" +
             ".info strong{color:#FF8800}" +
-            ".form-group{margin-bottom:16px}" +
-            ".form-group label{display:block;color:#ccc;font-size:.8rem;margin-bottom:6px;letter-spacing:1px}" +
-            "input{width:100%;padding:12px 14px;background:#0d0600;border:1px solid #CC5500;" +
-            "border-radius:8px;color:#fff;font-size:.95rem;outline:none;transition:border-color .2s}" +
-            "input:focus{border-color:#FF8800}" +
-            "input::placeholder{color:#555}" +
-            "button{width:100%;padding:14px;background:linear-gradient(90deg,#CC5500,#FF6600);" +
-            "border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;" +
-            "letter-spacing:1px;cursor:pointer;transition:opacity .2s;margin-top:4px}" +
-            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
-            ".msg{margin-top:16px;padding:12px 14px;border-radius:8px;font-size:.88rem;text-align:center;display:none}" +
-            ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
-            ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
-            ".draw-info{text-align:center;color:#666;font-size:.75rem;margin-top:20px}" +
+            ".draw-info{text-align:center;color:#555;font-size:.75rem;margin-top:24px}" +
             "</style></head><body>" +
             "<div class=\"card\">" +
             "<div class=\"header\"><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>" +
@@ -485,14 +437,11 @@ public class WebServer {
             "<div class=\"participants\" id=\"participants\"></div>" +
             "</div>" +
             "<hr class=\"divider\">" +
-            "<div class=\"info\">Löse deinen <strong>Lottoschein</strong> ein und nimm an der heutigen Ziehung teil.<br>" +
-            "Die Ziehung findet täglich um <strong>12:00 Uhr</strong> statt.</div>" +
-            "<div class=\"form-group\">" +
-            "<label>DISCORD USER-ID</label>" +
-            "<input id=\"userId\" type=\"text\" placeholder=\"z. B. 123456789012345678\" maxlength=\"20\">" +
+            "<div class=\"info\">" +
+            "Um teilzunehmen, klicke auf den Button <strong>🎟️ Jetzt Mitspielen</strong><br>" +
+            "im Discord-Kanal. Der Bot löst deinen<br><strong>Lottoschein</strong> automatisch ein.<br><br>" +
+            "Die Ziehung findet täglich um <strong>12:00 Uhr</strong> statt." +
             "</div>" +
-            "<button id=\"btn\" onclick=\"enroll()\">🎟️ Lottoschein einlösen</button>" +
-            "<div class=\"msg\" id=\"msg\"></div>" +
             "<div class=\"draw-info\">Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
             "</div></div>" +
             "<script>" +
@@ -503,20 +452,6 @@ public class WebServer {
             "document.getElementById('jackpot').textContent=d.jackpotFmt;" +
             "document.getElementById('participants').textContent='🎟️ Teilnehmer: '+d.participants;" +
             "}}catch(e){}}" +
-            "async function enroll(){" +
-            "const btn=document.getElementById('btn');" +
-            "const userId=document.getElementById('userId').value.trim();" +
-            "const msg=document.getElementById('msg');" +
-            "if(!userId){showMsg('Bitte gib deine Discord User-ID ein.','err');return;}" +
-            "btn.disabled=true;" +
-            "try{const r=await fetch('/api/lotto/enroll',{method:'POST'," +
-            "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId})});" +
-            "const d=await r.json();" +
-            "if(d.ok){showMsg(d.message,'ok');loadStatus();}" +
-            "else{showMsg(d.error,'err');btn.disabled=false;}}" +
-            "catch(e){showMsg('Verbindungsfehler. Bitte versuche es erneut.','err');btn.disabled=false;}}" +
-            "function showMsg(t,cls){const m=document.getElementById('msg');" +
-            "m.textContent=t;m.className='msg '+cls;m.style.display='block';}" +
             "loadStatus();" +
             "</script></body></html>";
     }

@@ -83,7 +83,8 @@ public class Main {
                 new VorschlagListener(),
                 new CounterListener(),
                 new LobbyListener(),
-                new RucksackListener()
+                new RucksackListener(),
+                new LottoListener()
             )
             .build();
     }
@@ -478,7 +479,6 @@ public class Main {
         }
 
         private static void sendLottoPanel(TextChannel ch, String key, Guild guild) {
-            String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
             int jackpot = LottoManager.getCurrentJackpot(guild.getId());
             ch.sendMessageEmbeds(EmbedFactory.build(
                 "🎰 Paradise City Lotto",
@@ -487,7 +487,7 @@ public class Main {
                 "Die Ziehung findet jeden Tag um **12:00 Uhr** statt.\n\n" +
                 "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
                 "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
-                .addActionRow(Button.link(webUrl + "/lotto", "🎟️ Jetzt Mitspielen"))
+                .addActionRow(Button.primary("lotto-enroll", "🎟️ Jetzt Mitspielen"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
                     err -> log.error("[Lotto] Panel konnte nicht gesendet werden.", err));
