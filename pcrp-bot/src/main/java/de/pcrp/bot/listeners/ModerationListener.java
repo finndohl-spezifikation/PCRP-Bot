@@ -68,7 +68,7 @@ public class ModerationListener extends ListenerAdapter {
         cacheMessage(message);
 
         // Inhaber ist von allem ausgenommen
-        if (author.getIdLong() == ModerationConfig.OWNER_ID) return;
+        if (ModerationConfig.isExempt(author.getIdLong())) return;
 
         Guild       guild   = event.getGuild();
         TextChannel channel = event.getChannel().asTextChannel();
