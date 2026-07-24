@@ -22,8 +22,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Slash-Command-Handler: /löschen, /bannen, /entbannen, /timeout
@@ -54,10 +56,15 @@ public class CommandListener extends ListenerAdapter {
             case "verwarnung-löschen"  -> handleVerwarnungLoeschen(event);
             case "einreise-sperre"     -> handleEinreiseSperre(event);
             case "einreise-entsperren" -> handleEinreiseEntsperre(event);
+            case "frak-erstellen"      -> handleFrakErstellen(event);
+            case "frak-löschen"        -> handleFrakLoeschen(event);
             case "frakwarn"            -> handleFrakWarn(event);
             case "frakwarn-entfernen"  -> handleFrakWarnEntfernen(event);
             case "frak-sperren"        -> handleFrakSperren(event);
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
+            case "vorschlag"           -> handleVorschlag(event);
+            case "vorschlag-annehmen"  -> handleVorschlagAnnehmen(event);
+            case "vorschlag-ablehnen"  -> handleVorschlagAblehnen(event);
         }
     }
 
@@ -139,29 +146,48 @@ public class CommandListener extends ListenerAdapter {
     @Override
     public void onCommandAutoCompleteInteraction(CommandAutoCompleteInteractionEvent event) {
         if (event.getGuild() == null) return;
-        if ("verwarnung-löschen".equals(event.getName())) {
-            handleVerwarnungLoeschenAutocomplete(event);
-            return;
+        String guildId = event.getGuild().getId();
+
+        switch (event.getName()) {
+            case "verwarnung-löschen" -> handleVerwarnungLoeschenAutocomplete(event);
+            case "vorschlag-annehmen", "vorschlag-ablehnen" -> {
+                if (!"vorschlag".equals(event.getFocusedOption().getName())) return;
+                String typed = event.getFocusedOption().getValue().toLowerCase();
+                List<Command.Choice> choices = VorschlagManager.getActive(guildId).stream()
+                    .filter(v -> v.title.toLowerCase().contains(typed))
+                    .limit(25)
+                    .map(v -> new Command.Choice(v.title, v.messageId))
+                    .collect(Collectors.toList());
+                event.replyChoices(choices).queue(null, e -> {});
+            }
+            case "frakwarn", "frakwarn-entfernen", "frak-sperren", "frak-entsperren" -> {
+                if (!"fraktion".equals(event.getFocusedOption().getName())) return;
+                String typed = event.getFocusedOption().getValue().toLowerCase();
+                List<Command.Choice> choices = FraktionManager.getFrakList(guildId).stream()
+                    .filter(f -> f.toLowerCase().contains(typed))
+                    .limit(25)
+                    .map(f -> new Command.Choice(f, f))
+                    .collect(Collectors.toList());
+                event.replyChoices(choices).queue(null, e -> {});
+            }
+            case "entbannen" -> {
+                String query = event.getFocusedOption().getValue().toLowerCase();
+                event.getGuild().retrieveBanList().queue(bans -> {
+                    List<Command.Choice> choices = bans.stream()
+                        .filter(b -> query.isBlank()
+                            || b.getUser().getName().toLowerCase().contains(query)
+                            || b.getUser().getId().contains(query))
+                        .limit(25)
+                        .map(b -> {
+                            String label = b.getUser().getName() + " (" + b.getUser().getId() + ")" +
+                                (b.getReason() != null ? " – " + truncate(b.getReason(), 40) : "");
+                            return new Command.Choice(truncate(label, 100), b.getUser().getId());
+                        })
+                        .toList();
+                    event.replyChoices(choices).queue(null, err -> {});
+                }, err -> event.replyChoices().queue(null, e -> {}));
+            }
         }
-        if (!"entbannen".equals(event.getName())) return;
-
-        String query = event.getFocusedOption().getValue().toLowerCase();
-
-        event.getGuild().retrieveBanList().queue(bans -> {
-            List<Command.Choice> choices = bans.stream()
-                .filter(b -> query.isBlank()
-                    || b.getUser().getName().toLowerCase().contains(query)
-                    || b.getUser().getId().contains(query))
-                .limit(25)
-                .map(b -> {
-                    String label = b.getUser().getName() + " (" + b.getUser().getId() + ")" +
-                        (b.getReason() != null ? " – " + truncate(b.getReason(), 40) : "");
-                    return new Command.Choice(truncate(label, 100), b.getUser().getId());
-                })
-                .toList();
-
-            event.replyChoices(choices).queue(null, err -> {});
-        }, err -> event.replyChoices().queue(null, e -> {}));
     }
 
     // ════════════════════════════════════════════════════════════
@@ -942,6 +968,49 @@ public class CommandListener extends ListenerAdapter {
     // ════════════════════════════════════════════════════════════
 
     // ════════════════════════════════════════════════════════════
+    //  /frak-erstellen  /frak-löschen
+    // ════════════════════════════════════════════════════════════
+
+    private void handleFrakErstellen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String name = event.getOption("fraktion", OptionMapping::getAsString);
+        if (name == null) return;
+        String guildId = event.getGuild().getId();
+
+        if (!FraktionManager.addFrak(guildId, name)) {
+            event.replyEmbeds(embed("Bereits vorhanden",
+                "Die Fraktion **" + name + "** existiert bereits in der Liste."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        FraktionManager.updatePanelEmbed(event.getGuild());
+        event.replyEmbeds(embed("✅ Fraktion erstellt",
+            "**" + name + "** wurde zur Fraktions-Liste hinzugefügt."))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleFrakLoeschen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String name = event.getOption("fraktion", OptionMapping::getAsString);
+        if (name == null) return;
+        String guildId = event.getGuild().getId();
+
+        if (!FraktionManager.removeFrak(guildId, name)) {
+            event.replyEmbeds(embed("Nicht gefunden",
+                "Die Fraktion **" + name + "** existiert nicht in der Liste."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        // Warns + Sperre mitlöschen
+        FraktionManager.clearWarns(guildId, name);
+        FraktionManager.unlock(guildId, name);
+        FraktionManager.updatePanelEmbed(event.getGuild());
+        event.replyEmbeds(embed("✅ Fraktion gelöscht",
+            "**" + name + "** wurde entfernt. Alle Verwarnungen und Sperren wurden ebenfalls gelöscht."))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
     //  /frakwarn  /frakwarn-entfernen  /frak-sperren  /frak-entsperren
     // ════════════════════════════════════════════════════════════
 
@@ -953,6 +1022,12 @@ public class CommandListener extends ListenerAdapter {
         if (frak == null || grund == null || konsequenz == null) return;
 
         String guildId = event.getGuild().getId();
+        if (!FraktionManager.frakExists(guildId, frak)) {
+            event.replyEmbeds(embed("Fraktion nicht gefunden",
+                "**" + frak + "** existiert nicht. Erstelle sie zuerst mit `/frak-erstellen`."))
+                .setEphemeral(true).queue();
+            return;
+        }
         int count = FraktionManager.addWarn(guildId, frak, grund, konsequenz, event.getUser().getName());
 
         // Warn-Embed in Frak-Warn-Kanal
@@ -1000,6 +1075,12 @@ public class CommandListener extends ListenerAdapter {
         String frak = event.getOption("fraktion", OptionMapping::getAsString);
         if (frak == null) return;
         String guildId = event.getGuild().getId();
+        if (!FraktionManager.frakExists(guildId, frak)) {
+            event.replyEmbeds(embed("Fraktion nicht gefunden",
+                "**" + frak + "** existiert nicht in der Liste."))
+                .setEphemeral(true).queue();
+            return;
+        }
 
         FraktionManager.clearWarns(guildId, frak);
         FraktionManager.unlock(guildId, frak);
@@ -1016,6 +1097,12 @@ public class CommandListener extends ListenerAdapter {
         String grund = event.getOption("grund",    OptionMapping::getAsString);
         if (frak == null || grund == null) return;
         String guildId = event.getGuild().getId();
+        if (!FraktionManager.frakExists(guildId, frak)) {
+            event.replyEmbeds(embed("Fraktion nicht gefunden",
+                "**" + frak + "** existiert nicht in der Liste."))
+                .setEphemeral(true).queue();
+            return;
+        }
 
         FraktionManager.lock(guildId, frak);
         FraktionManager.updatePanelEmbed(event.getGuild());
@@ -1042,12 +1129,123 @@ public class CommandListener extends ListenerAdapter {
         String frak = event.getOption("fraktion", OptionMapping::getAsString);
         if (frak == null) return;
         String guildId = event.getGuild().getId();
+        if (!FraktionManager.frakExists(guildId, frak)) {
+            event.replyEmbeds(embed("Fraktion nicht gefunden",
+                "**" + frak + "** existiert nicht in der Liste."))
+                .setEphemeral(true).queue();
+            return;
+        }
 
         FraktionManager.unlock(guildId, frak);
         FraktionManager.updatePanelEmbed(event.getGuild());
 
         event.replyEmbeds(embed("✅ Fraktion entsperrt",
             "**" + frak + "** wurde entsperrt und erscheint wieder normal in der Liste."))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /vorschlag  /vorschlag-annehmen  /vorschlag-ablehnen
+    // ════════════════════════════════════════════════════════════
+
+    private void handleVorschlag(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        // Nur im Vorschlag-Kanal erlaubt
+        if (event.getChannel().getIdLong() != LoggingConfig.VORSCHLAG_CHANNEL_ID) {
+            event.replyEmbeds(embed("Falscher Kanal",
+                "Dieser Befehl kann nur in <#" + LoggingConfig.VORSCHLAG_CHANNEL_ID + "> verwendet werden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String titel       = event.getOption("titel",        OptionMapping::getAsString);
+        String beschreibung = event.getOption("beschreibung", OptionMapping::getAsString);
+        if (titel == null || beschreibung == null) return;
+
+        String guildId = event.getGuild().getId();
+        VorschlagManager.Vorschlag v = new VorschlagManager.Vorschlag(
+            UUID.randomUUID().toString(), titel, beschreibung);
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.VORSCHLAG_CHANNEL_ID);
+        if (ch == null) return;
+
+        event.deferReply(true).queue();
+
+        ch.sendMessage("<@&" + LoggingConfig.ABSTIMMUNG_ROLE_ID + ">")
+            .setEmbeds(VorschlagManager.buildVorschlagEmbed(v))
+            .queue(msg -> {
+                v.messageId = msg.getId();
+                VorschlagManager.add(guildId, v);
+
+                msg.addReaction(Emoji.fromUnicode(VorschlagManager.EMOJI_UP)).queue();
+                msg.addReaction(Emoji.fromUnicode(VorschlagManager.EMOJI_DOWN)).queue();
+
+                event.getHook().sendMessageEmbeds(embed("✅ Vorschlag gesendet",
+                    "Dein Vorschlag **" + titel + "** wurde in <#" +
+                    LoggingConfig.VORSCHLAG_CHANNEL_ID + "> gepostet."))
+                    .setEphemeral(true).queue();
+            }, err -> {
+                log.error("[Vorschlag] Konnte nicht gesendet werden.", err);
+                event.getHook().sendMessageEmbeds(embed("Fehler",
+                    "Der Vorschlag konnte nicht erstellt werden."))
+                    .setEphemeral(true).queue();
+            });
+    }
+
+    private void handleVorschlagAnnehmen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String messageId = event.getOption("vorschlag", OptionMapping::getAsString);
+        if (messageId == null) return;
+        String guildId = event.getGuild().getId();
+
+        VorschlagManager.Vorschlag v = VorschlagManager.getByMessageId(guildId, messageId);
+        if (v == null || !"active".equals(v.status)) {
+            event.replyEmbeds(embed("Nicht gefunden",
+                "Kein aktiver Vorschlag mit dieser ID gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        v.status = "angenommen";
+        VorschlagManager.update(guildId, v);
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.VORSCHLAG_CHANNEL_ID);
+        if (ch != null) {
+            ch.editMessageEmbedsById(messageId, VorschlagManager.buildVorschlagEmbed(v))
+                .queue(null, e -> {});
+        }
+
+        event.replyEmbeds(embed("✅ Vorschlag angenommen",
+            "**" + v.title + "** wurde als angenommen markiert."))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleVorschlagAblehnen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String messageId = event.getOption("vorschlag", OptionMapping::getAsString);
+        if (messageId == null) return;
+        String guildId = event.getGuild().getId();
+
+        VorschlagManager.Vorschlag v = VorschlagManager.getByMessageId(guildId, messageId);
+        if (v == null || !"active".equals(v.status)) {
+            event.replyEmbeds(embed("Nicht gefunden",
+                "Kein aktiver Vorschlag mit dieser ID gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        v.status = "abgelehnt";
+        VorschlagManager.update(guildId, v);
+
+        TextChannel ch = event.getGuild().getTextChannelById(LoggingConfig.VORSCHLAG_CHANNEL_ID);
+        if (ch != null) {
+            ch.editMessageEmbedsById(messageId, VorschlagManager.buildVorschlagEmbed(v))
+                .queue(null, e -> {});
+        }
+
+        event.replyEmbeds(embed("❌ Vorschlag abgelehnt",
+            "**" + v.title + "** wurde als abgelehnt markiert."))
             .setEphemeral(true).queue();
     }
 

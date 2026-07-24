@@ -48,7 +48,6 @@ public class Main {
         GiveawayListener        giveawayListener    = new GiveawayListener();
         RoleMenuListener        roleMenuListener    = new RoleMenuListener();
         BoostListener           boostListener       = new BoostListener();
-        FraktionListener        fraktionListener    = new FraktionListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -78,7 +77,8 @@ public class Main {
                 giveawayListener,
                 roleMenuListener,
                 boostListener,
-                fraktionListener
+                new VorschlagListener(),
+                new CounterListener()
             )
             .build();
     }
@@ -473,8 +473,6 @@ public class Main {
 
         private static void sendFrakListPanel(TextChannel ch, Guild guild) {
             ch.sendMessageEmbeds(de.pcrp.bot.common.FraktionManager.buildFrakEmbed(guild.getId()))
-                .addActionRow(
-                    net.dv8tion.jda.api.interactions.components.buttons.Button.primary("frak-edit", "✏️ Bearbeiten"))
                 .queue(
                     msg -> de.pcrp.bot.common.FraktionManager.setPanelMsgId(guild.getId(), msg.getId()),
                     err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
@@ -593,26 +591,50 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
+                Commands.slash("frak-erstellen", "Erstellt eine neue Fraktion in der Fraktions-Liste")
+                    .addOption(OptionType.STRING, "fraktion", "Name der neuen Fraktion", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("frak-löschen", "Entfernt eine Fraktion aus der Fraktions-Liste")
+                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
                 Commands.slash("frakwarn", "Gibt einer Fraktion eine Verwarnung")
-                    .addOption(OptionType.STRING, "fraktion",   "Name der Fraktion",  true)
+                    .addOptions(new OptionData(OptionType.STRING, "fraktion",   "Name der Fraktion",  true, true))
                     .addOption(OptionType.STRING, "grund",      "Grund",              true)
                     .addOption(OptionType.STRING, "konsequenz", "Konsequenz",         true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("frakwarn-entfernen", "Entfernt alle Verwarnungen einer Fraktion")
-                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
+                    .addOptions(new OptionData(OptionType.STRING, "fraktion", "Name der Fraktion", true, true))
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("frak-sperren", "Sperrt eine Fraktion direkt")
-                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
+                    .addOptions(new OptionData(OptionType.STRING, "fraktion", "Name der Fraktion", true, true))
                     .addOption(OptionType.STRING, "grund",    "Grund der Sperre",  true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("frak-entsperren", "Entsperrt eine gesperrte Fraktion")
-                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
+                    .addOptions(new OptionData(OptionType.STRING, "fraktion", "Name der Fraktion", true, true))
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("vorschlag", "Erstellt einen Vorschlag (nur im Vorschlag-Kanal)")
+                    .addOption(OptionType.STRING, "titel",       "Titel des Vorschlags",       true)
+                    .addOption(OptionType.STRING, "beschreibung","Beschreibung des Vorschlags", true),
+
+                Commands.slash("vorschlag-annehmen", "Nimmt einen aktiven Vorschlag an")
+                    .addOptions(new OptionData(OptionType.STRING, "vorschlag", "Vorschlag auswählen", true, true))
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("vorschlag-ablehnen", "Lehnt einen aktiven Vorschlag ab")
+                    .addOptions(new OptionData(OptionType.STRING, "vorschlag", "Vorschlag auswählen", true, true))
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 

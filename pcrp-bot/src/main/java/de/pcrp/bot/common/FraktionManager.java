@@ -21,15 +21,46 @@ public final class FraktionManager {
     private static String warnsKey(String guildId)    { return "frak-warns-"        + guildId; }
     private static String lockedKey(String guildId)   { return "frak-locked-"       + guildId; }
 
-    // ── Content ────────────────────────────────────────────────────────────────
+    // ── Strukturierte Fraktionsliste ───────────────────────────────────────────
 
-    public static String getContent(String guildId) {
-        String s = DataStore.readString(contentKey(guildId));
-        return (s != null && !s.isBlank()) ? s : "";
+    private static String namesKey(String guildId) { return "frak-names-" + guildId; }
+
+    public static List<String> getFrakList(String guildId) {
+        String raw = DataStore.readString(namesKey(guildId));
+        List<String> list = new ArrayList<>();
+        if (raw == null || raw.isBlank()) return list;
+        try {
+            JsonArray arr = GSON.fromJson(raw, JsonArray.class);
+            for (JsonElement el : arr) list.add(el.getAsString());
+        } catch (Exception ignored) {}
+        return list;
     }
 
-    public static void setContent(String guildId, String content) {
-        DataStore.writeString(contentKey(guildId), content == null ? "" : content);
+    public static boolean frakExists(String guildId, String name) {
+        return getFrakList(guildId).stream().anyMatch(f -> f.equalsIgnoreCase(name));
+    }
+
+    /** Fügt eine Fraktion hinzu. Gibt false zurück wenn sie bereits existiert. */
+    public static boolean addFrak(String guildId, String name) {
+        List<String> list = getFrakList(guildId);
+        if (list.stream().anyMatch(f -> f.equalsIgnoreCase(name))) return false;
+        list.add(name);
+        saveFrakNames(guildId, list);
+        return true;
+    }
+
+    /** Entfernt eine Fraktion (case-insensitive). Gibt false zurück wenn nicht gefunden. */
+    public static boolean removeFrak(String guildId, String name) {
+        List<String> list = getFrakList(guildId);
+        boolean removed = list.removeIf(f -> f.equalsIgnoreCase(name));
+        if (removed) saveFrakNames(guildId, list);
+        return removed;
+    }
+
+    private static void saveFrakNames(String guildId, List<String> list) {
+        JsonArray arr = new JsonArray();
+        for (String s : list) arr.add(s);
+        DataStore.writeString(namesKey(guildId), GSON.toJson(arr));
     }
 
     // ── Panel-Nachrichten-ID ───────────────────────────────────────────────────
@@ -129,15 +160,21 @@ public final class FraktionManager {
 
     // ── Embed-Rendering ───────────────────────────────────────────────────────
 
-    /** Baut das Fraktionslisten-Embed mit Strikethrough für gesperrte Fraktionen. */
+    /** Baut das Fraktionslisten-Embed aus der strukturierten Fraktionsliste. */
     public static net.dv8tion.jda.api.entities.MessageEmbed buildFrakEmbed(String guildId) {
-        String raw = getContent(guildId);
-        Set<String> locked = getLockedSet(guildId);
+        List<String> fraks  = getFrakList(guildId);
+        Set<String>  locked = getLockedSet(guildId);
 
-        // Leer = unsichtbarer Platzhalter, damit Discord das Embed akzeptiert
-        String display = raw.isBlank() ? "\u200b" : raw;
-        for (String name : locked) {
-            display = display.replace(name, "~~" + name + "~~");
+        String display;
+        if (fraks.isEmpty()) {
+            display = "\u200b";
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (String name : fraks) {
+                if (locked.contains(name)) sb.append("~~").append(name).append("~~\n");
+                else                       sb.append(name).append("\n");
+            }
+            display = sb.toString().trim();
         }
 
         return EmbedFactory.create()

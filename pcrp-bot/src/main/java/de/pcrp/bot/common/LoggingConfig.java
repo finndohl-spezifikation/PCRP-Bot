@@ -111,5 +111,17 @@ public final class LoggingConfig {
     /** Rolle die das Fraktions-Liste Embed bearbeiten darf. */
     public static final long FRAK_MANAGER_ROLE_ID    = 1529636285159837807L;
 
+    /** Vorschlag-Kanal (/vorschlag). */
+    public static final long VORSCHLAG_CHANNEL_ID    = 1529636537292161185L;
+
+    /** Zahlen-Counter-Kanal. */
+    public static final long COUNTER_CHANNEL_ID      = 1529636539645034728L;
+
+    /**
+     * Zahlen-Rang-Rolle (vergeben wenn jemand 100 zählt).
+     * 0L = deaktiviert, Rolle-ID hier eintragen wenn gewünscht.
+     */
+    public static final long COUNTER_RANK_ROLE_ID    = 0L;
+
     private LoggingConfig() {}
 }
