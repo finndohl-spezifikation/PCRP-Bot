@@ -120,6 +120,9 @@ public final class LoggingConfig {
     /** Rolle die bei Lobby-Abstimmungen gepingt wird. */
     public static final long LOBBY_ABSTIMMUNG_ROLE_ID    = 1529636309633863752L;
 
+    /** Rucksack-Panel-Kanal. */
+    public static final long RUCKSACK_CHANNEL_ID     = 1529636560264232980L;
+
     /** Vorschlag-Kanal (/vorschlag). */
     public static final long VORSCHLAG_CHANNEL_ID    = 1529636537292161185L;
 

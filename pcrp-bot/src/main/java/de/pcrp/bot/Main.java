@@ -79,7 +79,8 @@ public class Main {
                 boostListener,
                 new VorschlagListener(),
                 new CounterListener(),
-                new LobbyListener()
+                new LobbyListener(),
+                new RucksackListener()
             )
             .build();
     }
@@ -147,6 +148,7 @@ public class Main {
                 RoleMenuListener.postPanel(guild);
                 postBoostPanel(guild);
                 postFrakListPanel(guild);
+                postRucksackPanel(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -457,6 +459,33 @@ public class Main {
 
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
+        private static void postRucksackPanel(Guild guild) {
+            String key = "panel-rucksack-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.RUCKSACK_CHANNEL_ID);
+            if (ch == null) { log.warn("[Rucksack] Kanal nicht gefunden."); return; }
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored).queue(
+                    msg -> { /* bereits vorhanden */ },
+                    err -> { DataStore.deleteKey(key); sendRucksackPanel(ch, key); });
+            } else {
+                sendRucksackPanel(ch, key);
+            }
+        }
+
+        private static void sendRucksackPanel(TextChannel ch, String key) {
+            ch.sendMessageEmbeds(EmbedFactory.build(
+                "🎒 Rucksack",
+                "Hier kannst du deinen Rucksack öffnen und dein Inventar einsehen.\n\n" +
+                "Über **Anderen Rucksack Öffnen** kannst du das Inventar anderer Spieler einsehen."))
+                .addActionRow(
+                    Button.primary("rucksack-open",  "🎒 Rucksack Öffnen"),
+                    Button.secondary("rucksack-other", "🔍 Anderen Rucksack Öffnen"))
+                .queue(
+                    msg -> DataStore.writeString(key, msg.getId()),
+                    err -> log.error("[Rucksack] Panel konnte nicht gesendet werden.", err));
+        }
+
         private static void postFrakListPanel(Guild guild) {
             TextChannel ch = guild.getTextChannelById(LoggingConfig.FRAK_LIST_CHANNEL_ID);
             if (ch == null) { log.warn("[FrakList] Kanal nicht gefunden."); return; }
@@ -624,6 +653,12 @@ public class Main {
                     .addOptions(new OptionData(OptionType.STRING, "fraktion", "Name der Fraktion", true, true))
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("item-geben", "Gibt einem Spieler ein Item")
+                    .addOption(OptionType.USER,    "mitglied", "Das Mitglied", true)
+                    .addOption(OptionType.STRING,   "item",     "Item-Name",    true)
+                    .addOption(OptionType.INTEGER,  "menge",    "Menge",        true)
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("lobby-abstimmung", "Startet eine Lobby-Abstimmung")
                     .addOption(OptionType.STRING, "uhrzeit", "RP-Startzeit (z. B. 20:00 Uhr)", true),

@@ -65,6 +65,7 @@ public class CommandListener extends ListenerAdapter {
             case "frakwarn-entfernen"  -> handleFrakWarnEntfernen(event);
             case "frak-sperren"        -> handleFrakSperren(event);
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
+            case "item-geben"          -> handleItemGeben(event);
             case "lobby-abstimmung"    -> handleLobbyAbstimmung(event);
             case "lobby-öffnen"        -> handleLobbyOeffnen(event);
             case "lobby-schließen"     -> handleLobbySchliessen(event);
@@ -523,18 +524,18 @@ public class CommandListener extends ListenerAdapter {
         // Beitrittsdatum
         long joinedEpoch  = target.getTimeJoined().toEpochSecond();
 
-        net.dv8tion.jda.api.entities.MessageEmbed ausweisEmbed = EmbedFactory.create()
+        String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+        if (webUrl.endsWith("/")) webUrl = webUrl.substring(0, webUrl.length() - 1);
+        String ausweisUrl = webUrl + "/ausweis/" + target.getId();
+
+        event.replyEmbeds(EmbedFactory.create()
             .setTitle("🪪 Personalausweis — " + target.getUser().getName())
             .setThumbnail(target.getUser().getEffectiveAvatarUrl())
-            .setDescription(
-                "**Mitglied:** " + target.getAsMention() + "\n" +
-                "**Einreiseart:** " + einreise + "\n\n" +
-                "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                "📅 **Discord-Konto erstellt:** <t:" + createdEpoch + ":D>\n" +
-                "📥 **Server beigetreten:** <t:" + joinedEpoch + ":D>")
-            .build();
-
-        event.replyEmbeds(ausweisEmbed).setEphemeral(true).queue();
+            .setDescription("Klicke auf den Button um den Ausweis von **" +
+                target.getEffectiveName() + "** zu öffnen.")
+            .build())
+            .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis öffnen"))
+            .setEphemeral(true).queue();
     }
 
     // ════════════════════════════════════════════════════════════
@@ -1157,6 +1158,27 @@ public class CommandListener extends ListenerAdapter {
     // ════════════════════════════════════════════════════════════
     //  /lobby-abstimmung
     // ════════════════════════════════════════════════════════════
+
+    private void handleItemGeben(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target   = event.getOption("mitglied", OptionMapping::getAsMember);
+        String itemName = event.getOption("item",     OptionMapping::getAsString);
+        long   qty      = event.getOption("menge",    OptionMapping::getAsLong);
+        if (target == null || itemName == null || itemName.isBlank()) return;
+        if (qty <= 0) {
+            event.replyEmbeds(embed("Fehler", "Die Menge muss größer als 0 sein."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        InventoryManager.addItem(event.getGuild().getId(), target.getId(), itemName.trim(), (int) qty);
+        event.replyEmbeds(embed("✅ Item vergeben",
+            "**" + itemName.trim() + "** × " + qty + " wurde dem Inventar von **" +
+            target.getEffectiveName() + "** hinzugefügt."))
+            .setEphemeral(true).queue();
+        BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+            "📦 Item erhalten",
+            "Du hast **" + itemName.trim() + "** × " + qty + " von einem Admin erhalten."));
+    }
 
     private void handleLobbyAbstimmung(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
