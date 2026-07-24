@@ -457,13 +457,15 @@ public class Main {
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
         private static void postFrakListPanel(Guild guild) {
-            String msgId = de.pcrp.bot.common.FraktionManager.getPanelMsgId(guild.getId());
             TextChannel ch = guild.getTextChannelById(LoggingConfig.FRAK_LIST_CHANNEL_ID);
             if (ch == null) { log.warn("[FrakList] Kanal nicht gefunden."); return; }
+            String msgId = de.pcrp.bot.common.FraktionManager.getPanelMsgId(guild.getId());
             if (msgId != null && !msgId.isBlank()) {
-                ch.retrieveMessageById(msgId.trim()).queue(
-                    msg -> log.info("[FrakList] Panel aktiv, kein Neuversand."),
-                    err -> sendFrakListPanel(ch, guild));
+                // Alte Nachricht löschen, dann neu senden
+                ch.deleteMessageById(msgId.trim()).queue(
+                    ok -> sendFrakListPanel(ch, guild),
+                    err -> sendFrakListPanel(ch, guild)   // senden auch wenn Löschen scheitert
+                );
             } else {
                 sendFrakListPanel(ch, guild);
             }

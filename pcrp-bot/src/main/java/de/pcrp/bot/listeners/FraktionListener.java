@@ -35,19 +35,23 @@ public class FraktionListener extends ListenerAdapter {
             return;
         }
 
-        String guildId  = member.getGuild().getId();
-        String current  = FraktionManager.getContent(guildId);
+        String guildId = member.getGuild().getId();
+        String current = FraktionManager.getContent(guildId);
 
-        TextInput input = TextInput.create("frak-content", "Fraktions Liste", TextInputStyle.PARAGRAPH)
-            .setValue(current.isBlank() ? "" : current)
+        TextInput.Builder inputBuilder = TextInput
+            .create("frak-content", "Fraktions Liste", TextInputStyle.PARAGRAPH)
             .setPlaceholder("Eine Fraktion pro Zeile eintragen…")
             .setRequired(false)
-            .setMaxLength(3900)
-            .build();
+            .setMaxLength(3900);
+
+        // setValue darf in JDA 5 nicht mit einem leeren String aufgerufen werden
+        if (!current.isBlank()) {
+            inputBuilder.setValue(current);
+        }
 
         event.replyModal(
             Modal.create("frak-edit-modal", "Fraktions Liste bearbeiten")
-                .addComponents(ActionRow.of(input))
+                .addComponents(ActionRow.of(inputBuilder.build()))
                 .build()
         ).queue();
     }
