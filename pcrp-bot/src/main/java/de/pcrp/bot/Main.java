@@ -467,7 +467,7 @@ public class Main {
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
         private static void postLottoPanel(Guild guild) {
-            String key = "panel-lotto-" + guild.getId();
+            String key = "panel-lotto-v3-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
             String stored = DataStore.readString(key);
@@ -481,6 +481,7 @@ public class Main {
         }
 
         private static void sendLottoPanel(TextChannel ch, String key, Guild guild) {
+            String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
             int jackpot = LottoManager.getCurrentJackpot(guild.getId());
             ch.sendMessageEmbeds(EmbedFactory.build(
                 "🎰 Paradise City Lotto",
@@ -489,14 +490,14 @@ public class Main {
                 "Die Ziehung findet jeden Tag um **12:00 Uhr** statt.\n\n" +
                 "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
                 "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
-                .addActionRow(Button.primary("lotto-get-link", "🎟️ Jetzt Mitspielen"))
+                .addActionRow(Button.link(webUrl + "/lotto", "🎟️ Zum Lotto"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
                     err -> log.error("[Lotto] Panel konnte nicht gesendet werden.", err));
         }
 
         private static void postRubbellosPanel(Guild guild) {
-            String key = "panel-rubbellos-" + guild.getId();
+            String key = "panel-rubbellos-v2-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
             if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
             String stored = DataStore.readString(key);
@@ -517,7 +518,7 @@ public class Main {
                 "Rubbele alle **3 Felder** frei — findest du drei gleiche Beträge, gewinnst du!\n\n" +
                 "💰 Gewinne: **Niete bis 30.000$**\n" +
                 "🎟️ Pro Rubbellos wird **1 Los** aus deinem Rucksack eingelöst."))
-                .addActionRow(Button.primary("rubbellos-scratch", "🎰 Rubbellos einlösen"))
+                .addActionRow(Button.link(webUrl + "/rubbellos", "🎰 Zum Rubbellos"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
                     err -> log.error("[Rubbellos] Panel konnte nicht gesendet werden.", err));

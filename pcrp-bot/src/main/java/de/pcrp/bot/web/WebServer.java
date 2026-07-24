@@ -54,8 +54,13 @@ public class WebServer {
         app.post("/api/lotto/enroll/{token}",          WebServer::handleLottoEnrollToken);
 
         // Rubbellos
+        app.get("/rubbellos",                          WebServer::serveRubbellosGeneral);
         app.get("/rubbellos/{token}",                  WebServer::serveRubbellos);
+        app.post("/api/rubbellos/create",              WebServer::handleRubbellosCreate);
         app.post("/api/rubbellos/claim/{token}",       WebServer::handleRubbellosClai);
+
+        // Lotto (kein Token — direktes Einlösen per userId)
+        app.post("/api/lotto/enroll",                  WebServer::handleLottoEnrollDirect);
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
@@ -393,6 +398,40 @@ public class WebServer {
         ctx.contentType("text/html;charset=utf-8").result(buildLottoPage());
     }
 
+    private static void handleLottoEnrollDirect(Context ctx) {
+        JsonObject r = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Bot nicht bereit.");
+            ctx.status(503).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Anfrage.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String userId = body != null && body.has("userId") ? body.get("userId").getAsString().trim() : "";
+        if (userId.isEmpty()) {
+            r.addProperty("ok", false); r.addProperty("error", "Keine Discord User-ID angegeben.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        try { Long.parseLong(userId); } catch (NumberFormatException e) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Discord User-ID.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String error = LottoManager.enroll(guild.getId(), userId);
+        if (error != null) {
+            r.addProperty("ok", false); r.addProperty("error", error);
+            ctx.contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        int jackpot = LottoManager.getCurrentJackpot(guild.getId());
+        r.addProperty("ok", true);
+        r.addProperty("jackpotFmt", LottoManager.formatAmount(jackpot));
+        r.addProperty("participants", LottoManager.getParticipantCount(guild.getId()));
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
     private static void serveLottoToken(Context ctx) {
         String token = ctx.pathParam("token");
         String[] info = LottoManager.lookupToken(token);
@@ -450,54 +489,92 @@ public class WebServer {
     }
 
     private static String buildLottoPage() {
-        return "<!DOCTYPE html><html lang=\"de\"><head>" +
-            "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
-            "<title>PCRP Lotto</title>" +
-            "<style>" +
+        String CSS =
             "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;background:linear-gradient(135deg,#0d0600 0%,#1a0900 100%);" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#0d0600,#1a0900);" +
             "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
-            ".card{width:100%;max-width:480px;background:rgba(255,255,255,0.04);border:1px solid #CC5500;" +
-            "border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(204,85,0,0.25)}" +
-            ".header{background:linear-gradient(90deg,#CC5500,#993300);padding:24px;text-align:center}" +
-            ".header h1{color:#fff;font-size:2rem;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.5)}" +
-            ".header p{color:#ffd0a0;font-size:.85rem;margin-top:4px;letter-spacing:1px}" +
-            ".body{padding:28px}" +
-            ".jackpot{text-align:center;margin-bottom:28px}" +
-            ".jackpot .label{color:#aaa;font-size:.75rem;letter-spacing:2px;text-transform:uppercase}" +
-            ".jackpot .amount{color:#FF8800;font-size:2.8rem;font-weight:700;margin-top:6px;" +
-            "text-shadow:0 0 20px rgba(255,136,0,.4)}" +
-            ".jackpot .participants{color:#888;font-size:.85rem;margin-top:8px}" +
-            ".divider{border:none;border-top:1px solid #CC550030;margin:0 0 24px}" +
-            ".info{color:#aaa;font-size:.9rem;text-align:center;line-height:1.7}" +
-            ".info strong{color:#FF8800}" +
-            ".draw-info{text-align:center;color:#555;font-size:.75rem;margin-top:24px}" +
-            "</style></head><body>" +
-            "<div class=\"card\">" +
-            "<div class=\"header\"><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>" +
-            "<div class=\"body\">" +
-            "<div class=\"jackpot\">" +
-            "<div class=\"label\">Heutiger Jackpot</div>" +
-            "<div class=\"amount\" id=\"jackpot\">Lädt…</div>" +
-            "<div class=\"participants\" id=\"participants\"></div>" +
+            ".card{width:100%;max-width:480px;background:rgba(255,255,255,.04);border:1px solid #CC5500;" +
+            "border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(204,85,0,.25)}" +
+            ".hdr{background:linear-gradient(90deg,#CC5500,#993300);padding:24px;text-align:center}" +
+            ".hdr h1{color:#fff;font-size:2rem;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.5)}" +
+            ".hdr p{color:#ffd0a0;font-size:.85rem;margin-top:4px;letter-spacing:1px}" +
+            ".bdy{padding:28px}" +
+            ".jp{text-align:center;margin-bottom:22px}" +
+            ".jp .lbl{color:#aaa;font-size:.72rem;letter-spacing:2px;text-transform:uppercase}" +
+            ".jp .amt{color:#FF8800;font-size:2.8rem;font-weight:700;margin-top:6px;text-shadow:0 0 20px rgba(255,136,0,.4)}" +
+            ".jp .pts{color:#888;font-size:.85rem;margin-top:6px}" +
+            "hr{border:none;border-top:1px solid #CC550030;margin:0 0 22px}" +
+            ".step{display:none;flex-direction:column;gap:14px}" +
+            ".step.on{display:flex}" +
+            ".slbl{color:#888;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;text-align:center}" +
+            "input{width:100%;padding:12px 14px;background:#0d0600;border:1px solid #CC5500;" +
+            "border-radius:8px;color:#fff;font-size:.95rem;outline:none}" +
+            "input::placeholder{color:#444}" +
+            "btn,button{display:block;width:100%;padding:14px;background:linear-gradient(90deg,#CC5500,#FF6600);" +
+            "border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;" +
+            "letter-spacing:1px;cursor:pointer;transition:opacity .2s;margin-top:2px}" +
+            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
+            ".msg{margin-top:12px;padding:12px;border-radius:8px;font-size:.88rem;text-align:center;display:none}" +
+            ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
+            ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
+            ".win{background:rgba(255,136,0,.07);border:1px solid #CC550060;border-radius:12px;padding:22px;text-align:center}" +
+            ".win .ic{font-size:2.4rem;margin-bottom:10px}" +
+            ".win h2{color:#FF8800;font-size:1.2rem;margin-bottom:8px}" +
+            ".win p{color:#bbb;font-size:.88rem;line-height:1.65}" +
+            ".win strong{color:#FF8800}" +
+            ".foot{text-align:center;color:#555;font-size:.72rem;margin-top:18px}";
+
+        return "<!DOCTYPE html><html lang='de'><head>" +
+            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>PCRP Lotto</title><style>" + CSS + "</style></head><body>" +
+            "<div class='card'>" +
+            "<div class='hdr'><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>" +
+            "<div class='bdy'>" +
+            "<div class='jp'><div class='lbl'>Heutiger Jackpot</div>" +
+            "<div class='amt' id='jp'>Lädt…</div><div class='pts' id='pts'></div></div>" +
+            "<hr>" +
+            // Step 1 — ID
+            "<div class='step on' id='s1'>" +
+            "<div class='slbl'>Schritt 1 — Deine Discord User-ID</div>" +
+            "<input id='uid' type='text' placeholder='z. B. 123456789012345678' maxlength='20'>" +
+            "<button onclick='goStep2()'>➡️ Weiter zum Lotto</button>" +
+            "<div class='msg' id='m1'></div>" +
             "</div>" +
-            "<hr class=\"divider\">" +
-            "<div class=\"info\">" +
-            "Um teilzunehmen, klicke auf den Button <strong>🎟️ Jetzt Mitspielen</strong><br>" +
-            "im Discord-Kanal. Der Bot löst deinen<br><strong>Lottoschein</strong> automatisch ein.<br><br>" +
-            "Die Ziehung findet täglich um <strong>12:00 Uhr</strong> statt." +
+            // Step 2 — Einlösen
+            "<div class='step' id='s2'>" +
+            "<div class='slbl'>Schritt 2 — Lottoschein einlösen</div>" +
+            "<button id='ebtn' onclick='enroll()'>🎟️ Lottoschein abgeben</button>" +
+            "<div class='msg' id='m2'></div>" +
             "</div>" +
-            "<div class=\"draw-info\">Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
+            // Step 3 — Bestätigung
+            "<div class='step' id='s3'>" +
+            "<div class='win'><div class='ic'>🎉</div>" +
+            "<h2>Du bist dabei!</h2>" +
+            "<p>Dein Lottoschein wurde eingelöst.<br>Jackpot: <strong id='j3'></strong><br>" +
+            "Die Ziehung findet heute um <strong>12:00 Uhr</strong> statt.<br>Viel Glück! 🍀</p>" +
+            "</div></div>" +
+            "<div class='foot'>Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
             "</div></div>" +
             "<script>" +
-            "async function loadStatus(){" +
-            "try{const r=await fetch('/api/lotto/status');" +
+            "const K='pcrp_uid';let uid=localStorage.getItem(K)||'';" +
+            "function show(id){['s1','s2','s3'].forEach(s=>document.getElementById(s).className='step'+(s==id?' on':''));}" +
+            "function msg(id,t,c){const m=document.getElementById(id);m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "async function loadJp(){try{const r=await fetch('/api/lotto/status');const d=await r.json();" +
+            "if(d.ok){document.getElementById('jp').textContent=d.jackpotFmt;" +
+            "document.getElementById('pts').textContent='🎟️ Teilnehmer: '+d.participants;" +
+            "document.getElementById('j3').textContent=d.jackpotFmt;}}catch(e){}}" +
+            "function goStep2(){const v=document.getElementById('uid').value.trim();" +
+            "if(!v||!/^\\d{10,20}$/.test(v)){msg('m1','Bitte gib eine gültige Discord User-ID ein.','err');return;}" +
+            "localStorage.setItem(K,v);uid=v;show('s2');}" +
+            "async function enroll(){const btn=document.getElementById('ebtn');btn.disabled=true;" +
+            "try{const r=await fetch('/api/lotto/enroll',{method:'POST'," +
+            "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});" +
             "const d=await r.json();" +
-            "if(d.ok){" +
-            "document.getElementById('jackpot').textContent=d.jackpotFmt;" +
-            "document.getElementById('participants').textContent='🎟️ Teilnehmer: '+d.participants;" +
-            "}}catch(e){}}" +
-            "loadStatus();" +
+            "if(d.ok){document.getElementById('j3').textContent=d.jackpotFmt;show('s3');loadJp();}" +
+            "else{msg('m2',d.error,'err');btn.disabled=false;}}" +
+            "catch(e){msg('m2','Verbindungsfehler. Bitte erneut versuchen.','err');btn.disabled=false;}}" +
+            "loadJp();" +
+            "if(uid)show('s2');" +
             "</script></body></html>";
     }
 
@@ -581,6 +658,182 @@ public class WebServer {
             "m.textContent=t;m.className='msg '+cls;m.style.display='block';}" +
             "loadStatus();" +
             "</script></body></html>";
+    }
+
+    // ── /rubbellos (allgemeine Seite) ─────────────────────────────────────────
+
+    private static void serveRubbellosGeneral(Context ctx) {
+        ctx.contentType("text/html;charset=utf-8").result(buildRubbellosGeneralPage());
+    }
+
+    private static String buildRubbellosGeneralPage() {
+        String CSS =
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:radial-gradient(ellipse at top,#1a1200,#0a0800);" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".card{width:100%;max-width:400px;background:#111005;border:3px solid #b8860b;" +
+            "border-radius:18px;overflow:hidden;box-shadow:0 0 60px rgba(184,134,11,.35)}" +
+            ".top{background:linear-gradient(90deg,#8b6914,#ffd700,#8b6914);padding:20px;text-align:center}" +
+            ".top h1{font-size:1.5rem;letter-spacing:4px;color:#1a1000;font-weight:900}" +
+            ".top p{font-size:.7rem;letter-spacing:3px;color:#3a2800;margin-top:2px}" +
+            ".bdy{padding:26px;display:flex;flex-direction:column;gap:16px}" +
+            ".slbl{color:#b8860b88;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;text-align:center}" +
+            "input{width:100%;padding:12px 14px;background:#0a0800;border:2px solid #b8860b44;" +
+            "border-radius:8px;color:#fff;font-size:.95rem;outline:none}" +
+            "input:focus{border-color:#ffd700}input::placeholder{color:#444}" +
+            "button{width:100%;padding:14px;background:linear-gradient(90deg,#8b6914,#ffd700,#8b6914);" +
+            "border:none;border-radius:8px;color:#1a1000;font-size:1rem;font-weight:900;" +
+            "letter-spacing:1px;cursor:pointer;transition:opacity .2s}" +
+            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
+            ".msg{padding:12px;border-radius:8px;font-size:.88rem;text-align:center;display:none}" +
+            ".msg.err{background:#2a0d0d;border:1px solid #993030;color:#dd5555}" +
+            ".los{display:none;flex-direction:column;gap:12px}" +
+            ".los.on{display:flex}" +
+            ".cells{display:flex;gap:10px;justify-content:center}" +
+            ".cw{position:relative;width:90px;height:90px}" +
+            "canvas{position:absolute;top:0;left:0;border-radius:10px;cursor:crosshair;touch-action:none}" +
+            ".cv{width:90px;height:90px;border-radius:10px;background:linear-gradient(135deg,#2a2000,#1a1500);" +
+            "border:2px solid #b8860b44;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}" +
+            ".cv .sym{font-size:1.5rem}.cv .amt{color:#ffd700;font-size:.78rem;font-weight:700}" +
+            ".hint{text-align:center;color:#b8860b66;font-size:.7rem;letter-spacing:1px}" +
+            ".res{padding:18px;border-radius:12px;text-align:center;display:none}" +
+            ".res.win{background:#1a2a00;border:1px solid #4a9930}" +
+            ".res.lose{background:#1a1000;border:1px solid #b8860b33}" +
+            ".res h2{font-size:1.3rem;margin-bottom:8px}" +
+            ".res.win h2{color:#7ddd55}.res.lose h2{color:#b8860b}" +
+            ".res p{color:#aaa;font-size:.85rem;line-height:1.6}" +
+            ".foot{text-align:center;color:#b8860b44;font-size:.65rem;letter-spacing:1px;padding:0 0 10px}";
+
+        return "<!DOCTYPE html><html lang='de'><head>" +
+            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>Goldene 7 – PCRP Rubbellos</title><style>" + CSS + "</style></head><body>" +
+            "<div class='card'>" +
+            "<div class='top'><h1>⭐ GOLDENE 7 ⭐</h1><p>PARADISE CITY ROLEPLAY</p></div>" +
+            "<div class='bdy' id='bdy'>" +
+            // Step 1 — ID
+            "<div class='slbl' id='idlbl'>Deine Discord User-ID</div>" +
+            "<input id='uid' type='text' placeholder='z. B. 123456789012345678' maxlength='20'>" +
+            "<button id='sbtn' onclick='goScratch()'>🎰 Rubbellos einlösen</button>" +
+            "<div class='msg err' id='emsg'></div>" +
+            // Scratch-Karte (nach Einlösen eingeblendet)
+            "<div class='los' id='los'>" +
+            "<div class='slbl'>Rubbele alle 3 Felder frei!</div>" +
+            "<div class='cells'>" +
+            "<div class='cw'><div class='cv'><span class='sym'>🍀</span><span class='amt' id='v0'></span></div>" +
+            "<canvas id='c0' width='90' height='90'></canvas></div>" +
+            "<div class='cw'><div class='cv'><span class='sym'>⭐</span><span class='amt' id='v1'></span></div>" +
+            "<canvas id='c1' width='90' height='90'></canvas></div>" +
+            "<div class='cw'><div class='cv'><span class='sym'>💎</span><span class='amt' id='v2'></span></div>" +
+            "<canvas id='c2' width='90' height='90'></canvas></div>" +
+            "</div>" +
+            "<div class='hint'>gedrückt halten und rubbeln</div>" +
+            "<div class='res' id='res'><h2 id='rt'></h2><p id='rd'></p></div>" +
+            "</div>" +
+            "</div>" +
+            "<div class='foot'>GOLDENE 7 • PCRP • GEWINN BIS 30.000$</div>" +
+            "</div>" +
+            "<script>" +
+            "const K='pcrp_uid';let uid=localStorage.getItem(K)||'';let claimToken=null;let claimed=false;" +
+            "const rev=[false,false,false];" +
+            "if(uid)document.getElementById('uid').value=uid;" +
+            "function err(t){const m=document.getElementById('emsg');m.textContent=t;m.style.display='block';}" +
+            "async function goScratch(){" +
+            "const v=document.getElementById('uid').value.trim();" +
+            "if(!v||!/^\\d{10,20}$/.test(v)){err('Bitte gib eine gültige Discord User-ID ein.');return;}" +
+            "localStorage.setItem(K,v);uid=v;" +
+            "const btn=document.getElementById('sbtn');btn.disabled=true;" +
+            "try{const r=await fetch('/api/rubbellos/create',{method:'POST'," +
+            "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});" +
+            "const d=await r.json();" +
+            "if(!d.ok){err(d.error);btn.disabled=false;return;}" +
+            "claimToken=d.token;" +
+            "document.getElementById('v0').textContent=d.c0;" +
+            "document.getElementById('v1').textContent=d.c1;" +
+            "document.getElementById('v2').textContent=d.c2;" +
+            // Hide ID form, show scratch card
+            "document.getElementById('idlbl').style.display='none';" +
+            "document.getElementById('uid').style.display='none';" +
+            "document.getElementById('sbtn').style.display='none';" +
+            "document.getElementById('emsg').style.display='none';" +
+            "document.getElementById('los').className='los on';" +
+            "setupCards();}" +
+            "catch(e){err('Verbindungsfehler. Bitte erneut versuchen.');btn.disabled=false;}}" +
+            "function setupCards(){[0,1,2].forEach(i=>setup(i));}" +
+            "function setup(i){const cv=document.getElementById('c'+i);" +
+            "const cx=cv.getContext('2d');" +
+            "cx.fillStyle='#c8a000';cx.beginPath();cx.roundRect(0,0,90,90,10);cx.fill();" +
+            "cx.fillStyle='#8b6914';" +
+            "for(let j=0;j<6;j++)cx.fillRect(8+j*14,36,10,14);" +
+            "cx.fillStyle='#1a1000';cx.font='bold 11px Segoe UI';cx.textAlign='center';" +
+            "cx.fillText('RUBBELN',45,22);cx.fillText('7',45,62);" +
+            "let drag=false;" +
+            "function sc(x,y){cx.globalCompositeOperation='destination-out';" +
+            "cx.beginPath();cx.arc(x,y,18,0,Math.PI*2);cx.fill();check(cx,cv,i);}" +
+            "cv.addEventListener('mousedown',e=>{drag=true;sc(e.offsetX,e.offsetY);});" +
+            "cv.addEventListener('mousemove',e=>{if(drag)sc(e.offsetX,e.offsetY);});" +
+            "cv.addEventListener('mouseup',()=>drag=false);" +
+            "cv.addEventListener('mouseleave',()=>drag=false);" +
+            "cv.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];" +
+            "const b=cv.getBoundingClientRect();sc(t.clientX-b.left,t.clientY-b.top);},{passive:false});" +
+            "cv.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];" +
+            "const b=cv.getBoundingClientRect();sc(t.clientX-b.left,t.clientY-b.top);},{passive:false});}" +
+            "function check(cx,cv,i){if(rev[i])return;" +
+            "const d=cx.getImageData(0,0,90,90).data;let t=0,c=0;" +
+            "for(let j=3;j<d.length;j+=4){t++;if(d[j]<128)c++;}" +
+            "if(c/t>.6){rev[i]=true;cv.style.display='none';checkAll();}}" +
+            "function checkAll(){if(rev[0]&&rev[1]&&rev[2]&&!claimed){claimed=true;claim();}}" +
+            "async function claim(){try{const r=await fetch('/api/rubbellos/claim/'+claimToken,{method:'POST'});" +
+            "const d=await r.json();const res=document.getElementById('res');" +
+            "if(d.prize>0){res.className='res win';document.getElementById('rt').textContent='🎉 Gewonnen!';" +
+            "document.getElementById('rd').textContent='Du hast '+d.prizeFmt+' gewonnen! Das Bargeld wurde deinem Rucksack gutgeschrieben.';}" +
+            "else{res.className='res lose';document.getElementById('rt').textContent='😔 Niete';" +
+            "document.getElementById('rd').textContent='Kein Gewinn dieses Mal – beim nächsten Mal klappts!';}" +
+            "res.style.display='block';}catch(e){}}" +
+            "</script></body></html>";
+    }
+
+    private static void handleRubbellosCreate(Context ctx) {
+        JsonObject r = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Bot nicht bereit.");
+            ctx.status(503).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Anfrage.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String userId = body != null && body.has("userId") ? body.get("userId").getAsString().trim() : "";
+        if (userId.isEmpty()) {
+            r.addProperty("ok", false); r.addProperty("error", "Keine Discord User-ID angegeben.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        try { Long.parseLong(userId); } catch (NumberFormatException e) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Discord User-ID.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        boolean hasTicket = InventoryManager.getInventory(guild.getId(), userId)
+            .stream().anyMatch(it -> "Rubbellos".equalsIgnoreCase(it.name));
+        if (!hasTicket) {
+            r.addProperty("ok", false); r.addProperty("error", "Du hast kein Rubbellos in deinem Rucksack.");
+            ctx.contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        boolean removed = InventoryManager.removeItem(guild.getId(), userId, "Rubbellos", 1);
+        if (!removed) {
+            r.addProperty("ok", false); r.addProperty("error", "Rubbellos konnte nicht eingelöst werden. Bitte erneut versuchen.");
+            ctx.contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        int prize = RubbellosManager.rollPrize();
+        String token = RubbellosManager.createToken(guild.getId(), userId, prize);
+        int[] cells = RubbellosManager.buildCells(prize);
+        r.addProperty("ok", true);
+        r.addProperty("token", token);
+        r.addProperty("c0", fmtCell(cells[0]));
+        r.addProperty("c1", fmtCell(cells[1]));
+        r.addProperty("c2", fmtCell(cells[2]));
+        ctx.contentType("application/json").result(GSON.toJson(r));
     }
 
     // ── /rubbellos/{token} ────────────────────────────────────────────────────
