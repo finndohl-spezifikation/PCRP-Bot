@@ -1170,9 +1170,9 @@ public class CommandListener extends ListenerAdapter {
 
         event.deferReply(true).queue();
 
-        InputStream gif = CommandListener.class.getResourceAsStream("/static/lobby-anim.gif");
-        if (gif == null) {
-            event.getHook().sendMessageEmbeds(embed("Fehler", "Animations-Bild nicht gefunden."))
+        InputStream banner = CommandListener.class.getResourceAsStream("/static/lobby-banner.png");
+        if (banner == null) {
+            event.getHook().sendMessageEmbeds(embed("Fehler", "Banner-Bild nicht gefunden."))
                 .setEphemeral(true).queue();
             return;
         }
@@ -1180,7 +1180,7 @@ public class CommandListener extends ListenerAdapter {
         final String finalUhrzeit = uhrzeit;
         ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
             .setEmbeds(LobbyManager.buildInitialEmbed(finalUhrzeit))
-            .addFiles(FileUpload.fromData(gif, "lobby-anim.gif"))
+            .addFiles(FileUpload.fromData(banner, "lobby-banner.png"))
             .queue(msg -> {
                 LobbyManager.storeUhrzeit(msg.getId(), finalUhrzeit);
 
