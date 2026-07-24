@@ -56,10 +56,8 @@ public class TicketListener extends ListenerAdapter {
     public void onStringSelectInteraction(StringSelectInteractionEvent event) {
         String cid = event.getComponentId();
 
-        if (cid.equals(ACTION_SEL)) {
-            handleTicketAction(event);
-            return;
-        }
+        if (cid.equals(ACTION_SEL)) { handleTicketAction(event); return; }
+        if (cid.startsWith("rate-sel-")) { handleRatingSelect(event); return; }
         if (!cid.equals(SELECT_ID)) return;
 
         String value  = event.getValues().get(0);
@@ -335,16 +333,10 @@ public class TicketListener extends ListenerAdapter {
                         .setTitle("🎫 Dein Ticket wurde geschlossen")
                         .setDescription(
                             "Dein Ticket **" + ticketName + "** (" + typeLabel + ") wurde geschlossen.\n\n" +
-                            "Wie war deine Erfahrung? Klicke auf eine Bewertung.\n" +
+                            "Wie war deine Erfahrung? Wähle eine Bewertung aus.\n" +
                             "Du kannst jedes Ticket nur **einmal** bewerten.")
                         .build())
-                        .addActionRow(
-                            Button.secondary("rate-" + ticketId + "-1", "⭐"),
-                            Button.secondary("rate-" + ticketId + "-2", "⭐⭐"),
-                            Button.secondary("rate-" + ticketId + "-3", "⭐⭐⭐"),
-                            Button.secondary("rate-" + ticketId + "-4", "⭐⭐⭐⭐"),
-                            Button.secondary("rate-" + ticketId + "-5", "⭐⭐⭐⭐⭐")
-                        )
+                        .addActionRow(buildRatingMenu(ticketId, false))
                         .queue(null, e -> log.warn("[Ticket] DM an {} fehlgeschlagen.", creatorId))
                 );
             }, e -> log.warn("[Ticket] Creator {} nicht abrufbar.", creatorId));
@@ -353,18 +345,13 @@ public class TicketListener extends ListenerAdapter {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Bewertungs-Buttons (DM)
+    // Bewertungs-Auswahlmenü (DM) — rate-sel-{ticketId}
     // ──────────────────────────────────────────────────────────────────────────
 
-    @Override
-    public void onButtonInteraction(ButtonInteractionEvent event) {
-        if (!event.getComponentId().startsWith("rate-")) return;
-
-        String id    = event.getComponentId();
-        int    lastD = id.lastIndexOf('-');
-        if (lastD < 0) return;
-        String stars    = id.substring(lastD + 1);
-        String ticketId = id.substring(5, lastD); // "rate-" = 5 Zeichen
+    private void handleRatingSelect(StringSelectInteractionEvent event) {
+        // ID-Format: rate-sel-{ticketId}
+        String ticketId = event.getComponentId().substring("rate-sel-".length());
+        String stars    = event.getValues().get(0);
 
         if (DataStore.readString("ticket-rated-" + ticketId) != null) {
             event.reply("❌ Du hast dieses Ticket bereits bewertet.").setEphemeral(true).queue();
@@ -381,6 +368,11 @@ public class TicketListener extends ListenerAdapter {
             .build();
 
         event.replyModal(modal).queue();
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        // kein Button mehr für Bewertungen
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -442,19 +434,28 @@ public class TicketListener extends ListenerAdapter {
         event.reply("✅ Danke für deine Bewertung! (" + starStr + ")").setEphemeral(true).queue();
 
         if (event.getMessage() != null) {
-            event.getMessage().editMessageComponents(ActionRow.of(
-                Button.secondary("rate-" + ticketId + "-1", "⭐").asDisabled(),
-                Button.secondary("rate-" + ticketId + "-2", "⭐⭐").asDisabled(),
-                Button.secondary("rate-" + ticketId + "-3", "⭐⭐⭐").asDisabled(),
-                Button.secondary("rate-" + ticketId + "-4", "⭐⭐⭐⭐").asDisabled(),
-                Button.secondary("rate-" + ticketId + "-5", "⭐⭐⭐⭐⭐").asDisabled()
-            )).queue(null, e -> {});
+            event.getMessage().editMessageComponents(
+                ActionRow.of(buildRatingMenu(ticketId, true))
+            ).queue(null, e -> {});
         }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     // Hilfsmethoden
     // ──────────────────────────────────────────────────────────────────────────
+
+    /** Bewertungs-Auswahlmenü für die DM. disabled=true → nach Abgabe deaktiviert. */
+    private static StringSelectMenu buildRatingMenu(String ticketId, boolean disabled) {
+        StringSelectMenu.Builder b = StringSelectMenu.create("rate-sel-" + ticketId)
+            .setPlaceholder("Bewertung auswählen…")
+            .addOption("⭐ — Sehr schlecht",   "1", "1 von 5 Sternen")
+            .addOption("⭐⭐ — Schlecht",       "2", "2 von 5 Sternen")
+            .addOption("⭐⭐⭐ — Ok",           "3", "3 von 5 Sternen")
+            .addOption("⭐⭐⭐⭐ — Gut",        "4", "4 von 5 Sternen")
+            .addOption("⭐⭐⭐⭐⭐ — Sehr gut", "5", "5 von 5 Sternen");
+        if (disabled) b.setDisabled(true);
+        return b.build();
+    }
 
     /** Aktionsmenü das im Ticket erscheint. */
     public static StringSelectMenu buildActionMenu() {
