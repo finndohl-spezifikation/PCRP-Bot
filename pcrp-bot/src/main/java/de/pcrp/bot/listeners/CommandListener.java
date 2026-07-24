@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.*;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -54,6 +55,78 @@ public class CommandListener extends ListenerAdapter {
             case "einreise-sperre"     -> handleEinreiseSperre(event);
             case "einreise-entsperren" -> handleEinreiseEntsperre(event);
         }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  BUTTON – Aktive Systeme
+    // ════════════════════════════════════════════════════════════
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if ("status-aktive-systeme".equals(event.getComponentId())) {
+            event.replyEmbeds(buildActiveSystemsEmbed()).setEphemeral(true).queue();
+        }
+    }
+
+    private static net.dv8tion.jda.api.entities.MessageEmbed buildActiveSystemsEmbed() {
+        String owner = "<@" + ModerationConfig.OWNER_ID + "> (`" + ModerationConfig.OWNER_ID + "`)";
+        String bot   = "Bot selbst";
+
+        return EmbedFactory.create()
+            .setTitle("🛡️ Aktive Moderationssysteme — Paradise City Roleplay")
+            .setDescription(
+                "**🔤 Wortfilter**\n" +
+                "Verbotener Ausdruck → Nachricht löschen · 10 Min. Timeout · DM\n" +
+                "✅ Ausgenommen: " + owner + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**🔗 Eigenwerbungs-Filter**\n" +
+                "Fremder Discord-Link → Nachricht löschen · 14 Tage Timeout · DM · Alert\n" +
+                "✅ Ausgenommen: " + owner + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**🔢 67-Filter**\n" +
+                "\"67\" / \"sixseven\" → Nachricht löschen · korrigiert als \"69\" via Webhook neu gepostet\n" +
+                "✅ Ausgenommen: " + owner + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**📨 Spamschutz** (>" + ModerationConfig.SPAM_MESSAGE_LIMIT +
+                    " Nachrichten / " + (ModerationConfig.SPAM_WINDOW_MS / 1000) + "s)\n" +
+                "1. Verstoß → Nachrichten löschen · DM-Verwarnung\n" +
+                "2. Verstoß → Nachrichten löschen · " + ModerationConfig.SPAM_TIMEOUT_MINUTES + " Min. Timeout · DM\n" +
+                "✅ Ausgenommen: " + owner + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**💣 Anti-Nuke — Kanalschutz**\n" +
+                "Jede Kanallöschung → Sofortiger Restore · " + ModerationConfig.PROTECTION_TIMEOUT_DAYS + " Tage Timeout · DM · Alert\n" +
+                "✅ Ausgenommen: " + owner + " · " + bot + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**💣 Anti-Nuke — Rollenschutz**\n" +
+                "≥" + ModerationConfig.MASS_DELETE_LIMIT + " Rollenlöschungen / " +
+                    (ModerationConfig.MASS_DELETE_WINDOW_MS / 1000) + "s → Rolle restore · " +
+                    ModerationConfig.PROTECTION_TIMEOUT_DAYS + " Tage Timeout · DM · Alert\n" +
+                "✅ Ausgenommen: " + owner + " · " + bot + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**🤖 Anti-Nuke — Fremde Bots**\n" +
+                "Fremder Bot betritt den Server → Permanenter Bann · DM an Einladenden · Alert\n" +
+                "✅ Ausgenommen: " + bot + "\n\n" +
+
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+
+                "**⚠️ Verwarnungssystem** (`/verwarnung`)\n" +
+                "1.–2. Verwarnung → Warn-Rolle · Log\n" +
+                "3. Verwarnung → Warn-Rolle · Log · 3 Tage Auto-Timeout · DM\n" +
+                "✅ Ausgenommen: " + owner
+            )
+            .build();
     }
 
     // ════════════════════════════════════════════════════════════
