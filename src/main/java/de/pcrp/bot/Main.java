@@ -450,7 +450,8 @@ public class Main {
                         "aller Moderationssysteme und der jeweiligen Ausnahmen.")
                     .build()
             ).addActionRow(
-                Button.primary("status-aktive-systeme", "🛡️ Aktive Systeme")
+                Button.primary("status-aktive-systeme", "🛡️ Aktive Systeme"),
+                Button.primary("dm-menu", "📨 Direkt-Nachricht")
             ).queue(
                 msg -> DataStore.writeString(key, msg.getId()),
                 err -> log.error("[Status] Startnachricht konnte nicht gesendet werden.", err)
@@ -567,6 +568,11 @@ public class Main {
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("einreise-entsperren", "Hebt den Einreise-Stopp wieder auf")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("direkt-nachricht", "Sendet eine Direkt-Nachricht via Bot-DM")
+                    .addOption(OptionType.USER, "mitglied", "Bestimmtes Mitglied (leer lassen = an alle)", false)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 
