@@ -2,6 +2,8 @@ package de.pcrp.bot.listeners;
 
 import de.pcrp.bot.common.*;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
@@ -60,8 +62,15 @@ public class LoggingListener extends ListenerAdapter {
             .addField("🕐 Zeitpunkt",  "<t:" + now + ":F>", false)
 ;
 
-        for (Guild guild : jda.getGuilds())
-            log(guild, LoggingConfig.PLAYER_LOG_CHANNEL_ID, embed.build());
+        for (Guild guild : jda.getGuilds()) {
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.PLAYER_LOG_CHANNEL_ID);
+            if (ch != null)
+                ch.sendMessageEmbeds(embed.build())
+                    .addActionRow(
+                        Button.primary("status-aktive-systeme", "🛡️ Aktive Systeme"),
+                        Button.primary("dm-menu", "📨 Direkt-Nachricht"))
+                    .queue();
+        }
     }
 
     // ════════════════════════════════════════════════════════════
