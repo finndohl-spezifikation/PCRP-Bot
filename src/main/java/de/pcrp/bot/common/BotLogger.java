@@ -2,8 +2,11 @@ package de.pcrp.bot.common;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.EnumSet;
 
@@ -14,6 +17,8 @@ import net.dv8tion.jda.api.entities.Message;
  * Aktivitätswarnungen. Wird von allen Listenern genutzt.
  */
 public final class BotLogger {
+
+    private static final Logger log = LoggerFactory.getLogger(BotLogger.class);
 
     private BotLogger() {}
 
@@ -43,12 +48,17 @@ public final class BotLogger {
 
     /**
      * Versucht, einem Nutzer eine DM zu schicken.
-     * Fehler (DMs deaktiviert) werden stillschweigend ignoriert.
+     * Schlägt fehl wenn der Nutzer DMs von Servermitgliedern deaktiviert hat.
      */
-    public static void tryDm(net.dv8tion.jda.api.entities.User user, MessageEmbed embed) {
+    public static void tryDm(User user, MessageEmbed embed) {
         user.openPrivateChannel().queue(
-            ch -> ch.sendMessageEmbeds(embed).queue(null, err -> {}),
-            err -> {}
+            ch -> ch.sendMessageEmbeds(embed).queue(
+                null,
+                err -> log.warn("[DM] Nachricht an {} ({}) konnte nicht gesendet werden: {}",
+                    user.getName(), user.getId(), err.getMessage())
+            ),
+            err -> log.warn("[DM] Privat-Kanal zu {} ({}) konnte nicht geöffnet werden: {}",
+                user.getName(), user.getId(), err.getMessage())
         );
     }
 }
