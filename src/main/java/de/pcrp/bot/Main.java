@@ -466,9 +466,8 @@ public class Main {
                     .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
 
                 Commands.slash("abstimmung", "Erstellt eine Abstimmung im Abstimmungs-Kanal")
-                    .addOption(OptionType.STRING, "titel",    "Titel der Abstimmung",             true)
-                    .addOption(OptionType.STRING, "text",     "Beschreibungstext der Abstimmung", true)
-                    .addOption(OptionType.STRING, "optionen", "Zusätzliche Hinweise / Optionen",  false)
+                    .addOption(OptionType.STRING, "titel", "Titel der Abstimmung",             true)
+                    .addOption(OptionType.STRING, "text",  "Beschreibungstext der Abstimmung", true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
 
