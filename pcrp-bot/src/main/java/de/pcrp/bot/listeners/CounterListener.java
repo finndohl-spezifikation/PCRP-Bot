@@ -1,5 +1,6 @@
 package de.pcrp.bot.listeners;
 
+import de.pcrp.bot.common.BotLogger;
 import de.pcrp.bot.common.DataStore;
 import de.pcrp.bot.common.EmbedFactory;
 import de.pcrp.bot.common.LoggingConfig;
@@ -39,11 +40,10 @@ public class CounterListener extends ListenerAdapter {
         String lastUserId = DataStore.readString("counter-last-user-" + guildId);
         if (event.getAuthor().getId().equals(lastUserId)) {
             event.getMessage().delete().queue(null, x -> {});
-            event.getChannel()
-                .sendMessageEmbeds(EmbedFactory.build(
-                    "⛔ Nicht erlaubt",
-                    "Du kannst nicht 2 Zahlen hintereinander schreiben."))
-                .queue(msg -> msg.delete().queueAfter(6, TimeUnit.SECONDS, null, x -> {}));
+            // DM – nur der Nutzer sieht die Warnung
+            BotLogger.tryDm(event.getAuthor(), EmbedFactory.build(
+                "⛔ Nicht erlaubt",
+                "Du kannst nicht 2 Zahlen hintereinander schreiben."));
             return;
         }
 
@@ -64,8 +64,10 @@ public class CounterListener extends ListenerAdapter {
         }
 
         // Richtige Zahl ✓
-        DataStore.writeString("counter-value-"    + guildId, String.valueOf(num));
+        DataStore.writeString("counter-value-"     + guildId, String.valueOf(num));
         DataStore.writeString("counter-last-user-" + guildId, event.getAuthor().getId());
+        event.getMessage().addReaction(net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("✅"))
+            .queue(null, x -> {});
 
         // Ziel erreicht?
         if (num == TARGET) {
