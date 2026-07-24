@@ -55,6 +55,8 @@ public class ModerationListener extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (!event.isFromGuild()) return;
+        if (!(event.getChannel() instanceof TextChannel)) return; // Threads / andere Kanaltypen überspringen
+
         Message  message = event.getMessage();
         User     author  = event.getAuthor();
         if (author.isBot() || author.isSystem()) return;
