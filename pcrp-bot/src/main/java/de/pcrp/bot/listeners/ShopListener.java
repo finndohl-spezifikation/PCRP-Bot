@@ -148,6 +148,19 @@ public class ShopListener extends ListenerAdapter {
             .build())
             .setComponents(Collections.emptyList()).queue();
 
+        // Geld-Log: Einkauf
+        BotLogger.logMoney(event.getGuild(), "🛒 Shop-Kauf",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Gesamt:** -" + ShopManager.formatPrice(total) + " (Bargeld)\n" +
+            "**Shop:** " + ShopManager.shopDisplayName(SHOP_KWIKE));
+        // Item-Log: Artikel erhalten
+        StringBuilder itemLog = new StringBuilder();
+        for (CartEntry e : cart)
+            itemLog.append("• ").append(e.name).append(" × ").append(e.qty).append("\n");
+        BotLogger.logItem(event.getGuild(), "🛒 Shop-Kauf — Artikel",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Artikel:**\n" + itemLog);
+
         log.info("[Shop] {} kaufte Artikel für {}$.", event.getUser().getAsTag(), total);
     }
 

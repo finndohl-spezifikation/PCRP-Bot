@@ -33,6 +33,16 @@ public final class BotLogger {
         log(guild, LoggingConfig.MODERATION_LOG_CHANNEL_ID, EmbedFactory.build(title, description));
     }
 
+    /** Schreibt einen Eintrag in den Item-Log-Kanal. */
+    public static void logItem(Guild guild, String title, String description) {
+        log(guild, LoggingConfig.ITEM_LOG_CHANNEL_ID, EmbedFactory.build(title, description));
+    }
+
+    /** Schreibt einen Eintrag in den Geld-Log-Kanal. */
+    public static void logMoney(Guild guild, String title, String description) {
+        log(guild, LoggingConfig.MONEY_LOG_CHANNEL_ID, EmbedFactory.build(title, description));
+    }
+
     /**
      * Sendet eine Aktivitätswarnung in den konfigurierten Alert-Kanal
      * und pingt den Inhaber.

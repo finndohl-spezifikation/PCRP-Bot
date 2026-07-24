@@ -1200,6 +1200,10 @@ public class CommandListener extends ListenerAdapter {
         BotLogger.tryDm(target.getUser(), EmbedFactory.build(
             "📦 Item erhalten",
             "Du hast **" + itemName.trim() + "** × " + qty + " von einem Admin erhalten."));
+        BotLogger.logItem(event.getGuild(), "📦 Item gegeben",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Spieler:** " + target.getAsMention() + " (" + target.getEffectiveName() + ")\n" +
+            "**Item:** " + itemName.trim() + " × " + qty);
     }
 
     // ── Item-Erstellen ────────────────────────────────────────────────────────
@@ -1219,6 +1223,11 @@ public class CommandListener extends ListenerAdapter {
             "**" + name.trim() + "** wurde für **" + ShopManager.formatPrice(preis)
             + "** im Shop **" + ShopManager.shopDisplayName(shopId) + "** hinzugefügt.\n`ID: " + id + "`"))
             .setEphemeral(true).queue();
+        BotLogger.logItem(event.getGuild(), "📦 Item erstellt",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Item:** " + name.trim() + "\n" +
+            "**Preis:** " + ShopManager.formatPrice(preis) + "\n" +
+            "**Shop:** " + ShopManager.shopDisplayName(shopId));
     }
 
     // ── Item-Bearbeiten ───────────────────────────────────────────────────────
@@ -1247,6 +1256,11 @@ public class CommandListener extends ListenerAdapter {
             "**" + updated.name + "** — **" + ShopManager.formatPrice(updated.price)
             + "** im Shop **" + ShopManager.shopDisplayName(updated.shopId) + "**"))
             .setEphemeral(true).queue();
+        BotLogger.logItem(event.getGuild(), "✏️ Item bearbeitet",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Item:** " + item.name + " → " + updated.name + "\n" +
+            "**Preis:** " + ShopManager.formatPrice(item.price) + " → " + ShopManager.formatPrice(updated.price) + "\n" +
+            "**Shop:** " + ShopManager.shopDisplayName(updated.shopId));
     }
 
     // ── Item-Löschen ──────────────────────────────────────────────────────────
@@ -1266,6 +1280,10 @@ public class CommandListener extends ListenerAdapter {
             "**" + item.name + "** wurde aus dem Shop **"
             + ShopManager.shopDisplayName(item.shopId) + "** entfernt."))
             .setEphemeral(true).queue();
+        BotLogger.logItem(event.getGuild(), "🗑️ Item gelöscht",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Item:** " + item.name + "\n" +
+            "**Shop:** " + ShopManager.shopDisplayName(item.shopId));
     }
 
     // ── Item-Entnehmen ────────────────────────────────────────────────────────
@@ -1294,6 +1312,10 @@ public class CommandListener extends ListenerAdapter {
         BotLogger.tryDm(target.getUser(), EmbedFactory.build(
             "📦 Item entnommen",
             "**" + itemName.trim() + "** × " + qty + " wurde von einem Admin aus deinem Inventar entfernt."));
+        BotLogger.logItem(event.getGuild(), "📦 Item entnommen",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Spieler:** " + target.getAsMention() + " (" + target.getEffectiveName() + ")\n" +
+            "**Item:** " + itemName.trim() + " × " + qty);
     }
 
     // ── Geld-Geben ────────────────────────────────────────────────────────────
@@ -1320,6 +1342,10 @@ public class CommandListener extends ListenerAdapter {
             "💰 Geld erhalten",
             "Du hast **+" + BankManager.formatAmount(betrag) + "** " + typLabel
             + " von einem Admin erhalten."));
+        BotLogger.logMoney(event.getGuild(), "💰 Geld gegeben",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Spieler:** " + target.getAsMention() + " (" + target.getEffectiveName() + ")\n" +
+            "**Betrag:** +" + BankManager.formatAmount(betrag) + " (" + typLabel + ")");
     }
 
     // ── Geld-Entfernen ────────────────────────────────────────────────────────
@@ -1349,6 +1375,10 @@ public class CommandListener extends ListenerAdapter {
             "💸 Geld abgezogen",
             "**-" + BankManager.formatAmount(betrag) + "** " + typLabel
             + " wurden von einem Admin abgezogen."));
+        BotLogger.logMoney(event.getGuild(), "💸 Geld entfernt",
+            "**Admin:** " + event.getUser().getAsMention() + "\n" +
+            "**Spieler:** " + target.getAsMention() + " (" + target.getEffectiveName() + ")\n" +
+            "**Betrag:** -" + BankManager.formatAmount(betrag) + " (" + typLabel + ")");
     }
 
     private void handleLobbyAbstimmung(SlashCommandInteractionEvent event) {

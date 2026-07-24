@@ -137,6 +137,9 @@ public final class LoggingConfig {
     /** Online-Banking Panel-Kanal. */
     public static final long BANK_CHANNEL_ID        = 1529636604162085025L;
 
+    /** Item-Log-Kanal (alle item-bezogenen Aktionen). */
+    public static final long ITEM_LOG_CHANNEL_ID    = 1529636412628930723L;
+
     /** Vorschlag-Kanal (/vorschlag). */
     public static final long VORSCHLAG_CHANNEL_ID    = 1529636537292161185L;
 

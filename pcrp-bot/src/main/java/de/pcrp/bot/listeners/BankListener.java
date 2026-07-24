@@ -3,13 +3,16 @@ package de.pcrp.bot.listeners;
 import de.pcrp.bot.common.*;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -17,11 +20,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 /** Online-Banking Panel und Transaktionen (Einzahlen, Auszahlen, Überweisen). */
 public class BankListener extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(BankListener.class);
+
+    /** Zwischenspeicher: userId → receiverId (zwischen EntitySelect und Modal-Submit). */
+    private static final Map<String, String> PENDING_TRANSFER = new ConcurrentHashMap<>();
 
     // ── Button-Handler ────────────────────────────────────────────────────────
 
@@ -59,18 +67,18 @@ public class BankListener extends ListenerAdapter {
                 event.replyModal(modal).queue();
             }
             case "bank-btn-transfer" -> {
-                Modal modal = Modal.create("bank-modal-transfer", "📤 Überweisen")
-                    .addComponents(
-                        ActionRow.of(TextInput.create("empfaenger", "Empfänger (Discord-Benutzername)", TextInputStyle.SHORT)
-                            .setPlaceholder("z. B. max_mustermann")
-                            .setMinLength(1).setMaxLength(40)
-                            .setRequired(true).build()),
-                        ActionRow.of(TextInput.create("betrag", "Betrag in $", TextInputStyle.SHORT)
-                            .setPlaceholder("z. B. 5000")
-                            .setMinLength(1).setMaxLength(12)
-                            .setRequired(true).build()))
+                EntitySelectMenu select = EntitySelectMenu
+                    .create("bank-transfer-select", EntitySelectMenu.SelectTarget.USER)
+                    .setPlaceholder("Spieler suchen und auswählen…")
+                    .setMinValues(1).setMaxValues(1)
                     .build();
-                event.replyModal(modal).queue();
+                event.editMessageEmbeds(EmbedFactory.build(
+                    "📤 Überweisen — Empfänger wählen",
+                    "Wähle den Spieler aus, an den du Geld überweisen möchtest."))
+                    .setComponents(
+                        ActionRow.of(select),
+                        ActionRow.of(Button.secondary("bank-open", "← Zurück")))
+                    .queue();
             }
         }
     }
@@ -85,9 +93,9 @@ public class BankListener extends ListenerAdapter {
         String guildId = event.getGuild().getId();
 
         switch (mid) {
-            case "bank-modal-deposit"  -> handleDeposit(event, guildId, userId);
-            case "bank-modal-withdraw" -> handleWithdraw(event, guildId, userId);
-            case "bank-modal-transfer" -> handleTransfer(event, guildId, userId);
+            case "bank-modal-deposit"          -> handleDeposit(event, guildId, userId);
+            case "bank-modal-withdraw"         -> handleWithdraw(event, guildId, userId);
+            case "bank-modal-transfer-amount"  -> handleTransferAmount(event, guildId, userId);
         }
     }
 
@@ -110,6 +118,9 @@ public class BankListener extends ListenerAdapter {
             "**+" + BankManager.formatAmount(amount) + "** wurden auf dein Konto eingezahlt.",
             guildId, userId))
             .addComponents(bankRow()).setEphemeral(true).queue();
+        BotLogger.logMoney(event.getGuild(), "💳 Einzahlung",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Betrag:** +" + BankManager.formatAmount(amount));
         log.info("[Bank] Einzahlung {} : {}$", event.getUser().getAsTag(), amount);
     }
 
@@ -132,33 +143,70 @@ public class BankListener extends ListenerAdapter {
             "**-" + BankManager.formatAmount(amount) + "** wurden als Bargeld ausgezahlt.",
             guildId, userId))
             .addComponents(bankRow()).setEphemeral(true).queue();
+        BotLogger.logMoney(event.getGuild(), "💵 Auszahlung",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Betrag:** -" + BankManager.formatAmount(amount));
         log.info("[Bank] Auszahlung {} : {}$", event.getUser().getAsTag(), amount);
     }
 
-    // ── Überweisen ────────────────────────────────────────────────────────────
+    // ── Überweisen: Empfänger-Auswahl per Discord-Suchleiste ─────────────────
 
-    private void handleTransfer(ModalInteractionEvent event, String guildId, String userId) {
-        String empfaengerName = event.getValue("empfaenger").getAsString().trim();
-        long   amount         = parseAmount(event.getValue("betrag").getAsString());
+    @Override
+    public void onEntitySelectInteraction(EntitySelectInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        if (!"bank-transfer-select".equals(event.getComponentId())) return;
+
+        List<Member> selected = event.getMentions().getMembers();
+        if (selected.isEmpty()) { event.deferEdit().queue(); return; }
+
+        Member receiver = selected.get(0);
+        String userId   = event.getUser().getId();
+
+        if (receiver.getId().equals(userId)) {
+            event.editMessageEmbeds(EmbedFactory.build(
+                "❌ Nicht erlaubt", "Du kannst nicht an dich selbst überweisen."))
+                .setComponents(ActionRow.of(Button.secondary("bank-open", "← Zurück")))
+                .queue();
+            return;
+        }
+
+        PENDING_TRANSFER.put(userId, receiver.getId());
+
+        Modal modal = Modal.create("bank-modal-transfer-amount",
+                "📤 Überweisen an " + receiver.getEffectiveName())
+            .addComponents(ActionRow.of(
+                TextInput.create("betrag", "Betrag in $", TextInputStyle.SHORT)
+                    .setPlaceholder("z. B. 5000")
+                    .setMinLength(1).setMaxLength(12)
+                    .setRequired(true).build()))
+            .build();
+        event.replyModal(modal).queue();
+    }
+
+    // ── Überweisen: Betrag-Modal verarbeiten ──────────────────────────────────
+
+    private void handleTransferAmount(ModalInteractionEvent event, String guildId, String userId) {
+        String receiverId = PENDING_TRANSFER.remove(userId);
+        if (receiverId == null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler",
+                "Kein Empfänger ausgewählt. Bitte erneut auf **Überweisen** klicken."))
+                .setEphemeral(true).queue(); return;
+        }
+        Member receiver = event.getGuild().getMemberById(receiverId);
+        if (receiver == null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Empfänger nicht gefunden",
+                "Der ausgewählte Spieler ist nicht mehr auf dem Server."))
+                .setEphemeral(true).queue(); return;
+        }
+        long amount = parseAmount(event.getValue("betrag").getAsString());
         if (amount <= 0) {
             event.replyEmbeds(EmbedFactory.build("❌ Ungültiger Betrag",
                 "Bitte gib einen gültigen Betrag ein (z. B. `5000`)."))
                 .setEphemeral(true).queue(); return;
         }
-        net.dv8tion.jda.api.entities.Member receiver = BotContext.findMemberByUsername(empfaengerName);
-        if (receiver == null) {
-            event.replyEmbeds(EmbedFactory.build("❌ Empfänger nicht gefunden",
-                "Kein Mitglied mit dem Namen **" + empfaengerName + "** gefunden."))
-                .setEphemeral(true).queue(); return;
-        }
-        if (receiver.getId().equals(userId)) {
-            event.replyEmbeds(EmbedFactory.build("❌ Nicht erlaubt",
-                "Du kannst nicht an dich selbst überweisen."))
-                .setEphemeral(true).queue(); return;
-        }
         String senderName = event.getMember() != null
             ? event.getMember().getEffectiveName() : event.getUser().getName();
-        String err = BankManager.transfer(guildId, userId, receiver.getId(),
+        String err = BankManager.transfer(guildId, userId, receiverId,
             amount, senderName, receiver.getEffectiveName());
         if (err != null) {
             event.replyEmbeds(EmbedFactory.build("❌ Überweisung fehlgeschlagen", err))
@@ -170,11 +218,14 @@ public class BankListener extends ListenerAdapter {
                 + receiver.getEffectiveName() + "** überwiesen.",
             guildId, userId))
             .addComponents(bankRow()).setEphemeral(true).queue();
-        // Empfänger per DM benachrichtigen
         BotLogger.tryDm(receiver.getUser(), EmbedFactory.build(
             "📥 Überweisung erhalten",
             "**" + senderName + "** hat dir **+" + BankManager.formatAmount(amount)
                 + "** auf dein Bankkonto überwiesen."));
+        BotLogger.logMoney(event.getGuild(), "📤 Überweisung",
+            "**Von:** " + event.getUser().getAsMention() + "\n" +
+            "**An:** " + receiver.getAsMention() + " (" + receiver.getEffectiveName() + ")\n" +
+            "**Betrag:** " + BankManager.formatAmount(amount));
         log.info("[Bank] Überweisung {} → {} : {}$",
             event.getUser().getAsTag(), receiver.getUser().getAsTag(), amount);
     }
