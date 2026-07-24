@@ -47,6 +47,8 @@ public class Main {
         PollListener            pollListener        = new PollListener();
         GiveawayListener        giveawayListener    = new GiveawayListener();
         RoleMenuListener        roleMenuListener    = new RoleMenuListener();
+        BoostListener           boostListener       = new BoostListener();
+        FraktionListener        fraktionListener    = new FraktionListener();
 
         JDABuilder.createDefault(token)
             .enableIntents(
@@ -74,7 +76,9 @@ public class Main {
                 ticketListener,
                 pollListener,
                 giveawayListener,
-                roleMenuListener
+                roleMenuListener,
+                boostListener,
+                fraktionListener
             )
             .build();
     }
@@ -140,6 +144,8 @@ public class Main {
                 postTicketPanel(guild);
                 postRegelwerkPanels(guild);
                 RoleMenuListener.postPanel(guild);
+                postBoostPanel(guild);
+                postFrakListPanel(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -414,6 +420,63 @@ public class Main {
             );
         }
 
+        // ── Boost-Belohnungen Panel ─────────────────────────────────────────────
+
+        private static void postBoostPanel(Guild guild) {
+            String key = "panel-boost-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.BOOST_CHANNEL_ID);
+            if (ch == null) { log.warn("[Boost] Kanal nicht gefunden."); return; }
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored.trim()).queue(
+                    msg -> log.info("[Boost] Panel aktiv, kein Neuversand."),
+                    err -> { DataStore.deleteKey(key); sendBoostPanel(ch, key); });
+            } else {
+                sendBoostPanel(ch, key);
+            }
+        }
+
+        private static void sendBoostPanel(TextChannel ch, String key) {
+            ch.sendMessageEmbeds(EmbedFactory.create()
+                .setTitle("🚀 Server Boost Belohnungen — Paradise City Roleplay")
+                .setDescription(
+                    "Unterstütze den Server mit einem Boost und erhalte eine Belohnung!\n\n" +
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
+                    "💜 **Pro Boost**\n" +
+                    "→ 5.000 $ pro Boost\n\n" +
+                    "🔶 **Ab 5 Server-Boosts**\n" +
+                    "→ 10.000 $ pro Boost\n\n" +
+                    "🔷 **Ab 10 Server-Boosts**\n" +
+                    "→ 100.000 $ pro Boost")
+                .build()
+            ).queue(
+                msg -> DataStore.writeString(key, msg.getId()),
+                err -> log.error("[Boost] Panel konnte nicht gesendet werden.", err));
+        }
+
+        // ── Fraktions-Liste Panel ───────────────────────────────────────────────
+
+        private static void postFrakListPanel(Guild guild) {
+            String msgId = de.pcrp.bot.common.FraktionManager.getPanelMsgId(guild.getId());
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.FRAK_LIST_CHANNEL_ID);
+            if (ch == null) { log.warn("[FrakList] Kanal nicht gefunden."); return; }
+            if (msgId != null && !msgId.isBlank()) {
+                ch.retrieveMessageById(msgId.trim()).queue(
+                    msg -> log.info("[FrakList] Panel aktiv, kein Neuversand."),
+                    err -> sendFrakListPanel(ch, guild));
+            } else {
+                sendFrakListPanel(ch, guild);
+            }
+        }
+
+        private static void sendFrakListPanel(TextChannel ch, Guild guild) {
+            ch.sendMessageEmbeds(de.pcrp.bot.common.FraktionManager.buildFrakEmbed(guild.getId()))
+                .addActionRow(Button.primary("frak-edit", "✏️ Bearbeiten"))
+                .queue(
+                    msg -> de.pcrp.bot.common.FraktionManager.setPanelMsgId(guild.getId(), msg.getId()),
+                    err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
+        }
+
         private static String normalizeUrl(String url) {
             if (url == null || url.isBlank()) return "https://example.com";
             url = url.trim();
@@ -524,6 +587,29 @@ public class Main {
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("einreise-entsperren", "Hebt den Einreise-Stopp wieder auf")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("frakwarn", "Gibt einer Fraktion eine Verwarnung")
+                    .addOption(OptionType.STRING, "fraktion",   "Name der Fraktion",  true)
+                    .addOption(OptionType.STRING, "grund",      "Grund",              true)
+                    .addOption(OptionType.STRING, "konsequenz", "Konsequenz",         true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("frakwarn-entfernen", "Entfernt alle Verwarnungen einer Fraktion")
+                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("frak-sperren", "Sperrt eine Fraktion direkt")
+                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
+                    .addOption(OptionType.STRING, "grund",    "Grund der Sperre",  true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("frak-entsperren", "Entsperrt eine gesperrte Fraktion")
+                    .addOption(OptionType.STRING, "fraktion", "Name der Fraktion", true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 

@@ -96,5 +96,20 @@ public final class LoggingConfig {
     public static final String JAVA_LOGO_URL =
         "https://upload.wikimedia.org/wikipedia/en/thumb/3/30/Java_programming_language_logo.svg/121px-Java_programming_language_logo.svg.png";
 
+    /** Boost-Belohnungen Panel-Kanal. */
+    public static final long BOOST_CHANNEL_ID        = 1529636506350649434L;
+
+    /** Fraktions-Liste Panel-Kanal. */
+    public static final long FRAK_LIST_CHANNEL_ID    = 1529636518967247019L;
+
+    /** Fraktionsverwarnungen Log-Kanal. */
+    public static final long FRAK_WARN_CHANNEL_ID    = 1529636520506425435L;
+
+    /** Fraktionssperren Log-Kanal. */
+    public static final long FRAK_SPERRE_CHANNEL_ID  = 1529636521592885388L;
+
+    /** Rolle die das Fraktions-Liste Embed bearbeiten darf. */
+    public static final long FRAK_MANAGER_ROLE_ID    = 1529636285159837807L;
+
     private LoggingConfig() {}
 }

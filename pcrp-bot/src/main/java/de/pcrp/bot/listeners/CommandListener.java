@@ -54,6 +54,10 @@ public class CommandListener extends ListenerAdapter {
             case "verwarnung-löschen"  -> handleVerwarnungLoeschen(event);
             case "einreise-sperre"     -> handleEinreiseSperre(event);
             case "einreise-entsperren" -> handleEinreiseEntsperre(event);
+            case "frakwarn"            -> handleFrakWarn(event);
+            case "frakwarn-entfernen"  -> handleFrakWarnEntfernen(event);
+            case "frak-sperren"        -> handleFrakSperren(event);
+            case "frak-entsperren"     -> handleFrakEntsprerren(event);
         }
     }
 
@@ -936,6 +940,116 @@ public class CommandListener extends ListenerAdapter {
     // ════════════════════════════════════════════════════════════
     //  /einreise-sperre
     // ════════════════════════════════════════════════════════════
+
+    // ════════════════════════════════════════════════════════════
+    //  /frakwarn  /frakwarn-entfernen  /frak-sperren  /frak-entsperren
+    // ════════════════════════════════════════════════════════════
+
+    private void handleFrakWarn(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String frak       = event.getOption("fraktion",   OptionMapping::getAsString);
+        String grund      = event.getOption("grund",      OptionMapping::getAsString);
+        String konsequenz = event.getOption("konsequenz", OptionMapping::getAsString);
+        if (frak == null || grund == null || konsequenz == null) return;
+
+        String guildId = event.getGuild().getId();
+        int count = FraktionManager.addWarn(guildId, frak, grund, konsequenz, event.getUser().getName());
+
+        // Warn-Embed in Frak-Warn-Kanal
+        TextChannel warnCh = event.getGuild().getTextChannelById(LoggingConfig.FRAK_WARN_CHANNEL_ID);
+        if (warnCh != null) {
+            warnCh.sendMessageEmbeds(new EmbedBuilder()
+                .setColor(new Color(0xE07B00))
+                .setTitle("⚠️ Fraktionsverwarnung — " + frak)
+                .setDescription(
+                    "**Verwarnung " + count + "/3**\n\n" +
+                    "**Fraktion:** " + frak + "\n" +
+                    "**Grund:** " + grund + "\n" +
+                    "**Konsequenz:** " + konsequenz + "\n" +
+                    "**Ausgesprochen von:** " + event.getUser().getAsMention())
+                .build()).queue();
+        }
+
+        // Bei 3. Verwarnung → sperren
+        if (count >= 3) {
+            FraktionManager.lock(guildId, frak);
+            FraktionManager.updatePanelEmbed(event.getGuild());
+            TextChannel sperreCh = event.getGuild().getTextChannelById(LoggingConfig.FRAK_SPERRE_CHANNEL_ID);
+            if (sperreCh != null) {
+                sperreCh.sendMessageEmbeds(new EmbedBuilder()
+                    .setColor(Color.RED)
+                    .setTitle("🔴 Fraktionssperre — " + frak)
+                    .setDescription(
+                        "Die Fraktion **" + frak + "** hat **3 Verwarnungen** erhalten und wurde gesperrt.\n\n" +
+                        "**Letzte Verwarnung von:** " + event.getUser().getAsMention() + "\n" +
+                        "**Grund:** " + grund)
+                    .build()).queue();
+            }
+        } else {
+            FraktionManager.updatePanelEmbed(event.getGuild());
+        }
+
+        event.replyEmbeds(embed("✅ Verwarnung ausgesprochen",
+            "**" + frak + "** hat jetzt **" + count + "/3** Verwarnungen." +
+            (count >= 3 ? "\n🔴 Die Fraktion wurde automatisch **gesperrt**." : "")))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleFrakWarnEntfernen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String frak = event.getOption("fraktion", OptionMapping::getAsString);
+        if (frak == null) return;
+        String guildId = event.getGuild().getId();
+
+        FraktionManager.clearWarns(guildId, frak);
+        FraktionManager.unlock(guildId, frak);
+        FraktionManager.updatePanelEmbed(event.getGuild());
+
+        event.replyEmbeds(embed("✅ Verwarnungen entfernt",
+            "Alle Verwarnungen und eine eventuelle Sperre von **" + frak + "** wurden aufgehoben."))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleFrakSperren(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String frak  = event.getOption("fraktion", OptionMapping::getAsString);
+        String grund = event.getOption("grund",    OptionMapping::getAsString);
+        if (frak == null || grund == null) return;
+        String guildId = event.getGuild().getId();
+
+        FraktionManager.lock(guildId, frak);
+        FraktionManager.updatePanelEmbed(event.getGuild());
+
+        TextChannel sperreCh = event.getGuild().getTextChannelById(LoggingConfig.FRAK_SPERRE_CHANNEL_ID);
+        if (sperreCh != null) {
+            sperreCh.sendMessageEmbeds(new EmbedBuilder()
+                .setColor(Color.RED)
+                .setTitle("🔴 Fraktionssperre — " + frak)
+                .setDescription(
+                    "**Fraktion:** " + frak + "\n" +
+                    "**Grund:** " + grund + "\n" +
+                    "**Gesperrt von:** " + event.getUser().getAsMention())
+                .build()).queue();
+        }
+
+        event.replyEmbeds(embed("🔴 Fraktion gesperrt",
+            "**" + frak + "** wurde gesperrt und im Fraktions-Embed durchgestrichen."))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleFrakEntsprerren(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String frak = event.getOption("fraktion", OptionMapping::getAsString);
+        if (frak == null) return;
+        String guildId = event.getGuild().getId();
+
+        FraktionManager.unlock(guildId, frak);
+        FraktionManager.updatePanelEmbed(event.getGuild());
+
+        event.replyEmbeds(embed("✅ Fraktion entsperrt",
+            "**" + frak + "** wurde entsperrt und erscheint wieder normal in der Liste."))
+            .setEphemeral(true).queue();
+    }
 
     private void handleEinreiseSperre(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
