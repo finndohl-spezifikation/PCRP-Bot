@@ -70,29 +70,46 @@
     .stopp-popup {
       background: linear-gradient(160deg, #1c0404 0%, #0f0000 100%);
       border: 3px solid #cc2222;
-      border-radius: 20px; padding: 56px 48px;
-      max-width: 580px; width: 92%; text-align: center;
+      border-radius: 18px; padding: 36px 32px;
+      max-width: 440px; width: 92%; text-align: center;
       animation: stoppPulse 2s ease-in-out infinite;
     }
     @keyframes stoppPulse {
       0%,100% { box-shadow: 0 0 30px rgba(200,20,20,0.4); border-color: #cc2222; }
       50%     { box-shadow: 0 0 90px rgba(220,30,30,0.85), 0 0 160px rgba(200,20,20,0.3); border-color: #ff3333; }
     }
+    .stopp-badge-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 14px; margin-bottom: 8px;
+    }
     .stopp-badge {
-      font-size: 5rem; display: block; margin-bottom: 10px;
+      font-size: 3rem;
       animation: badgePulse 2s ease-in-out infinite;
     }
     @keyframes badgePulse {
       0%,100% { transform: scale(1); }
       50%     { transform: scale(1.12); }
     }
+    .siren {
+      font-size: 2.2rem; display: inline-block;
+    }
+    .siren-left  { animation: sirenLeft  0.6s ease-in-out infinite; }
+    .siren-right { animation: sirenRight 0.6s ease-in-out infinite; }
+    @keyframes sirenLeft {
+      0%,100% { transform: rotate(-20deg); opacity: 1; }
+      50%     { transform: rotate(15deg);  opacity: 0.35; }
+    }
+    @keyframes sirenRight {
+      0%,100% { transform: rotate(20deg);  opacity: 0.35; }
+      50%     { transform: rotate(-15deg); opacity: 1; }
+    }
     .stopp-title {
-      color: #ff2222; font-size: 2.6rem; font-weight: 900;
-      letter-spacing: 8px; text-transform: uppercase; margin-bottom: 4px;
+      color: #ff2222; font-size: 2rem; font-weight: 900;
+      letter-spacing: 6px; text-transform: uppercase; margin-bottom: 4px;
     }
     .stopp-sub {
-      color: #ff6666; font-size: 0.75rem; letter-spacing: 4px;
-      text-transform: uppercase; margin-bottom: 28px;
+      color: #ff6666; font-size: 0.72rem; letter-spacing: 4px;
+      text-transform: uppercase; margin-bottom: 20px;
     }
     .stopp-divider { height: 2px; background: linear-gradient(90deg,transparent,#cc2222,transparent); margin: 24px 0; }
     .stopp-text { color: #ddb0b0; font-size: 1rem; line-height: 1.85; }
@@ -296,7 +313,11 @@
 <!-- ── Einreise-Stopp ─────────────────────────────────────────── -->
 <div id="stopp-overlay">
   <div class="stopp-popup">
-    <span class="stopp-badge">⛔</span>
+    <div class="stopp-badge-row">
+      <span class="siren siren-left">🚨</span>
+      <span class="stopp-badge">⛔</span>
+      <span class="siren siren-right">🚨</span>
+    </div>
     <div class="stopp-title">Einreise Stopp</div>
     <div class="stopp-sub">Paradise City Roleplay</div>
     <div class="stopp-divider"></div>
