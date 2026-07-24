@@ -85,7 +85,9 @@ public class Main {
                 new LobbyListener(),
                 new RucksackListener(),
                 new LottoListener(),
-                new RubbellosListener()
+                new RubbellosListener(),
+                new ShopListener(),
+                new BankListener()
             )
             .build();
     }
@@ -156,6 +158,8 @@ public class Main {
                 postRucksackPanel(guild);
                 postLottoPanel(guild);
                 postRubbellosPanel(guild);
+                ShopListener.postPanelIfNeeded(guild);
+                BankListener.postPanelIfNeeded(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -721,8 +725,49 @@ public class Main {
 
                 Commands.slash("item-geben", "Gibt einem Spieler ein Item")
                     .addOption(OptionType.USER,    "mitglied", "Das Mitglied", true)
-                    .addOption(OptionType.STRING,   "item",     "Item-Name",    true)
+                    .addOptions(new OptionData(OptionType.STRING, "item", "Item-Name", true, true))
                     .addOption(OptionType.INTEGER,  "menge",    "Menge",        true)
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("item-erstellen", "Erstellt einen neuen Artikel in einem Shop")
+                    .addOption(OptionType.STRING,  "name",   "Artikelname",                      true)
+                    .addOption(OptionType.INTEGER, "preis",  "Preis in $",                       true)
+                    .addOptions(new OptionData(OptionType.STRING, "shop", "Shop", true)
+                        .addChoice("Kwik-E-Markt", "kwik-e-markt"))
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("item-bearbeiten", "Bearbeitet einen bestehenden Artikel")
+                    .addOptions(new OptionData(OptionType.STRING, "item", "Artikel auswählen", true, true))
+                    .addOption(OptionType.STRING,  "neuer-name",  "Neuer Artikelname (optional)",  false)
+                    .addOption(OptionType.INTEGER, "neuer-preis", "Neuer Preis in $ (optional)",    false)
+                    .addOptions(new OptionData(OptionType.STRING, "neuer-shop", "Neuer Shop (optional)", false)
+                        .addChoice("Kwik-E-Markt", "kwik-e-markt"))
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("item-löschen", "Löscht einen Artikel aus einem Shop")
+                    .addOptions(new OptionData(OptionType.STRING, "item", "Artikel auswählen", true, true))
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("item-entnehmen", "Entfernt ein Item aus dem Inventar eines Spielers")
+                    .addOption(OptionType.USER,   "mitglied", "Das Mitglied",                    true)
+                    .addOptions(new OptionData(OptionType.STRING, "item", "Item-Name", true, true))
+                    .addOption(OptionType.INTEGER, "menge",   "Menge",                            true)
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("geld-geben", "Gibt einem Spieler Bargeld oder Kontogeld")
+                    .addOption(OptionType.USER,    "mitglied", "Das Mitglied", true)
+                    .addOptions(new OptionData(OptionType.STRING, "typ", "Geldart", true)
+                        .addChoice("Bargeld",   "bargeld")
+                        .addChoice("Kontogeld", "kontogeld"))
+                    .addOption(OptionType.INTEGER, "betrag", "Betrag in $",    true)
+                    .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("geld-entfernen", "Entfernt Bargeld oder Kontogeld von einem Spieler")
+                    .addOption(OptionType.USER,    "mitglied", "Das Mitglied", true)
+                    .addOptions(new OptionData(OptionType.STRING, "typ", "Geldart", true)
+                        .addChoice("Bargeld",   "bargeld")
+                        .addChoice("Kontogeld", "kontogeld"))
+                    .addOption(OptionType.INTEGER, "betrag", "Betrag in $",    true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("lobby-abstimmung", "Startet eine Lobby-Abstimmung")

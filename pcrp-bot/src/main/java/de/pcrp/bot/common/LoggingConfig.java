@@ -131,6 +131,12 @@ public final class LoggingConfig {
     /** Lotto-Ziehungs-Ergebnis-Kanal (normale Nachrichten). */
     public static final long LOTTO_RESULT_CHANNEL_ID = 1490890318214860890L;
 
+    /** Kwik-E-Markt Shop-Panel-Kanal. */
+    public static final long SHOP_KWIKE_CHANNEL_ID  = 1529636612932374631L;
+
+    /** Online-Banking Panel-Kanal. */
+    public static final long BANK_CHANNEL_ID        = 1529636604162085025L;
+
     /** Vorschlag-Kanal (/vorschlag). */
     public static final long VORSCHLAG_CHANNEL_ID    = 1529636537292161185L;
 

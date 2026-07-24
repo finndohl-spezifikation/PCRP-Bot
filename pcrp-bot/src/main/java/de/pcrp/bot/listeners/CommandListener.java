@@ -66,6 +66,12 @@ public class CommandListener extends ListenerAdapter {
             case "frak-sperren"        -> handleFrakSperren(event);
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
             case "item-geben"          -> handleItemGeben(event);
+            case "item-erstellen"      -> handleItemErstellen(event);
+            case "item-bearbeiten"     -> handleItemBearbeiten(event);
+            case "item-löschen"        -> handleItemLoeschen(event);
+            case "item-entnehmen"      -> handleItemEntnehmen(event);
+            case "geld-geben"          -> handleGeldGeben(event);
+            case "geld-entfernen"      -> handleGeldEntfernen(event);
             case "lobby-abstimmung"    -> handleLobbyAbstimmung(event);
             case "lobby-öffnen"        -> handleLobbyOeffnen(event);
             case "lobby-schließen"     -> handleLobbySchliessen(event);
@@ -157,6 +163,30 @@ public class CommandListener extends ListenerAdapter {
 
         switch (event.getName()) {
             case "verwarnung-löschen" -> handleVerwarnungLoeschenAutocomplete(event);
+            // Item-Management: Wert = itemId
+            case "item-bearbeiten", "item-löschen" -> {
+                if (!"item".equals(event.getFocusedOption().getName())) return;
+                String typed = event.getFocusedOption().getValue().toLowerCase();
+                List<Command.Choice> choices = ShopManager.getAllItems(guildId).stream()
+                    .filter(it -> it.name.toLowerCase().contains(typed))
+                    .limit(25)
+                    .map(it -> new Command.Choice(
+                        it.name + " (" + ShopManager.formatPrice(it.price) + " — " + ShopManager.shopDisplayName(it.shopId) + ")",
+                        it.id))
+                    .collect(Collectors.toList());
+                event.replyChoices(choices).queue(null, e -> {});
+            }
+            // Inventar geben/entnehmen: Wert = Artikelname
+            case "item-geben", "item-entnehmen" -> {
+                if (!"item".equals(event.getFocusedOption().getName())) return;
+                String typed2 = event.getFocusedOption().getValue().toLowerCase();
+                List<Command.Choice> choices2 = ShopManager.getAllItems(guildId).stream()
+                    .filter(it -> it.name.toLowerCase().contains(typed2))
+                    .limit(25)
+                    .map(it -> new Command.Choice(it.name, it.name))
+                    .collect(Collectors.toList());
+                event.replyChoices(choices2).queue(null, e -> {});
+            }
             case "vorschlag-annehmen", "vorschlag-ablehnen" -> {
                 if (!"vorschlag".equals(event.getFocusedOption().getName())) return;
                 String typed = event.getFocusedOption().getValue().toLowerCase();
@@ -1170,6 +1200,155 @@ public class CommandListener extends ListenerAdapter {
         BotLogger.tryDm(target.getUser(), EmbedFactory.build(
             "📦 Item erhalten",
             "Du hast **" + itemName.trim() + "** × " + qty + " von einem Admin erhalten."));
+    }
+
+    // ── Item-Erstellen ────────────────────────────────────────────────────────
+
+    private void handleItemErstellen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String  name   = event.getOption("name",  OptionMapping::getAsString);
+        Long    preis  = event.getOption("preis", OptionMapping::getAsLong);
+        String  shopId = event.getOption("shop",  OptionMapping::getAsString);
+        if (name == null || name.isBlank() || preis == null || shopId == null) return;
+        if (preis <= 0) {
+            event.replyEmbeds(embed("Fehler", "Der Preis muss größer als 0 sein."))
+                .setEphemeral(true).queue(); return;
+        }
+        String id = ShopManager.addItem(event.getGuild().getId(), name.trim(), (int) Math.min(preis, Integer.MAX_VALUE), shopId);
+        event.replyEmbeds(embed("✅ Artikel erstellt",
+            "**" + name.trim() + "** wurde für **" + ShopManager.formatPrice(preis)
+            + "** im Shop **" + ShopManager.shopDisplayName(shopId) + "** hinzugefügt.\n`ID: " + id + "`"))
+            .setEphemeral(true).queue();
+    }
+
+    // ── Item-Bearbeiten ───────────────────────────────────────────────────────
+
+    private void handleItemBearbeiten(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String  itemId    = event.getOption("item",       OptionMapping::getAsString);
+        String  neuerName = event.getOption("neuer-name", OptionMapping::getAsString);
+        Long    neuerPreis= event.getOption("neuer-preis",OptionMapping::getAsLong);
+        String  neuerShop = event.getOption("neuer-shop", OptionMapping::getAsString);
+        if (itemId == null || itemId.isBlank()) return;
+        String guildId = event.getGuild().getId();
+        ShopManager.ShopItem item = ShopManager.getItemById(guildId, itemId);
+        if (item == null) {
+            event.replyEmbeds(embed("Nicht gefunden", "Kein Artikel mit dieser ID gefunden."))
+                .setEphemeral(true).queue(); return;
+        }
+        boolean changed = ShopManager.editItem(guildId, itemId,
+            neuerName, neuerPreis != null ? (int) Math.min(neuerPreis, Integer.MAX_VALUE) : null, neuerShop);
+        if (!changed) {
+            event.replyEmbeds(embed("Fehler", "Artikel konnte nicht bearbeitet werden."))
+                .setEphemeral(true).queue(); return;
+        }
+        ShopManager.ShopItem updated = ShopManager.getItemById(guildId, itemId);
+        event.replyEmbeds(embed("✅ Artikel bearbeitet",
+            "**" + updated.name + "** — **" + ShopManager.formatPrice(updated.price)
+            + "** im Shop **" + ShopManager.shopDisplayName(updated.shopId) + "**"))
+            .setEphemeral(true).queue();
+    }
+
+    // ── Item-Löschen ──────────────────────────────────────────────────────────
+
+    private void handleItemLoeschen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String itemId = event.getOption("item", OptionMapping::getAsString);
+        if (itemId == null || itemId.isBlank()) return;
+        String guildId = event.getGuild().getId();
+        ShopManager.ShopItem item = ShopManager.getItemById(guildId, itemId);
+        if (item == null) {
+            event.replyEmbeds(embed("Nicht gefunden", "Kein Artikel mit dieser ID gefunden."))
+                .setEphemeral(true).queue(); return;
+        }
+        ShopManager.removeItem(guildId, itemId);
+        event.replyEmbeds(embed("🗑️ Artikel gelöscht",
+            "**" + item.name + "** wurde aus dem Shop **"
+            + ShopManager.shopDisplayName(item.shopId) + "** entfernt."))
+            .setEphemeral(true).queue();
+    }
+
+    // ── Item-Entnehmen ────────────────────────────────────────────────────────
+
+    private void handleItemEntnehmen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target   = event.getOption("mitglied", OptionMapping::getAsMember);
+        String itemName = event.getOption("item",     OptionMapping::getAsString);
+        long   qty      = event.getOption("menge",    OptionMapping::getAsLong);
+        if (target == null || itemName == null || itemName.isBlank()) return;
+        if (qty <= 0) {
+            event.replyEmbeds(embed("Fehler", "Die Menge muss größer als 0 sein."))
+                .setEphemeral(true).queue(); return;
+        }
+        boolean removed = InventoryManager.removeItem(
+            event.getGuild().getId(), target.getId(), itemName.trim(), (int) qty);
+        if (!removed) {
+            event.replyEmbeds(embed("Fehler",
+                "**" + target.getEffectiveName() + "** besitzt kein **" + itemName.trim() + "** (oder nicht genug)."))
+                .setEphemeral(true).queue(); return;
+        }
+        event.replyEmbeds(embed("✅ Item entnommen",
+            "**" + itemName.trim() + "** × " + qty + " wurde aus dem Inventar von **"
+            + target.getEffectiveName() + "** entfernt."))
+            .setEphemeral(true).queue();
+        BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+            "📦 Item entnommen",
+            "**" + itemName.trim() + "** × " + qty + " wurde von einem Admin aus deinem Inventar entfernt."));
+    }
+
+    // ── Geld-Geben ────────────────────────────────────────────────────────────
+
+    private void handleGeldGeben(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        String typ    = event.getOption("typ",      OptionMapping::getAsString);
+        Long   betrag = event.getOption("betrag",   OptionMapping::getAsLong);
+        if (target == null || typ == null || betrag == null) return;
+        if (betrag <= 0) {
+            event.replyEmbeds(embed("Fehler", "Der Betrag muss größer als 0 sein."))
+                .setEphemeral(true).queue(); return;
+        }
+        String guildId = event.getGuild().getId();
+        boolean isBank = "kontogeld".equalsIgnoreCase(typ);
+        BankManager.adminAdd(guildId, target.getId(), betrag, isBank);
+        String typLabel = isBank ? "Kontogeld" : "Bargeld";
+        event.replyEmbeds(embed("✅ Geld gegeben",
+            "**+" + BankManager.formatAmount(betrag) + "** " + typLabel
+            + " wurden **" + target.getEffectiveName() + "** gutgeschrieben."))
+            .setEphemeral(true).queue();
+        BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+            "💰 Geld erhalten",
+            "Du hast **+" + BankManager.formatAmount(betrag) + "** " + typLabel
+            + " von einem Admin erhalten."));
+    }
+
+    // ── Geld-Entfernen ────────────────────────────────────────────────────────
+
+    private void handleGeldEntfernen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        String typ    = event.getOption("typ",      OptionMapping::getAsString);
+        Long   betrag = event.getOption("betrag",   OptionMapping::getAsLong);
+        if (target == null || typ == null || betrag == null) return;
+        if (betrag <= 0) {
+            event.replyEmbeds(embed("Fehler", "Der Betrag muss größer als 0 sein."))
+                .setEphemeral(true).queue(); return;
+        }
+        String guildId = event.getGuild().getId();
+        boolean isBank = "kontogeld".equalsIgnoreCase(typ);
+        String err = BankManager.adminRemove(guildId, target.getId(), betrag, isBank);
+        if (err != null) {
+            event.replyEmbeds(embed("❌ Fehler", err)).setEphemeral(true).queue(); return;
+        }
+        String typLabel = isBank ? "Kontogeld" : "Bargeld";
+        event.replyEmbeds(embed("✅ Geld entfernt",
+            "**-" + BankManager.formatAmount(betrag) + "** " + typLabel
+            + " wurden von **" + target.getEffectiveName() + "** abgezogen."))
+            .setEphemeral(true).queue();
+        BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+            "💸 Geld abgezogen",
+            "**-" + BankManager.formatAmount(betrag) + "** " + typLabel
+            + " wurden von einem Admin abgezogen."));
     }
 
     private void handleLobbyAbstimmung(SlashCommandInteractionEvent event) {
