@@ -56,6 +56,15 @@ public final class LoggingConfig {
     /** Safe-Zones-Panel. */
     public static final long SAFEZONES_CHANNEL_ID           = 1529636485454889111L;
 
+    /** Event-Kanal (/event). */
+    public static final long EVENT_CHANNEL_ID            = 1529636496775057538L;
+
+    /** Rolle, die bei Events gepingt wird. */
+    public static final long EVENT_ROLE_ID               = 1529636310422130728L;
+
+    /** Gewinnspiel-Kanal (/gewinnspiel). */
+    public static final long GEWINNSPIEL_CHANNEL_ID      = 1529636497689411724L;
+
     /** Abstimmungs-Kanal (/abstimmung). */
     public static final long ABSTIMMUNG_CHANNEL_ID       = 1529636494765981856L;
 
