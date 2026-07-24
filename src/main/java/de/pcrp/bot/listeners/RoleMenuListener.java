@@ -102,12 +102,12 @@ public class RoleMenuListener extends ListenerAdapter {
                 "Wähle deine Ping-Rollen aus dem Menü unten aus.\n" +
                 "Wählst du eine Rolle erneut, wird sie wieder entfernt.\n\n" +
                 "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
-                "🔔 **Lobby Ping** — <@&1529636309633863752>\n" +
-                "📅 **Event Ping** — <@&1529636310422130728>\n" +
-                "⚔️ **Fraktions Ping** — <@&1529636312339189792>\n" +
-                "🎭 **IC Ping** — <@&1529636311403724971>\n" +
-                "ℹ️ **Info Ping** — <@&1529636308559855810>\n" +
-                "🔄 **Update Ping** — <@&1529636313819512832>")
+                "🔔 **Lobby Ping**\n" +
+                "📅 **Event Ping**\n" +
+                "⚔️ **Fraktions Ping**\n" +
+                "🎭 **IC Ping**\n" +
+                "ℹ️ **Info Ping**\n" +
+                "🔄 **Update Ping**")
             .build();
     }
 
