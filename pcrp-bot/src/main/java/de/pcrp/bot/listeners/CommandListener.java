@@ -432,9 +432,8 @@ public class CommandListener extends ListenerAdapter {
     private void handleAbstimmung(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
 
-        String titel    = event.getOption("titel",    OptionMapping::getAsString);
-        String text     = event.getOption("text",     OptionMapping::getAsString);
-        String optionen = event.getOption("optionen", "", OptionMapping::getAsString);
+        String titel = event.getOption("titel", OptionMapping::getAsString);
+        String text  = event.getOption("text",  OptionMapping::getAsString);
 
         if (titel == null || text == null) {
             event.replyEmbeds(embed("Fehler", "Titel und Text sind erforderlich.")).setEphemeral(true).queue();
@@ -450,11 +449,10 @@ public class CommandListener extends ListenerAdapter {
         event.deferReply(true).queue();
 
         net.dv8tion.jda.api.entities.MessageEmbed pollEmbed =
-            PollListener.buildPollEmbed(titel, text, optionen, 0, 0);
+            PollListener.buildPollEmbed(titel, text, "", 0, 0);
 
-        final String finalTitel    = titel;
-        final String finalText     = text;
-        final String finalOptionen = optionen;
+        final String finalTitel = titel;
+        final String finalText  = text;
 
         ch.sendMessage("<@&" + LoggingConfig.ABSTIMMUNG_ROLE_ID + ">")
           .setEmbeds(pollEmbed)
@@ -463,7 +461,7 @@ public class CommandListener extends ListenerAdapter {
               String stored = "POLL\n"
                   + PollListener.encode(finalTitel) + "\n"
                   + PollListener.encode(finalText)  + "\n"
-                  + PollListener.encode(finalOptionen);
+                  + PollListener.encode("");
               DataStore.writeString("poll-" + msg.getId(), stored);
 
               // Reaktionen hinzufügen (sequenziell, um Reihenfolge zu garantieren)

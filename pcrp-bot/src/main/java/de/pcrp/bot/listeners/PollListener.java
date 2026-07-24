@@ -123,13 +123,17 @@ public class PollListener extends ListenerAdapter {
     //  Embed-Builder (statisch, für Nutzung aus CommandListener)
     // ════════════════════════════════════════════════════════════
 
-    /** Baut das Abstimmungs-Embed mit dynamischem Balken. */
+    /** Baut das Abstimmungs-Embed mit je einem Balken für Dafür und Dagegen. */
     public static net.dv8tion.jda.api.entities.MessageEmbed buildPollEmbed(
             String title, String text, String options, int yes, int no) {
 
-        int total     = yes + no;
+        int total = yes + no;
+
         int filledYes = total == 0 ? 0 : (int) Math.round((double) yes / total * BAR_LEN);
-        String bar    = "█".repeat(filledYes) + "░".repeat(BAR_LEN - filledYes);
+        int filledNo  = total == 0 ? 0 : (int) Math.round((double) no  / total * BAR_LEN);
+
+        String barYes = "█".repeat(filledYes) + "░".repeat(BAR_LEN - filledYes);
+        String barNo  = "█".repeat(filledNo)  + "░".repeat(BAR_LEN - filledNo);
 
         String yesPercent = total == 0 ? "0%" : Math.round((double) yes / total * 100) + "%";
         String noPercent  = total == 0 ? "0%" : Math.round((double) no  / total * 100) + "%";
@@ -141,12 +145,9 @@ public class PollListener extends ListenerAdapter {
         desc.append(text).append("\n\n");
         desc.append("━━━━━━━━━━━━━━━━━━━━━━\n\n");
         desc.append("👍 **Dafür** — ").append(labelYes).append(" (").append(yesPercent).append(")\n");
-        desc.append("`").append(bar).append("`\n");
-        desc.append("👎 **Dagegen** — ").append(labelNo).append(" (").append(noPercent).append(")");
-
-        if (options != null && !options.isBlank()) {
-            desc.append("\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n").append(options);
-        }
+        desc.append("`").append(barYes).append("`\n\n");
+        desc.append("👎 **Dagegen** — ").append(labelNo).append(" (").append(noPercent).append(")\n");
+        desc.append("`").append(barNo).append("`");
 
         return EmbedFactory.create()
             .setTitle("🗳️ " + title)
