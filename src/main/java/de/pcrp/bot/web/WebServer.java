@@ -33,6 +33,9 @@ public class WebServer {
         app.get("/",                          WebServer::serveIndex);
         app.get("/ausweis/{userId}",           WebServer::serveAusweis);
 
+        // API Status
+        app.get("/api/einreise-status",        WebServer::handleEinreiseStatus);
+
         // API Einzeleinreise
         app.post("/api/validate",              WebServer::handleValidate);
         app.post("/api/register/legal",        WebServer::handleLegal);
@@ -45,6 +48,20 @@ public class WebServer {
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
+    }
+
+    // ── /api/einreise-status ───────────────────────────────────
+
+    private static void handleEinreiseStatus(Context ctx) {
+        Guild guild = BotContext.getGuild();
+        boolean active = false;
+        if (guild != null) {
+            String stored = DataStore.readString("einreise-sperre-" + guild.getId());
+            active = stored != null && !stored.isBlank();
+        }
+        JsonObject r = new JsonObject();
+        r.addProperty("sperre", active);
+        ctx.contentType("application/json").result(GSON.toJson(r));
     }
 
     // ── index.html ─────────────────────────────────────────────
