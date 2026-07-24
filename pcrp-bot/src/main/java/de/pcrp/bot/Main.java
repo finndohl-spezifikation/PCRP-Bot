@@ -78,7 +78,8 @@ public class Main {
                 roleMenuListener,
                 boostListener,
                 new VorschlagListener(),
-                new CounterListener()
+                new CounterListener(),
+                new LobbyListener()
             )
             .build();
     }

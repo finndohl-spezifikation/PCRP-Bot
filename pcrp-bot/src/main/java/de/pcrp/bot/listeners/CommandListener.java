@@ -1170,38 +1170,27 @@ public class CommandListener extends ListenerAdapter {
 
         event.deferReply(true).queue();
 
-        InputStream banner = CommandListener.class.getResourceAsStream("/static/lobby-banner.png");
-        if (banner == null) {
-            event.getHook().sendMessageEmbeds(embed("Fehler", "Banner-Bild nicht gefunden."))
+        InputStream gif = CommandListener.class.getResourceAsStream("/static/lobby-anim.gif");
+        if (gif == null) {
+            event.getHook().sendMessageEmbeds(embed("Fehler", "Animations-Bild nicht gefunden."))
                 .setEphemeral(true).queue();
             return;
         }
 
-        net.dv8tion.jda.api.entities.MessageEmbed lobbyEmbed = EmbedFactory.create()
-            .setDescription(
-                "────── ⋆⋅☆⋅⋆ ──────\n" +
-                "📋 **LOBBY-ABSTIMMUNG** 📋\n\n" +
-                "🕒 **RP-START** 🕒\n" +
-                uhrzeit + "\n\n" +
-                "🗳️ **OPTIONEN** 🗳️\n" +
-                "✅ ── Ich komme\n" +
-                "🕒 ── Ich komme später\n" +
-                "🤔 ── Ich komme vielleicht\n" +
-                "❌ ── Ich komme nicht")
-            .setImage("attachment://lobby-banner.png")
-            .build();
-
+        final String finalUhrzeit = uhrzeit;
         ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
-            .setEmbeds(lobbyEmbed)
-            .addFiles(FileUpload.fromData(banner, "lobby-banner.png"))
+            .setEmbeds(LobbyManager.buildInitialEmbed(finalUhrzeit))
+            .addFiles(FileUpload.fromData(gif, "lobby-anim.gif"))
             .queue(msg -> {
-                msg.addReaction(Emoji.fromUnicode("✅")).queue();
-                msg.addReaction(Emoji.fromUnicode("🕒")).queue();
-                msg.addReaction(Emoji.fromUnicode("🤔")).queue();
-                msg.addReaction(Emoji.fromUnicode("❌")).queue();
+                LobbyManager.storeUhrzeit(msg.getId(), finalUhrzeit);
+
+                msg.addReaction(Emoji.fromUnicode(LobbyManager.E_JA)).queue();
+                msg.addReaction(Emoji.fromUnicode(LobbyManager.E_SPAETER)).queue();
+                msg.addReaction(Emoji.fromUnicode(LobbyManager.E_MAYBE)).queue();
+                msg.addReaction(Emoji.fromUnicode(LobbyManager.E_NEIN)).queue();
 
                 event.getHook().sendMessageEmbeds(embed("✅ Lobby-Abstimmung gesendet",
-                    "Die Abstimmung für **" + uhrzeit + "** wurde gepostet."))
+                    "Die Abstimmung für **" + finalUhrzeit + "** wurde gepostet."))
                     .setEphemeral(true).queue();
             }, err -> {
                 log.error("[LobbyAbstimmung] Fehler beim Senden.", err);
