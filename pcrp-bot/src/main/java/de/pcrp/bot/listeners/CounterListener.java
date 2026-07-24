@@ -40,10 +40,12 @@ public class CounterListener extends ListenerAdapter {
         String lastUserId = DataStore.readString("counter-last-user-" + guildId);
         if (event.getAuthor().getId().equals(lastUserId)) {
             event.getMessage().delete().queue(null, x -> {});
-            // DM – nur der Nutzer sieht die Warnung
-            BotLogger.tryDm(event.getAuthor(), EmbedFactory.build(
-                "⛔ Nicht erlaubt",
-                "Du kannst nicht 2 Zahlen hintereinander schreiben."));
+            // Kurze öffentliche Warnung, die sich nach 5 Sek. selbst löscht
+            event.getChannel()
+                .sendMessageEmbeds(EmbedFactory.build(
+                    "⛔ " + event.getAuthor().getEffectiveName(),
+                    "Du kannst nicht 2 Zahlen hintereinander schreiben."))
+                .queue(msg -> msg.delete().queueAfter(5, TimeUnit.SECONDS, null, x -> {}));
             return;
         }
 
