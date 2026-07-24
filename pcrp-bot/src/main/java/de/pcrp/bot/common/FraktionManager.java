@@ -134,13 +134,13 @@ public final class FraktionManager {
         String raw = getContent(guildId);
         Set<String> locked = getLockedSet(guildId);
 
-        String display = raw.isBlank() ? "*Noch keine Fraktionen eingetragen.*" : raw;
+        // Leer = unsichtbarer Platzhalter, damit Discord das Embed akzeptiert
+        String display = raw.isBlank() ? "\u200b" : raw;
         for (String name : locked) {
             display = display.replace(name, "~~" + name + "~~");
         }
 
         return EmbedFactory.create()
-            .setTitle("⚔️ Fraktions Liste — Paradise City Roleplay")
             .setDescription(display)
             .build();
     }

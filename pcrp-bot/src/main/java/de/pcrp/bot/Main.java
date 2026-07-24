@@ -471,7 +471,8 @@ public class Main {
 
         private static void sendFrakListPanel(TextChannel ch, Guild guild) {
             ch.sendMessageEmbeds(de.pcrp.bot.common.FraktionManager.buildFrakEmbed(guild.getId()))
-                .addActionRow(Button.primary("frak-edit", "✏️ Bearbeiten"))
+                .addActionRow(
+                    net.dv8tion.jda.api.interactions.components.buttons.Button.primary("frak-edit", "✏️ Bearbeiten"))
                 .queue(
                     msg -> de.pcrp.bot.common.FraktionManager.setPanelMsgId(guild.getId(), msg.getId()),
                     err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
