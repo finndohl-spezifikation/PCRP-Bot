@@ -80,7 +80,7 @@ public class GuildProtectionListener extends ListenerAdapter {
         });
     }
 
-    // ── Massenlöschung – Kanäle ───────────────────────────────────────────────
+    // ── Kanallöschung – sofortige Reaktion ───────────────────────────────────
 
     @Override
     public void onChannelDelete(ChannelDeleteEvent event) {
@@ -95,10 +95,16 @@ public class GuildProtectionListener extends ListenerAdapter {
             if (executorId == ModerationConfig.OWNER_ID) return;
             if (executorId == guild.getSelfMember().getIdLong()) return;
 
-            boolean triggered = registerDeletion(executorId);
-            if (triggered || isFlagged(executorId)) {
-                if (triggered) punish(guild, entry.getUser(), "Kanäle/Kategorien");
-                restoreChannel(channel);
+            // Kanal immer sofort wiederherstellen
+            restoreChannel(channel);
+
+            // Nur einmal pro 10-Minuten-Fenster bestrafen (verhindert Spam bei Massenl.)
+            boolean alreadyFlagged = isFlagged(executorId);
+            flagged.put(executorId, Instant.now().toEpochMilli());
+            registerDeletion(executorId);
+
+            if (!alreadyFlagged) {
+                punish(guild, entry.getUser(), "Kanäle/Kategorien");
             }
         });
     }
