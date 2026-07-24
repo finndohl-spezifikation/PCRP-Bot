@@ -60,6 +60,44 @@
         radial-gradient(ellipse at 80% 20%, rgba(26,58,108,0.06) 0%, transparent 60%);
     }
 
+    /* ── Einreise-Stopp-Overlay ─────────────────────────────── */
+    #stopp-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.97);
+      display: none; align-items: center; justify-content: center;
+      z-index: 500; backdrop-filter: blur(10px);
+    }
+    .stopp-popup {
+      background: linear-gradient(160deg, #1c0404 0%, #0f0000 100%);
+      border: 3px solid #cc2222;
+      border-radius: 20px; padding: 56px 48px;
+      max-width: 580px; width: 92%; text-align: center;
+      animation: stoppPulse 2s ease-in-out infinite;
+    }
+    @keyframes stoppPulse {
+      0%,100% { box-shadow: 0 0 30px rgba(200,20,20,0.4); border-color: #cc2222; }
+      50%     { box-shadow: 0 0 90px rgba(220,30,30,0.85), 0 0 160px rgba(200,20,20,0.3); border-color: #ff3333; }
+    }
+    .stopp-badge {
+      font-size: 5rem; display: block; margin-bottom: 10px;
+      animation: badgePulse 2s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+      0%,100% { transform: scale(1); }
+      50%     { transform: scale(1.12); }
+    }
+    .stopp-title {
+      color: #ff2222; font-size: 2.6rem; font-weight: 900;
+      letter-spacing: 8px; text-transform: uppercase; margin-bottom: 4px;
+    }
+    .stopp-sub {
+      color: #ff6666; font-size: 0.75rem; letter-spacing: 4px;
+      text-transform: uppercase; margin-bottom: 28px;
+    }
+    .stopp-divider { height: 2px; background: linear-gradient(90deg,transparent,#cc2222,transparent); margin: 24px 0; }
+    .stopp-text { color: #ddb0b0; font-size: 1rem; line-height: 1.85; }
+    .stopp-text strong { color: #ff5555; }
+
     /* ── Popup ──────────────────────────────────────────────── */
     #overlay {
       position: fixed; inset: 0;
@@ -84,6 +122,11 @@
     .popup h1 { color: var(--gold); font-size: 1.05rem; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 4px; }
     .popup h2 { color: var(--orange); font-size: 1.6rem; font-weight: 700; margin-bottom: 28px; }
     .popup-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 20px 0; }
+    .popup .dm-warning {
+      background: rgba(200,30,30,0.12); border: 1px solid rgba(200,30,30,0.4);
+      border-radius: 8px; padding: 12px 16px; margin-bottom: 16px;
+      color: #ff4444; font-size: 0.88rem; font-weight: 700; line-height: 1.6;
+    }
     .popup p { color: #b0b0c8; font-size: 0.9rem; line-height: 1.7; margin-bottom: 8px; }
     .popup .warning { color: #d4904a; font-size: 0.82rem; margin-top: 4px; }
     .btn-confirm {
@@ -233,6 +276,22 @@
   </div>
 </div>
 
+<!-- ── Einreise-Stopp ─────────────────────────────────────────── -->
+<div id="stopp-overlay">
+  <div class="stopp-popup">
+    <span class="stopp-badge">⛔</span>
+    <div class="stopp-title">Einreise Stopp</div>
+    <div class="stopp-sub">Paradise City Roleplay</div>
+    <div class="stopp-divider"></div>
+    <div class="stopp-text">
+      <strong>Aktuell befinden wir uns in einem Einreise-Stopp.</strong><br><br>
+      Das kann verschiedene Gründe haben.<br>
+      Wir bitten dich noch etwas <strong>Geduld</strong> aufzubringen.<br><br>
+      Du wirst benachrichtigt, sobald die Einreise wieder möglich ist.
+    </div>
+  </div>
+</div>
+
 <!-- ── Popup ─────────────────────────────────────────────────── -->
 <div id="overlay">
   <div class="popup">
@@ -240,6 +299,9 @@
     <h1>Paradise City</h1>
     <h2>Einwohner Meldeamt</h2>
     <div class="popup-divider"></div>
+    <div class="dm-warning">
+      ⚠️ <strong>Bitte stelle sicher, dass du Direktnachrichten von Servermitgliedern in Discord aktiviert hast, damit dir der Bot Nachrichten schicken kann!</strong>
+    </div>
     <p>Herzlich Willkommen im Einwohner Meldeamt von Paradise City.
        Wähle im nächsten Schritt deine Einreiseart aus und erstelle
        deinen Charakter, um Zugriff zum Server zu erhalten.</p>
@@ -429,6 +491,18 @@
 </div><!-- #main -->
 
 <script>
+  // ── Einreise-Stopp prüfen ──────────────────────────────────────
+  (async function checkStopp() {
+    try {
+      const res  = await fetch('/api/einreise-status');
+      const data = await res.json();
+      if (data.sperre) {
+        document.getElementById('stopp-overlay').style.display = 'flex';
+        document.getElementById('overlay').style.display = 'none';
+      }
+    } catch(e) { /* Bei Fehler normal fortfahren */ }
+  })();
+
   // ── State ─────────────────────────────────────────────────────
   let singleIds   = { l: null, i: null };
   let groupIds    = {};   // { gl: {0: userId, 1: userId, ...}, gi: {...} }
