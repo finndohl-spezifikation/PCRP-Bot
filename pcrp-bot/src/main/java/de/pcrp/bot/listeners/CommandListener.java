@@ -7,17 +7,12 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
-import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.*;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +54,6 @@ public class CommandListener extends ListenerAdapter {
             case "verwarnung-löschen"  -> handleVerwarnungLoeschen(event);
             case "einreise-sperre"     -> handleEinreiseSperre(event);
             case "einreise-entsperren" -> handleEinreiseEntsperre(event);
-            case "direkt-nachricht"    -> handleDirektNachrichtCommand(event);
         }
     }
 
@@ -69,130 +63,8 @@ public class CommandListener extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        switch (event.getComponentId()) {
-            case "status-aktive-systeme" ->
-                event.replyEmbeds(buildActiveSystemsEmbed()).setEphemeral(true).queue();
-
-            case "dm-menu" -> event.replyEmbeds(embed("📨 Direkt-Nachricht",
-                    "Wähle aus, an wen die Nachricht gesendet werden soll."))
-                .addActionRow(
-                    Button.success("dm-alle",   "👥 An alle senden"),
-                    Button.primary("dm-person", "👤 An Person senden"))
-                .setEphemeral(true).queue();
-
-            case "dm-alle"   -> event.replyModal(buildDmModal(false, null)).queue();
-            case "dm-person" -> event.replyModal(buildDmModal(true, null)).queue();
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════
-    //  MODAL – Direkt-Nachricht
-    // ════════════════════════════════════════════════════════════
-
-    @Override
-    public void onModalInteraction(ModalInteractionEvent event) {
-        String id = event.getModalId();
-        if ("dm-modal-alle".equals(id)) {
-            handleDmSend(event, null);
-        } else if (id.startsWith("dm-modal-person")) {
-            // format: dm-modal-person:<userId>  (from slash) or dm-modal-person (from button)
-            String userId = id.contains(":") ? id.split(":", 2)[1] : null;
-            handleDmSend(event, userId);
-        }
-    }
-
-    private static Modal buildDmModal(boolean person, String prefilledUserId) {
-        TextInput.Builder empfaenger = TextInput.create("dm-empfaenger", "Discord-Nutzername des Empfängers", TextInputStyle.SHORT)
-            .setRequired(true).setPlaceholder("benutzername").setMaxLength(100);
-
-        TextInput titel = TextInput.create("dm-titel", "Titel", TextInputStyle.SHORT)
-            .setRequired(true).setMaxLength(256).build();
-
-        TextInput nachricht = TextInput.create("dm-nachricht", "Nachricht", TextInputStyle.PARAGRAPH)
-            .setRequired(true).setMaxLength(2000).build();
-
-        if (person) {
-            return Modal.create("dm-modal-person", "📨 Direkt-Nachricht an Person")
-                .addComponents(ActionRow.of(empfaenger.build()), ActionRow.of(titel), ActionRow.of(nachricht))
-                .build();
-        } else {
-            return Modal.create("dm-modal-alle", "📨 Direkt-Nachricht an alle")
-                .addComponents(ActionRow.of(titel), ActionRow.of(nachricht))
-                .build();
-        }
-    }
-
-    private void handleDmSend(ModalInteractionEvent event, String fixedUserId) {
-        if (event.getGuild() == null) return;
-
-        String titel    = event.getValue("dm-titel")    != null ? event.getValue("dm-titel").getAsString()    : "";
-        String nachricht= event.getValue("dm-nachricht") != null ? event.getValue("dm-nachricht").getAsString() : "";
-        boolean toAll   = fixedUserId == null && event.getValue("dm-empfaenger") == null;
-
-        event.deferReply(true).queue();
-
-        net.dv8tion.jda.api.entities.MessageEmbed dmEmbed = new EmbedBuilder()
-            .setColor(new java.awt.Color(0xCC5500))
-            .setTitle("📩 Du hast eine Mitteilung vom PCRP Serverteam erhalten")
-            .addField("📋 " + titel, nachricht, false)
-            .build();
-
-        if (toAll) {
-            // An alle Nicht-Bots senden
-            List<Member> targets = event.getGuild().getMembers().stream()
-                .filter(m -> !m.getUser().isBot())
-                .toList();
-            for (Member m : targets) BotLogger.tryDm(m.getUser(), dmEmbed);
-            event.getHook().sendMessageEmbeds(embed("✅ Nachricht gesendet",
-                "Die Nachricht **\u201E" + titel + "\u201C** wurde an **" + targets.size() + " Mitglieder** gesendet."))
-                .setEphemeral(true).queue();
-            BotLogger.logModeration(event.getGuild(),
-                "📨 Direkt-Nachricht an alle gesendet",
-                "**Von:** " + event.getUser().getAsMention() + "\n" +
-                "**Titel:** " + titel + "\n**Empfänger:** " + targets.size() + " Mitglieder");
-        } else {
-            // An bestimmte Person
-            String empfaengerName = fixedUserId != null ? null
-                : (event.getValue("dm-empfaenger") != null ? event.getValue("dm-empfaenger").getAsString().trim() : "");
-            Member target = fixedUserId != null
-                ? event.getGuild().getMemberById(fixedUserId)
-                : BotContext.findMemberByUsername(empfaengerName);
-            if (target == null) {
-                event.getHook().sendMessageEmbeds(embed("Nicht gefunden",
-                    "Kein Mitglied mit diesem Namen auf dem Server gefunden."))
-                    .setEphemeral(true).queue();
-                return;
-            }
-            BotLogger.tryDm(target.getUser(), dmEmbed);
-            event.getHook().sendMessageEmbeds(embed("✅ Nachricht gesendet",
-                "Die Nachricht **\u201E" + titel + "\u201C** wurde an " + target.getAsMention() + " gesendet."))
-                .setEphemeral(true).queue();
-            BotLogger.logModeration(event.getGuild(),
-                "📨 Direkt-Nachricht gesendet",
-                "**Von:** " + event.getUser().getAsMention() + "\n" +
-                "**Titel:** " + titel + "\n**Empfänger:** " + target.getAsMention());
-        }
-    }
-
-    // ════════════════════════════════════════════════════════════
-    //  /direkt-nachricht (Slash)
-    // ════════════════════════════════════════════════════════════
-
-    private void handleDirektNachrichtCommand(SlashCommandInteractionEvent event) {
-        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
-        if (target != null) {
-            // Spezifische Person → Modal mit vorgegebener User-ID im ID-String
-            event.replyModal(Modal.create("dm-modal-person:" + target.getId(), "📨 DM an " + target.getUser().getName())
-                .addComponents(
-                    ActionRow.of(TextInput.create("dm-titel", "Titel", TextInputStyle.SHORT)
-                        .setRequired(true).setMaxLength(256).build()),
-                    ActionRow.of(TextInput.create("dm-nachricht", "Nachricht", TextInputStyle.PARAGRAPH)
-                        .setRequired(true).setMaxLength(2000).build()))
-                .build()).queue();
-        } else {
-            // An alle → Modal ohne Empfänger-Feld
-            event.replyModal(buildDmModal(false, null)).queue();
-        }
+        if ("status-aktive-systeme".equals(event.getComponentId()))
+            event.replyEmbeds(buildActiveSystemsEmbed()).setEphemeral(true).queue();
     }
 
     private static net.dv8tion.jda.api.entities.MessageEmbed buildActiveSystemsEmbed() {
