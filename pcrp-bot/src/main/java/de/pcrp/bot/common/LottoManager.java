@@ -3,6 +3,7 @@ package de.pcrp.bot.common;
 import com.google.gson.*;
 
 import java.util.*;
+import java.util.UUID;
 
 /**
  * Verwaltet das tägliche Lotto.
@@ -30,6 +31,27 @@ public final class LottoManager {
 
     private static String jackpotKey(String g)      { return "lotto-jackpot-"      + g; }
     private static String participantKey(String g)  { return "lotto-participants-"  + g; }
+
+    // ── Token (Einmal-Links) ──────────────────────────────────────────────────
+
+    public static String createToken(String guildId, String userId) {
+        String token = UUID.randomUUID().toString().replace("-", "");
+        DataStore.writeString("lotto-token-" + token, guildId + ":" + userId);
+        return token;
+    }
+
+    /** @return [guildId, userId] oder null wenn ungültig/abgelaufen */
+    public static String[] lookupToken(String token) {
+        String raw = DataStore.readString("lotto-token-" + token);
+        if (raw == null) return null;
+        String[] parts = raw.split(":", 2);
+        if (parts.length != 2) return null;
+        return parts;
+    }
+
+    public static void deleteToken(String token) {
+        DataStore.deleteKey("lotto-token-" + token);
+    }
 
     // ── Jackpot ───────────────────────────────────────────────────────────────
 

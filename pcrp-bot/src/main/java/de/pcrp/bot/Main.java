@@ -84,7 +84,8 @@ public class Main {
                 new CounterListener(),
                 new LobbyListener(),
                 new RucksackListener(),
-                new LottoListener()
+                new LottoListener(),
+                new RubbellosListener()
             )
             .build();
     }
@@ -154,6 +155,7 @@ public class Main {
                 postFrakListPanel(guild);
                 postRucksackPanel(guild);
                 postLottoPanel(guild);
+                postRubbellosPanel(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -487,10 +489,38 @@ public class Main {
                 "Die Ziehung findet jeden Tag um **12:00 Uhr** statt.\n\n" +
                 "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
                 "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
-                .addActionRow(Button.primary("lotto-enroll", "🎟️ Jetzt Mitspielen"))
+                .addActionRow(Button.primary("lotto-get-link", "🎟️ Jetzt Mitspielen"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
                     err -> log.error("[Lotto] Panel konnte nicht gesendet werden.", err));
+        }
+
+        private static void postRubbellosPanel(Guild guild) {
+            String key = "panel-rubbellos-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
+            if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
+            String stored = DataStore.readString(key);
+            if (stored != null && !stored.isBlank()) {
+                ch.retrieveMessageById(stored).queue(
+                    msg -> { /* bereits vorhanden */ },
+                    err -> { DataStore.deleteKey(key); sendRubbellosPanel(ch, key); });
+            } else {
+                sendRubbellosPanel(ch, key);
+            }
+        }
+
+        private static void sendRubbellosPanel(TextChannel ch, String key) {
+            String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
+            ch.sendMessageEmbeds(EmbedFactory.build(
+                "🎰 Goldene 7 – Rubbellos",
+                "Kaufe ein **Rubbellos** und versuche dein Glück!\n\n" +
+                "Rubbele alle **3 Felder** frei — findest du drei gleiche Beträge, gewinnst du!\n\n" +
+                "💰 Gewinne: **Niete bis 30.000$**\n" +
+                "🎟️ Pro Rubbellos wird **1 Los** aus deinem Rucksack eingelöst."))
+                .addActionRow(Button.primary("rubbellos-scratch", "🎰 Rubbellos einlösen"))
+                .queue(
+                    msg -> DataStore.writeString(key, msg.getId()),
+                    err -> log.error("[Rubbellos] Panel konnte nicht gesendet werden.", err));
         }
 
         private static void postRucksackPanel(Guild guild) {

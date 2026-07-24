@@ -1,10 +1,11 @@
 package de.pcrp.bot.listeners;
 
+import de.pcrp.bot.common.BotContext;
 import de.pcrp.bot.common.EmbedFactory;
-import de.pcrp.bot.common.InventoryManager;
 import de.pcrp.bot.common.LottoManager;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,57 +15,35 @@ public class LottoListener extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        if (!"lotto-enroll".equals(event.getComponentId())) return;
+        if (!"lotto-get-link".equals(event.getComponentId())) return;
         if (event.getGuild() == null) return;
 
         String guildId = event.getGuild().getId();
         String userId  = event.getUser().getId();
 
-        // Prüfen ob Lottoschein im Inventar
-        boolean hasTicket = InventoryManager.getInventory(guildId, userId)
-            .stream()
-            .anyMatch(e -> "Lottoschein".equalsIgnoreCase(e.name));
-
-        if (!hasTicket) {
+        // Bereits eingeschrieben?
+        if (LottoManager.isParticipant(guildId, userId)) {
             event.replyEmbeds(EmbedFactory.build(
-                "🎟️ Kein Lottoschein",
-                "Du hast keinen **Lottoschein** in deinem Rucksack.\n" +
-                "Kaufe einen Lottoschein, um an der Ziehung teilzunehmen."))
+                "🎰 Bereits eingeschrieben",
+                "Du nimmst bereits an der heutigen Ziehung teil.\n" +
+                "Die Ziehung findet um **12:00 Uhr** statt. Viel Glück! 🍀"))
                 .setEphemeral(true).queue();
             return;
         }
 
-        // Lottoschein entfernen
-        boolean removed = InventoryManager.removeItem(guildId, userId, "Lottoschein", 1);
-        if (!removed) {
-            event.replyEmbeds(EmbedFactory.build(
-                "❌ Fehler",
-                "Dein Lottoschein konnte nicht eingelöst werden. Bitte versuche es erneut."))
-                .setEphemeral(true).queue();
-            return;
-        }
+        // Einmal-Token generieren → Link zur Website
+        String token = LottoManager.createToken(guildId, userId);
+        String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
+        if (webUrl.endsWith("/")) webUrl = webUrl.substring(0, webUrl.length() - 1);
 
-        // Einschreiben
-        String enrollError = LottoManager.enroll(guildId, userId);
-        if (enrollError != null) {
-            // Lottoschein zurückgeben wenn Einschreibung scheitert
-            InventoryManager.addItem(guildId, userId, "Lottoschein", 1);
-            event.replyEmbeds(EmbedFactory.build(
-                "❌ Nicht möglich",
-                enrollError))
-                .setEphemeral(true).queue();
-            return;
-        }
-
-        int jackpot = LottoManager.getCurrentJackpot(guildId);
         event.replyEmbeds(EmbedFactory.build(
-            "🎰 Erfolgreich eingeschrieben!",
-            "Dein **Lottoschein** wurde eingelöst.\n\n" +
-            "**Jackpot:** " + LottoManager.formatAmount(jackpot) + "\n" +
-            "Die Ziehung findet heute um **12:00 Uhr** statt.\n\n" +
-            "Viel Glück! 🍀"))
+            "🎟️ Lottoschein abgeben",
+            "Klicke auf den Button, um dein persönliches Lotto-Formular zu öffnen.\n\n" +
+            "⚠️ Der Link ist **einmalig** und nur für dich gültig.\n" +
+            "Die Ziehung findet täglich um **12:00 Uhr** statt."))
+            .addActionRow(Button.link(webUrl + "/lotto/" + token, "🎟️ Lottoschein abgeben"))
             .setEphemeral(true).queue();
 
-        log.info("[Lotto] {} hat sich für die Ziehung eingeschrieben.", event.getUser().getAsTag());
+        log.info("[Lotto] Token für {} generiert.", event.getUser().getAsTag());
     }
 }

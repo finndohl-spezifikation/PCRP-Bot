@@ -48,8 +48,14 @@ public class WebServer {
         app.post("/api/register/group/illegal", WebServer::handleGroupIllegal);
 
         // Lotto
-        app.get("/lotto",                       WebServer::serveLotto);
-        app.get("/api/lotto/status",            WebServer::handleLottoStatus);
+        app.get("/lotto",                              WebServer::serveLotto);
+        app.get("/lotto/{token}",                      WebServer::serveLottoToken);
+        app.get("/api/lotto/status",                   WebServer::handleLottoStatus);
+        app.post("/api/lotto/enroll/{token}",          WebServer::handleLottoEnrollToken);
+
+        // Rubbellos
+        app.get("/rubbellos/{token}",                  WebServer::serveRubbellos);
+        app.post("/api/rubbellos/claim/{token}",       WebServer::handleRubbellosClai);
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
@@ -387,6 +393,45 @@ public class WebServer {
         ctx.contentType("text/html;charset=utf-8").result(buildLottoPage());
     }
 
+    private static void serveLottoToken(Context ctx) {
+        String token = ctx.pathParam("token");
+        String[] info = LottoManager.lookupToken(token);
+        if (info == null) {
+            ctx.status(410).contentType("text/html;charset=utf-8")
+                .result(buildLottoExpiredPage());
+            return;
+        }
+        ctx.contentType("text/html;charset=utf-8").result(buildLottoTokenPage(token));
+    }
+
+    private static void handleLottoEnrollToken(Context ctx) {
+        String token = ctx.pathParam("token");
+        JsonObject r = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Bot nicht bereit.");
+            ctx.status(503).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String[] info = LottoManager.lookupToken(token);
+        if (info == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Dieser Link ist bereits abgelaufen oder wurde schon verwendet.");
+            ctx.status(410).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String guildId = info[0];
+        String userId  = info[1];
+        // Token sofort ungültig machen (Einmalverwendung)
+        LottoManager.deleteToken(token);
+        String error = LottoManager.enroll(guildId, userId);
+        if (error != null) {
+            r.addProperty("ok", false); r.addProperty("error", error);
+            ctx.contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        int jackpot = LottoManager.getCurrentJackpot(guildId);
+        r.addProperty("ok", true);
+        r.addProperty("jackpotFmt", LottoManager.formatAmount(jackpot));
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
     private static void handleLottoStatus(Context ctx) {
         Guild guild = BotContext.getGuild();
         JsonObject r = new JsonObject();
@@ -454,6 +499,252 @@ public class WebServer {
             "}}catch(e){}}" +
             "loadStatus();" +
             "</script></body></html>";
+    }
+
+    private static String buildLottoExpiredPage() {
+        return "<!DOCTYPE html><html lang=\"de\"><head><meta charset=\"UTF-8\">" +
+            "<title>PCRP Lotto</title>" +
+            "<style>*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#0d0600,#1a0900);" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".card{width:100%;max-width:420px;background:rgba(255,255,255,0.04);border:1px solid #CC5500;" +
+            "border-radius:16px;padding:40px;text-align:center;box-shadow:0 0 40px rgba(204,85,0,0.2)}" +
+            "h2{color:#FF8800;font-size:1.6rem;margin-bottom:16px}" +
+            "p{color:#aaa;font-size:.9rem;line-height:1.6}</style></head><body>" +
+            "<div class=\"card\"><h2>🔗 Link abgelaufen</h2>" +
+            "<p>Dieser Link wurde bereits verwendet oder ist nicht mehr gültig.<br><br>" +
+            "Klicke im Discord-Kanal erneut auf <strong>🎟️ Jetzt Mitspielen</strong>, um einen neuen Link zu erhalten.</p>" +
+            "</div></body></html>";
+    }
+
+    private static String buildLottoTokenPage(String token) {
+        return "<!DOCTYPE html><html lang=\"de\"><head>" +
+            "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+            "<title>PCRP Lotto</title><style>" +
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#0d0600 0%,#1a0900 100%);" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".card{width:100%;max-width:480px;background:rgba(255,255,255,0.04);border:1px solid #CC5500;" +
+            "border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(204,85,0,0.25)}" +
+            ".header{background:linear-gradient(90deg,#CC5500,#993300);padding:24px;text-align:center}" +
+            ".header h1{color:#fff;font-size:2rem;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.5)}" +
+            ".header p{color:#ffd0a0;font-size:.85rem;margin-top:4px;letter-spacing:1px}" +
+            ".body{padding:28px}" +
+            ".jackpot{text-align:center;margin-bottom:28px}" +
+            ".jackpot .label{color:#aaa;font-size:.75rem;letter-spacing:2px;text-transform:uppercase}" +
+            ".jackpot .amount{color:#FF8800;font-size:2.8rem;font-weight:700;margin-top:6px;" +
+            "text-shadow:0 0 20px rgba(255,136,0,.4)}" +
+            ".jackpot .participants{color:#888;font-size:.85rem;margin-top:8px}" +
+            ".divider{border:none;border-top:1px solid #CC550030;margin:0 0 24px}" +
+            ".info{color:#ccc;font-size:.88rem;text-align:center;margin-bottom:24px;line-height:1.7}" +
+            ".info strong{color:#FF8800}" +
+            "button{width:100%;padding:15px;background:linear-gradient(90deg,#CC5500,#FF6600);" +
+            "border:none;border-radius:10px;color:#fff;font-size:1.05rem;font-weight:700;" +
+            "letter-spacing:1px;cursor:pointer;transition:opacity .2s}" +
+            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
+            ".msg{margin-top:18px;padding:14px;border-radius:8px;font-size:.9rem;text-align:center;display:none}" +
+            ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
+            ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
+            ".draw-info{text-align:center;color:#555;font-size:.75rem;margin-top:20px}" +
+            "</style></head><body>" +
+            "<div class=\"card\">" +
+            "<div class=\"header\"><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>" +
+            "<div class=\"body\">" +
+            "<div class=\"jackpot\">" +
+            "<div class=\"label\">Heutiger Jackpot</div>" +
+            "<div class=\"amount\" id=\"jackpot\">Lädt…</div>" +
+            "<div class=\"participants\" id=\"participants\"></div>" +
+            "</div>" +
+            "<hr class=\"divider\">" +
+            "<div class=\"info\">Klicke auf den Button, um deinen <strong>Lottoschein</strong> abzugeben.<br>" +
+            "Die Ziehung findet täglich um <strong>12:00 Uhr</strong> statt.</div>" +
+            "<button id=\"btn\" onclick=\"enroll()\">🎟️ Lottoschein abgeben</button>" +
+            "<div class=\"msg\" id=\"msg\"></div>" +
+            "<div class=\"draw-info\">Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
+            "</div></div>" +
+            "<script>" +
+            "const TOKEN='" + token + "';" +
+            "async function loadStatus(){" +
+            "try{const r=await fetch('/api/lotto/status');const d=await r.json();" +
+            "if(d.ok){document.getElementById('jackpot').textContent=d.jackpotFmt;" +
+            "document.getElementById('participants').textContent='🎟️ Teilnehmer: '+d.participants;}}" +
+            "catch(e){}}" +
+            "async function enroll(){" +
+            "const btn=document.getElementById('btn');" +
+            "btn.disabled=true;" +
+            "try{const r=await fetch('/api/lotto/enroll/'+TOKEN,{method:'POST'});" +
+            "const d=await r.json();" +
+            "if(d.ok){showMsg('✅ Du nimmst an der heutigen Ziehung teil! Jackpot: '+d.jackpotFmt+' – Viel Glück! 🍀','ok');loadStatus();}" +
+            "else{showMsg(d.error,'err');btn.disabled=false;}}" +
+            "catch(e){showMsg('Verbindungsfehler. Bitte versuche es erneut.','err');btn.disabled=false;}}" +
+            "function showMsg(t,cls){const m=document.getElementById('msg');" +
+            "m.textContent=t;m.className='msg '+cls;m.style.display='block';}" +
+            "loadStatus();" +
+            "</script></body></html>";
+    }
+
+    // ── /rubbellos/{token} ────────────────────────────────────────────────────
+
+    private static void serveRubbellos(Context ctx) {
+        String token = ctx.pathParam("token");
+        String[] info = RubbellosManager.lookupToken(token);
+        if (info == null) {
+            ctx.status(410).contentType("text/html;charset=utf-8")
+                .result(buildRubbellosExpiredPage());
+            return;
+        }
+        int prize = 0;
+        try { prize = Integer.parseInt(info[2]); } catch (Exception ignored) {}
+        int[] cells = RubbellosManager.buildCells(prize);
+        ctx.contentType("text/html;charset=utf-8").result(buildRubbellosPage(token, cells, prize));
+    }
+
+    private static void handleRubbellosClai(Context ctx) {
+        String token = ctx.pathParam("token");
+        JsonObject r = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Bot nicht bereit.");
+            ctx.status(503).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String[] info = RubbellosManager.lookupToken(token);
+        if (info == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Token bereits verwendet.");
+            ctx.status(410).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String guildId = info[0];
+        String userId  = info[1];
+        int prize = 0;
+        try { prize = Integer.parseInt(info[2]); } catch (Exception ignored) {}
+        RubbellosManager.deleteToken(token);
+        if (prize > 0) {
+            InventoryManager.addItem(guildId, userId, "Bargeld", prize);
+        }
+        r.addProperty("ok", true);
+        r.addProperty("prize", prize);
+        r.addProperty("prizeFmt", RubbellosManager.formatAmount(prize));
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    private static String buildRubbellosExpiredPage() {
+        return "<!DOCTYPE html><html lang=\"de\"><head><meta charset=\"UTF-8\">" +
+            "<title>PCRP Rubbellos</title>" +
+            "<style>*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:#0a0800;font-family:'Segoe UI',sans-serif;" +
+            "display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".card{width:100%;max-width:420px;background:#111005;border:2px solid #b8860b;" +
+            "border-radius:16px;padding:40px;text-align:center;box-shadow:0 0 40px rgba(184,134,11,0.25)}" +
+            "h2{color:#ffd700;font-size:1.6rem;margin-bottom:16px}" +
+            "p{color:#aaa;font-size:.9rem;line-height:1.6}</style></head><body>" +
+            "<div class=\"card\"><h2>🎰 Los bereits verwendet</h2>" +
+            "<p>Dieses Rubbellos wurde bereits eingelöst oder der Link ist nicht mehr gültig.<br><br>" +
+            "Klicke im Discord-Kanal erneut auf <strong>🎰 Rubbellos einlösen</strong>, um ein neues Los zu öffnen.</p>" +
+            "</div></body></html>";
+    }
+
+    private static String buildRubbellosPage(String token, int[] cells, int prize) {
+        String c0 = fmtCell(cells[0]);
+        String c1 = fmtCell(cells[1]);
+        String c2 = fmtCell(cells[2]);
+        String prizeJs = String.valueOf(prize);
+
+        return "<!DOCTYPE html><html lang=\"de\"><head>" +
+            "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+            "<title>Goldene 7 – PCRP Rubbellos</title><style>" +
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:radial-gradient(ellipse at top,#1a1200 0%,#0a0800 70%);" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".los{width:340px;background:linear-gradient(160deg,#1c1500 0%,#0e0c00 100%);" +
+            "border:3px solid #b8860b;border-radius:18px;overflow:hidden;" +
+            "box-shadow:0 0 60px rgba(184,134,11,0.35),inset 0 0 40px rgba(0,0,0,.5)}" +
+            ".top{background:linear-gradient(90deg,#8b6914,#ffd700,#8b6914);padding:14px 20px;text-align:center}" +
+            ".top h1{font-size:1.5rem;letter-spacing:4px;color:#1a1000;font-weight:900;text-shadow:0 1px 2px rgba(255,255,255,.3)}" +
+            ".top p{font-size:.7rem;letter-spacing:3px;color:#3a2800;margin-top:2px}" +
+            ".sub{text-align:center;padding:10px;color:#ffd70088;font-size:.72rem;letter-spacing:2px;border-bottom:1px solid #b8860b44}" +
+            ".cells{display:flex;gap:10px;justify-content:center;padding:20px 16px}" +
+            ".cell-wrap{position:relative;width:90px;height:90px}" +
+            "canvas.scratch{position:absolute;top:0;left:0;border-radius:10px;cursor:crosshair;touch-action:none}" +
+            ".cell-val{width:90px;height:90px;border-radius:10px;" +
+            "background:linear-gradient(135deg,#2a2000,#1a1500);" +
+            "border:2px solid #b8860b55;" +
+            "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}" +
+            ".cell-val .sym{font-size:1.6rem;line-height:1}" +
+            ".cell-val .amt{color:#ffd700;font-size:.78rem;font-weight:700;letter-spacing:.5px}" +
+            ".hint{text-align:center;color:#b8860b88;font-size:.72rem;margin:-6px 0 10px;letter-spacing:1px}" +
+            ".result{margin:0 16px 16px;padding:16px;border-radius:12px;text-align:center;display:none}" +
+            ".result.win{background:#1a2a00;border:1px solid #4a9930}" +
+            ".result.lose{background:#1a1000;border:1px solid #b8860b44}" +
+            ".result h2{font-size:1.4rem;margin-bottom:8px}" +
+            ".result.win h2{color:#7ddd55}" +
+            ".result.lose h2{color:#b8860b}" +
+            ".result p{color:#aaa;font-size:.85rem;line-height:1.6}" +
+            ".footer{text-align:center;padding:0 16px 14px;color:#b8860b55;font-size:.65rem;letter-spacing:1px}" +
+            "</style></head><body>" +
+            "<div class=\"los\">" +
+            "<div class=\"top\"><h1>⭐ GOLDENE 7 ⭐</h1><p>PARADISE CITY ROLEPLAY</p></div>" +
+            "<div class=\"sub\">RUBBELE ALLE 3 FELDER FREI</div>" +
+            "<div class=\"cells\">" +
+            "<div class=\"cell-wrap\"><div class=\"cell-val\"><span class=\"sym\">🍀</span><span class=\"amt\" id=\"v0\">" + c0 + "</span></div>" +
+            "<canvas class=\"scratch\" id=\"c0\" width=\"90\" height=\"90\"></canvas></div>" +
+            "<div class=\"cell-wrap\"><div class=\"cell-val\"><span class=\"sym\">⭐</span><span class=\"amt\" id=\"v1\">" + c1 + "</span></div>" +
+            "<canvas class=\"scratch\" id=\"c1\" width=\"90\" height=\"90\"></canvas></div>" +
+            "<div class=\"cell-wrap\"><div class=\"cell-val\"><span class=\"sym\">💎</span><span class=\"amt\" id=\"v2\">" + c2 + "</span></div>" +
+            "<canvas class=\"scratch\" id=\"c2\" width=\"90\" height=\"90\"></canvas></div>" +
+            "</div>" +
+            "<div class=\"hint\">↑ zum Rubbeln gedrückt halten ↑</div>" +
+            "<div class=\"result\" id=\"result\"><h2 id=\"rtitle\"></h2><p id=\"rdesc\"></p></div>" +
+            "<div class=\"footer\">GOLDENE 7 • PCRP • GEWINN BIS 30.000$</div>" +
+            "</div>" +
+            "<script>" +
+            "const TOKEN='" + token + "';" +
+            "const PRIZE=" + prizeJs + ";" +
+            "const revealed=[false,false,false];" +
+            "let claimed=false;" +
+            "function setupCanvas(id,idx){" +
+            "const cv=document.getElementById(id);" +
+            "const ctx=cv.getContext('2d');" +
+            "ctx.fillStyle='#c8a000';" +
+            "ctx.beginPath();ctx.roundRect(0,0,90,90,10);ctx.fill();" +
+            "ctx.fillStyle='#8b6914';" +
+            "for(let i=0;i<6;i++){ctx.fillRect(8+i*14,38,10,14);}" +
+            "ctx.fillStyle='#1a1000';ctx.font='bold 11px Segoe UI';" +
+            "ctx.textAlign='center';ctx.fillText('RUBBELN',45,22);" +
+            "ctx.fillText('7',45,62);" +
+            "let drawing=false;" +
+            "function scratch(x,y){ctx.globalCompositeOperation='destination-out';" +
+            "ctx.beginPath();ctx.arc(x,y,18,0,Math.PI*2);ctx.fill();" +
+            "checkReveal(ctx,cv,idx);}" +
+            "cv.addEventListener('mousedown',e=>{drawing=true;scratch(e.offsetX,e.offsetY);});" +
+            "cv.addEventListener('mousemove',e=>{if(drawing)scratch(e.offsetX,e.offsetY);});" +
+            "cv.addEventListener('mouseup',()=>drawing=false);" +
+            "cv.addEventListener('mouseleave',()=>drawing=false);" +
+            "cv.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];" +
+            "const r=cv.getBoundingClientRect();scratch(t.clientX-r.left,t.clientY-r.top);},{passive:false});" +
+            "cv.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];" +
+            "const r=cv.getBoundingClientRect();scratch(t.clientX-r.left,t.clientY-r.top);},{passive:false});}" +
+            "function checkReveal(ctx,cv,idx){" +
+            "if(revealed[idx])return;" +
+            "const d=ctx.getImageData(0,0,90,90).data;" +
+            "let t=0,c=0;for(let i=3;i<d.length;i+=4){t++;if(d[i]<128)c++;}" +
+            "if(c/t>0.6){revealed[idx]=true;cv.style.display='none';checkAll();}}" +
+            "function checkAll(){" +
+            "if(revealed[0]&&revealed[1]&&revealed[2]&&!claimed){claimed=true;claimPrize();}}" +
+            "async function claimPrize(){" +
+            "try{const r=await fetch('/api/rubbellos/claim/'+TOKEN,{method:'POST'});" +
+            "const d=await r.json();" +
+            "const res=document.getElementById('result');" +
+            "const rt=document.getElementById('rtitle');" +
+            "const rd=document.getElementById('rdesc');" +
+            "if(d.prize>0){res.className='result win';rt.textContent='🎉 Gewonnen!';rd.textContent='Du hast '+d.prizeFmt+' gewonnen! Das Bargeld wurde deinem Rucksack gutgeschrieben.';}" +
+            "else{res.className='result lose';rt.textContent='😔 Niete';rd.textContent='Leider kein Gewinn dieses Mal. Kaufe ein neues Rubbellos und versuche dein Glück erneut!';}" +
+            "res.style.display='block';}catch(e){}}" +
+            "setupCanvas('c0',0);setupCanvas('c1',1);setupCanvas('c2',2);" +
+            "</script></body></html>";
+    }
+
+    private static String fmtCell(int v) {
+        if (v == 0) return "Niete";
+        return String.format("%,d$", v).replace(',', '.');
     }
 
     // ── /ausweis/{userId} ──────────────────────────────────────
