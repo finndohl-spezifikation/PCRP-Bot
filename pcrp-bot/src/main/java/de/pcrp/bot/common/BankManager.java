@@ -155,11 +155,15 @@ public final class BankManager {
             case "ÜBERWEISUNG_REIN" -> { icon = "📥"; label = "Von " + (tx.with != null ? tx.with : "?"); }
             case "ADMIN_GABE"       -> { icon = "⬆️"; label = "Gutschrift (Admin)"; }
             case "ADMIN_ENTZUG"     -> { icon = "⬇️"; label = "Abzug (Admin)"; }
+            case "RUBBELLOS_GEWINN" -> { icon = "🎰"; label = "Rubbellos Gewinn"; }
+            case "LOTTO_GEWINN"     -> { icon = "🎟️"; label = "Lotto Gewinn"; }
             default                 -> { icon = "•";  label = tx.type; }
         }
         boolean isIn = tx.type.equals("EINZAHLUNG")
             || tx.type.equals("ÜBERWEISUNG_REIN")
-            || tx.type.equals("ADMIN_GABE");
+            || tx.type.equals("ADMIN_GABE")
+            || tx.type.equals("RUBBELLOS_GEWINN")
+            || tx.type.equals("LOTTO_GEWINN");
         String sign = isIn ? "+" : "-";
         return icon + " **" + label + "** — " + sign + formatAmount(tx.amount)
             + " <t:" + tx.ts + ":d>";
