@@ -13,6 +13,14 @@ public class RubbellosListener extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(RubbellosListener.class);
 
+    private static String normalizeUrl(String url) {
+        if (url == null || url.isBlank()) return "https://example.com";
+        url = url.trim();
+        if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
+        if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://" + url;
+        return url;
+    }
+
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (!"rubbellos-scratch".equals(event.getComponentId())) return;
@@ -48,15 +56,20 @@ public class RubbellosListener extends ListenerAdapter {
         // Gewinn vorab bestimmen + Token erstellen
         int prize = RubbellosManager.rollPrize();
         String token = RubbellosManager.createToken(guildId, userId, prize);
-        String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
-        if (webUrl.endsWith("/")) webUrl = webUrl.substring(0, webUrl.length() - 1);
+        String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
 
-        event.replyEmbeds(EmbedFactory.build(
-            "🎰 Dein Rubbellos ist bereit!",
-            "Öffne die Seite und rubbele dein **Goldene 7** Rubbellos frei!\n\n" +
-            "⚠️ Der Link ist **einmalig** und nur für dich gültig."))
-            .addActionRow(Button.link(webUrl + "/rubbellos/" + token, "🎰 Jetzt Rubbeln!"))
-            .setEphemeral(true).queue();
+        try {
+            event.replyEmbeds(EmbedFactory.build(
+                "🎰 Dein Rubbellos ist bereit!",
+                "Öffne die Seite und rubbele dein **Goldene 7** Rubbellos frei!\n\n" +
+                "⚠️ Der Link ist **einmalig** und nur für dich gültig."))
+                .addActionRow(Button.link(webUrl + "/rubbellos/" + token, "🎰 Jetzt Rubbeln!"))
+                .setEphemeral(true).queue();
+        } catch (Exception ex) {
+            log.error("[Rubbellos] Fehler beim Senden der Antwort.", ex);
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Interner Fehler. Bitte versuche es erneut."))
+                .setEphemeral(true).queue();
+        }
 
         log.info("[Rubbellos] Token für {} generiert. Gewinn: {}$.", event.getUser().getAsTag(), prize);
     }

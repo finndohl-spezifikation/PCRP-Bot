@@ -11,6 +11,14 @@ public class LottoListener extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(LottoListener.class);
 
+    private static String normalizeUrl(String url) {
+        if (url == null || url.isBlank()) return "https://example.com";
+        url = url.trim();
+        if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
+        if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://" + url;
+        return url;
+    }
+
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
@@ -40,7 +48,6 @@ public class LottoListener extends ListenerAdapter {
             }
 
             case "lotto-get-link" -> {
-                // Legacy: Einmal-Token → Link zur Website (für alte Panel-Nachrichten)
                 if (LottoManager.isParticipant(guildId, userId)) {
                     event.replyEmbeds(EmbedFactory.build(
                         "🎰 Bereits eingeschrieben",
@@ -50,15 +57,20 @@ public class LottoListener extends ListenerAdapter {
                     return;
                 }
                 String token  = LottoManager.createToken(guildId, userId);
-                String webUrl = System.getenv().getOrDefault("WEB_URL", "https://example.com");
-                if (webUrl.endsWith("/")) webUrl = webUrl.substring(0, webUrl.length() - 1);
-                event.replyEmbeds(EmbedFactory.build(
-                    "🎟️ Lottoschein abgeben",
-                    "Klicke auf den Button, um dein persönliches Lotto-Formular zu öffnen.\n\n" +
-                    "⚠️ Der Link ist **einmalig** und nur für dich gültig.\n" +
-                    "Die Ziehung findet täglich um **12:00 Uhr** statt."))
-                    .addActionRow(Button.link(webUrl + "/lotto/" + token, "🎟️ Lottoschein abgeben"))
-                    .setEphemeral(true).queue();
+                String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
+                try {
+                    event.replyEmbeds(EmbedFactory.build(
+                        "🎟️ Lottoschein abgeben",
+                        "Klicke auf den Button, um dein persönliches Lotto-Formular zu öffnen.\n\n" +
+                        "⚠️ Der Link ist **einmalig** und nur für dich gültig.\n" +
+                        "Die Ziehung findet täglich um **12:00 Uhr** statt."))
+                        .addActionRow(Button.link(webUrl + "/lotto/" + token, "🎟️ Lottoschein abgeben"))
+                        .setEphemeral(true).queue();
+                } catch (Exception ex) {
+                    log.error("[Lotto] Fehler beim Senden der Antwort.", ex);
+                    event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Interner Fehler. Bitte versuche es erneut."))
+                        .setEphemeral(true).queue();
+                }
                 log.info("[Lotto] Token für {} generiert.", event.getUser().getAsTag());
             }
         }
