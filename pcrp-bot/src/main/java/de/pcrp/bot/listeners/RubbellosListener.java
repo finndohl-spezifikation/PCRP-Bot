@@ -21,10 +21,10 @@ public class RubbellosListener extends ListenerAdapter {
         String guildId = event.getGuild().getId();
         String userId  = event.getUser().getId();
 
-        // Rubbellos im Inventar prüfen
+        // Rubbellos im Inventar prüfen (auch mit Emoji-Präfix wie "🎫 | Rubbellos")
         boolean hasTicket = InventoryManager.getInventory(guildId, userId)
             .stream()
-            .anyMatch(e -> "Rubbellos".equalsIgnoreCase(e.name));
+            .anyMatch(e -> InventoryManager.nameMatches(e.name, "Rubbellos"));
 
         if (!hasTicket) {
             event.replyEmbeds(EmbedFactory.build(

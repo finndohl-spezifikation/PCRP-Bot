@@ -61,6 +61,17 @@ public final class InventoryManager {
 
     // ── Operationen ───────────────────────────────────────────────────────────
 
+    /**
+     * Prüft ob ein gespeicherter Item-Name einem Suchbegriff entspricht.
+     * Unterstützt exakten Vergleich und das "🎫 | ItemName"-Präfix-Format.
+     */
+    public static boolean nameMatches(String stored, String search) {
+        String s = search.trim();
+        if (stored.equalsIgnoreCase(s)) return true;
+        int pipe = stored.lastIndexOf('|');
+        return pipe >= 0 && stored.substring(pipe + 1).trim().equalsIgnoreCase(s);
+    }
+
     public static synchronized void addItem(String guildId, String userId, String itemName, int qty) {
         String name = itemName.trim();
         List<Item> inv = getInventory(guildId, userId);
@@ -75,14 +86,14 @@ public final class InventoryManager {
 
     /**
      * Zieht qty ab. Gibt false zurück wenn nicht genug vorhanden.
+     * Unterstützt Emoji-Präfix: Suche nach "Rubbellos" trifft auch "🎫 | Rubbellos".
      */
     public static synchronized boolean removeItem(String guildId, String userId, String itemName, int qty) {
-        String name = itemName.trim();
         List<Item> inv = getInventory(guildId, userId);
-        Optional<Item> existing = inv.stream().filter(i -> i.name.equalsIgnoreCase(name)).findFirst();
+        Optional<Item> existing = inv.stream().filter(i -> nameMatches(i.name, itemName)).findFirst();
         if (existing.isEmpty() || existing.get().quantity < qty) return false;
         existing.get().quantity -= qty;
-        if (existing.get().quantity == 0) inv.removeIf(i -> i.name.equalsIgnoreCase(itemName));
+        if (existing.get().quantity == 0) inv.removeIf(i -> nameMatches(i.name, itemName));
         saveInventory(guildId, userId, inv);
         return true;
     }
@@ -138,6 +149,8 @@ public final class InventoryManager {
 
     public static MessageEmbed buildEmbed(String guildId, String userId, String displayName) {
         List<Item> inv = getInventory(guildId, userId);
+        // Bargeld ist kein Inventar-Item mehr — Altdaten ausfiltern
+        inv.removeIf(it -> nameMatches(it.name, "Bargeld"));
         EmbedBuilder eb = EmbedFactory.create()
             .setTitle("🎒 Rucksack — " + displayName);
 
