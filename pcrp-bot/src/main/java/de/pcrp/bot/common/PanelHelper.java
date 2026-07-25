@@ -43,8 +43,12 @@ public final class PanelHelper {
 
         String stored = DataStore.readString(key);
         if (stored != null && !stored.isBlank()) {
+            // Altes Format "msgId|extra" bereinigen (z. B. Meldeamt speicherte "id|url")
+            String storedId = stored.trim();
+            if (storedId.contains("|")) storedId = storedId.split("\\|", 2)[0].trim();
+            final String resolvedId = storedId;
             // Gespeicherte ID per Discord-API prüfen
-            ch.retrieveMessageById(stored.trim()).queue(
+            ch.retrieveMessageById(resolvedId).queue(
                 msg -> {
                     log.debug("[Panel] '{}' aktiv (ID {}), kein Neuversand.", key, stored.trim());
                     GUARDS.remove(key);

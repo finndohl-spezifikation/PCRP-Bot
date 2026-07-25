@@ -1,0 +1,57 @@
+You reached the start of the range
+Jul 25, 2026, 8:56 PM
+Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/7ac881c6-887e-4fdb-8ca6-ba9f5049e9a3/vol_feumvzuz6bvwt9jl
+Starting Container
+      / /___ __   ______ _/ (_)___      / ___/
+ __  / / __ `/ | / / __ `/ / / __ \    / __ \
+/ /_/ / /_/ /| |/ / /_/ / / / / / /   / /_/ /
+\____/\__,_/ |___/\__,_/_/_/_/ /_/    \____/
+       https://javalin.io/documentation
+18:56:41 [main] INFO  io.javalin.Javalin - Javalin started in 164ms \o/
+18:56:41 [main] INFO  io.javalin.Javalin - Listening on http://localhost:8080/
+18:56:41 [main] INFO  io.javalin.Javalin - You are running Javalin 6.3.0 (released August 22, 2024. Your Javalin version is 702 days old. Consider checking for a newer version.).
+18:56:41 [main] INFO  io.javalin.Javalin - Starting Javalin ...
+18:56:41 [main] INFO  org.eclipse.jetty.server.Server - jetty-11.0.23; built: 2024-08-14T01:40:17.906Z; git: 6fcf5ccaebd7ca13a0cb96c96adca699a24080a0; jvm 21.0.11+10-LTS
+18:56:41 [main] INFO  o.e.j.s.s.DefaultSessionIdManager - Session workerName=node0
+18:56:41 [main] INFO  o.e.j.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@3eb77ea8{/,null,AVAILABLE}
+18:56:41 [main] INFO  o.e.jetty.server.AbstractConnector - Started ServerConnector@5386659f{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+18:56:41 [main] INFO  org.eclipse.jetty.server.Server - Started Server@2de56eb2{STARTING}[11.0.23,sto=0] @539ms
+18:56:41 [main] INFO  io.javalin.Javalin - 
+       __                  ___           _____
+18:56:41 [main] INFO  de.pcrp.bot.web.WebServer - [WebServer] Einwohner-Meldeamt läuft auf Port 8080.
+18:56:41 [main] INFO  de.pcrp.bot.common.LottoScheduler - [Lotto] Erste Ziehung in 903 Minuten.
+18:56:43 [JDA MainWS-ReadThread] ERROR net.dv8tion.jda.api.JDA - One of the EventListeners had an uncaught exception
+java.lang.IllegalArgumentException: Message ID is not a valid snowflake value! Provided: "1530646697607434291|https://pcrp-bot-production-3ed4.up.railway.app"
+	at net.dv8tion.jda.internal.utils.Checks.isSnowflake(Checks.java:58)
+	at net.dv8tion.jda.api.entities.channel.middleman.MessageChannel.retrieveMessageById(MessageChannel.java:882)
+	at net.dv8tion.jda.internal.entities.channel.mixin.middleman.MessageChannelMixin.retrieveMessageById(MessageChannelMixin.java:207)
+	at de.pcrp.bot.common.PanelHelper.post(PanelHelper.java:47)
+	at de.pcrp.bot.Main$StartupListener.postMeldeamtPanel(Main.java:325)
+	at de.pcrp.bot.Main$StartupListener.onReady(Main.java:120)
+	at net.dv8tion.jda.api.hooks.ListenerAdapter.onEvent(ListenerAdapter.java:456)
+	at net.dv8tion.jda.api.hooks.InterfacedEventManager.handle(InterfacedEventManager.java:98)
+	at net.dv8tion.jda.internal.hooks.EventManagerProxy.handleInternally(EventManagerProxy.java:88)
+	at net.dv8tion.jda.internal.hooks.EventManagerProxy.handle(EventManagerProxy.java:70)
+	at net.dv8tion.jda.internal.JDAImpl.handleEvent(JDAImpl.java:171)
+	at net.dv8tion.jda.internal.requests.WebSocketClient.ready(WebSocketClient.java:211)
+	at net.dv8tion.jda.internal.handle.GuildSetupController.checkReady(GuildSetupController.java:115)
+	at net.dv8tion.jda.internal.handle.GuildSetupController.ready(GuildSetupController.java:102)
+	at net.dv8tion.jda.internal.handle.GuildSetupNode.handleMemberChunk(GuildSetupNode.java:260)
+	at net.dv8tion.jda.internal.handle.GuildSetupController.onMemberChunk(GuildSetupController.java:226)
+	at net.dv8tion.jda.internal.handle.GuildMembersChunkHandler.handleInternally(GuildMembersChunkHandler.java:64)
+	at net.dv8tion.jda.internal.handle.SocketHandler.handle(SocketHandler.java:39)
+	at net.dv8tion.jda.internal.requests.WebSocketClient.onDispatch(WebSocketClient.java:1009)
+	at net.dv8tion.jda.internal.handle.GuildSetupNode.completeSetup(GuildSetupNode.java:377)
+	at net.dv8tion.jda.internal.requests.WebSocketClient.onEvent(WebSocketClient.java:892)
+	at net.dv8tion.jda.internal.requests.WebSocketClient.handleEvent(WebSocketClient.java:870)
+	at net.dv8tion.jda.internal.requests.WebSocketClient.onBinaryMessage(WebSocketClient.java:1048)
+	at com.neovisionaries.ws.client.ListenerManager.callOnBinaryMessage(ListenerManager.java:385)
+	at com.neovisionaries.ws.client.ReadingThread.callOnBinaryMessage(ReadingThread.java:276)
+	at com.neovisionaries.ws.client.ReadingThread.handleBinaryFrame(ReadingThread.java:996)
+	at com.neovisionaries.ws.client.ReadingThread.handleFrame(ReadingThread.java:755)
+	at com.neovisionaries.ws.client.ReadingThread.main(ReadingThread.java:108)
+	at com.neovisionaries.ws.client.ReadingThread.runMain(ReadingThread.java:64)
+	at com.neovisionaries.ws.client.WebSocketThread.run(WebSocketThread.java:45)
+18:56:43 [ForkJoinPool.commonPool-worker-1] INFO  de.pcrp.bot.Main$StartupListener - Commands auf 'Paradise City Roleplay' registriert.
+18:56:43 [ForkJoinPool.commonPool-worker-1] INFO  d.pcrp.bot.listeners.WelcomeListener - [Invite-Cache] 'Paradise City Roleplay' – 6 Einladungen geladen.
+19:02:58 [JDA MainWS-ReadThread] INFO  de.pcrp.bot.listeners.BankListener - [Bank] Auszahlung franzosen_jaeger#0000 : 10000$
