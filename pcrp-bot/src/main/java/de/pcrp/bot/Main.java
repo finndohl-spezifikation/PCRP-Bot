@@ -318,7 +318,7 @@ public class Main {
         }
 
         private static void postMeldeamtPanel(Guild guild) {
-            String key    = "panel-meldeamt-" + guild.getId();
+            String key    = "panel-meldeamt-v2-" + guild.getId();
             String webUrl = "https://pcrp.finndohl.workers.dev";
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
@@ -403,7 +403,7 @@ public class Main {
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
         private static void postLottoPanel(Guild guild) {
-            String key = "panel-lotto-v5-" + guild.getId();
+            String key = "panel-lotto-v6-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
             PanelHelper.post(ch, key, "🎰 Paradise City Lotto",
@@ -429,7 +429,7 @@ public class Main {
         }
 
         private static void postRubbellosPanel(Guild guild) {
-            String key = "panel-rubbellos-v3-" + guild.getId();
+            String key = "panel-rubbellos-v4-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
             if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
             PanelHelper.post(ch, key, "🎰 Goldene 7 – Rubbellos",
