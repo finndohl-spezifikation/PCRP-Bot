@@ -472,7 +472,7 @@ public class Main {
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
         private static void postLottoPanel(Guild guild) {
-            String key = "panel-lotto-v4-" + guild.getId();
+            String key = "panel-lotto-v5-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
             String stored = DataStore.readString(key);
@@ -496,7 +496,7 @@ public class Main {
                 "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
                 "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
                 .addActionRow(
-                    Button.primary("lotto-join", "🎟️ Lottoschein abgeben"),
+                    Button.primary("lotto-get-link", "🎟️ Lottoschein abgeben"),
                     Button.link(webUrl + "/lotto", "📊 Jackpot anzeigen"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
