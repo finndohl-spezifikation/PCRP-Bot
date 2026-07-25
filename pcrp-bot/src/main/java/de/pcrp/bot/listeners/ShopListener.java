@@ -347,14 +347,7 @@ public class ShopListener extends ListenerAdapter {
         String key = "panel-kwike-v1-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.SHOP_KWIKE_CHANNEL_ID);
         if (ch == null) { log.warn("[Shop] Kwik-E-Markt Kanal nicht gefunden."); return; }
-        String stored = DataStore.readString(key);
-        if (stored != null && !stored.isBlank()) {
-            ch.retrieveMessageById(stored).queue(
-                msg -> { /* bereits vorhanden */ },
-                err -> { DataStore.deleteKey(key); sendPanel(ch, key); });
-        } else {
-            sendPanel(ch, key);
-        }
+        PanelHelper.post(ch, key, "🏪 Kwik-E-Markt", () -> sendPanel(ch, key));
     }
 
     private static void sendPanel(TextChannel ch, String key) {
@@ -366,8 +359,8 @@ public class ShopListener extends ListenerAdapter {
             "Klicke auf **Shop Öffnen**, um den Shop zu betreten."))
             .addActionRow(Button.primary("shop-open-kwike", "🛒 Shop Öffnen"))
             .queue(
-                msg -> DataStore.writeString(key, msg.getId()),
-                err -> log.error("[Shop] Panel konnte nicht gesendet werden.", err));
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Shop] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────

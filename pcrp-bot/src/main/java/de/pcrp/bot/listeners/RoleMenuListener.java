@@ -131,24 +131,15 @@ public class RoleMenuListener extends ListenerAdapter {
         String key = "panel-pingroles-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.PING_ROLES_CHANNEL_ID);
         if (ch == null) { log.warn("[PingRoles] Kanal nicht gefunden."); return; }
-
-        String stored = DataStore.readString(key);
-        if (stored != null && !stored.isBlank()) {
-            ch.retrieveMessageById(stored.trim()).queue(
-                msg -> log.info("[PingRoles] Panel aktiv (ID: {}), kein Neuversand.", stored.trim()),
-                err -> { DataStore.deleteKey(key); sendPanel(ch, key); }
-            );
-        } else {
-            sendPanel(ch, key);
-        }
+        PanelHelper.post(ch, key, "🔔 Ping-Rollen", () -> sendPanel(ch, key));
     }
 
     private static void sendPanel(TextChannel ch, String key) {
         ch.sendMessageEmbeds(buildPanelEmbed())
           .addActionRow(buildSelectMenu())
           .queue(
-            msg -> DataStore.writeString(key, msg.getId()),
-            err -> log.error("[PingRoles] Panel konnte nicht gesendet werden.", err)
+            msg -> PanelHelper.onSent(key, msg.getId()),
+            err -> { log.error("[PingRoles] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
           );
     }
 }

@@ -284,26 +284,10 @@ public class BankListener extends ListenerAdapter {
     // ── Panel Posting ──────────────────────────────────────────────────────────
 
     public static void postPanelIfNeeded(Guild guild) {
-        String key    = "panel-bank-v2-" + guild.getId();
-        String oldKey = "panel-bank-v1-" + guild.getId();
+        String key = "panel-bank-v2-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.BANK_CHANNEL_ID);
         if (ch == null) { log.warn("[Bank] Bank-Kanal nicht gefunden."); return; }
-
-        // Altes v1-Panel löschen falls noch vorhanden
-        String oldId = DataStore.readString(oldKey);
-        if (oldId != null && !oldId.isBlank()) {
-            ch.deleteMessageById(oldId).queue(v -> {}, err -> {});
-            DataStore.deleteKey(oldKey);
-        }
-
-        String stored = DataStore.readString(key);
-        if (stored != null && !stored.isBlank()) {
-            ch.retrieveMessageById(stored).queue(
-                msg -> { /* vorhanden */ },
-                err -> { DataStore.deleteKey(key); sendPanel(ch, key); });
-        } else {
-            sendPanel(ch, key);
-        }
+        PanelHelper.post(ch, key, "🏦 Paradise City — Online Banking", () -> sendPanel(ch, key));
     }
 
     private static void sendPanel(TextChannel ch, String key) {
@@ -315,8 +299,8 @@ public class BankListener extends ListenerAdapter {
             "Klicke auf **Online Banking**, um dein Konto zu öffnen."))
             .addActionRow(Button.primary("bank-open", "🏦 Online Banking"))
             .queue(
-                msg -> DataStore.writeString(key, msg.getId()),
-                err -> log.error("[Bank] Panel konnte nicht gesendet werden.", err));
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Bank] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
     }
 
     // ── Utils ──────────────────────────────────────────────────────────────────

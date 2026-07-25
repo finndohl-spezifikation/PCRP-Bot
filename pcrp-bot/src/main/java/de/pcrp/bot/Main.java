@@ -161,6 +161,7 @@ public class Main {
                 postRubbellosPanel(guild);
                 ShopListener.postPanelIfNeeded(guild);
                 BankListener.postPanelIfNeeded(guild);
+                initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -201,16 +202,8 @@ public class Main {
             String key = "panel-ticket-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.TICKET_PANEL_CHANNEL_ID);
             if (ch == null) { log.warn("[Ticket] Panel-Kanal nicht gefunden."); return; }
-
-            String stored = DataStore.readString(key);
-            if (stored != null && !stored.isBlank()) {
-                ch.retrieveMessageById(stored.trim()).queue(
-                    msg -> log.info("[Ticket] Panel aktiv (ID: {}), kein Neuversand.", stored.trim()),
-                    err -> { DataStore.deleteKey(key); sendTicketPanel(ch, key); }
-                );
-            } else {
-                sendTicketPanel(ch, key);
-            }
+            PanelHelper.post(ch, key, "🎫 Ticket System — Paradise City Roleplay",
+                () -> sendTicketPanel(ch, key));
         }
 
         private static void sendTicketPanel(TextChannel ch, String key) {
@@ -236,8 +229,8 @@ public class Main {
                     .addOption("Team Bewerbung",       "team-bewerbung", "Demnächst verfügbar",             net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("⚫"))
                     .build()
             ).queue(
-                msg -> DataStore.writeString(key, msg.getId()),
-                err -> log.error("[Ticket] Panel konnte nicht gepostet werden.", err)
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Ticket] Panel konnte nicht gepostet werden.", err); PanelHelper.onFailed(key); }
             );
         }
 
@@ -318,66 +311,22 @@ public class Main {
                 "`§9.2` Raubüberfälle: geltende Regeln sind einzuhalten.\n" +
                 "`§9.3` Safezones: keine Gewalt erlaubt.";
 
-            // Part 1
-            String stored1 = DataStore.readString(key1);
-            if (stored1 != null && !stored1.isBlank()) {
-                ch.retrieveMessageById(stored1.trim()).queue(
-                    msg -> log.info("[Regelwerk] Teil 1 aktiv (ID: {}), kein Neuversand.", stored1.trim()),
-                    err -> { DataStore.deleteKey(key1); sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1); }
-                );
-            } else {
-                sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1);
-            }
-
-            // Part 2
-            String stored2 = DataStore.readString(key2);
-            if (stored2 != null && !stored2.isBlank()) {
-                ch.retrieveMessageById(stored2.trim()).queue(
-                    msg -> log.info("[Regelwerk] Teil 2 aktiv (ID: {}), kein Neuversand.", stored2.trim()),
-                    err -> { DataStore.deleteKey(key2); sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2); }
-                );
-            } else {
-                sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2);
-            }
+            PanelHelper.post(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)",
+                () -> sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1));
+            PanelHelper.post(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)",
+                () -> sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2));
         }
 
         private static void postMeldeamtPanel(Guild guild) {
             String key    = "panel-meldeamt-" + guild.getId();
             String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
-
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
-
-            String stored    = DataStore.readString(key);
-            String storedMsgId = null;
-            if (stored != null && stored.contains("|")) {
-                storedMsgId = stored.split("\\|", 2)[0];
-            } else if (stored != null && !stored.isBlank()) {
-                storedMsgId = stored.trim();
-            }
-
-            if (storedMsgId != null) {
-                final String msgId = storedMsgId;
-                ch.retrieveMessageById(msgId).queue(
-                    msg -> {
-                        log.info("[Meldeamt] Altes Panel gefunden (ID: {}), lösche und sende neu.", msgId);
-                        msg.delete().queue(
-                            v -> { DataStore.deleteKey(key); sendPanel(ch, key, webUrl); },
-                            err -> { DataStore.deleteKey(key); sendPanel(ch, key, webUrl); }
-                        );
-                    },
-                    err -> {
-                        log.info("[Meldeamt] Panel wurde gelöscht, sende neu.");
-                        DataStore.deleteKey(key);
-                        sendPanel(ch, key, webUrl);
-                    }
-                );
-            } else {
-                sendPanel(ch, key, webUrl);
-            }
+            PanelHelper.post(ch, key, "🏛️ Paradise City Einwohner Meldeamt",
+                () -> sendMeldeamtPanel(ch, key, webUrl));
         }
 
-        private static void sendPanel(TextChannel ch, String key, String webUrl) {
+        private static void sendMeldeamtPanel(TextChannel ch, String key, String webUrl) {
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
                     .setTitle("🏛️ Paradise City Einwohner Meldeamt")
@@ -398,8 +347,8 @@ public class Main {
             )
             .addActionRow(Button.link(webUrl, "🏛️ Jetzt Einreisen"))
             .queue(
-                msg -> DataStore.writeString(key, msg.getId() + "|" + webUrl),
-                err -> log.error("[Meldeamt] Panel konnte nicht gepostet werden.", err)
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Meldeamt] Panel konnte nicht gepostet werden.", err); PanelHelper.onFailed(key); }
             );
         }
 
@@ -408,19 +357,7 @@ public class Main {
             String key = "panel-" + panelKey + "-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(channelId);
             if (ch == null) { log.warn("[Panel] Kanal für '{}' nicht gefunden.", panelKey); return; }
-
-            String stored = DataStore.readString(key);
-            if (stored != null && !stored.isBlank()) {
-                ch.retrieveMessageById(stored.trim()).queue(
-                    msg -> log.info("[Panel] '{}' aktiv (ID: {}), kein Neuversand.", panelKey, stored.trim()),
-                    err -> {
-                        DataStore.deleteKey(key);
-                        sendSimplePanel(ch, key, title, description);
-                    }
-                );
-            } else {
-                sendSimplePanel(ch, key, title, description);
-            }
+            PanelHelper.post(ch, key, title, () -> sendSimplePanel(ch, key, title, description));
         }
 
         private static void sendSimplePanel(TextChannel ch, String key, String title, String description) {
@@ -430,8 +367,8 @@ public class Main {
                     .setDescription(description)
                     .build()
             ).queue(
-                msg -> DataStore.writeString(key, msg.getId()),
-                err -> log.error("[Panel] '{}' konnte nicht gesendet werden.", key, err)
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Panel] '{}' konnte nicht gesendet werden.", key, err); PanelHelper.onFailed(key); }
             );
         }
 
@@ -441,14 +378,8 @@ public class Main {
             String key = "panel-boost-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.BOOST_CHANNEL_ID);
             if (ch == null) { log.warn("[Boost] Kanal nicht gefunden."); return; }
-            String stored = DataStore.readString(key);
-            if (stored != null && !stored.isBlank()) {
-                ch.retrieveMessageById(stored.trim()).queue(
-                    msg -> log.info("[Boost] Panel aktiv, kein Neuversand."),
-                    err -> { DataStore.deleteKey(key); sendBoostPanel(ch, key); });
-            } else {
-                sendBoostPanel(ch, key);
-            }
+            PanelHelper.post(ch, key, "🚀 Server Boost Belohnungen — Paradise City Roleplay",
+                () -> sendBoostPanel(ch, key));
         }
 
         private static void sendBoostPanel(TextChannel ch, String key) {
@@ -465,8 +396,8 @@ public class Main {
                     "→ 100.000 $ pro Boost")
                 .build()
             ).queue(
-                msg -> DataStore.writeString(key, msg.getId()),
-                err -> log.error("[Boost] Panel konnte nicht gesendet werden.", err));
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Boost] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
         }
 
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
@@ -475,14 +406,8 @@ public class Main {
             String key = "panel-lotto-v5-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
-            String stored = DataStore.readString(key);
-            if (stored != null && !stored.isBlank()) {
-                ch.retrieveMessageById(stored).queue(
-                    msg -> { /* bereits vorhanden */ },
-                    err -> { DataStore.deleteKey(key); sendLottoPanel(ch, key, guild); });
-            } else {
-                sendLottoPanel(ch, key, guild);
-            }
+            PanelHelper.post(ch, key, "🎰 Paradise City Lotto",
+                () -> sendLottoPanel(ch, key, guild));
         }
 
         private static void sendLottoPanel(TextChannel ch, String key, Guild guild) {
@@ -499,26 +424,19 @@ public class Main {
                     Button.primary("lotto-get-link", "🎟️ Lottoschein abgeben"),
                     Button.link(webUrl + "/lotto", "📊 Jackpot anzeigen"))
                 .queue(
-                    msg -> DataStore.writeString(key, msg.getId()),
-                    err -> log.error("[Lotto] Panel konnte nicht gesendet werden.", err));
+                    msg -> PanelHelper.onSent(key, msg.getId()),
+                    err -> { log.error("[Lotto] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
         }
 
         private static void postRubbellosPanel(Guild guild) {
             String key = "panel-rubbellos-v3-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
             if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
-            String stored = DataStore.readString(key);
-            if (stored != null && !stored.isBlank()) {
-                ch.retrieveMessageById(stored).queue(
-                    msg -> { /* bereits vorhanden */ },
-                    err -> { DataStore.deleteKey(key); sendRubbellosPanel(ch, key); });
-            } else {
-                sendRubbellosPanel(ch, key);
-            }
+            PanelHelper.post(ch, key, "🎰 Goldene 7 – Rubbellos",
+                () -> sendRubbellosPanel(ch, key));
         }
 
         private static void sendRubbellosPanel(TextChannel ch, String key) {
-            String webUrl = normalizeUrl(System.getenv().getOrDefault("WEB_URL", "https://example.com"));
             ch.sendMessageEmbeds(EmbedFactory.build(
                 "🎰 Goldene 7 – Rubbellos",
                 "Kaufe ein **Rubbellos** und versuche dein Glück!\n\n" +
@@ -527,22 +445,15 @@ public class Main {
                 "🎟️ Pro Rubbellos wird **1 Los** aus deinem Rucksack eingelöst."))
                 .addActionRow(Button.primary("rubbellos-scratch", "🎰 Rubbellos spielen"))
                 .queue(
-                    msg -> DataStore.writeString(key, msg.getId()),
-                    err -> log.error("[Rubbellos] Panel konnte nicht gesendet werden.", err));
+                    msg -> PanelHelper.onSent(key, msg.getId()),
+                    err -> { log.error("[Rubbellos] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
         }
 
         private static void postRucksackPanel(Guild guild) {
             String key = "panel-rucksack-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUCKSACK_CHANNEL_ID);
             if (ch == null) { log.warn("[Rucksack] Kanal nicht gefunden."); return; }
-            String stored = DataStore.readString(key);
-            if (stored != null && !stored.isBlank()) {
-                ch.retrieveMessageById(stored).queue(
-                    msg -> { /* bereits vorhanden */ },
-                    err -> { DataStore.deleteKey(key); sendRucksackPanel(ch, key); });
-            } else {
-                sendRucksackPanel(ch, key);
-            }
+            PanelHelper.post(ch, key, "🎒 Rucksack", () -> sendRucksackPanel(ch, key));
         }
 
         private static void sendRucksackPanel(TextChannel ch, String key) {
@@ -554,8 +465,8 @@ public class Main {
                     Button.primary("rucksack-open",  "🎒 Rucksack Öffnen"),
                     Button.secondary("rucksack-other", "🔍 Anderen Rucksack Öffnen"))
                 .queue(
-                    msg -> DataStore.writeString(key, msg.getId()),
-                    err -> log.error("[Rucksack] Panel konnte nicht gesendet werden.", err));
+                    msg -> PanelHelper.onSent(key, msg.getId()),
+                    err -> { log.error("[Rucksack] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
         }
 
         private static void postFrakListPanel(Guild guild) {
@@ -578,6 +489,26 @@ public class Main {
                 .queue(
                     msg -> de.pcrp.bot.common.FraktionManager.setPanelMsgId(guild.getId(), msg.getId()),
                     err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
+        }
+
+        // ── Shop-Items Einmal-Initialisierung ──────────────────────────────────
+
+        private static void initShopItems(Guild guild) {
+            String guildId = guild.getId();
+            List<ShopManager.ShopItem> items =
+                ShopManager.getItemsForShop(guildId, ShopListener.SHOP_KWIKE);
+
+            boolean hasRubbellos   = items.stream().anyMatch(it -> InventoryManager.nameMatches(it.name, "Rubbellos"));
+            boolean hasLottoschein = items.stream().anyMatch(it -> InventoryManager.nameMatches(it.name, "Lottoschein"));
+
+            if (!hasRubbellos) {
+                ShopManager.addItem(guildId, "🎫 | Rubbellos",   2500, ShopListener.SHOP_KWIKE);
+                log.info("[Init] '🎫 | Rubbellos' (2500$) zum Kwik-E-Markt hinzugefügt.");
+            }
+            if (!hasLottoschein) {
+                ShopManager.addItem(guildId, "🎫 | Lottoschein", 3200, ShopListener.SHOP_KWIKE);
+                log.info("[Init] '🎫 | Lottoschein' (3200$) zum Kwik-E-Markt hinzugefügt.");
+            }
         }
 
         private static String normalizeUrl(String url) {
