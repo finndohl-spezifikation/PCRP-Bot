@@ -46,10 +46,10 @@ public final class BankManager {
     /** Bargeld → Konto (Einzahlung). Gibt Fehlermeldung zurück, null bei Erfolg. */
     public static String deposit(String guildId, String userId, long amount) {
         if (amount <= 0) return "Betrag muss größer als 0 sein.";
-        long cash = getCash(guildId, userId);
+        long cash = BargeldManager.get(guildId, userId);
         if (cash < amount)
             return "Du hast nur **" + formatAmount(cash) + "** Bargeld.";
-        InventoryManager.removeItem(guildId, userId, "Bargeld", safeInt(amount));
+        BargeldManager.remove(guildId, userId, amount);
         setBalance(guildId, userId, getBalance(guildId, userId) + amount);
         addTransaction(guildId, userId, "EINZAHLUNG", amount, null);
         return null;
@@ -62,7 +62,7 @@ public final class BankManager {
         if (bal < amount)
             return "Dein Kontostand (**" + formatAmount(bal) + "**) reicht nicht aus.";
         setBalance(guildId, userId, bal - amount);
-        InventoryManager.addItem(guildId, userId, "Bargeld", safeInt(amount));
+        BargeldManager.add(guildId, userId, amount);
         addTransaction(guildId, userId, "AUSZAHLUNG", amount, null);
         return null;
     }
@@ -90,7 +90,7 @@ public final class BankManager {
             setBalance(guildId, userId, getBalance(guildId, userId) + amount);
             addTransaction(guildId, userId, "ADMIN_GABE", amount, null);
         } else {
-            InventoryManager.addItem(guildId, userId, "Bargeld", safeInt(amount));
+            BargeldManager.add(guildId, userId, amount);
         }
     }
 
@@ -104,10 +104,10 @@ public final class BankManager {
             addTransaction(guildId, userId, "ADMIN_ENTZUG", amount, null);
             return null;
         } else {
-            long cash = getCash(guildId, userId);
+            long cash = BargeldManager.get(guildId, userId);
             if (cash < amount)
                 return "Spieler hat nur **" + formatAmount(cash) + "** Bargeld.";
-            InventoryManager.removeItem(guildId, userId, "Bargeld", safeInt(amount));
+            BargeldManager.remove(guildId, userId, amount);
             return null;
         }
     }
@@ -171,12 +171,9 @@ public final class BankManager {
         return String.format("%,d", v).replace(',', '.') + "$";
     }
 
-    /** Bargeld-Bestand aus dem Inventar lesen. */
+    /** Bargeld-Bestand lesen (aus BargeldManager). */
     private static long getCash(String guildId, String userId) {
-        return InventoryManager.getInventory(guildId, userId).stream()
-            .filter(it -> "Bargeld".equalsIgnoreCase(it.name))
-            .mapToLong(it -> (long) it.quantity)
-            .sum();
+        return BargeldManager.get(guildId, userId);
     }
 
     private static int safeInt(long v) {

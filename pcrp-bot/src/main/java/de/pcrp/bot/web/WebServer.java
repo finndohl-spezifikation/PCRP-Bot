@@ -922,7 +922,7 @@ public class WebServer {
         try { prize = Integer.parseInt(info[2]); } catch (Exception ignored) {}
         RubbellosManager.deleteToken(token);
         if (prize > 0) {
-            InventoryManager.addItem(guildId, userId, "Bargeld", prize);
+            BargeldManager.add(guildId, userId, prize);
         }
         r.addProperty("ok", true);
         r.addProperty("prize", prize);

@@ -146,8 +146,8 @@ public final class LottoManager {
         String winner = null;
         if (!participants.isEmpty()) {
             winner = participants.get(RANDOM.nextInt(participants.size()));
-            // Gewinn ins Inventar
-            InventoryManager.addItem(guildId, winner, "Bargeld", jackpot);
+            // Gewinn als Bargeld
+            BargeldManager.add(guildId, winner, jackpot);
         }
 
         // Zurücksetzen + neuer Jackpot für morgen

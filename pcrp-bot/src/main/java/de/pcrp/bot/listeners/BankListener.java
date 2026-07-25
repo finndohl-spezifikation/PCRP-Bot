@@ -238,7 +238,7 @@ public class BankListener extends ListenerAdapter {
 
         EmbedBuilder eb = EmbedFactory.create()
             .setTitle("🏦 Paradise City — Online Banking")
-            .setDescription("Verwalte dein Bankkonto sicher und bequem.");
+            .setDescription("💰 Kontoübersicht");
 
         eb.addField("💰 Kontostand", "**" + BankManager.formatAmount(balance) + "**", false);
 
@@ -300,7 +300,6 @@ public class BankListener extends ListenerAdapter {
     private static void sendPanel(TextChannel ch, String key) {
         ch.sendMessageEmbeds(EmbedFactory.build(
             "🏦 Paradise City — Online Banking",
-            "Verwalte dein Bankkonto bequem direkt über Discord.\n\n" +
             "💳 **Einzahlen** — Bargeld auf das Konto einzahlen\n" +
             "💵 **Auszahlen** — Geld abheben und als Bargeld erhalten\n" +
             "📤 **Überweisen** — Geld an andere Spieler senden\n\n" +

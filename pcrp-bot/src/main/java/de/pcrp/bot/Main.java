@@ -87,7 +87,8 @@ public class Main {
                 new LottoListener(),
                 new RubbellosListener(),
                 new ShopListener(),
-                new BankListener()
+                new BankListener(),
+                new BargeldListener()
             )
             .build();
     }
@@ -471,7 +472,7 @@ public class Main {
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
         private static void postLottoPanel(Guild guild) {
-            String key = "panel-lotto-v3-" + guild.getId();
+            String key = "panel-lotto-v4-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
             String stored = DataStore.readString(key);
@@ -494,14 +495,16 @@ public class Main {
                 "Die Ziehung findet jeden Tag um **12:00 Uhr** statt.\n\n" +
                 "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
                 "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
-                .addActionRow(Button.link(webUrl + "/lotto", "🎟️ Zum Lotto"))
+                .addActionRow(
+                    Button.primary("lotto-join", "🎟️ Lottoschein abgeben"),
+                    Button.link(webUrl + "/lotto", "📊 Jackpot anzeigen"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
                     err -> log.error("[Lotto] Panel konnte nicht gesendet werden.", err));
         }
 
         private static void postRubbellosPanel(Guild guild) {
-            String key = "panel-rubbellos-v2-" + guild.getId();
+            String key = "panel-rubbellos-v3-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
             if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
             String stored = DataStore.readString(key);
@@ -522,7 +525,7 @@ public class Main {
                 "Rubbele alle **3 Felder** frei — findest du drei gleiche Beträge, gewinnst du!\n\n" +
                 "💰 Gewinne: **Niete bis 30.000$**\n" +
                 "🎟️ Pro Rubbellos wird **1 Los** aus deinem Rucksack eingelöst."))
-                .addActionRow(Button.link(webUrl + "/rubbellos", "🎰 Zum Rubbellos"))
+                .addActionRow(Button.primary("rubbellos-scratch", "🎰 Rubbellos spielen"))
                 .queue(
                     msg -> DataStore.writeString(key, msg.getId()),
                     err -> log.error("[Rubbellos] Panel konnte nicht gesendet werden.", err));
@@ -769,6 +772,9 @@ public class Main {
                         .addChoice("Kontogeld", "kontogeld"))
                     .addOption(OptionType.INTEGER, "betrag", "Betrag in $",    true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("bargeld", "Barbestand anzeigen")
+                    .addOption(OptionType.USER, "mitglied", "Spieler (optional — nur für Admins)", false),
 
                 Commands.slash("lobby-abstimmung", "Startet eine Lobby-Abstimmung")
                     .addOption(OptionType.STRING, "uhrzeit", "RP-Startzeit (z. B. 20:00 Uhr)", true),
