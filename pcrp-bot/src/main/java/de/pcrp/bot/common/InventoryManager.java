@@ -62,12 +62,13 @@ public final class InventoryManager {
     // ── Operationen ───────────────────────────────────────────────────────────
 
     public static synchronized void addItem(String guildId, String userId, String itemName, int qty) {
+        String name = itemName.trim();
         List<Item> inv = getInventory(guildId, userId);
-        Optional<Item> existing = inv.stream().filter(i -> i.name.equalsIgnoreCase(itemName)).findFirst();
+        Optional<Item> existing = inv.stream().filter(i -> i.name.equalsIgnoreCase(name)).findFirst();
         if (existing.isPresent()) {
             existing.get().quantity += qty;
         } else {
-            inv.add(new Item(itemName, qty));
+            inv.add(new Item(name, qty));
         }
         saveInventory(guildId, userId, inv);
     }
@@ -76,8 +77,9 @@ public final class InventoryManager {
      * Zieht qty ab. Gibt false zurück wenn nicht genug vorhanden.
      */
     public static synchronized boolean removeItem(String guildId, String userId, String itemName, int qty) {
+        String name = itemName.trim();
         List<Item> inv = getInventory(guildId, userId);
-        Optional<Item> existing = inv.stream().filter(i -> i.name.equalsIgnoreCase(itemName)).findFirst();
+        Optional<Item> existing = inv.stream().filter(i -> i.name.equalsIgnoreCase(name)).findFirst();
         if (existing.isEmpty() || existing.get().quantity < qty) return false;
         existing.get().quantity -= qty;
         if (existing.get().quantity == 0) inv.removeIf(i -> i.name.equalsIgnoreCase(itemName));

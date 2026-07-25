@@ -616,7 +616,8 @@ public class WebServer {
             "else{msg('m2',d.error,'err');btn.disabled=false;}}" +
             "catch(e){msg('m2','Verbindungsfehler. Bitte erneut versuchen.','err');btn.disabled=false;}}" +
             "loadJp();" +
-            "if(uid&&uname){document.getElementById('uname').value=uname;document.getElementById('wname').textContent=uname;show('s2');}" +
+            // Gespeicherten Namen vorausfüllen, aber immer Step 1 zeigen (userId neu auflösen)
+            "if(uname){document.getElementById('uname').value=uname;}" +
             "</script></body></html>";
     }
 

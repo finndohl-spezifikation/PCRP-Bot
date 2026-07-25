@@ -43,7 +43,8 @@ public final class BotContext {
         return guild.getMembers().stream()
             .filter(m -> !m.getUser().isBot())
             .filter(m -> m.getUser().getName().equalsIgnoreCase(lower)
-                      || m.getUser().getAsTag().equalsIgnoreCase(username.trim()))
+                      || m.getUser().getAsTag().equalsIgnoreCase(username.trim())
+                      || m.getEffectiveName().equalsIgnoreCase(username.trim()))
             .findFirst().orElse(null);
     }
 }
