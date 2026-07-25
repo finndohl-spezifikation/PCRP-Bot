@@ -710,136 +710,240 @@ public class WebServer {
     }
 
     private static String buildRubbellosGeneralPage() {
-        String CSS =
-            "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;background:radial-gradient(ellipse at top,#1a1200,#0a0800);" +
-            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
-            ".card{width:100%;max-width:400px;background:#111005;border:3px solid #b8860b;" +
-            "border-radius:18px;overflow:hidden;box-shadow:0 0 60px rgba(184,134,11,.35)}" +
-            ".top{background:linear-gradient(90deg,#8b6914,#ffd700,#8b6914);padding:20px;text-align:center}" +
-            ".top h1{font-size:1.5rem;letter-spacing:4px;color:#1a1000;font-weight:900}" +
-            ".top p{font-size:.7rem;letter-spacing:3px;color:#3a2800;margin-top:2px}" +
-            ".bdy{padding:26px;display:flex;flex-direction:column;gap:16px}" +
-            ".slbl{color:#b8860b88;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;text-align:center}" +
-            "input{width:100%;padding:12px 14px;background:#0a0800;border:2px solid #b8860b44;" +
-            "border-radius:8px;color:#fff;font-size:.95rem;outline:none}" +
-            "input:focus{border-color:#ffd700}input::placeholder{color:#444}" +
-            "button{width:100%;padding:14px;background:linear-gradient(90deg,#8b6914,#ffd700,#8b6914);" +
-            "border:none;border-radius:8px;color:#1a1000;font-size:1rem;font-weight:900;" +
-            "letter-spacing:1px;cursor:pointer;transition:opacity .2s}" +
-            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
-            ".msg{padding:12px;border-radius:8px;font-size:.88rem;text-align:center;display:none}" +
-            ".msg.err{background:#2a0d0d;border:1px solid #993030;color:#dd5555}" +
-            ".los{display:none;flex-direction:column;gap:12px}" +
-            ".los.on{display:flex}" +
-            ".cells{display:flex;gap:10px;justify-content:center}" +
-            ".cw{position:relative;width:90px;height:90px}" +
-            "canvas{position:absolute;top:0;left:0;border-radius:10px;cursor:crosshair;touch-action:none}" +
-            ".cv{width:90px;height:90px;border-radius:10px;background:linear-gradient(135deg,#2a2000,#1a1500);" +
-            "border:2px solid #b8860b44;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}" +
-            ".cv .sym{font-size:1.5rem}.cv .amt{color:#ffd700;font-size:.78rem;font-weight:700}" +
-            ".hint{text-align:center;color:#b8860b66;font-size:.7rem;letter-spacing:1px}" +
-            ".res{padding:18px;border-radius:12px;text-align:center;display:none}" +
-            ".res.win{background:#1a2a00;border:1px solid #4a9930}" +
-            ".res.lose{background:#1a1000;border:1px solid #b8860b33}" +
-            ".res h2{font-size:1.3rem;margin-bottom:8px}" +
-            ".res.win h2{color:#7ddd55}.res.lose h2{color:#b8860b}" +
-            ".res p{color:#aaa;font-size:.85rem;line-height:1.6}" +
-            ".foot{text-align:center;color:#b8860b44;font-size:.65rem;letter-spacing:1px;padding:0 0 10px}";
-
+        // General /rubbellos page – same ticket design but asks for username first,
+        // then loads the 3×3 grid via /api/rubbellos/create and shows it inline.
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
-            "<title>Goldene 7 – PCRP Rubbellos</title><style>" + CSS + "</style></head><body>" +
-            "<div class='card'>" +
-            "<div class='top'><h1>⭐ GOLDENE 7 ⭐</h1><p>PARADISE CITY ROLEPLAY</p></div>" +
-            "<div class='bdy' id='bdy'>" +
-            // Step 1 — ID
-            "<div class='slbl' id='idlbl'>Discord-Benutzername</div>" +
-            "<input id='uid' type='text' placeholder='z. B. max_mustermann' maxlength='40'>" +
-            "<button id='sbtn' onclick='goScratch()'>🎰 Rubbellos einlösen</button>" +
-            "<div class='msg err' id='emsg'></div>" +
-            // Scratch-Karte (nach Einlösen eingeblendet)
-            "<div class='los' id='los'>" +
-            "<div class='slbl'>Rubbele alle 3 Felder frei!</div>" +
-            "<div class='cells'>" +
-            "<div class='cw'><div class='cv'><span class='sym'>🍀</span><span class='amt' id='v0'></span></div>" +
-            "<canvas id='c0' width='90' height='90'></canvas></div>" +
-            "<div class='cw'><div class='cv'><span class='sym'>⭐</span><span class='amt' id='v1'></span></div>" +
-            "<canvas id='c1' width='90' height='90'></canvas></div>" +
-            "<div class='cw'><div class='cv'><span class='sym'>💎</span><span class='amt' id='v2'></span></div>" +
-            "<canvas id='c2' width='90' height='90'></canvas></div>" +
+            "<title>Goldene 7 – PCRP Rubbellos</title>" +
+            "<style>" +
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:#0a0700;font-family:'Arial Black',Arial,sans-serif;" +
+            "display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden}" +
+            "#pcanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}" +
+            ".ticket{width:100%;max-width:360px;border-radius:14px;overflow:hidden;" +
+            "box-shadow:0 0 60px rgba(255,200,0,.2),0 16px 48px rgba(0,0,0,.7);border:3px solid #8b6000}" +
+            ".tk-hdr{background:#1a0f00;padding:5px;text-align:center;border-bottom:1px solid #b8860b22}" +
+            ".tk-hdr span{color:#b8860b;font-size:.55rem;letter-spacing:4px;font-family:'Segoe UI',sans-serif}" +
+            ".tk-top{background:linear-gradient(90deg,#d49000,#ffe040,#ffc800,#c07000);" +
+            "padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #6b3e00}" +
+            ".tk-prize{display:flex;flex-direction:column}" +
+            ".tk-plbl{font-size:.52rem;font-weight:900;color:#2a1000;letter-spacing:2px;text-transform:uppercase}" +
+            ".tk-pamt{font-size:1.65rem;font-weight:900;color:#1a0800;line-height:1;text-shadow:1px 1px 0 rgba(255,248,160,.7)}" +
+            ".tk-bars{display:flex;flex-direction:column;gap:3px}" +
+            ".tk-bar{width:46px;height:12px;border-radius:3px;border:1px solid #5a3000;" +
+            "background:linear-gradient(180deg,#fffbb0 0%,#e8a000 40%,#aa6800 75%,#7a4800 100%);" +
+            "box-shadow:0 2px 4px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,200,.35)}" +
+            // login area
+            ".tk-login{background:linear-gradient(160deg,#ffe040,#ffb800,#ff9500);padding:20px}" +
+            ".tk-login label{display:block;font-size:.58rem;color:#2a1000;letter-spacing:2px;" +
+            "font-weight:900;margin-bottom:8px;text-transform:uppercase}" +
+            "input{width:100%;padding:11px 14px;background:rgba(0,0,0,.15);border:2px solid rgba(30,15,0,.3);" +
+            "border-radius:8px;color:#1a0800;font-size:.95rem;font-family:'Segoe UI',sans-serif;outline:none;font-weight:700}" +
+            "input::placeholder{color:rgba(30,15,0,.4);font-weight:400}" +
+            "input:focus{border-color:rgba(30,15,0,.6)}" +
+            ".tk-btn{margin-top:10px;width:100%;padding:13px;background:linear-gradient(90deg,#8b5e00,#c07000,#8b5e00);" +
+            "border:none;border-radius:8px;color:#fff8e0;font-size:.95rem;font-weight:900;" +
+            "letter-spacing:1px;cursor:pointer;transition:opacity .15s}" +
+            ".tk-btn:hover{opacity:.88}.tk-btn:disabled{opacity:.4;cursor:not-allowed}" +
+            ".tk-err{margin-top:8px;padding:10px;border-radius:7px;font-size:.8rem;" +
+            "font-family:'Segoe UI',sans-serif;background:#3a0d0d;border:1px solid #993030;" +
+            "color:#dd5555;display:none}" +
+            // body with grid (hidden initially)
+            ".tk-body{background:linear-gradient(160deg,#ffe040,#ffb800,#ff9500);" +
+            "display:none;flex:1;border-bottom:2px solid #7a4800}" +
+            ".tk-body.on{display:flex}" +
+            ".tk-brand{width:37%;padding:10px 4px 10px 10px;display:flex;flex-direction:column;" +
+            "justify-content:center;border-right:1px solid #8b5e0050}" +
+            ".tk-g{font-size:1.05rem;font-weight:900;color:#1a0800;font-style:italic;letter-spacing:2px;line-height:1;" +
+            "text-shadow:1px 1px 0 rgba(80,40,0,.4),-1px -1px 0 rgba(255,250,180,.3)}" +
+            ".tk-7{font-size:4.8rem;font-weight:900;color:#1a0800;font-style:italic;line-height:.85;" +
+            "text-shadow:4px 4px 0 rgba(80,40,0,.55),2px 2px 0 #b07000,-2px -2px 0 rgba(255,250,180,.25)}" +
+            ".tk-grid{flex:1;padding:8px;display:flex;flex-direction:column;gap:5px;justify-content:center}" +
+            ".tk-row{display:flex;gap:5px}" +
+            ".cw{flex:1;position:relative;aspect-ratio:1}" +
+            ".cb{width:100%;height:100%;border-radius:6px;background:linear-gradient(135deg,#2a1e00,#1e1600);" +
+            "border:1.5px solid rgba(184,134,11,.35);display:flex;align-items:center;justify-content:center}" +
+            ".cl{color:#ffd700;font-size:.68rem;font-weight:900;text-align:center;line-height:1.2;padding:2px}" +
+            "canvas.sc{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:6px;" +
+            "cursor:crosshair;touch-action:none;-webkit-user-select:none;user-select:none}" +
+            "@keyframes pulse{0%,100%{box-shadow:0 0 6px rgba(255,215,0,.3)}50%{box-shadow:0 0 16px rgba(255,215,0,.7)}}" +
+            ".cw.wl .cb{border-color:#ffd700;animation:pulse 1.2s ease-in-out infinite}" +
+            ".tk-info{background:#110d00;padding:7px 12px;display:none}" +
+            ".tk-info.on{display:block}" +
+            ".tk-itxt{color:#b8860b88;font-size:.57rem;line-height:1.5;font-family:'Segoe UI',sans-serif}" +
+            ".tk-ich{color:#b8860b;font-size:.6rem;font-weight:700;letter-spacing:2px;margin-top:3px}" +
+            ".tk-res{padding:14px 12px;text-align:center;display:none}" +
+            ".tk-res.win{background:#081500;border-top:2px solid #3a8020}" +
+            ".tk-res.lose{background:#110d00;border-top:1px solid #b8860b22}" +
+            ".tk-res h2{font-size:1.15rem;font-weight:900;margin-bottom:4px}" +
+            ".tk-res.win h2{color:#7ddd55}.tk-res.lose h2{color:#b8860b}" +
+            ".tk-ra{color:#FFD700;font-size:1.5rem;font-weight:900;display:block;margin:4px 0}" +
+            ".tk-rd{color:#999;font-size:.77rem;font-family:'Segoe UI',sans-serif;line-height:1.6}" +
+            "</style></head><body>" +
+            "<canvas id='pcanvas'></canvas>" +
+            "<div class='ticket'>" +
+            "<div class='tk-hdr'><span>★ PARADISE CITY ROLEPLAY ★</span></div>" +
+            "<div class='tk-top'>" +
+            "<div class='tk-prize'><span class='tk-plbl'>Gewinne bis zu</span><span class='tk-pamt'>30.000$</span></div>" +
+            "<div class='tk-bars'>" +
+            "<div class='tk-bar'></div><div class='tk-bar'></div><div class='tk-bar'></div>" +
+            "<div class='tk-bar'></div><div class='tk-bar'></div><div class='tk-bar'></div>" +
+            "</div></div>" +
+            // Login form
+            "<div class='tk-login' id='loginArea'>" +
+            "<label>Discord-Benutzername</label>" +
+            "<input id='uname' type='text' placeholder='z. B. max_mustermann' maxlength='40'>" +
+            "<button class='tk-btn' id='sbtn' onclick='goScratch()'>🎰 Rubbellos einl&#246;sen</button>" +
+            "<div class='tk-err' id='emsg'></div>" +
             "</div>" +
-            "<div class='hint'>gedrückt halten und rubbeln</div>" +
-            "<div class='res' id='res'><h2 id='rt'></h2><p id='rd'></p></div>" +
-            "</div>" +
-            "</div>" +
-            "<div class='foot'>GOLDENE 7 • PCRP • GEWINN BIS 30.000$</div>" +
+            // Grid (hidden initially)
+            "<div class='tk-body' id='gridArea'>" +
+            "<div class='tk-brand'><div class='tk-g'>GOLDENE</div><div class='tk-7'>7</div></div>" +
+            "<div class='tk-grid'>" +
+            "<div class='tk-row'>" +
+            "<div class='cw' id='cw0'><div class='cb'><span class='cl' id='cv0'></span></div><canvas class='sc' id='cc0'></canvas></div>" +
+            "<div class='cw' id='cw1'><div class='cb'><span class='cl' id='cv1'></span></div><canvas class='sc' id='cc1'></canvas></div>" +
+            "<div class='cw' id='cw2'><div class='cb'><span class='cl' id='cv2'></span></div><canvas class='sc' id='cc2'></canvas></div>" +
+            "</div><div class='tk-row'>" +
+            "<div class='cw' id='cw3'><div class='cb'><span class='cl' id='cv3'></span></div><canvas class='sc' id='cc3'></canvas></div>" +
+            "<div class='cw' id='cw4'><div class='cb'><span class='cl' id='cv4'></span></div><canvas class='sc' id='cc4'></canvas></div>" +
+            "<div class='cw' id='cw5'><div class='cb'><span class='cl' id='cv5'></span></div><canvas class='sc' id='cc5'></canvas></div>" +
+            "</div><div class='tk-row'>" +
+            "<div class='cw' id='cw6'><div class='cb'><span class='cl' id='cv6'></span></div><canvas class='sc' id='cc6'></canvas></div>" +
+            "<div class='cw' id='cw7'><div class='cb'><span class='cl' id='cv7'></span></div><canvas class='sc' id='cc7'></canvas></div>" +
+            "<div class='cw' id='cw8'><div class='cb'><span class='cl' id='cv8'></span></div><canvas class='sc' id='cc8'></canvas></div>" +
+            "</div></div></div>" +
+            "<div class='tk-info' id='infoArea'>" +
+            "<div class='tk-itxt'>3 gleiche Betr&#228;ge waagerecht, senkrecht oder diagonal = Gewinn!</div>" +
+            "<div class='tk-ich'>8 GEWINNCHANCEN</div></div>" +
+            "<div class='tk-res' id='tres'><h2 id='trt'></h2><span class='tk-ra' id='tra'></span><div class='tk-rd' id='trd'></div></div>" +
             "</div>" +
             "<script>" +
-            "const KN='pcrp_uname';const KI='pcrp_uid';" +
-            "let uname=localStorage.getItem(KN)||'';let uid=localStorage.getItem(KI)||'';" +
-            "let claimToken=null;let claimed=false;const rev=[false,false,false];" +
-            "if(uname)document.getElementById('uid').value=uname;" +
-            "function err(t){const m=document.getElementById('emsg');m.textContent=t;m.style.display='block';}" +
+            "let G=null,claimToken=null,claimed=false;" +
+            "const rev=new Array(9).fill(false);" +
+            "const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];" +
+            "function fmt(v){if(!v)return'Niete';return v.toLocaleString('de-DE')+'$';}" +
+            // Particles
+            "const pc=document.getElementById('pcanvas');" +
+            "const px=pc.getContext('2d');let ptcl=[];" +
+            "const COLS=['#FFD700','#FFA500','#FFEC00','#FFB800','#FFF0A0','#FF8C00'];" +
+            "function rsz(){pc.width=innerWidth;pc.height=innerHeight;}rsz();addEventListener('resize',rsz);" +
+            "function spawn(sx,sy,n){for(let i=0;i<n;i++){" +
+            "const a=Math.random()*Math.PI*2,sp=Math.random()*2.5+.8;" +
+            "ptcl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.2,life:1," +
+            "sz:Math.random()*3+1.5,c:COLS[Math.random()*COLS.length|0]});}}" +
+            "function burst(sx,sy){for(let i=0;i<90;i++){" +
+            "const a=Math.random()*Math.PI*2,sp=Math.random()*7+2;" +
+            "ptcl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,life:1," +
+            "sz:Math.random()*6+2,c:COLS[Math.random()*COLS.length|0]});}}" +
+            "function animP(){px.clearRect(0,0,pc.width,pc.height);" +
+            "ptcl=ptcl.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life-=.02;" +
+            "if(p.life<=0)return false;px.globalAlpha=p.life;px.fillStyle=p.c;" +
+            "px.beginPath();px.arc(p.x,p.y,p.sz,0,Math.PI*2);px.fill();return true;});" +
+            "px.globalAlpha=1;requestAnimationFrame(animP);}animP();" +
+            // Login flow
+            "const KN='pcrp_uname';" +
+            "const stored=localStorage.getItem(KN);" +
+            "if(stored)document.getElementById('uname').value=stored;" +
+            "function showErr(t){const m=document.getElementById('emsg');m.textContent=t;m.style.display='block';}" +
             "async function goScratch(){" +
-            "const v=document.getElementById('uid').value.trim();" +
-            "if(!v){err('Bitte gib deinen Discord-Benutzernamen ein.');return;}" +
+            "const v=document.getElementById('uname').value.trim();" +
+            "if(!v){showErr('Bitte gib deinen Discord-Benutzernamen ein.');return;}" +
             "const btn=document.getElementById('sbtn');btn.disabled=true;" +
             "document.getElementById('emsg').style.display='none';" +
             "try{" +
-            // Step 1: Resolve username → userId
-            "const rr=await fetch('/api/resolve-user',{method:'POST'," +
+            "const r1=await fetch('/api/resolve-user',{method:'POST'," +
             "headers:{'Content-Type':'application/json'},body:JSON.stringify({username:v})});" +
-            "const dd=await rr.json();" +
-            "if(!dd.ok){err(dd.error);btn.disabled=false;return;}" +
-            "localStorage.setItem(KN,v);localStorage.setItem(KI,dd.userId);uname=v;uid=dd.userId;" +
-            // Step 2: Create scratch session
-            "const r=await fetch('/api/rubbellos/create',{method:'POST'," +
-            "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});" +
-            "const d=await r.json();" +
-            "if(!d.ok){err(d.error);btn.disabled=false;return;}" +
-            "claimToken=d.token;" +
-            "document.getElementById('v0').textContent=d.c0;" +
-            "document.getElementById('v1').textContent=d.c1;" +
-            "document.getElementById('v2').textContent=d.c2;" +
-            "document.getElementById('idlbl').style.display='none';" +
-            "document.getElementById('uid').style.display='none';" +
-            "document.getElementById('sbtn').style.display='none';" +
-            "document.getElementById('emsg').style.display='none';" +
-            "document.getElementById('los').className='los on';" +
-            "setupCards();" +
-            "}catch(e){err('Verbindungsfehler. Bitte erneut versuchen.');btn.disabled=false;}}" +
-            "function setupCards(){[0,1,2].forEach(i=>setup(i));}" +
-            "function setup(i){const cv=document.getElementById('c'+i);" +
-            "const cx=cv.getContext('2d');" +
-            "cx.fillStyle='#c8a000';cx.beginPath();cx.roundRect(0,0,90,90,10);cx.fill();" +
-            "cx.fillStyle='#8b6914';" +
-            "for(let j=0;j<6;j++)cx.fillRect(8+j*14,36,10,14);" +
-            "cx.fillStyle='#1a1000';cx.font='bold 11px Segoe UI';cx.textAlign='center';" +
-            "cx.fillText('RUBBELN',45,22);cx.fillText('7',45,62);" +
+            "const d1=await r1.json();" +
+            "if(!d1.ok){showErr(d1.error);btn.disabled=false;return;}" +
+            "localStorage.setItem(KN,v);" +
+            "const r2=await fetch('/api/rubbellos/create',{method:'POST'," +
+            "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:d1.userId})});" +
+            "const d2=await r2.json();" +
+            "if(!d2.ok){showErr(d2.error);btn.disabled=false;return;}" +
+            "claimToken=d2.token;" +
+            "G=Array.from({length:9},(_,i)=>d2['g'+i]);" +
+            "for(let i=0;i<9;i++)document.getElementById('cv'+i).textContent=fmt(G[i]);" +
+            "document.getElementById('loginArea').style.display='none';" +
+            "document.getElementById('gridArea').classList.add('on');" +
+            "document.getElementById('infoArea').classList.add('on');" +
+            "requestAnimationFrame(()=>requestAnimationFrame(()=>{for(let i=0;i<9;i++)initC(i);}));" +
+            "}catch(e){showErr('Verbindungsfehler. Bitte erneut versuchen.');btn.disabled=false;}}" +
+            // Canvas init (same as token page)
+            "function initC(i){" +
+            "const cv=document.getElementById('cc'+i);" +
+            "const wr=document.getElementById('cw'+i);" +
+            "const rc=wr.getBoundingClientRect();" +
+            "const W=Math.round(rc.width),H=Math.round(rc.height);" +
+            "if(!W||!H)return;" +
+            "cv.width=W;cv.height=H;" +
+            "const ctx=cv.getContext('2d');" +
+            "const gd=ctx.createLinearGradient(0,0,W,H);" +
+            "gd.addColorStop(0,'#ffe050');gd.addColorStop(.35,'#ffbe00');" +
+            "gd.addColorStop(.7,'#e89400');gd.addColorStop(1,'#c07000');" +
+            "ctx.fillStyle=gd;" +
+            "ctx.beginPath();if(ctx.roundRect)ctx.roundRect(0,0,W,H,6);else ctx.rect(0,0,W,H);ctx.fill();" +
+            "ctx.fillStyle='rgba(0,0,0,.07)';" +
+            "const sw=W/10;for(let j=0;j<10;j+=2)ctx.fillRect(j*sw,0,sw,H);" +
+            "ctx.fillStyle='rgba(255,255,200,.22)';" +
+            "for(let j=0;j<5;j++){ctx.beginPath();" +
+            "ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.8+.4,0,Math.PI*2);ctx.fill();}" +
+            "ctx.fillStyle='rgba(30,14,0,.72)';" +
+            "ctx.font='bold '+(W*.12|0)+'px Arial Black,Arial';" +
+            "ctx.textAlign='center';ctx.textBaseline='middle';" +
+            "ctx.fillText('RUBBELN',W/2,H*.28);" +
+            "ctx.font='bold '+(W*.36|0)+'px Arial Black,Arial';" +
+            "ctx.fillStyle='rgba(40,18,0,.78)';" +
+            "ctx.fillText('7',W/2,H*.66);" +
             "let drag=false;" +
-            "function sc(x,y){cx.globalCompositeOperation='destination-out';" +
-            "cx.beginPath();cx.arc(x,y,18,0,Math.PI*2);cx.fill();check(cx,cv,i);}" +
-            "cv.addEventListener('mousedown',e=>{drag=true;sc(e.offsetX,e.offsetY);});" +
-            "cv.addEventListener('mousemove',e=>{if(drag)sc(e.offsetX,e.offsetY);});" +
+            "function gp(cx,cy){const r=cv.getBoundingClientRect();" +
+            "return{x:(cx-r.left)/r.width*W,y:(cy-r.top)/r.height*H};}" +
+            "function sc(cx,cy){if(rev[i])return;" +
+            "const p=gp(cx,cy),R=W*.24;" +
+            "ctx.globalCompositeOperation='destination-out';" +
+            "const rg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);" +
+            "rg.addColorStop(0,'rgba(0,0,0,1)');" +
+            "rg.addColorStop(.65,'rgba(0,0,0,.9)');" +
+            "rg.addColorStop(1,'rgba(0,0,0,0)');" +
+            "ctx.fillStyle=rg;ctx.beginPath();ctx.arc(p.x,p.y,R,0,Math.PI*2);ctx.fill();" +
+            "ctx.globalCompositeOperation='source-over';" +
+            "const rc2=cv.getBoundingClientRect();" +
+            "spawn(rc2.left+p.x/W*rc2.width,rc2.top+p.y/H*rc2.height,4);" +
+            "chkRev(ctx,i,W,H);}" +
+            "cv.addEventListener('mousedown',e=>{drag=true;sc(e.clientX,e.clientY);});" +
+            "cv.addEventListener('mousemove',e=>{if(drag)sc(e.clientX,e.clientY);});" +
             "cv.addEventListener('mouseup',()=>drag=false);" +
             "cv.addEventListener('mouseleave',()=>drag=false);" +
-            "cv.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];" +
-            "const b=cv.getBoundingClientRect();sc(t.clientX-b.left,t.clientY-b.top);},{passive:false});" +
-            "cv.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];" +
-            "const b=cv.getBoundingClientRect();sc(t.clientX-b.left,t.clientY-b.top);},{passive:false});}" +
-            "function check(cx,cv,i){if(rev[i])return;" +
-            "const d=cx.getImageData(0,0,90,90).data;let t=0,c=0;" +
-            "for(let j=3;j<d.length;j+=4){t++;if(d[j]<128)c++;}" +
-            "if(c/t>.6){rev[i]=true;cv.style.display='none';checkAll();}}" +
-            "function checkAll(){if(rev[0]&&rev[1]&&rev[2]&&!claimed){claimed=true;claim();}}" +
-            "async function claim(){try{const r=await fetch('/api/rubbellos/claim/'+claimToken,{method:'POST'});" +
-            "const d=await r.json();const res=document.getElementById('res');" +
-            "if(d.prize>0){res.className='res win';document.getElementById('rt').textContent='🎉 Gewonnen!';" +
-            "document.getElementById('rd').textContent='Du hast '+d.prizeFmt+' gewonnen! Der Gewinn wurde sofort auf dein Bankkonto gutgeschrieben.';}" +
-            "else{res.className='res lose';document.getElementById('rt').textContent='😔 Niete';" +
-            "document.getElementById('rd').textContent='Kein Gewinn dieses Mal – beim nächsten Mal klappts!';}" +
-            "res.style.display='block';}catch(e){}}" +
+            "cv.addEventListener('touchstart',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});" +
+            "cv.addEventListener('touchmove',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});}" +
+            "function chkRev(ctx,i,W,H){if(rev[i])return;" +
+            "const d=ctx.getImageData(0,0,W,H).data;" +
+            "let tot=0,clr=0;for(let j=3;j<d.length;j+=4){tot++;if(d[j]<64)clr++;}" +
+            "if(clr/tot>.54){rev[i]=true;" +
+            "const cv=document.getElementById('cc'+i);" +
+            "cv.style.transition='opacity .3s';cv.style.opacity='0';" +
+            "setTimeout(()=>cv.style.display='none',320);checkAll();}}" +
+            "function checkAll(){if(G&&rev.every(r=>r)&&!claimed){claimed=true;claimPrize();}}" +
+            "async function claimPrize(){" +
+            "let wl=null;" +
+            "for(const l of LINES){const[a,b,c]=l;if(G[a]&&G[a]===G[b]&&G[b]===G[c]){wl=l;break;}}" +
+            "if(wl)wl.forEach(i=>document.getElementById('cw'+i).classList.add('wl'));" +
+            "try{const rs=await fetch('/api/rubbellos/claim/'+claimToken,{method:'POST'});" +
+            "const d=await rs.json();" +
+            "const el=document.getElementById('tres');" +
+            "if(d.prize>0){el.className='tk-res win';" +
+            "document.getElementById('trt').textContent='\\ud83c\\udf89 Gewonnen!';" +
+            "document.getElementById('tra').textContent=d.prizeFmt;" +
+            "document.getElementById('trd').textContent='Der Gewinn wurde sofort auf dein Bankkonto gutgeschrieben!';" +
+            "const t=document.querySelector('.ticket').getBoundingClientRect();" +
+            "const cx=t.left+t.width/2,cy=t.top+t.height/2;" +
+            "burst(cx,cy);setTimeout(()=>burst(cx-55,cy-25),350);setTimeout(()=>burst(cx+55,cy-25),650);" +
+            "}else{el.className='tk-res lose';" +
+            "document.getElementById('trt').textContent='\\ud83d\\ude14 Leider keine 7...';" +
+            "document.getElementById('tra').textContent='';" +
+            "document.getElementById('trd').textContent='Kein Treffer – beim n\\u00e4chsten Rubbellos klappts bestimmt!';}" +
+            "el.style.display='block';" +
+            "}catch(e){}}" +
             "</script></body></html>";
     }
 
@@ -878,12 +982,10 @@ public class WebServer {
         }
         int prize = RubbellosManager.rollPrize();
         String token = RubbellosManager.createToken(guild.getId(), userId, prize);
-        int[] cells = RubbellosManager.buildCells(prize);
+        int[] grid = RubbellosManager.buildGrid(prize);
         r.addProperty("ok", true);
         r.addProperty("token", token);
-        r.addProperty("c0", fmtCell(cells[0]));
-        r.addProperty("c1", fmtCell(cells[1]));
-        r.addProperty("c2", fmtCell(cells[2]));
+        for (int i = 0; i < 9; i++) r.addProperty("g" + i, grid[i]);
         ctx.contentType("application/json").result(GSON.toJson(r));
     }
 
@@ -899,8 +1001,8 @@ public class WebServer {
         }
         int prize = 0;
         try { prize = Integer.parseInt(info[2]); } catch (Exception ignored) {}
-        int[] cells = RubbellosManager.buildCells(prize);
-        ctx.contentType("text/html;charset=utf-8").result(buildRubbellosPage(token, cells, prize));
+        int[] grid = RubbellosManager.buildGrid(prize);
+        ctx.contentType("text/html;charset=utf-8").result(buildRubbellosPage(token, grid, prize));
     }
 
     private static void handleRubbellosClai(Context ctx) {
@@ -948,263 +1050,211 @@ public class WebServer {
             "</div></body></html>";
     }
 
-    private static String buildRubbellosPage(String token, int[] cells, int prize) {
-        String c0 = fmtCell(cells[0]);
-        String c1 = fmtCell(cells[1]);
-        String c2 = fmtCell(cells[2]);
-        // embed prize values as dollar amounts for the cell labels
-        String cv0 = (cells[0] == 0) ? "Niete" : (String.format("%,d", cells[0]).replace(',', '.') + "$");
-        String cv1 = (cells[1] == 0) ? "Niete" : (String.format("%,d", cells[1]).replace(',', '.') + "$");
-        String cv2 = (cells[2] == 0) ? "Niete" : (String.format("%,d", cells[2]).replace(',', '.') + "$");
-        String prizeJs = String.valueOf(prize);
-        boolean isWin = prize > 0;
+    private static String buildRubbellosPage(String token, int[] grid, int prize) {
+        // Build JS array literal for the 9-cell grid
+        StringBuilder gjs = new StringBuilder("[");
+        for (int i = 0; i < 9; i++) { gjs.append(grid[i]); if (i < 8) gjs.append(","); }
+        gjs.append("]");
+        String gridJs = gjs.toString();
 
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
             "<title>Goldene 7 – PCRP Rubbellos</title>" +
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;background:radial-gradient(ellipse at center,#1a0f00,#0a0700);" +
-            "font-family:'Arial Black','Arial',sans-serif;display:flex;align-items:center;" +
-            "justify-content:center;padding:16px;overflow-x:hidden}" +
+            "body{min-height:100vh;background:#0a0700;font-family:'Arial Black',Arial,sans-serif;" +
+            "display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden}" +
             "#pcanvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999}" +
-            ".ticket{width:100%;max-width:340px;border-radius:14px;overflow:hidden;" +
-            "box-shadow:0 0 80px rgba(255,200,0,.3),0 20px 60px rgba(0,0,0,.8);" +
-            "border:3px solid #b8860b;position:relative}" +
-            /* top section – yellow gradient like the real ticket */
-            ".tk-top{background:linear-gradient(135deg,#ffe000 0%,#ffa500 40%,#ffcc00 70%,#ff8c00 100%);" +
-            "padding:10px 12px 8px;display:flex;align-items:flex-start;justify-content:space-between;" +
-            "border-bottom:3px solid #8b5e00}" +
-            ".tk-top-left{display:flex;flex-direction:column}" +
-            ".tk-win-lbl{font-size:.55rem;font-weight:900;color:#3a1800;letter-spacing:2px;text-transform:uppercase}" +
-            ".tk-win-amt{font-size:1.8rem;font-weight:900;color:#1a0800;line-height:1;" +
-            "text-shadow:1px 1px 0 #fff9a0,-1px -1px 0 #8b5e00}" +
-            ".tk-bars{display:flex;flex-direction:column;gap:3px;margin-top:2px}" +
-            ".bar{width:48px;height:13px;border-radius:3px;border:1px solid #6b3e00;" +
-            "background:linear-gradient(180deg,#fff8b0 0%,#e8a000 30%,#c07000 60%,#8b5000 100%);" +
-            "box-shadow:0 1px 3px rgba(0,0,0,.4)}" +
-            /* middle – main branding area */
-            ".tk-mid{background:linear-gradient(135deg,#ffd000 0%,#ffb800 50%,#ff9500 100%);" +
-            "display:flex;justify-content:space-between;align-items:center;padding:0 12px 0 14px}" +
-            ".tk-brand{display:flex;flex-direction:column;justify-content:center;padding:4px 0}" +
-            ".tk-goldene{font-size:1.8rem;font-weight:900;color:#1a0800;font-style:italic;line-height:1;" +
-            "text-shadow:2px 2px 0 #8b5000,-1px -1px 0 #fff8a0;letter-spacing:3px}" +
-            ".tk-seven{font-size:5.5rem;font-weight:900;color:#1a0800;font-style:italic;line-height:.9;" +
-            "text-shadow:4px 4px 0 #6b3e00,2px 2px 0 #c07000,-2px -2px 0 #fff8a0}" +
-            ".tk-bars-right{display:flex;flex-direction:column;gap:3px;align-self:stretch;justify-content:center}" +
-            /* scratch section – dark background */
-            ".tk-scratch{background:#1a1200;padding:10px 12px 8px;border-top:3px solid #8b5e00}" +
-            ".scratch-lbl{text-align:center;color:#ffd700;font-size:.62rem;letter-spacing:3px;" +
-            "text-transform:uppercase;margin-bottom:8px}" +
-            ".cells-row{display:flex;gap:8px;justify-content:center}" +
-            ".cell-wrap{position:relative;flex:1;max-width:96px}" +
-            ".cell-back{width:100%;aspect-ratio:1;border-radius:8px;" +
-            "background:linear-gradient(135deg,#2a1f00,#1a1400);" +
-            "border:2px solid #b8860b55;" +
-            "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}" +
-            ".cell-back .c-sym{font-size:1.5rem;line-height:1}" +
-            ".cell-back .c-amt{color:#ffd700;font-size:.82rem;font-weight:900;letter-spacing:.5px}" +
-            "canvas.sc{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:8px;" +
-            "cursor:crosshair;touch-action:none}" +
-            ".tk-info{background:#110d00;padding:8px 12px;" +
-            "border-top:1px solid #b8860b33}" +
-            ".tk-info-text{color:#b8860b99;font-size:.58rem;line-height:1.5;font-family:'Segoe UI',sans-serif}" +
-            ".tk-chances{color:#b8860b;font-size:.65rem;font-weight:700;letter-spacing:2px;margin-top:4px}" +
-            ".tk-result{margin:0;padding:14px 12px;text-align:center;display:none}" +
-            ".tk-result.win{background:#0f1f05;border-top:2px solid #4a9930}" +
-            ".tk-result.lose{background:#110d00;border-top:1px solid #b8860b33}" +
-            ".tk-result h2{font-size:1.3rem;font-weight:900;margin-bottom:6px}" +
-            ".tk-result.win h2{color:#7ddd55}" +
-            ".tk-result.lose h2{color:#b8860b}" +
-            ".tk-result p{color:#aaa;font-size:.8rem;line-height:1.6;font-family:'Segoe UI',sans-serif}" +
-            ".tk-result .prize-big{color:#FFD700;font-size:1.6rem;font-weight:900;display:block;margin:6px 0}" +
-            "@keyframes shine{0%{background-position:-200% center}100%{background-position:200% center}}" +
-            ".shining{background:linear-gradient(90deg,#ffd700,#fff8a0,#ffa500,#ffd700);" +
-            "background-size:200% auto;animation:shine 1.5s linear infinite;" +
-            "-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}" +
+            ".ticket{width:100%;max-width:360px;border-radius:14px;overflow:hidden;" +
+            "box-shadow:0 0 60px rgba(255,200,0,.2),0 16px 48px rgba(0,0,0,.7);border:3px solid #8b6000}" +
+            // ── CSS rest ──
+            ".tk-hdr{background:#1a0f00;padding:5px;text-align:center;border-bottom:1px solid #b8860b22}" +
+            ".tk-hdr span{color:#b8860b;font-size:.55rem;letter-spacing:4px;font-family:'Segoe UI',sans-serif}" +
+            ".tk-top{background:linear-gradient(90deg,#d49000,#ffe040,#ffc800,#c07000);" +
+            "padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #6b3e00}" +
+            ".tk-prize{display:flex;flex-direction:column}" +
+            ".tk-plbl{font-size:.52rem;font-weight:900;color:#2a1000;letter-spacing:2px;text-transform:uppercase}" +
+            ".tk-pamt{font-size:1.65rem;font-weight:900;color:#1a0800;line-height:1;text-shadow:1px 1px 0 rgba(255,248,160,.7)}" +
+            ".tk-bars{display:flex;flex-direction:column;gap:3px}" +
+            ".tk-bar{width:46px;height:12px;border-radius:3px;border:1px solid #5a3000;" +
+            "background:linear-gradient(180deg,#fffbb0 0%,#e8a000 40%,#aa6800 75%,#7a4800 100%);" +
+            "box-shadow:0 2px 4px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,200,.35)}" +
+            ".tk-body{background:linear-gradient(160deg,#ffe040 0%,#ffb800 55%,#ff9500 100%);" +
+            "display:flex;border-bottom:2px solid #7a4800}" +
+            ".tk-brand{width:37%;padding:10px 4px 10px 10px;display:flex;flex-direction:column;" +
+            "justify-content:center;border-right:1px solid #8b5e0050}" +
+            ".tk-g{font-size:1.05rem;font-weight:900;color:#1a0800;font-style:italic;letter-spacing:2px;line-height:1;" +
+            "text-shadow:1px 1px 0 rgba(80,40,0,.4),-1px -1px 0 rgba(255,250,180,.3)}" +
+            ".tk-7{font-size:4.8rem;font-weight:900;color:#1a0800;font-style:italic;line-height:.85;" +
+            "text-shadow:4px 4px 0 rgba(80,40,0,.55),2px 2px 0 #b07000,-2px -2px 0 rgba(255,250,180,.25)}" +
+            ".tk-grid{flex:1;padding:8px;display:flex;flex-direction:column;gap:5px;justify-content:center}" +
+            ".tk-row{display:flex;gap:5px}" +
+            ".cw{flex:1;position:relative;aspect-ratio:1}" +
+            ".cb{width:100%;height:100%;border-radius:6px;" +
+            "background:linear-gradient(135deg,#2a1e00,#1e1600);" +
+            "border:1.5px solid rgba(184,134,11,.35);" +
+            "display:flex;align-items:center;justify-content:center}" +
+            ".cl{color:#ffd700;font-size:.68rem;font-weight:900;text-align:center;line-height:1.2;padding:2px}" +
+            "canvas.sc{position:absolute;top:0;left:0;width:100%;height:100%;border-radius:6px;" +
+            "cursor:crosshair;touch-action:none;-webkit-user-select:none;user-select:none}" +
+            "@keyframes pulse{0%,100%{box-shadow:0 0 6px rgba(255,215,0,.3)}50%{box-shadow:0 0 16px rgba(255,215,0,.7)}}" +
+            ".cw.wl .cb{border-color:#ffd700;animation:pulse 1.2s ease-in-out infinite}" +
+            ".tk-info{background:#110d00;padding:7px 12px}" +
+            ".tk-itxt{color:#b8860b88;font-size:.57rem;line-height:1.5;font-family:'Segoe UI',sans-serif}" +
+            ".tk-ich{color:#b8860b;font-size:.6rem;font-weight:700;letter-spacing:2px;margin-top:3px}" +
+            ".tk-res{padding:14px 12px;text-align:center;display:none}" +
+            ".tk-res.win{background:#081500;border-top:2px solid #3a8020}" +
+            ".tk-res.lose{background:#110d00;border-top:1px solid #b8860b22}" +
+            ".tk-res h2{font-size:1.15rem;font-weight:900;margin-bottom:4px}" +
+            ".tk-res.win h2{color:#7ddd55}.tk-res.lose h2{color:#b8860b}" +
+            ".tk-ra{color:#FFD700;font-size:1.5rem;font-weight:900;display:block;margin:4px 0}" +
+            ".tk-rd{color:#999;font-size:.77rem;font-family:'Segoe UI',sans-serif;line-height:1.6}" +
             "</style></head><body>" +
             "<canvas id='pcanvas'></canvas>" +
             "<div class='ticket'>" +
-            /* TOP */
+            "<div class='tk-hdr'><span>★ PARADISE CITY ROLEPLAY ★</span></div>" +
             "<div class='tk-top'>" +
-            "<div class='tk-top-left'>" +
-            "<span class='tk-win-lbl'>Gewinne bis zu</span>" +
-            "<span class='tk-win-amt'>30.000$</span>" +
-            "</div>" +
-            "<div class='tk-bars'><div class='bar'></div><div class='bar'></div><div class='bar'></div>" +
-            "<div class='bar'></div><div class='bar'></div><div class='bar'></div></div>" +
-            "</div>" +
-            /* MID */
-            "<div class='tk-mid'>" +
-            "<div class='tk-brand'><div class='tk-goldene'>GOLDENE</div><div class='tk-seven'>7</div></div>" +
-            "<div class='tk-bars-right'><div class='bar'></div><div class='bar'></div><div class='bar'></div>" +
-            "<div class='bar'></div><div class='bar'></div><div class='bar'></div></div>" +
-            "</div>" +
-            /* SCRATCH */
-            "<div class='tk-scratch'>" +
-            "<div class='scratch-lbl'>↓ Alle 3 Felder freirubbeln ↓</div>" +
-            "<div class='cells-row'>" +
-            "<div class='cell-wrap'><div class='cell-back'>" +
-            "<span class='c-sym'>7️⃣</span><span class='c-amt' id='v0'>" + cv0 + "</span></div>" +
-            "<canvas class='sc' id='c0'></canvas></div>" +
-            "<div class='cell-wrap'><div class='cell-back'>" +
-            "<span class='c-sym'>7️⃣</span><span class='c-amt' id='v1'>" + cv1 + "</span></div>" +
-            "<canvas class='sc' id='c1'></canvas></div>" +
-            "<div class='cell-wrap'><div class='cell-back'>" +
-            "<span class='c-sym'>7️⃣</span><span class='c-amt' id='v2'>" + cv2 + "</span></div>" +
-            "<canvas class='sc' id='c2'></canvas></div>" +
-            "</div>" +
-            "</div>" +
-            /* INFO */
+            "<div class='tk-prize'><span class='tk-plbl'>Gewinne bis zu</span><span class='tk-pamt'>30.000$</span></div>" +
+            "<div class='tk-bars'>" +
+            "<div class='tk-bar'></div><div class='tk-bar'></div><div class='tk-bar'></div>" +
+            "<div class='tk-bar'></div><div class='tk-bar'></div><div class='tk-bar'></div>" +
+            "</div></div>" +
+            "<div class='tk-body'>" +
+            "<div class='tk-brand'><div class='tk-g'>GOLDENE</div><div class='tk-7'>7</div></div>" +
+            "<div class='tk-grid'>" +
+            "<div class='tk-row'>" +
+            "<div class='cw' id='cw0'><div class='cb'><span class='cl' id='cv0'></span></div><canvas class='sc' id='cc0'></canvas></div>" +
+            "<div class='cw' id='cw1'><div class='cb'><span class='cl' id='cv1'></span></div><canvas class='sc' id='cc1'></canvas></div>" +
+            "<div class='cw' id='cw2'><div class='cb'><span class='cl' id='cv2'></span></div><canvas class='sc' id='cc2'></canvas></div>" +
+            "</div><div class='tk-row'>" +
+            "<div class='cw' id='cw3'><div class='cb'><span class='cl' id='cv3'></span></div><canvas class='sc' id='cc3'></canvas></div>" +
+            "<div class='cw' id='cw4'><div class='cb'><span class='cl' id='cv4'></span></div><canvas class='sc' id='cc4'></canvas></div>" +
+            "<div class='cw' id='cw5'><div class='cb'><span class='cl' id='cv5'></span></div><canvas class='sc' id='cc5'></canvas></div>" +
+            "</div><div class='tk-row'>" +
+            "<div class='cw' id='cw6'><div class='cb'><span class='cl' id='cv6'></span></div><canvas class='sc' id='cc6'></canvas></div>" +
+            "<div class='cw' id='cw7'><div class='cb'><span class='cl' id='cv7'></span></div><canvas class='sc' id='cc7'></canvas></div>" +
+            "<div class='cw' id='cw8'><div class='cb'><span class='cl' id='cv8'></span></div><canvas class='sc' id='cc8'></canvas></div>" +
+            "</div></div></div>" +
             "<div class='tk-info'>" +
-            "<div class='tk-info-text'>Finde eine <b style='color:#ffd700'>7</b> und gewinne den neben-" +
-            "stehenden Betrag. Bei allen drei Feldern gleich hast du gewonnen!</div>" +
-            "<div class='tk-chances'>10 GEWINNCHANCEN</div>" +
-            "</div>" +
-            /* RESULT */
-            "<div class='tk-result' id='result'>" +
-            "<h2 id='rtitle'></h2>" +
-            "<span class='prize-big' id='ramt'></span>" +
-            "<p id='rdesc'></p>" +
-            "</div>" +
+            "<div class='tk-itxt'>Rubbele alle 9 Felder frei! 3 gleiche Betr&#228;ge waagerecht, senkrecht oder diagonal = Gewinn!</div>" +
+            "<div class='tk-ich'>8 GEWINNCHANCEN</div></div>" +
+            "<div class='tk-res' id='tres'><h2 id='trt'></h2><span class='tk-ra' id='tra'></span><div class='tk-rd' id='trd'></div></div>" +
             "</div>" +
             "<script>" +
             "const TOKEN='" + token + "';" +
-            "const PRIZE=" + prizeJs + ";" +
-            "const rev=[false,false,false];" +
-            "let claimed=false;" +
-            /* ── Particle system ── */
+            "const PRIZE=" + prize + ";" +
+            "const G=" + gridJs + ";" +
+            "const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];" +
+            "const rev=new Array(9).fill(false);let claimed=false;" +
+            "function fmt(v){if(!v)return'Niete';return v.toLocaleString('de-DE')+'$';}" +
+            "for(let i=0;i<9;i++)document.getElementById('cv'+i).textContent=fmt(G[i]);" +
+            // Particle system
             "const pc=document.getElementById('pcanvas');" +
-            "const px=pc.getContext('2d');" +
-            "let particles=[];" +
-            "function resizePC(){pc.width=window.innerWidth;pc.height=window.innerHeight;}" +
-            "resizePC();window.addEventListener('resize',resizePC);" +
-            "const COLORS=['#FFD700','#FFA500','#FFEC00','#FFB800','#FFF0A0','#FF8C00'];" +
-            "function spawnParticles(cx,cy,count){" +
-            "for(let i=0;i<count;i++){" +
-            "const angle=Math.random()*Math.PI*2;" +
-            "const speed=Math.random()*3+1;" +
-            "particles.push({x:cx,y:cy," +
-            "vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-2," +
-            "life:1,size:Math.random()*4+2," +
-            "color:COLORS[Math.floor(Math.random()*COLORS.length)]});}}" +
-            "function burstParticles(cx,cy){" +
-            "for(let i=0;i<80;i++){" +
-            "const angle=Math.random()*Math.PI*2;" +
-            "const speed=Math.random()*8+2;" +
-            "particles.push({x:cx,y:cy," +
-            "vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-3," +
-            "life:1,size:Math.random()*6+3," +
-            "color:COLORS[Math.floor(Math.random()*COLORS.length)]});}}" +
-            "function animateParticles(){" +
-            "px.clearRect(0,0,pc.width,pc.height);" +
-            "particles=particles.filter(p=>{" +
-            "p.x+=p.vx;p.y+=p.vy;p.vy+=0.15;p.life-=0.018;" +
-            "if(p.life<=0)return false;" +
-            "px.globalAlpha=p.life;" +
-            "px.fillStyle=p.color;" +
-            "px.beginPath();px.arc(p.x,p.y,p.size,0,Math.PI*2);px.fill();" +
-            "return true;});" +
-            "px.globalAlpha=1;" +
-            "requestAnimationFrame(animateParticles);}" +
-            "animateParticles();" +
-            /* ── Canvas setup ── */
-            "function setupCanvas(id,idx){" +
-            "const cv=document.getElementById(id);" +
-            "const wrap=cv.parentElement;" +
-            "const W=wrap.clientWidth||96,H=W;" +
+            "const px=pc.getContext('2d');let ptcl=[];" +
+            "const COLS=['#FFD700','#FFA500','#FFEC00','#FFB800','#FFF0A0','#FF8C00','#FFDD44'];" +
+            "function rsz(){pc.width=innerWidth;pc.height=innerHeight;}rsz();addEventListener('resize',rsz);" +
+            "function spawn(sx,sy,n){for(let i=0;i<n;i++){" +
+            "const a=Math.random()*Math.PI*2,sp=Math.random()*2.5+.8;" +
+            "ptcl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.2,life:1," +
+            "sz:Math.random()*3+1.5,c:COLS[Math.random()*COLS.length|0]});}}" +
+            "function burst(sx,sy){for(let i=0;i<90;i++){" +
+            "const a=Math.random()*Math.PI*2,sp=Math.random()*7+2;" +
+            "ptcl.push({x:sx,y:sy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,life:1," +
+            "sz:Math.random()*6+2,c:COLS[Math.random()*COLS.length|0]});}}" +
+            "function animP(){px.clearRect(0,0,pc.width,pc.height);" +
+            "ptcl=ptcl.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life-=.02;" +
+            "if(p.life<=0)return false;px.globalAlpha=p.life;px.fillStyle=p.c;" +
+            "px.beginPath();px.arc(p.x,p.y,p.sz,0,Math.PI*2);px.fill();return true;});" +
+            "px.globalAlpha=1;requestAnimationFrame(animP);}animP();" +
+            // Canvas init
+            "function initC(i){" +
+            "const cv=document.getElementById('cc'+i);" +
+            "const wr=document.getElementById('cw'+i);" +
+            "const rc=wr.getBoundingClientRect();" +
+            "const W=Math.round(rc.width),H=Math.round(rc.height);" +
+            "if(!W||!H)return;" +
             "cv.width=W;cv.height=H;" +
             "const ctx=cv.getContext('2d');" +
-            /* gold gradient cover */
-            "const grd=ctx.createLinearGradient(0,0,W,H);" +
-            "grd.addColorStop(0,'#ffd000');" +
-            "grd.addColorStop(0.4,'#ffb800');" +
-            "grd.addColorStop(0.7,'#e89000');" +
-            "grd.addColorStop(1,'#c07000');" +
-            "ctx.fillStyle=grd;" +
-            "ctx.beginPath();ctx.roundRect(0,0,W,H,8);ctx.fill();" +
-            /* texture stripes */
-            "ctx.fillStyle='rgba(0,0,0,0.08)';" +
-            "for(let i=0;i<6;i++)ctx.fillRect(10+i*(W/7),H*0.35,W/9,H*0.2);" +
-            /* text */
-            "ctx.fillStyle='#1a0800';ctx.font='bold '+(W*0.13)+'px Arial Black,Arial';" +
-            "ctx.textAlign='center';ctx.textBaseline='middle';" +
-            "ctx.fillText('RUBBELN',W/2,H*0.28);" +
-            "ctx.font='bold '+(W*0.35)+'px Arial Black,Arial';" +
-            "ctx.fillStyle='#3a1800';" +
-            "ctx.fillText('7',W/2,H*0.62);" +
-            /* scratch shimmer dots */
-            "ctx.fillStyle='rgba(255,255,200,0.3)';" +
-            "for(let i=0;i<12;i++){" +
+            // gold gradient
+            "const gd=ctx.createLinearGradient(0,0,W,H);" +
+            "gd.addColorStop(0,'#ffe050');gd.addColorStop(.35,'#ffbe00');" +
+            "gd.addColorStop(.7,'#e89400');gd.addColorStop(1,'#c07000');" +
+            "ctx.fillStyle=gd;" +
             "ctx.beginPath();" +
-            "ctx.arc(Math.random()*W,Math.random()*H,Math.random()*2+1,0,Math.PI*2);" +
-            "ctx.fill();}" +
-            "let dragging=false;" +
-            "function getPos(e,touch){" +
-            "const r=cv.getBoundingClientRect();" +
-            "const scaleX=cv.width/r.width,scaleY=cv.height/r.height;" +
-            "if(touch){return{x:(touch.clientX-r.left)*scaleX,y:(touch.clientY-r.top)*scaleY};}" +
-            "return{x:e.offsetX*scaleX,y:e.offsetY*scaleY};}" +
-            "function scratch(p){" +
+            "if(ctx.roundRect)ctx.roundRect(0,0,W,H,6);else ctx.rect(0,0,W,H);" +
+            "ctx.fill();" +
+            // stripe texture
+            "ctx.fillStyle='rgba(0,0,0,.07)';" +
+            "const sw=W/10;for(let j=0;j<10;j+=2)ctx.fillRect(j*sw,0,sw,H);" +
+            // shimmer
+            "ctx.fillStyle='rgba(255,255,200,.22)';" +
+            "for(let j=0;j<5;j++){ctx.beginPath();" +
+            "ctx.arc(Math.random()*W,Math.random()*H,Math.random()*1.8+.4,0,Math.PI*2);ctx.fill();}" +
+            // RUBBELN label
+            "ctx.fillStyle='rgba(30,14,0,.72)';" +
+            "ctx.font='bold '+(W*.12|0)+'px Arial Black,Arial';" +
+            "ctx.textAlign='center';ctx.textBaseline='middle';" +
+            "ctx.fillText('RUBBELN',W/2,H*.28);" +
+            // big 7
+            "ctx.font='bold '+(W*.36|0)+'px Arial Black,Arial';" +
+            "ctx.fillStyle='rgba(40,18,0,.78)';" +
+            "ctx.fillText('7',W/2,H*.66);" +
+            // events
+            "let drag=false;" +
+            "function gp(cx,cy){const r=cv.getBoundingClientRect();" +
+            "return{x:(cx-r.left)/r.width*W,y:(cy-r.top)/r.height*H};}" +
+            "function sc(cx,cy){if(rev[i])return;" +
+            "const p=gp(cx,cy),R=W*.24;" +
             "ctx.globalCompositeOperation='destination-out';" +
-            "ctx.beginPath();ctx.arc(p.x,p.y,W*0.22,0,Math.PI*2);ctx.fill();" +
+            "const rg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);" +
+            "rg.addColorStop(0,'rgba(0,0,0,1)');" +
+            "rg.addColorStop(.65,'rgba(0,0,0,.9)');" +
+            "rg.addColorStop(1,'rgba(0,0,0,0)');" +
+            "ctx.fillStyle=rg;ctx.beginPath();ctx.arc(p.x,p.y,R,0,Math.PI*2);ctx.fill();" +
             "ctx.globalCompositeOperation='source-over';" +
-            /* spawn particles at screen coords */
-            "const r=cv.getBoundingClientRect();" +
-            "const sx=r.left+p.x*(r.width/cv.width);" +
-            "const sy=r.top+p.y*(r.height/cv.height);" +
-            "spawnParticles(sx,sy,5);" +
-            "checkReveal(ctx,cv,idx,W,H);}" +
-            "cv.addEventListener('mousedown',e=>{dragging=true;scratch(getPos(e,null));});" +
-            "cv.addEventListener('mousemove',e=>{if(dragging)scratch(getPos(e,null));});" +
-            "cv.addEventListener('mouseup',()=>dragging=false);" +
-            "cv.addEventListener('mouseleave',()=>dragging=false);" +
-            "cv.addEventListener('touchstart',e=>{e.preventDefault();scratch(getPos(null,e.touches[0]));},{passive:false});" +
-            "cv.addEventListener('touchmove',e=>{e.preventDefault();scratch(getPos(null,e.touches[0]));},{passive:false});}" +
-            "function checkReveal(ctx,cv,idx,W,H){" +
-            "if(rev[idx])return;" +
+            "const rc2=cv.getBoundingClientRect();" +
+            "spawn(rc2.left+p.x/W*rc2.width,rc2.top+p.y/H*rc2.height,4);" +
+            "chkRev(ctx,i,W,H);}" +
+            "cv.addEventListener('mousedown',e=>{drag=true;sc(e.clientX,e.clientY);});" +
+            "cv.addEventListener('mousemove',e=>{if(drag)sc(e.clientX,e.clientY);});" +
+            "cv.addEventListener('mouseup',()=>drag=false);" +
+            "cv.addEventListener('mouseleave',()=>drag=false);" +
+            "cv.addEventListener('touchstart',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});" +
+            "cv.addEventListener('touchmove',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});}" +
+            "function chkRev(ctx,i,W,H){if(rev[i])return;" +
             "const d=ctx.getImageData(0,0,W,H).data;" +
-            "let total=0,clear=0;" +
-            "for(let i=3;i<d.length;i+=4){total++;if(d[i]<64)clear++;}" +
-            "if(clear/total>0.58){" +
-            "rev[idx]=true;" +
-            /* fade out canvas */
-            "cv.style.transition='opacity 0.4s';cv.style.opacity='0';" +
-            "setTimeout(()=>cv.style.display='none',400);" +
+            "let tot=0,clr=0;for(let j=3;j<d.length;j+=4){tot++;if(d[j]<64)clr++;}" +
+            "if(clr/tot>.54){rev[i]=true;" +
+            "const cv=document.getElementById('cc'+i);" +
+            "cv.style.transition='opacity .3s';cv.style.opacity='0';" +
+            "setTimeout(()=>cv.style.display='none',320);" +
             "checkAll();}}" +
-            "function checkAll(){" +
-            "if(rev[0]&&rev[1]&&rev[2]&&!claimed){claimed=true;claimPrize();}}" +
+            "function checkAll(){if(rev.every(r=>r)&&!claimed){claimed=true;claimPrize();}}" +
             "async function claimPrize(){" +
-            "try{" +
-            "const r=await fetch('/api/rubbellos/claim/'+TOKEN,{method:'POST'});" +
-            "const d=await r.json();" +
-            "const res=document.getElementById('result');" +
-            "if(d.prize>0){" +
-            "res.className='tk-result win';" +
-            "document.getElementById('rtitle').textContent='🎉 Gewonnen!';" +
-            "document.getElementById('ramt').textContent=d.prizeFmt;" +
-            "document.getElementById('rdesc').textContent='Der Gewinn wurde sofort auf dein Bankkonto gutgeschrieben!';" +
-            /* big burst celebration */
-            "const tkt=document.querySelector('.ticket').getBoundingClientRect();" +
-            "burstParticles(tkt.left+tkt.width/2,tkt.top+tkt.height/2);" +
-            "setTimeout(()=>burstParticles(tkt.left+tkt.width*0.3,tkt.top+tkt.height*0.4),400);" +
-            "setTimeout(()=>burstParticles(tkt.left+tkt.width*0.7,tkt.top+tkt.height*0.4),700);" +
-            "}else{" +
-            "res.className='tk-result lose';" +
-            "document.getElementById('rtitle').textContent='😔 Leider keine 7...';" +
-            "document.getElementById('ramt').textContent='';" +
-            "document.getElementById('rdesc').textContent='Dieses Mal kein Gewinn. Kaufe ein neues Rubbellos und versuche dein Glück!';" +
-            "}" +
-            "res.style.display='block';" +
-            "}catch(e){" +
-            "const res=document.getElementById('result');" +
-            "res.className='tk-result lose';" +
-            "document.getElementById('rtitle').textContent='⚠️ Verbindungsfehler';" +
-            "document.getElementById('rdesc').textContent='Bitte erneut versuchen.';" +
-            "res.style.display='block';}}" +
-            /* init all 3 canvases after layout */
-            "window.addEventListener('load',()=>{" +
-            "setupCanvas('c0',0);setupCanvas('c1',1);setupCanvas('c2',2);});" +
+            // highlight win line client-side (using pre-embedded GRID values)
+            "let wl=null;" +
+            "for(const l of LINES){const[a,b,c]=l;if(G[a]&&G[a]===G[b]&&G[b]===G[c]){wl=l;break;}}" +
+            "if(wl)wl.forEach(i=>document.getElementById('cw'+i).classList.add('wl'));" +
+            "try{const rs=await fetch('/api/rubbellos/claim/'+TOKEN,{method:'POST'});" +
+            "const d=await rs.json();" +
+            "const el=document.getElementById('tres');" +
+            "if(d.prize>0){el.className='tk-res win';" +
+            "document.getElementById('trt').textContent='🎉 Gewonnen!';" +
+            "document.getElementById('tra').textContent=d.prizeFmt;" +
+            "document.getElementById('trd').textContent='Der Gewinn wurde sofort auf dein Bankkonto gutgeschrieben!';" +
+            "const t=document.querySelector('.ticket').getBoundingClientRect();" +
+            "const cx=t.left+t.width/2,cy=t.top+t.height/2;" +
+            "burst(cx,cy);setTimeout(()=>burst(cx-55,cy-25),350);setTimeout(()=>burst(cx+55,cy-25),650);" +
+            "}else{el.className='tk-res lose';" +
+            "document.getElementById('trt').textContent='😔 Leider keine 7...';" +
+            "document.getElementById('tra').textContent='';" +
+            "document.getElementById('trd').textContent='Kein Treffer dieses Mal – beim n\\u00e4chsten Rubbellos klappts bestimmt!';}" +
+            "el.style.display='block';" +
+            "}catch(e){const el=document.getElementById('tres');el.className='tk-res lose';" +
+            "document.getElementById('trt').textContent='\\u26a0\\ufe0f Fehler';" +
+            "document.getElementById('trd').textContent='Bitte erneut versuchen.';el.style.display='block';}}" +
+            // init canvases after full layout render
+            "requestAnimationFrame(()=>requestAnimationFrame(()=>{for(let i=0;i<9;i++)initC(i);}));" +
             "</script></body></html>";
     }
 
