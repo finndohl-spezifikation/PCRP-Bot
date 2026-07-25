@@ -319,7 +319,7 @@ public class Main {
 
         private static void postMeldeamtPanel(Guild guild) {
             String key    = "panel-meldeamt-v2-" + guild.getId();
-            String webUrl = "https://pcrp.finndohl.workers.dev";
+            String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
             PanelHelper.post(ch, key, "🏛️ Paradise City Einwohner Meldeamt",
@@ -411,7 +411,7 @@ public class Main {
         }
 
         private static void sendLottoPanel(TextChannel ch, String key, Guild guild) {
-            String webUrl = "https://pcrp.finndohl.workers.dev";
+            String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
             int jackpot = LottoManager.getCurrentJackpot(guild.getId());
             ch.sendMessageEmbeds(EmbedFactory.build(
                 "🎰 Paradise City Lotto",

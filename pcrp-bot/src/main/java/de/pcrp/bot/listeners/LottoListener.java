@@ -57,7 +57,7 @@ public class LottoListener extends ListenerAdapter {
                     return;
                 }
                 String token  = LottoManager.createToken(guildId, userId);
-                String webUrl = "https://pcrp.finndohl.workers.dev";
+                String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
                 try {
                     event.replyEmbeds(EmbedFactory.build(
                         "🎟️ Lottoschein abgeben",

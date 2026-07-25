@@ -546,7 +546,7 @@ public class CommandListener extends ListenerAdapter {
         // Beitrittsdatum
         long joinedEpoch  = target.getTimeJoined().toEpochSecond();
 
-        String webUrl = "https://pcrp.finndohl.workers.dev";
+        String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
         String ausweisUrl = webUrl + "/ausweis/" + target.getId();
 
         event.replyEmbeds(EmbedFactory.create()

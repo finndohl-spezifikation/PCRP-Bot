@@ -56,7 +56,7 @@ public class RubbellosListener extends ListenerAdapter {
         // Gewinn vorab bestimmen + Token erstellen
         int prize = RubbellosManager.rollPrize();
         String token = RubbellosManager.createToken(guildId, userId, prize);
-        String webUrl = "https://pcrp.finndohl.workers.dev";
+        String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
 
         try {
             event.replyEmbeds(EmbedFactory.build(
