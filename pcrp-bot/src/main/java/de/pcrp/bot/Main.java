@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main {
 
@@ -317,12 +318,29 @@ public class Main {
                 () -> sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2));
         }
 
+        /** Löscht alle Bot-Nachrichten im Kanal (max 20), dann postet das Panel neu. */
+        private static void clearAndPost(TextChannel ch, String key, String title, Runnable sender) {
+            ch.getHistory().retrievePast(20).queue(msgs -> {
+                List<net.dv8tion.jda.api.entities.Message> botMsgs = msgs.stream()
+                    .filter(m -> m.getAuthor().isBot())
+                    .collect(Collectors.toList());
+                Runnable doPost = () -> PanelHelper.post(ch, key, title, sender);
+                if (botMsgs.size() >= 2) {
+                    ch.deleteMessages(botMsgs).queue(v -> doPost.run(), e -> doPost.run());
+                } else if (botMsgs.size() == 1) {
+                    botMsgs.get(0).delete().queue(v -> doPost.run(), e -> doPost.run());
+                } else {
+                    doPost.run();
+                }
+            }, e -> PanelHelper.post(ch, key, title, sender));
+        }
+
         private static void postMeldeamtPanel(Guild guild) {
-            String key    = "panel-meldeamt-v2-" + guild.getId();
+            String key    = "panel-meldeamt-v3-" + guild.getId();
             String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
-            PanelHelper.post(ch, key, "🏛️ Paradise City Einwohner Meldeamt",
+            clearAndPost(ch, key, "🏛️ Paradise City Einwohner Meldeamt",
                 () -> sendMeldeamtPanel(ch, key, webUrl));
         }
 
@@ -403,10 +421,10 @@ public class Main {
         // ── Fraktions-Liste Panel ───────────────────────────────────────────────
 
         private static void postLottoPanel(Guild guild) {
-            String key = "panel-lotto-v6-" + guild.getId();
+            String key = "panel-lotto-v7-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
-            PanelHelper.post(ch, key, "🎰 Paradise City Lotto",
+            clearAndPost(ch, key, "🎰 Paradise City Lotto",
                 () -> sendLottoPanel(ch, key, guild));
         }
 
@@ -429,10 +447,10 @@ public class Main {
         }
 
         private static void postRubbellosPanel(Guild guild) {
-            String key = "panel-rubbellos-v4-" + guild.getId();
+            String key = "panel-rubbellos-v5-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
             if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
-            PanelHelper.post(ch, key, "🎰 Goldene 7 – Rubbellos",
+            clearAndPost(ch, key, "🎰 Goldene 7 – Rubbellos",
                 () -> sendRubbellosPanel(ch, key));
         }
 
