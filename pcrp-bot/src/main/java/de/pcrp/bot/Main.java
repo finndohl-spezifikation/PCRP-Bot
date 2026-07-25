@@ -439,8 +439,7 @@ public class Main {
                 "💰 Gewinne: **100.000$ – 3.000.000$**\n" +
                 "🎟️ Pro Ziehung wird **1 Lottoschein** eingelöst."))
                 .addActionRow(
-                    Button.primary("lotto-get-link", "🎟️ Lottoschein abgeben"),
-                    Button.link(webUrl + "/lotto", "📊 Jackpot anzeigen"))
+                    Button.primary("lotto-get-link", "🎟️ Lottoschein abgeben"))
                 .queue(
                     msg -> PanelHelper.onSent(key, msg.getId()),
                     err -> { log.error("[Lotto] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
