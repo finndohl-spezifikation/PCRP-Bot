@@ -452,7 +452,12 @@ public class WebServer {
             r.addProperty("ok", false); r.addProperty("error", "Ungültige Discord User-ID.");
             ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
         }
-        String error = LottoManager.enroll(guild.getId(), userId);
+        int[] picks = parsePicks(body);
+        if (picks == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Zahlenauswahl.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
+        String error = LottoManager.enroll(guild.getId(), userId, picks);
         if (error != null) {
             r.addProperty("ok", false); r.addProperty("error", error);
             ctx.contentType("application/json").result(GSON.toJson(r)); return;
@@ -488,11 +493,18 @@ public class WebServer {
             r.addProperty("ok", false); r.addProperty("error", "Dieser Link ist bereits abgelaufen oder wurde schon verwendet.");
             ctx.status(410).contentType("application/json").result(GSON.toJson(r)); return;
         }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) { body = null; }
+        int[] picks = parsePicks(body);
+        if (picks == null) {
+            r.addProperty("ok", false); r.addProperty("error", "Ungültige Zahlenauswahl.");
+            ctx.status(400).contentType("application/json").result(GSON.toJson(r)); return;
+        }
         String guildId = info[0];
         String userId  = info[1];
-        // Token sofort ungültig machen (Einmalverwendung)
         LottoManager.deleteToken(token);
-        String error = LottoManager.enroll(guildId, userId);
+        String error = LottoManager.enroll(guildId, userId, picks);
         if (error != null) {
             r.addProperty("ok", false); r.addProperty("error", error);
             ctx.contentType("application/json").result(GSON.toJson(r)); return;
@@ -501,6 +513,18 @@ public class WebServer {
         r.addProperty("ok", true);
         r.addProperty("jackpotFmt", LottoManager.formatAmount(jackpot));
         ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    /** Liest das "picks"-Array aus dem JSON-Body. Gibt null zurück wenn ungültig. */
+    private static int[] parsePicks(JsonObject body) {
+        if (body == null || !body.has("picks")) return null;
+        try {
+            JsonArray arr = body.getAsJsonArray("picks");
+            if (arr.size() != LottoManager.PICK_COUNT) return null;
+            int[] picks = new int[LottoManager.PICK_COUNT];
+            for (int i = 0; i < arr.size(); i++) picks[i] = arr.get(i).getAsInt();
+            return picks;
+        } catch (Exception e) { return null; }
     }
 
     private static void handleLottoStatus(Context ctx) {
@@ -521,104 +545,194 @@ public class WebServer {
     }
 
     private static String buildLottoPage() {
+        return buildLottoUI(null);
+    }
+
+    /**
+     * Baut die gemeinsame Lotto-Seite.
+     * token == null → allgemeine Seite mit Benutzername-Schritt
+     * token != null → persönlicher Link, direkt zur Zahlenwahl
+     */
+    private static String buildLottoUI(String token) {
+        boolean tokenMode = token != null;
         String CSS =
             "*{box-sizing:border-box;margin:0;padding:0}" +
             "body{min-height:100vh;background:linear-gradient(135deg,#0d0600,#1a0900);" +
-            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
-            ".card{width:100%;max-width:480px;background:rgba(255,255,255,.04);border:1px solid #CC5500;" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:16px}" +
+            ".card{width:100%;max-width:500px;background:rgba(255,255,255,.04);border:1px solid #CC5500;" +
             "border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(204,85,0,.25)}" +
-            ".hdr{background:linear-gradient(90deg,#CC5500,#993300);padding:24px;text-align:center}" +
-            ".hdr h1{color:#fff;font-size:2rem;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.5)}" +
-            ".hdr p{color:#ffd0a0;font-size:.85rem;margin-top:4px;letter-spacing:1px}" +
-            ".bdy{padding:28px}" +
-            ".jp{text-align:center;margin-bottom:22px}" +
-            ".jp .lbl{color:#aaa;font-size:.72rem;letter-spacing:2px;text-transform:uppercase}" +
-            ".jp .amt{color:#FF8800;font-size:2.8rem;font-weight:700;margin-top:6px;text-shadow:0 0 20px rgba(255,136,0,.4)}" +
-            ".jp .pts{color:#888;font-size:.85rem;margin-top:6px}" +
-            "hr{border:none;border-top:1px solid #CC550030;margin:0 0 22px}" +
-            ".step{display:none;flex-direction:column;gap:14px}" +
+            ".hdr{background:linear-gradient(90deg,#CC5500,#993300);padding:20px;text-align:center}" +
+            ".hdr h1{color:#fff;font-size:1.8rem;letter-spacing:3px}" +
+            ".hdr p{color:#ffd0a0;font-size:.8rem;margin-top:3px;letter-spacing:1px}" +
+            ".bdy{padding:22px}" +
+            ".jp{text-align:center;margin-bottom:18px}" +
+            ".jp .lbl{color:#888;font-size:.7rem;letter-spacing:2px;text-transform:uppercase}" +
+            ".jp .amt{color:#FF8800;font-size:2.4rem;font-weight:700;margin-top:4px;text-shadow:0 0 20px rgba(255,136,0,.4)}" +
+            ".jp .pts{color:#777;font-size:.8rem;margin-top:4px}" +
+            "hr{border:none;border-top:1px solid #CC550030;margin:0 0 18px}" +
+            ".step{display:none;flex-direction:column;gap:12px}" +
             ".step.on{display:flex}" +
-            ".slbl{color:#888;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;text-align:center}" +
-            "input{width:100%;padding:12px 14px;background:#0d0600;border:1px solid #CC5500;" +
+            ".slbl{color:#888;font-size:.7rem;letter-spacing:2px;text-transform:uppercase;text-align:center}" +
+            "input{width:100%;padding:11px 14px;background:#0d0600;border:1px solid #CC5500;" +
             "border-radius:8px;color:#fff;font-size:.95rem;outline:none}" +
             "input::placeholder{color:#444}" +
-            "btn,button{display:block;width:100%;padding:14px;background:linear-gradient(90deg,#CC5500,#FF6600);" +
-            "border:none;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;" +
-            "letter-spacing:1px;cursor:pointer;transition:opacity .2s;margin-top:2px}" +
-            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
-            ".msg{margin-top:12px;padding:12px;border-radius:8px;font-size:.88rem;text-align:center;display:none}" +
+            "button{display:block;width:100%;padding:13px;background:linear-gradient(90deg,#CC5500,#FF6600);" +
+            "border:none;border-radius:8px;color:#fff;font-size:.95rem;font-weight:700;" +
+            "letter-spacing:1px;cursor:pointer;transition:opacity .2s}" +
+            "button:hover{opacity:.88}button:disabled{opacity:.35;cursor:not-allowed}" +
+            ".msg{padding:11px;border-radius:8px;font-size:.85rem;text-align:center;display:none}" +
             ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
             ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
+            // Zahlen-Grid
+            ".grid-wrap{background:rgba(0,0,0,.2);border-radius:10px;padding:14px}" +
+            ".grid-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}" +
+            ".grid-hint{color:#888;font-size:.75rem}" +
+            ".grid-cnt{color:#FF8800;font-size:.82rem;font-weight:700}" +
+            ".grid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}" +
+            ".num{aspect-ratio:1;display:flex;align-items:center;justify-content:center;" +
+            "border-radius:50%;background:#1a0800;border:1px solid #CC550055;" +
+            "color:#CC8844;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .12s;user-select:none}" +
+            ".num:hover{border-color:#FF6600;color:#FF8800}" +
+            ".num.sel{background:#CC5500;border-color:#FF6600;color:#fff;box-shadow:0 0 8px rgba(204,85,0,.5)}" +
+            ".num.full{opacity:.35;pointer-events:none}" +
+            // Quoten-Info
+            ".quot{background:rgba(255,136,0,.06);border:1px solid #CC550030;border-radius:8px;padding:12px;margin-top:2px}" +
+            ".quot-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:.78rem}" +
+            ".quot-row:not(:last-child){border-bottom:1px solid #CC550020}" +
+            ".quot-k{color:#aaa}" +
+            ".quot-v{color:#FF8800;font-weight:700}" +
+            // Ergebnis
             ".win{background:rgba(255,136,0,.07);border:1px solid #CC550060;border-radius:12px;padding:22px;text-align:center}" +
             ".win .ic{font-size:2.4rem;margin-bottom:10px}" +
             ".win h2{color:#FF8800;font-size:1.2rem;margin-bottom:8px}" +
-            ".win p{color:#bbb;font-size:.88rem;line-height:1.65}" +
+            ".win p{color:#bbb;font-size:.85rem;line-height:1.65}" +
             ".win strong{color:#FF8800}" +
-            ".foot{text-align:center;color:#555;font-size:.72rem;margin-top:18px}";
+            ".foot{text-align:center;color:#555;font-size:.7rem;margin-top:16px}";
 
-        return "<!DOCTYPE html><html lang='de'><head>" +
-            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
-            "<title>PCRP Lotto</title><style>" + CSS + "</style></head><body>" +
-            "<div class='card'>" +
-            "<div class='hdr'><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>" +
-            "<div class='bdy'>" +
-            "<div class='jp'><div class='lbl'>Heutiger Jackpot</div>" +
-            "<div class='amt' id='jp'>Lädt…</div><div class='pts' id='pts'></div></div>" +
-            "<hr>" +
+        String quotenHtml =
+            "<div class='quot'>" +
+            "<div class='quot-row'><span class='quot-k'>6 Richtige</span><span class='quot-v' id='qj'>Jackpot</span></div>" +
+            "<div class='quot-row'><span class='quot-k'>5 Richtige</span><span class='quot-v'>50.000$</span></div>" +
+            "<div class='quot-row'><span class='quot-k'>4 Richtige</span><span class='quot-v'>10.000$</span></div>" +
+            "<div class='quot-row'><span class='quot-k'>3 oder weniger</span><span class='quot-v'>Niete</span></div>" +
+            "</div>";
+
+        String gridHtml =
+            "<div class='grid-wrap'>" +
+            "<div class='grid-info'>" +
+            "<span class='grid-hint'>Wähle 6 Zahlen aus 1–45</span>" +
+            "<span class='grid-cnt' id='cnt'>0 / 6</span>" +
+            "</div>" +
+            "<div class='grid' id='grid'></div>" +
+            "</div>";
+
+        String pickJs =
+            "const sel=new Set();" +
+            "const grid=document.getElementById('grid');" +
+            "for(let i=1;i<=45;i++){const d=document.createElement('div');" +
+            "d.className='num';d.textContent=i;d.dataset.n=i;" +
+            "d.onclick=()=>toggle(d,i);grid.appendChild(d);}" +
+            "function toggle(el,n){" +
+            "if(el.classList.contains('sel')){el.classList.remove('sel');sel.delete(n);}" +
+            "else{if(sel.size>=6)return;el.classList.add('sel');sel.add(n);}" +
+            "document.getElementById('cnt').textContent=sel.size+' / 6';" +
+            "const full=sel.size>=6;" +
+            "document.querySelectorAll('.num:not(.sel)').forEach(e=>e.classList.toggle('full',full));" +
+            "document.getElementById('sbtn').disabled=sel.size!==6;}" +
+            "function getPicks(){return Array.from(sel).sort((a,b)=>a-b);}";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html lang='de'><head>")
+          .append("<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>")
+          .append("<title>PCRP Lotto</title><style>").append(CSS).append("</style></head><body>")
+          .append("<div class='card'>")
+          .append("<div class='hdr'><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>")
+          .append("<div class='bdy'>")
+          .append("<div class='jp'><div class='lbl'>Aktueller Jackpot</div>")
+          .append("<div class='amt' id='jp'>Lädt…</div><div class='pts' id='pts'></div></div>")
+          .append("<hr>");
+
+        if (!tokenMode) {
             // Step 1 — Benutzername
-            "<div class='step on' id='s1'>" +
-            "<div class='slbl'>Discord-Benutzername eingeben</div>" +
-            "<input id='uname' type='text' placeholder='z. B. max_mustermann' maxlength='40'>" +
-            "<button id='nbtn' onclick='goStep2()'>➡️ Weiter zum Lotto</button>" +
-            "<div class='msg' id='m1'></div>" +
-            "</div>" +
-            // Step 2 — Einlösen
-            "<div class='step' id='s2'>" +
-            "<div class='slbl'>Lottoschein einlösen</div>" +
-            "<div style='color:#888;font-size:.82rem;text-align:center;margin-bottom:4px'>Angemeldet als <strong id='wname' style='color:#FF8800'></strong></div>" +
-            "<button id='ebtn' onclick='enroll()'>🎟️ Lottoschein abgeben</button>" +
-            "<div class='msg' id='m2'></div>" +
-            "</div>" +
-            // Step 3 — Bestätigung
-            "<div class='step' id='s3'>" +
-            "<div class='win'><div class='ic'>🎉</div>" +
-            "<h2>Du bist dabei!</h2>" +
-            "<p>Dein Lottoschein wurde eingelöst.<br>Jackpot: <strong id='j3'></strong><br>" +
-            "Die Ziehung findet heute um <strong>12:00 Uhr</strong> statt.<br>Viel Glück! 🍀</p>" +
-            "</div></div>" +
-            "<div class='foot'>Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
-            "</div></div>" +
-            "<script>" +
-            "const KN='pcrp_uname';const KI='pcrp_uid';" +
-            "let uname=localStorage.getItem(KN)||'';let uid=localStorage.getItem(KI)||'';" +
-            "function show(id){['s1','s2','s3'].forEach(s=>document.getElementById(s).className='step'+(s==id?' on':''));}" +
-            "function msg(id,t,c){const m=document.getElementById(id);m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
-            "async function loadJp(){try{const r=await fetch('/api/lotto/status');const d=await r.json();" +
-            "if(d.ok){document.getElementById('jp').textContent=d.jackpotFmt;" +
-            "document.getElementById('pts').textContent='🎟️ Teilnehmer: '+d.participants;" +
-            "document.getElementById('j3').textContent=d.jackpotFmt;}}catch(e){}}" +
-            "async function goStep2(){const v=document.getElementById('uname').value.trim();" +
-            "if(!v){msg('m1','Bitte gib deinen Discord-Benutzernamen ein.','err');return;}" +
-            "const btn=document.getElementById('nbtn');btn.disabled=true;" +
-            "try{const r=await fetch('/api/resolve-user',{method:'POST'," +
-            "headers:{'Content-Type':'application/json'},body:JSON.stringify({username:v})});" +
-            "const d=await r.json();" +
-            "if(!d.ok){msg('m1',d.error,'err');btn.disabled=false;return;}" +
-            "localStorage.setItem(KN,v);localStorage.setItem(KI,d.userId);" +
-            "uname=v;uid=d.userId;" +
-            "document.getElementById('wname').textContent=d.displayName;" +
-            "show('s2');}catch(e){msg('m1','Verbindungsfehler.','err');btn.disabled=false;}}" +
-            "async function enroll(){const btn=document.getElementById('ebtn');btn.disabled=true;" +
-            "try{const r=await fetch('/api/lotto/enroll',{method:'POST'," +
-            "headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});" +
-            "const d=await r.json();" +
-            "if(d.ok){document.getElementById('j3').textContent=d.jackpotFmt;show('s3');loadJp();}" +
-            "else{msg('m2',d.error,'err');btn.disabled=false;}}" +
-            "catch(e){msg('m2','Verbindungsfehler. Bitte erneut versuchen.','err');btn.disabled=false;}}" +
-            "loadJp();" +
-            // Gespeicherten Namen vorausfüllen, aber immer Step 1 zeigen (userId neu auflösen)
-            "if(uname){document.getElementById('uname').value=uname;}" +
-            "</script></body></html>";
+            sb.append("<div class='step on' id='s1'>")
+              .append("<div class='slbl'>Discord-Benutzername</div>")
+              .append("<input id='uname' type='text' placeholder='z. B. max_mustermann' maxlength='40'>")
+              .append("<button id='nbtn' onclick='goStep2()'>➡️ Weiter zur Zahlenwahl</button>")
+              .append("<div class='msg' id='m1'></div></div>");
+        }
+
+        // Step: Zahlenauswahl
+        sb.append("<div class='step").append(tokenMode ? " on" : "").append("' id='s2'>")
+          .append("<div class='slbl'>Deine ").append(LottoManager.PICK_COUNT).append(" Glückszahlen wählen</div>")
+          .append(gridHtml)
+          .append(quotenHtml)
+          .append("<button id='sbtn' disabled onclick='enroll()'>🎟️ Lottoschein abgeben</button>")
+          .append("<div class='msg' id='m2'></div></div>");
+
+        // Step: Bestätigung
+        sb.append("<div class='step' id='s3'>")
+          .append("<div class='win'><div class='ic'>🎉</div><h2>Du bist dabei!</h2>")
+          .append("<p>Deine Zahlen: <strong id='myNums'></strong><br>")
+          .append("Jackpot: <strong id='j3'></strong><br>")
+          .append("Ziehung heute um <strong>12:00 Uhr</strong>. Viel Gl&#252;ck! 🍀</p>")
+          .append("</div></div>");
+
+        sb.append("<div class='foot'>T&#228;glich um 12:00 Uhr • 6 aus 45 • Jackpot w&#228;chst bis 5.000.000$</div>")
+          .append("</div></div><script>");
+
+        if (!tokenMode) {
+            sb.append("const KN='pcrp_uname';")
+              .append("let uid='';")
+              .append("const stored=localStorage.getItem(KN);")
+              .append("if(stored)document.getElementById('uname').value=stored;")
+              .append("function show(id){['s1','s2','s3'].forEach(s=>{const e=document.getElementById(s);if(e)e.className='step'+(s==id?' on':'');});}")
+              .append("async function goStep2(){")
+              .append("const v=document.getElementById('uname').value.trim();")
+              .append("if(!v){showMsg('m1','Bitte gib deinen Discord-Benutzernamen ein.','err');return;}")
+              .append("const btn=document.getElementById('nbtn');btn.disabled=true;")
+              .append("try{const r=await fetch('/api/resolve-user',{method:'POST',")
+              .append("headers:{'Content-Type':'application/json'},body:JSON.stringify({username:v})});")
+              .append("const d=await r.json();")
+              .append("if(!d.ok){showMsg('m1',d.error,'err');btn.disabled=false;return;}")
+              .append("localStorage.setItem(KN,v);uid=d.userId;show('s2');")
+              .append("}catch(e){showMsg('m1','Verbindungsfehler.','err');btn.disabled=false;}}")
+              .append("async function enroll(){")
+              .append("const btn=document.getElementById('sbtn');btn.disabled=true;")
+              .append("const picks=getPicks();")
+              .append("try{const r=await fetch('/api/lotto/enroll',{method:'POST',")
+              .append("headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,picks:picks})});")
+              .append("const d=await r.json();")
+              .append("if(d.ok){document.getElementById('myNums').textContent=picks.join(' – ');")
+              .append("document.getElementById('j3').textContent=d.jackpotFmt;show('s3');loadJp();}")
+              .append("else{showMsg('m2',d.error,'err');btn.disabled=false;}}")
+              .append("catch(e){showMsg('m2','Verbindungsfehler.','err');btn.disabled=false;}}");
+        } else {
+            sb.append("function show(id){['s2','s3'].forEach(s=>{const e=document.getElementById(s);if(e)e.className='step'+(s==id?' on':'');});}")
+              .append("const TOKEN='").append(token).append("';")
+              .append("async function enroll(){")
+              .append("const btn=document.getElementById('sbtn');btn.disabled=true;")
+              .append("const picks=getPicks();")
+              .append("try{const r=await fetch('/api/lotto/enroll/'+TOKEN,{method:'POST',")
+              .append("headers:{'Content-Type':'application/json'},body:JSON.stringify({picks:picks})});")
+              .append("const d=await r.json();")
+              .append("if(d.ok){document.getElementById('myNums').textContent=picks.join(' – ');")
+              .append("document.getElementById('j3').textContent=d.jackpotFmt;show('s3');loadJp();}")
+              .append("else{showMsg('m2',d.error,'err');btn.disabled=false;}}")
+              .append("catch(e){showMsg('m2','Verbindungsfehler.','err');btn.disabled=false;}}");
+        }
+
+        sb.append("function showMsg(id,t,c){const m=document.getElementById(id);m.textContent=t;m.className='msg '+c;m.style.display='block';}")
+          .append("async function loadJp(){try{const r=await fetch('/api/lotto/status');const d=await r.json();")
+          .append("if(d.ok){document.getElementById('jp').textContent=d.jackpotFmt;")
+          .append("document.getElementById('pts').textContent='🎟️ Teilnehmer: '+d.participants;")
+          .append("document.getElementById('j3').textContent=d.jackpotFmt;")
+          .append("if(document.getElementById('qj'))document.getElementById('qj').textContent=d.jackpotFmt;")
+          .append("}}catch(e){}}")
+          .append(pickJs)
+          .append("loadJp();")
+          .append("</script></body></html>");
+
+        return sb.toString();
     }
 
     private static String buildLottoExpiredPage() {
@@ -638,69 +752,7 @@ public class WebServer {
     }
 
     private static String buildLottoTokenPage(String token) {
-        return "<!DOCTYPE html><html lang=\"de\"><head>" +
-            "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
-            "<title>PCRP Lotto</title><style>" +
-            "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;background:linear-gradient(135deg,#0d0600 0%,#1a0900 100%);" +
-            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
-            ".card{width:100%;max-width:480px;background:rgba(255,255,255,0.04);border:1px solid #CC5500;" +
-            "border-radius:16px;overflow:hidden;box-shadow:0 0 40px rgba(204,85,0,0.25)}" +
-            ".header{background:linear-gradient(90deg,#CC5500,#993300);padding:24px;text-align:center}" +
-            ".header h1{color:#fff;font-size:2rem;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,.5)}" +
-            ".header p{color:#ffd0a0;font-size:.85rem;margin-top:4px;letter-spacing:1px}" +
-            ".body{padding:28px}" +
-            ".jackpot{text-align:center;margin-bottom:28px}" +
-            ".jackpot .label{color:#aaa;font-size:.75rem;letter-spacing:2px;text-transform:uppercase}" +
-            ".jackpot .amount{color:#FF8800;font-size:2.8rem;font-weight:700;margin-top:6px;" +
-            "text-shadow:0 0 20px rgba(255,136,0,.4)}" +
-            ".jackpot .participants{color:#888;font-size:.85rem;margin-top:8px}" +
-            ".divider{border:none;border-top:1px solid #CC550030;margin:0 0 24px}" +
-            ".info{color:#ccc;font-size:.88rem;text-align:center;margin-bottom:24px;line-height:1.7}" +
-            ".info strong{color:#FF8800}" +
-            "button{width:100%;padding:15px;background:linear-gradient(90deg,#CC5500,#FF6600);" +
-            "border:none;border-radius:10px;color:#fff;font-size:1.05rem;font-weight:700;" +
-            "letter-spacing:1px;cursor:pointer;transition:opacity .2s}" +
-            "button:hover{opacity:.88}button:disabled{opacity:.4;cursor:not-allowed}" +
-            ".msg{margin-top:18px;padding:14px;border-radius:8px;font-size:.9rem;text-align:center;display:none}" +
-            ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
-            ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
-            ".draw-info{text-align:center;color:#555;font-size:.75rem;margin-top:20px}" +
-            "</style></head><body>" +
-            "<div class=\"card\">" +
-            "<div class=\"header\"><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>" +
-            "<div class=\"body\">" +
-            "<div class=\"jackpot\">" +
-            "<div class=\"label\">Heutiger Jackpot</div>" +
-            "<div class=\"amount\" id=\"jackpot\">Lädt…</div>" +
-            "<div class=\"participants\" id=\"participants\"></div>" +
-            "</div>" +
-            "<hr class=\"divider\">" +
-            "<div class=\"info\">Klicke auf den Button, um deinen <strong>Lottoschein</strong> abzugeben.<br>" +
-            "Die Ziehung findet täglich um <strong>12:00 Uhr</strong> statt.</div>" +
-            "<button id=\"btn\" onclick=\"enroll()\">🎟️ Lottoschein abgeben</button>" +
-            "<div class=\"msg\" id=\"msg\"></div>" +
-            "<div class=\"draw-info\">Täglich um 12:00 Uhr • Jackpot: 100.000$ – 3.000.000$</div>" +
-            "</div></div>" +
-            "<script>" +
-            "const TOKEN='" + token + "';" +
-            "async function loadStatus(){" +
-            "try{const r=await fetch('/api/lotto/status');const d=await r.json();" +
-            "if(d.ok){document.getElementById('jackpot').textContent=d.jackpotFmt;" +
-            "document.getElementById('participants').textContent='🎟️ Teilnehmer: '+d.participants;}}" +
-            "catch(e){}}" +
-            "async function enroll(){" +
-            "const btn=document.getElementById('btn');" +
-            "btn.disabled=true;" +
-            "try{const r=await fetch('/api/lotto/enroll/'+TOKEN,{method:'POST'});" +
-            "const d=await r.json();" +
-            "if(d.ok){showMsg('✅ Du nimmst an der heutigen Ziehung teil! Jackpot: '+d.jackpotFmt+' – Viel Glück! 🍀','ok');loadStatus();}" +
-            "else{showMsg(d.error,'err');btn.disabled=false;}}" +
-            "catch(e){showMsg('Verbindungsfehler. Bitte versuche es erneut.','err');btn.disabled=false;}}" +
-            "function showMsg(t,cls){const m=document.getElementById('msg');" +
-            "m.textContent=t;m.className='msg '+cls;m.style.display='block';}" +
-            "loadStatus();" +
-            "</script></body></html>";
+        return buildLottoUI(token);
     }
 
     // ── /rubbellos (allgemeine Seite) ─────────────────────────────────────────

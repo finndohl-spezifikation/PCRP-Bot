@@ -27,26 +27,6 @@ public class LottoListener extends ListenerAdapter {
 
         switch (event.getComponentId()) {
 
-            case "lotto-join" -> {
-                // Direkt am Lotto teilnehmen: Lottoschein aus Inventar entnehmen + einschreiben
-                String error = LottoManager.enroll(guildId, userId);
-                if (error != null) {
-                    event.replyEmbeds(EmbedFactory.build("❌ Fehler", error))
-                        .setEphemeral(true).queue();
-                    return;
-                }
-                int jackpot      = LottoManager.getCurrentJackpot(guildId);
-                int participants = LottoManager.getParticipantCount(guildId);
-                event.replyEmbeds(EmbedFactory.build(
-                    "✅ Lottoschein abgegeben!",
-                    "Du nimmst an der heutigen Ziehung teil!\n\n" +
-                    "**💰 Jackpot:** " + LottoManager.formatAmount(jackpot) + "\n" +
-                    "**👥 Teilnehmer:** " + participants + "\n\n" +
-                    "Die Ziehung findet täglich um **12:00 Uhr** statt. Viel Glück! 🍀"))
-                    .setEphemeral(true).queue();
-                log.info("[Lotto] {} direkt eingeschrieben.", event.getUser().getAsTag());
-            }
-
             case "lotto-get-link" -> {
                 if (LottoManager.isParticipant(guildId, userId)) {
                     event.replyEmbeds(EmbedFactory.build(

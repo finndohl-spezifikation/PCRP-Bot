@@ -48,27 +48,51 @@ public final class LottoScheduler {
             if (guild == null) { log.warn("[Lotto] Guild nicht verfügbar."); return; }
 
             LottoManager.DrawResult result = LottoManager.draw(guild.getId());
-            String date = LocalDate.now(ZONE).format(DATE_FMT);
+            String date       = LocalDate.now(ZONE).format(DATE_FMT);
+            String numStr     = LottoManager.formatNumbers(result.winningNumbers());
 
             TextChannel ch = guild.getTextChannelById(DRAW_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Ziehungs-Kanal nicht gefunden."); return; }
 
-            String msg;
-            if (result.winnerId() == null) {
-                msg = "🎰 **Lotto-Ziehung | " + date + "**\n\n" +
-                      "Heute hat niemand einen Lottoschein eingelöst — kein Gewinner.\n" +
-                      "💰 Neuer Jackpot: **" + LottoManager.formatAmount(result.nextJackpot()) + "**";
+            StringBuilder sb = new StringBuilder();
+            sb.append("🎰 **Lotto-Ziehung | ").append(date).append("**\n\n");
+            sb.append("🔢 **Gewinnzahlen:** `").append(numStr).append("`\n");
+            sb.append("🎟️ **Teilnehmer:** ").append(result.participantCount()).append("\n\n");
+
+            boolean anyWin = !result.jackpotWinners().isEmpty()
+                          || !result.tier5Winners().isEmpty()
+                          || !result.tier4Winners().isEmpty();
+
+            if (!anyWin) {
+                sb.append("😔 Kein Gewinner heute.\n");
+                sb.append("📈 Jackpot steigt auf: **")
+                  .append(LottoManager.formatAmount(result.nextJackpot())).append("**");
             } else {
-                String mention = "<@" + result.winnerId() + ">";
-                msg = "🎰 **Lotto-Ziehung | " + date + "**\n\n" +
-                      "🏆 Gewinner: " + mention + "\n" +
-                      "💰 Gewinn: **" + LottoManager.formatAmount(result.jackpot()) + "**\n" +
-                      "🎟️ Teilnehmer: " + result.participantCount() + "\n\n" +
-                      "Herzlichen Glückwunsch! 🎉 Der Gewinn wurde deinem Inventar gutgeschrieben.\n" +
-                      "💰 Neuer Jackpot morgen: **" + LottoManager.formatAmount(result.nextJackpot()) + "**";
+                if (!result.jackpotWinners().isEmpty()) {
+                    sb.append("🏆 **JACKPOT (6/6):** ");
+                    result.jackpotWinners().forEach(uid -> sb.append("<@").append(uid).append("> "));
+                    sb.append("\n💰 Gewinn: **")
+                      .append(LottoManager.formatAmount(result.jackpot())).append("** pro Person\n");
+                    sb.append("🔄 Jackpot zurückgesetzt auf **")
+                      .append(LottoManager.formatAmount(result.nextJackpot())).append("**\n");
+                }
+                if (!result.tier5Winners().isEmpty()) {
+                    sb.append("\n🥈 **5/6 Treffer:** ");
+                    result.tier5Winners().forEach(uid -> sb.append("<@").append(uid).append("> "));
+                    sb.append("→ **50.000$**\n");
+                }
+                if (!result.tier4Winners().isEmpty()) {
+                    sb.append("\n🥉 **4/6 Treffer:** ");
+                    result.tier4Winners().forEach(uid -> sb.append("<@").append(uid).append("> "));
+                    sb.append("→ **10.000$**\n");
+                }
+                if (result.jackpotWinners().isEmpty()) {
+                    sb.append("\n💰 Jackpot morgen: **")
+                      .append(LottoManager.formatAmount(result.nextJackpot())).append("**");
+                }
             }
 
-            ch.sendMessage(msg).queue(
+            ch.sendMessage(sb.toString()).queue(
                 ok  -> log.info("[Lotto] Ziehungsergebnis gepostet."),
                 err -> log.error("[Lotto] Fehler beim Posten.", err)
             );
