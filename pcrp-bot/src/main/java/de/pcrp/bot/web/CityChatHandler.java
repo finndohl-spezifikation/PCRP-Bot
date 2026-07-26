@@ -523,7 +523,17 @@ public final class CityChatHandler {
         String number = ctx.queryParam("number");
         if (number == null || number.isBlank()) { ctx.status(400).json(err("Nummer fehlt")); return; }
         String guildId = guildId();
+        // Exakter Treffer zuerst
         PhoneManager.Contract found = PhoneManager.getContractByNumber(guildId, number);
+        // Fallback: normalisiert vergleichen (nur Ziffern)
+        if (found == null) {
+            String normalized = number.replaceAll("[^0-9]", "");
+            for (PhoneManager.Contract other : PhoneManager.getAllContracts(guildId)) {
+                if (other.phoneNumber.replaceAll("[^0-9]", "").equals(normalized)) {
+                    found = other; break;
+                }
+            }
+        }
         if (found == null) { ctx.status(404).json(err("Nummer nicht gefunden")); return; }
         JsonObject res = new JsonObject();
         res.addProperty("phoneNumber", found.phoneNumber);
