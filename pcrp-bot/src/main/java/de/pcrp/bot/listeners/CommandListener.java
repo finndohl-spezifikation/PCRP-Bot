@@ -78,7 +78,6 @@ public class CommandListener extends ListenerAdapter {
             case "vorschlag"           -> handleVorschlag(event);
             case "vorschlag-annehmen"  -> handleVorschlagAnnehmen(event);
             case "vorschlag-ablehnen"  -> handleVorschlagAblehnen(event);
-            case "bot-info"            -> handleBotInfo(event);
         }
     }
 
@@ -1658,44 +1657,6 @@ public class CommandListener extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
             "Der Einreise-Stopp wurde entfernt. Die Einreise ist wieder möglich." + extra))
             .setEphemeral(true).queue();
-    }
-
-    // ════════════════════════════════════════════════════════════
-    //  /bot-info
-    // ════════════════════════════════════════════════════════════
-
-    private void handleBotInfo(SlashCommandInteractionEvent event) {
-        if (event.getGuild() == null) return;
-
-        TextChannel ch = event.getGuild().getTextChannelById("1529651424491733093");
-        if (ch == null) {
-            event.replyEmbeds(embed("Fehler", "Kanal nicht gefunden.")).setEphemeral(true).queue();
-            return;
-        }
-
-        event.deferReply(true).queue();
-
-        String baseUrl = System.getenv().getOrDefault("CITY_CHAT_URL", "http://localhost:8080");
-        String infoUrl = baseUrl + "/info";
-
-        net.dv8tion.jda.api.entities.MessageEmbed infoEmbed = EmbedFactory.create()
-            .setTitle("🤖 Paradise City System")
-            .setDescription(
-                "Ein einziger Bot für dein gesamtes Roleplay-Erlebnis.\n\n" +
-                "**36** Slash-Commands · **8** Moderations-Systeme · **5** Web-Dashboards\n\n" +
-                "Alle Features, Infos und Statistiken auf einen Blick:")
-            .build();
-
-        ch.sendMessageEmbeds(infoEmbed)
-          .addActionRow(net.dv8tion.jda.api.interactions.components.buttons.Button.link(infoUrl, "🌐 Bot-Informationen öffnen"))
-          .queue(
-              msg -> event.getHook().sendMessageEmbeds(embed("✅ Gesendet",
-                  "Das Bot-Info Embed wurde in <#1529651424491733093> gepostet."))
-                  .setEphemeral(true).queue(),
-              err -> event.getHook().sendMessageEmbeds(embed("Fehler",
-                  "Das Embed konnte nicht gesendet werden."))
-                  .setEphemeral(true).queue()
-          );
     }
 
     // ════════════════════════════════════════════════════════════
