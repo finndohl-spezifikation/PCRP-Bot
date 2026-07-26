@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Instant;
 import java.util.*;
@@ -28,6 +29,18 @@ public class WebServer {
             config.requestLogger.http((ctx, ms) ->
                 log.debug("[Web] {} {} → {}", ctx.method(), ctx.path(), ctx.status()));
         });
+
+        // CORS — erlaubt Cloudflare-Workers-Domain API-Aufrufe direkt zum Railway-Backend
+        app.before(ctx -> {
+            String origin = ctx.header("Origin");
+            if (origin != null && (origin.endsWith(".workers.dev") || origin.endsWith("railway.app"))) {
+                ctx.header("Access-Control-Allow-Origin", origin);
+                ctx.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+                ctx.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+                ctx.header("Access-Control-Allow-Credentials", "false");
+            }
+        });
+        app.options("/*", ctx -> ctx.status(204));
 
         // Frontend
         app.get("/",                          WebServer::serveIndex);
@@ -161,7 +174,13 @@ public class WebServer {
     private static void serveCityChat(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/city-chat.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
-            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+            String railwayUrl = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN",
+                "pcrp-bot-production-3ad1.up.railway.app");
+            if (!railwayUrl.startsWith("http")) railwayUrl = "https://" + railwayUrl;
+            railwayUrl = railwayUrl.replaceAll("/$", "");
+            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
+                .replace("%%API_BASE%%", railwayUrl);
+            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             ctx.status(500).result("Interner Fehler");
         }
