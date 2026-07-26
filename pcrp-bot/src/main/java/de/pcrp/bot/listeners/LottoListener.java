@@ -7,6 +7,8 @@ import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// InventoryManager bereits über de.pcrp.bot.common.* importiert
+
 public class LottoListener extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(LottoListener.class);
@@ -28,6 +30,20 @@ public class LottoListener extends ListenerAdapter {
         switch (event.getComponentId()) {
 
             case "lotto-get-link" -> {
+                // Lottoschein im Inventar prüfen
+                boolean hasTicket = InventoryManager.getInventory(guildId, userId)
+                    .stream()
+                    .anyMatch(e -> InventoryManager.nameMatches(e.name, "Lottoschein"));
+
+                if (!hasTicket) {
+                    event.replyEmbeds(EmbedFactory.build(
+                        "🎟️ Kein Lottoschein",
+                        "Du hast keinen **Lottoschein** in deinem Rucksack.\n" +
+                        "Kaufe einen Lottoschein im Kwik-E-Markt, um teilzunehmen."))
+                        .setEphemeral(true).queue();
+                    return;
+                }
+
                 if (LottoManager.isParticipant(guildId, userId)) {
                     event.replyEmbeds(EmbedFactory.build(
                         "🎰 Bereits eingeschrieben",
@@ -36,6 +52,17 @@ public class LottoListener extends ListenerAdapter {
                         .setEphemeral(true).queue();
                     return;
                 }
+
+                // Lottoschein einlösen
+                boolean removed = InventoryManager.removeItem(guildId, userId, "Lottoschein", 1);
+                if (!removed) {
+                    event.replyEmbeds(EmbedFactory.build(
+                        "❌ Fehler",
+                        "Der Lottoschein konnte nicht eingelöst werden. Bitte versuche es erneut."))
+                        .setEphemeral(true).queue();
+                    return;
+                }
+
                 String token  = LottoManager.createToken(guildId, userId);
                 String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
                 try {
@@ -51,7 +78,7 @@ public class LottoListener extends ListenerAdapter {
                     event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Interner Fehler. Bitte versuche es erneut."))
                         .setEphemeral(true).queue();
                 }
-                log.info("[Lotto] Token für {} generiert.", event.getUser().getAsTag());
+                log.info("[Lotto] Token für {} generiert, Lottoschein eingelöst.", event.getUser().getAsTag());
             }
         }
     }
