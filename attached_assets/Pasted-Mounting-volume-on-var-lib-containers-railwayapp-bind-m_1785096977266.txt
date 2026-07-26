@@ -1,0 +1,24 @@
+Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/35595bd7-70c0-4112-83c0-ba14be1faa3e/vol_feumvzuz6bvwt9jl
+Starting Container
+20:11:46 [main] INFO  o.e.j.server.handler.ContextHandler - Started o.e.j.s.ServletContextHandler@7fbdb894{/,null,AVAILABLE}
+20:11:46 [main] INFO  io.javalin.Javalin - Javalin started in 184ms \o/
+20:11:46 [main] INFO  o.e.jetty.server.AbstractConnector - Started ServerConnector@4d1c005e{HTTP/1.1, (http/1.1)}{0.0.0.0:8080}
+20:11:46 [main] INFO  org.eclipse.jetty.server.Server - Started Server@790da477{STARTING}[11.0.23,sto=0] @546ms
+20:11:46 [main] INFO  io.javalin.Javalin - Listening on http://localhost:8080/
+20:11:46 [main] INFO  io.javalin.Javalin - 
+20:11:46 [main] INFO  io.javalin.Javalin - You are running Javalin 6.3.0 (released August 22, 2024. Your Javalin version is 703 days old. Consider checking for a newer version.).
+       __                  ___           _____
+20:11:46 [main] INFO  io.javalin.Javalin - Starting Javalin ...
+      / /___ __   ______ _/ (_)___      / ___/
+ __  / / __ `/ | / / __ `/ / / __ \    / __ \
+20:11:46 [main] INFO  org.eclipse.jetty.server.Server - jetty-11.0.23; built: 2024-08-14T01:40:17.906Z; git: 6fcf5ccaebd7ca13a0cb96c96adca699a24080a0; jvm 21.0.11+10-LTS
+/ /_/ / /_/ /| |/ / /_/ / / / / / /   / /_/ /
+20:11:46 [main] INFO  o.e.j.s.s.DefaultSessionIdManager - Session workerName=node0
+\____/\__,_/ |___/\__,_/_/_/_/ /_/    \____/
+       https://javalin.io/documentation
+20:11:46 [main] INFO  de.pcrp.bot.web.WebServer - [WebServer] Einwohner-Meldeamt läuft auf Port 8080.
+20:11:46 [main] INFO  de.pcrp.bot.common.LottoScheduler - [Lotto] Erste Ziehung in 828 Minuten.
+20:11:46 [main] INFO  de.pcrp.bot.common.PhoneScheduler - [PhoneScheduler] Nächste Abrechnung in 129 Stunden.
+20:11:47 [JDA MainWS-ReadThread] INFO  de.pcrp.bot.Main$StartupListener - Bot bereit – eingeloggt als Paradise City System#1333.
+20:11:47 [ForkJoinPool.commonPool-worker-1] INFO  d.pcrp.bot.listeners.WelcomeListener - [Invite-Cache] 'Paradise City Roleplay' – 8 Einladungen geladen.
+20:11:47 [ForkJoinPool.commonPool-worker-1] INFO  de.pcrp.bot.Main$StartupListener - Commands auf 'Paradise City Roleplay' registriert.
