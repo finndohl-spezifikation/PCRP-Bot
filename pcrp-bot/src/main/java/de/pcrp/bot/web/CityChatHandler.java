@@ -66,6 +66,7 @@ public final class CityChatHandler {
         res.addProperty("phoneNumber", c.phoneNumber);
         res.addProperty("displayName", profileStr(profile, "displayName", c.displayName()));
         res.addProperty("status",      profileStr(profile, "status", ""));
+        res.addProperty("avatar",      profileStr(profile, "avatar", ""));
         ctx.json(res.toString());
     }
 
@@ -77,6 +78,7 @@ public final class CityChatHandler {
         JsonObject profile = loadProfile(guildId, c.phoneNumber);
         if (body.has("status"))      profile.addProperty("status",      str(body, "status"));
         if (body.has("displayName")) profile.addProperty("displayName", str(body, "displayName"));
+        if (body.has("avatar"))      profile.addProperty("avatar",      str(body, "avatar"));
         saveProfile(guildId, c.phoneNumber, profile);
         ctx.json("{\"ok\":true}");
     }
@@ -190,7 +192,30 @@ public final class CityChatHandler {
         String guildId = guildId();
 
         JsonArray msgs = loadMessages(guildId, chatId);
-        ctx.json(GSON.toJson(msgs));
+
+        // Partner-Rufnummer aus chatId extrahieren (Format: phone1|phone2)
+        String[] chatParts = chatId.split("\\|");
+        long partnerReadTs = 0;
+        if (chatParts.length == 2) {
+            String partnerPhone = chatParts[0].equals(c.phoneNumber) ? chatParts[1] : chatParts[0];
+            String partnerRead  = DataStore.readString("city-read-" + guildId + "-" + partnerPhone + "-" + chatId);
+            if (partnerRead != null) {
+                try { partnerReadTs = Long.parseLong(partnerRead); } catch (Exception ignored) {}
+            }
+        }
+
+        // read-Flag pro Nachricht hinzufügen
+        JsonArray result = new JsonArray();
+        for (JsonElement el : msgs) {
+            JsonObject m = el.getAsJsonObject().deepCopy();
+            if (m.has("from") && m.get("from").getAsString().equals(c.phoneNumber)) {
+                long ts = m.has("ts") ? m.get("ts").getAsLong() : 0;
+                m.addProperty("read", partnerReadTs > 0 && partnerReadTs >= ts);
+            }
+            result.add(m);
+        }
+
+        ctx.json(GSON.toJson(result));
 
         // Als gelesen markieren
         DataStore.writeString("city-read-" + guildId + "-" + c.phoneNumber + "-" + chatId,
@@ -337,6 +362,58 @@ public final class CityChatHandler {
         String raw = DataStore.readString(contactKey(guildId, phone));
         if (raw == null) return new JsonArray();
         try { return JsonParser.parseString(raw).getAsJsonArray(); } catch (Exception e) { return new JsonArray(); }
+    }
+
+    // ── Status (WhatsApp-Style) ───────────────────────────────────────────────
+
+    public static void handleGetStatuses(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String guildId = guildId();
+        JsonArray result = new JsonArray();
+        long now   = System.currentTimeMillis();
+        long limit = 24L * 3600 * 1000;
+        for (PhoneManager.Contract other : PhoneManager.getAllContracts(guildId)) {
+            String raw = DataStore.readString("city-status-" + guildId + "-" + other.phoneNumber);
+            if (raw == null) continue;
+            try {
+                JsonObject s = JsonParser.parseString(raw).getAsJsonObject();
+                if (now - s.get("ts").getAsLong() > limit) continue;
+                s.addProperty("phoneNumber", other.phoneNumber);
+                // Anzeigename aus Kontakten
+                JsonArray contacts = loadContacts(guildId, c.phoneNumber);
+                String displayName = other.phoneNumber;
+                for (JsonElement el : contacts) {
+                    if (other.phoneNumber.equals(el.getAsJsonObject().get("number").getAsString())) {
+                        displayName = el.getAsJsonObject().get("name").getAsString(); break;
+                    }
+                }
+                // Avatar aus Profil
+                JsonObject profile = loadProfile(guildId, other.phoneNumber);
+                s.addProperty("displayName", displayName);
+                s.addProperty("avatar",      profileStr(profile, "avatar", ""));
+                result.add(s);
+            } catch (Exception ignored) {}
+        }
+        ctx.json(GSON.toJson(result));
+    }
+
+    public static void handleSetStatus(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        JsonObject body = parseBody(ctx);
+        if (body == null) { ctx.status(400).json(err("Ungültiger Body")); return; }
+        JsonObject s = new JsonObject();
+        if (body.has("text"))  s.addProperty("text",  str(body, "text"));
+        if (body.has("emoji")) s.addProperty("emoji", str(body, "emoji"));
+        if (body.has("color")) s.addProperty("color", str(body, "color"));
+        s.addProperty("ts", System.currentTimeMillis());
+        DataStore.writeString("city-status-" + guildId() + "-" + c.phoneNumber, GSON.toJson(s));
+        ctx.json("{\"ok\":true}");
+    }
+
+    public static void handleDeleteStatus(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        DataStore.writeString("city-status-" + guildId() + "-" + c.phoneNumber, null);
+        ctx.json("{\"ok\":true}");
     }
 
     // ── Lookup ────────────────────────────────────────────────────────────────
