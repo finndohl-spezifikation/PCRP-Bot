@@ -750,7 +750,7 @@ public class Main {
                 Commands.slash("vorschlag-ablehnen", "Lehnt einen aktiven Vorschlag ab")
                     .addOptions(new OptionData(OptionType.STRING, "vorschlag", "Vorschlag auswählen", true, true))
                     .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 
             );
         }
