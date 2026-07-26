@@ -44,6 +44,9 @@ public class Main {
         // Lotto-Scheduler starten (zieht täglich um 12:00 Uhr)
         new LottoScheduler().start();
 
+        // Handy-Abrechnungs-Scheduler (monatlich 1.000$)
+        new PhoneScheduler().start();
+
         ModerationListener      moderationListener  = new ModerationListener();
         GuildProtectionListener protectionListener  = new GuildProtectionListener();
         WelcomeListener         welcomeListener     = new WelcomeListener();
@@ -89,7 +92,8 @@ public class Main {
                 new RubbellosListener(),
                 new ShopListener(),
                 new BankListener(),
-                new BargeldListener()
+                new BargeldListener(),
+                new HandyCentraleListener()
             )
             .build();
     }
@@ -162,6 +166,7 @@ public class Main {
                 postRubbellosPanel(guild);
                 ShopListener.postPanelIfNeeded(guild);
                 BankListener.postPanelIfNeeded(guild);
+                HandyCentraleListener.postPanel(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,

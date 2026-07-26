@@ -68,6 +68,21 @@ public class WebServer {
         // Admin: Nachricht in Channel senden
         app.post("/api/admin/announce",                WebServer::handleAdminAnnounce);
 
+        // ── City Chat ──────────────────────────────────────────────────────
+        app.get( "/city-chat",                         WebServer::serveCityChat);
+        app.post("/api/city-chat/auth",                ctx -> CityChatHandler.handleAuth(ctx));
+        app.get( "/api/city-chat/me",                  ctx -> CityChatHandler.handleGetMe(ctx));
+        app.put( "/api/city-chat/me",                  ctx -> CityChatHandler.handleUpdateMe(ctx));
+        app.get( "/api/city-chat/contacts",            ctx -> CityChatHandler.handleGetContacts(ctx));
+        app.post("/api/city-chat/contacts",            ctx -> CityChatHandler.handleAddContact(ctx));
+        app.delete("/api/city-chat/contacts/{number}", ctx -> CityChatHandler.handleDeleteContact(ctx));
+        app.get( "/api/city-chat/chats",               ctx -> CityChatHandler.handleGetChats(ctx));
+        app.get( "/api/city-chat/messages/{chatId}",   ctx -> CityChatHandler.handleGetMessages(ctx));
+        app.post("/api/city-chat/messages",            ctx -> CityChatHandler.handleSendMessage(ctx));
+        app.post("/api/city-chat/block",               ctx -> CityChatHandler.handleBlock(ctx));
+        app.delete("/api/city-chat/block/{number}",    ctx -> CityChatHandler.handleUnblock(ctx));
+        app.get( "/api/city-chat/blocked",             ctx -> CityChatHandler.handleGetBlocked(ctx));
+
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
     }
@@ -115,6 +130,17 @@ public class WebServer {
 
         out.addProperty("ok", true);
         ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    // ── city-chat.html ─────────────────────────────────────────
+
+    private static void serveCityChat(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/city-chat.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            ctx.status(500).result("Interner Fehler");
+        }
     }
 
     // ── index.html ─────────────────────────────────────────────

@@ -128,6 +128,9 @@ public final class LoggingConfig {
 
     public static final long RUBBELLOS_CHANNEL_ID   = 1529636565347995719L;
 
+    /** Handy-Zentrale Panel-Kanal. */
+    public static final long HANDY_ZENTRALE_CHANNEL_ID = 1529636579826729140L;
+
     /** Lotto-Ziehungs-Ergebnis-Kanal (normale Nachrichten). */
     public static final long LOTTO_RESULT_CHANNEL_ID = 1490890318214860890L;
 

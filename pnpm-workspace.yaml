@@ -35,9 +35,7 @@ minimumReleaseAgeExclude:
   - stripe-replit-sync
 
 packages:
-  - artifacts/*
-  - lib/*
-  - lib/integrations/*
+  - artifacts/mockup-sandbox
   - scripts
 
 catalog:
