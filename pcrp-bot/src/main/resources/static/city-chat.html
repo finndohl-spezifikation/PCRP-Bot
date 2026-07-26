@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="City Chat"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="/icon-192.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
@@ -645,6 +647,48 @@ function showApp(){
   loadChats();
   loadStatuses();
   startPoll();
+  initPush();
+}
+
+// ── Web Push ───────────────────────────────────────────────────────────────
+async function initPush(){
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)) return;
+  try{
+    // Service Worker registrieren
+    const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/'});
+    await navigator.serviceWorker.ready;
+
+    // Bestehende Subscription prüfen
+    let sub=await reg.pushManager.getSubscription();
+
+    // Wenn keine Subscription → Permission anfragen + subscriben
+    if(!sub){
+      const perm=await Notification.requestPermission();
+      if(perm!=='granted') return;
+      const keyRes=await fetch((window.API_BASE||'')+'/api/city-chat/vapid-public-key');
+      const keyData=await keyRes.json();
+      const vapidKey=urlBase64ToUint8Array(keyData.key);
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:vapidKey
+      });
+    }
+
+    // Subscription ans Backend senden
+    const keys=sub.toJSON().keys||{};
+    await api('POST','/api/city-chat/push-subscribe',{
+      endpoint: sub.endpoint,
+      p256dh:   keys.p256dh||'',
+      auth:     keys.auth||''
+    });
+  }catch(e){ console.warn('[Push] Init fehlgeschlagen:',e); }
+}
+
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
 }
 
 function renderMyAvatar(){

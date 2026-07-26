@@ -103,6 +103,15 @@ public class WebServer {
         app.get( "/api/city-chat/statuses",            ctx -> CityChatHandler.handleGetStatuses(ctx));
         app.post("/api/city-chat/status",              ctx -> CityChatHandler.handleSetStatus(ctx));
         app.delete("/api/city-chat/status",            ctx -> CityChatHandler.handleDeleteStatus(ctx));
+        // Push-Benachrichtigungen
+        app.get( "/sw.js",                              WebServer::serveServiceWorker);
+        app.get( "/manifest.json",                      WebServer::serveManifest);
+        app.get( "/icon-192.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-192.png", "image/png"));
+        app.get( "/icon-512.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-512.png", "image/png"));
+        app.get( "/badge-72.png",                       ctx -> serveStaticBinary(ctx, "/static/badge-72.png",  "image/png"));
+        app.get( "/api/city-chat/vapid-public-key",     ctx -> ctx.contentType("application/json").result("{\"key\":\"" + PushService.VAPID_PUBLIC + "\"}"));
+        app.post("/api/city-chat/push-subscribe",       ctx -> CityChatHandler.handlePushSubscribe(ctx));
+        app.post("/api/city-chat/push-unsubscribe",     ctx -> CityChatHandler.handlePushUnsubscribe(ctx));
         app.get( "/api/city-chat/partner-profile",      ctx -> CityChatHandler.handleGetPartnerProfile(ctx));
         app.get( "/api/city-chat/firma-links",         ctx -> CityChatHandler.handleGetFirmaLinks(ctx));
         app.post("/api/city-chat/firma-links",         ctx -> CityChatHandler.handleAddFirmaLink(ctx));
@@ -160,6 +169,32 @@ public class WebServer {
 
         out.addProperty("ok", true);
         ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    // ── Service Worker + Manifest + Icons ──────────────────────
+
+    private static void serveServiceWorker(Context ctx) {
+        try (var is = WebServer.class.getResourceAsStream("/static/sw.js")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType("application/javascript")
+               .header("Service-Worker-Allowed", "/")
+               .header("Cache-Control", "no-cache")
+               .result(is.readAllBytes());
+        } catch (Exception e) { ctx.status(500).result("Fehler"); }
+    }
+
+    private static void serveManifest(Context ctx) {
+        try (var is = WebServer.class.getResourceAsStream("/static/manifest.json")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType("application/manifest+json").result(is.readAllBytes());
+        } catch (Exception e) { ctx.status(500).result("Fehler"); }
+    }
+
+    private static void serveStaticBinary(Context ctx, String resourcePath, String contentType) {
+        try (var is = WebServer.class.getResourceAsStream(resourcePath)) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType(contentType).result(is.readAllBytes());
+        } catch (Exception e) { ctx.status(500).result("Fehler"); }
     }
 
     // ── banned.html ────────────────────────────────────────────

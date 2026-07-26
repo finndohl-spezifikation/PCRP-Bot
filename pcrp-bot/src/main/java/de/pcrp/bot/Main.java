@@ -109,6 +109,7 @@ public class Main {
         public void onReady(ReadyEvent event) {
             JDA jda = event.getJDA();
             BotContext.setJda(jda);
+            de.pcrp.bot.web.PushService.init();
 
             // Globale Commands entfernen (kein 1h-Delay)
             jda.updateCommands().queue();

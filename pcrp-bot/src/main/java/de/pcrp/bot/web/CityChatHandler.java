@@ -325,6 +325,33 @@ public final class CityChatHandler {
 
         saveMessages(guildId, chatId, msgs);
         ctx.json("{\"ok\":true}");
+
+        // Push-Benachrichtigung an Empfänger (im Hintergrund)
+        final String senderName;
+        JsonObject recipientProfile = loadProfile(guildId, to);
+        // Empfänger-Name für die Notification: Sender-Name aus Empfänger-Kontaktbuch oder displayName
+        String contactKey = contactKey(guildId, to);
+        String contactsRaw = DataStore.readString(contactKey);
+        String senderDisplayName = c.displayName();
+        if (contactsRaw != null) {
+            try {
+                for (JsonElement el : JsonParser.parseString(contactsRaw).getAsJsonArray()) {
+                    JsonObject co = el.getAsJsonObject();
+                    if (c.phoneNumber.equals(str(co, "number"))) {
+                        senderDisplayName = str(co, "name");
+                        break;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        senderName = senderDisplayName;
+        final String finalContent = "voice".equals(type) ? "🎤 Sprachnachricht" : content;
+        final String finalGuildId = guildId;
+        final String finalTo = to;
+        String railwayUrl = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", "pcrp-bot-production-3ad1.up.railway.app");
+        if (!railwayUrl.startsWith("http")) railwayUrl = "https://" + railwayUrl;
+        final String chatUrl = railwayUrl.replaceAll("/$", "") + "/city-chat";
+        new Thread(() -> PushService.push(finalGuildId, finalTo, senderName, finalContent, chatUrl), "push-send").start();
     }
 
     // ── Blockieren ────────────────────────────────────────────────────────────
@@ -534,6 +561,31 @@ public final class CityChatHandler {
     }
 
     /** Gibt eigene Links zurück (alle Status). Mit ?phone=X nur genehmigte eines anderen. */
+    // ── Push-Subscriptions ────────────────────────────────────────────────────
+
+    public static void handlePushSubscribe(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        JsonObject body = parseBody(ctx);
+        if (body == null) { ctx.status(400).json(err("Ungültiger Body")); return; }
+        String endpoint = str(body, "endpoint");
+        String p256dh   = str(body, "p256dh");
+        String auth     = str(body, "auth");
+        if (endpoint == null || p256dh == null || auth == null) {
+            ctx.status(400).json(err("endpoint, p256dh und auth erforderlich")); return;
+        }
+        PushService.subscribe(guildId(), c.phoneNumber, endpoint, p256dh, auth);
+        ctx.json("{\"ok\":true}");
+    }
+
+    public static void handlePushUnsubscribe(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        JsonObject body = parseBody(ctx);
+        if (body == null) { ctx.status(400).json(err("Ungültiger Body")); return; }
+        String endpoint = str(body, "endpoint");
+        if (endpoint != null) PushService.unsubscribe(guildId(), c.phoneNumber, endpoint);
+        ctx.json("{\"ok\":true}");
+    }
+
     public static void handleGetFirmaLinks(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
         String phone   = ctx.queryParam("phone");
