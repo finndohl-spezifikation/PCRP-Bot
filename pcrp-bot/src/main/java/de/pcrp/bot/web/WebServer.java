@@ -65,6 +65,9 @@ public class WebServer {
         // User-Resolve (Username → User-ID)
         app.post("/api/resolve-user",                  WebServer::handleResolveUser);
 
+        // Admin: Nachricht in Channel senden
+        app.post("/api/admin/announce",                WebServer::handleAdminAnnounce);
+
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
     }
@@ -399,6 +402,38 @@ public class WebServer {
 
     private static void serveLotto(Context ctx) {
         ctx.contentType("text/html;charset=utf-8").result(buildLottoPage());
+    }
+
+    private static void handleAdminAnnounce(Context ctx) {
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) { ctx.status(400).result("bad json"); return; }
+        if (body == null) { ctx.status(400).result("empty body"); return; }
+
+        String secret  = body.has("secret")    ? body.get("secret").getAsString()    : "";
+        String chanId  = body.has("channelId") ? body.get("channelId").getAsString() : "";
+        String title   = body.has("title")     ? body.get("title").getAsString()     : "";
+        String desc    = body.has("desc")      ? body.get("desc").getAsString()       : "";
+
+        String envSecret = System.getenv("ADMIN_SECRET");
+        String expected  = (envSecret != null && !envSecret.isBlank()) ? envSecret : "pcrp-admin-2026";
+        if (!expected.equals(secret)) {
+            ctx.status(403).result("forbidden"); return;
+        }
+
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { ctx.status(503).result("bot not ready"); return; }
+
+        net.dv8tion.jda.api.entities.channel.concrete.TextChannel ch =
+            guild.getTextChannelById(chanId);
+        if (ch == null) { ctx.status(404).result("channel not found"); return; }
+
+        MessageEmbed embed = EmbedFactory.build(title, desc);
+        ch.sendMessageEmbeds(embed).queue(
+            ok  -> log.info("[Admin] Announce gesendet in {}", chanId),
+            err -> log.error("[Admin] Announce fehlgeschlagen", err)
+        );
+        ctx.status(200).result("ok");
     }
 
     private static void handleResolveUser(Context ctx) {
