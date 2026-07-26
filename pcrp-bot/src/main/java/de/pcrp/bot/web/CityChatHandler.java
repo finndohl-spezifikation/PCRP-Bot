@@ -113,10 +113,19 @@ public final class CityChatHandler {
         if (number == null || name == null) { ctx.status(400).json(err("number und name erforderlich")); return; }
         String guildId = guildId();
 
-        // Existiert die Nummer?
-        if (PhoneManager.getContractByNumber(guildId, number) == null) {
-            ctx.status(404).json(err("Rufnummer nicht gefunden")); return;
+        // Existiert die Nummer? (exakt oder normalisiert)
+        PhoneManager.Contract found = PhoneManager.getContractByNumber(guildId, number);
+        if (found == null) {
+            String normalized = number.replaceAll("[^0-9]", "");
+            for (PhoneManager.Contract other : PhoneManager.getAllContracts(guildId)) {
+                if (other.phoneNumber.replaceAll("[^0-9]", "").equals(normalized)) {
+                    found = other; break;
+                }
+            }
         }
+        if (found == null) { ctx.status(404).json(err("Rufnummer nicht gefunden")); return; }
+        // Immer das gespeicherte Format verwenden
+        number = found.phoneNumber;
 
         JsonArray contacts = loadContacts(guildId, c.phoneNumber);
         // Duplikat prüfen
