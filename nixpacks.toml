@@ -1,2 +1,1 @@
-[phases.install]
-cmds = ["pnpm install --no-frozen-lockfile"]
+# Nicht verwendet – Railway nutzt pcrp-bot/Dockerfile
