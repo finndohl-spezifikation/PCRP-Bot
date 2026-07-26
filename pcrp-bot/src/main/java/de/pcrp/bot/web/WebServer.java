@@ -86,6 +86,7 @@ public class WebServer {
         app.post("/api/city-chat/block",               ctx -> CityChatHandler.handleBlock(ctx));
         app.delete("/api/city-chat/block/{number}",    ctx -> CityChatHandler.handleUnblock(ctx));
         app.get( "/api/city-chat/blocked",             ctx -> CityChatHandler.handleGetBlocked(ctx));
+        app.get( "/api/city-chat/lookup",              ctx -> CityChatHandler.handleLookup(ctx));
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);

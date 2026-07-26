@@ -339,6 +339,21 @@ public final class CityChatHandler {
         try { return JsonParser.parseString(raw).getAsJsonArray(); } catch (Exception e) { return new JsonArray(); }
     }
 
+    // ── Lookup ────────────────────────────────────────────────────────────────
+
+    public static void handleLookup(Context ctx) {
+        PhoneManager.Contract c = auth(ctx);
+        if (c == null) return;
+        String number = ctx.queryParam("number");
+        if (number == null || number.isBlank()) { ctx.status(400).json(err("Nummer fehlt")); return; }
+        String guildId = guildId();
+        PhoneManager.Contract found = PhoneManager.getContractByNumber(guildId, number);
+        if (found == null) { ctx.status(404).json(err("Nummer nicht gefunden")); return; }
+        JsonObject res = new JsonObject();
+        res.addProperty("phoneNumber", found.phoneNumber);
+        ctx.json(GSON.toJson(res));
+    }
+
     private static void saveContacts(String guildId, String phone, JsonArray contacts) {
         DataStore.writeString(contactKey(guildId, phone), GSON.toJson(contacts));
     }

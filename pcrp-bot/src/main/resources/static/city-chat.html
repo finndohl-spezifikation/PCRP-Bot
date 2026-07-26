@@ -177,7 +177,7 @@ audio{max-width:200px;height:32px;border-radius:8px}
     <h1>City Chat</h1>
     <p>Paradise City Roleplay — Ingame Kommunikation</p>
     <div class="login-fields">
-      <input id="l-phone" type="text" placeholder="Rufnummer z.B. (213) 555-1234" autocomplete="off"/>
+      <input id="l-phone" type="text" placeholder="Rufnummer z.B. +3105551234" autocomplete="off"/>
       <input id="l-pin" type="password" placeholder="Safe-Pin (4 Ziffern)" maxlength="4" autocomplete="off"/>
       <div id="login-err" class="login-err hidden"></div>
       <button class="login-btn" id="login-btn">Anmelden</button>
@@ -261,7 +261,7 @@ audio{max-width:200px;height:32px;border-radius:8px}
     <div class="modal-body">
       <div class="search-row">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input id="nc-search" type="text" placeholder="Rufnummer oder Name suchen"/>
+        <input id="nc-search" type="text" placeholder="Rufnummer eingeben…" inputmode="tel"/>
       </div>
       <div id="nc-list" class="modal-list"></div>
     </div>
@@ -626,28 +626,41 @@ document.getElementById('new-chat-btn').addEventListener('click',()=>{
   document.getElementById('new-chat-modal').classList.remove('hidden');
   setTimeout(()=>document.getElementById('nc-search').focus(),100);
 });
-document.getElementById('nc-search').addEventListener('input',renderNewChatList);
+let ncLookupTimer=null;
+document.getElementById('nc-search').addEventListener('input',()=>{
+  clearTimeout(ncLookupTimer);
+  ncLookupTimer=setTimeout(renderNewChatList,400);
+});
 
-function renderNewChatList(){
-  const q=document.getElementById('nc-search').value.toLowerCase();
+async function renderNewChatList(){
+  const q=document.getElementById('nc-search').value.trim();
   const list=document.getElementById('nc-list');
   list.innerHTML='';
-  if(!q){ list.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.85rem;text-align:center;padding:1rem">Rufnummer oder Kontaktname eingeben</div>'; return; }
-  const matches=contacts.filter(c=>c.name.toLowerCase().includes(q)||c.number.includes(q));
-  if(!matches.length){
-    // Direkte Nummerneingabe
+  if(!q){ list.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.85rem;text-align:center;padding:1rem">Rufnummer eingeben</div>'; return; }
+
+  // Erst lokale Kontakte prüfen
+  const match=contacts.find(c=>c.number===q);
+  if(match){
     const item=document.createElement('div'); item.className='modal-item';
-    item.innerHTML=`<div class="mi-av">#</div><div><div class="mi-name">${esc(q)}</div><div class="mi-num">Direkt starten</div></div>`;
-    item.addEventListener('click',()=>{ startChat(q,q); closeModal('new-chat-modal'); });
+    const color=colorFor(match.number);
+    item.innerHTML=`<div class="mi-av" style="background:${color}">${match.name[0].toUpperCase()}</div><div class="mi-name">${esc(match.name)}</div><div class="mi-num">${esc(match.number)}</div>`;
+    item.addEventListener('click',()=>{ startChat(match.number,match.name); closeModal('new-chat-modal'); });
     list.appendChild(item);
     return;
   }
-  for(const c of matches){
+
+  // Server-Lookup: existiert diese Nummer?
+  list.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.85rem;text-align:center;padding:1rem">Suche…</div>';
+  try{
+    const res=await api('GET',`/api/city-chat/lookup?number=${encodeURIComponent(q)}`);
+    list.innerHTML='';
     const item=document.createElement('div'); item.className='modal-item';
-    const color=colorFor(c.number);
-    item.innerHTML=`<div class="mi-av" style="background:${color}">${c.name[0].toUpperCase()}</div><div class="mi-name">${esc(c.name)}</div>`;
-    item.addEventListener('click',()=>{ startChat(c.number,c.name); closeModal('new-chat-modal'); });
+    const color=colorFor(res.phoneNumber);
+    item.innerHTML=`<div class="mi-av" style="background:${color}">${res.phoneNumber[0]}</div><div class="mi-name">${esc(res.phoneNumber)}</div><div class="mi-num">Unbekannt</div>`;
+    item.addEventListener('click',()=>{ startChat(res.phoneNumber,res.phoneNumber); closeModal('new-chat-modal'); });
     list.appendChild(item);
+  }catch(e){
+    list.innerHTML='<div style="color:rgba(255,255,255,.3);font-size:.85rem;text-align:center;padding:1rem">Nummer nicht gefunden</div>';
   }
 }
 
