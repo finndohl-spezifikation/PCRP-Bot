@@ -2,6 +2,9 @@ package de.pcrp.bot.common;
 
 import com.google.gson.*;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -115,32 +118,54 @@ public final class PhoneManager {
         return String.format("%04d", 1000 + new Random().nextInt(9000));
     }
 
-    // ── Session (City Chat Login) ─────────────────────────────────────────────
+    // ── Session (City Chat Login) — self-contained HMAC token ────────────────
+    // Format: base64url(guildId:phoneNumber:expiresMs).base64url(HMAC-SHA256)
+    // Überlebt Railway-Redeploys, kein DataStore nötig.
 
-    public static String createSession(String guildId, String phoneNumber) {
-        String token = UUID.randomUUID().toString().replace("-", "");
-        JsonObject o = new JsonObject();
-        o.addProperty("guildId",     guildId);
-        o.addProperty("phoneNumber", phoneNumber);
-        o.addProperty("created",     System.currentTimeMillis());
-        DataStore.writeString("city-session-" + token, GSON.toJson(o));
-        return token;
+    private static final long SESSION_TTL_MS = 7L * 24 * 3600 * 1000;
+
+    private static String hmacSecret() {
+        String s = System.getenv("SESSION_SECRET");
+        return (s != null && !s.isBlank()) ? s : "pcrp-city-chat-fallback-secret-2026";
     }
 
-    /** Gibt Vertrag zurück wenn Session gültig (max 7 Tage), sonst null. */
+    private static String hmacSign(String payload) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(hmacSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] sig = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(sig);
+        } catch (Exception e) { throw new RuntimeException("HMAC failed", e); }
+    }
+
+    /** Erstellt einen signierten, DataStore-freien Session-Token (7 Tage gültig). */
+    public static String createSession(String guildId, String phoneNumber) {
+        long expires = System.currentTimeMillis() + SESSION_TTL_MS;
+        String data    = guildId + ":" + phoneNumber + ":" + expires;
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                              .encodeToString(data.getBytes(StandardCharsets.UTF_8));
+        String sig     = hmacSign(payload);
+        return payload + "." + sig;
+    }
+
+    /** Gibt Vertrag zurück wenn Token gültig und nicht abgelaufen, sonst null. */
     public static Contract validateSession(String token) {
         if (token == null || token.isBlank()) return null;
-        String raw = DataStore.readString("city-session-" + token);
-        if (raw == null) return null;
         try {
-            JsonObject o = JsonParser.parseString(raw).getAsJsonObject();
-            long created = o.get("created").getAsLong();
-            if (System.currentTimeMillis() - created > 7L * 24 * 3600 * 1000) {
-                DataStore.deleteKey("city-session-" + token);
-                return null;
-            }
-            String guildId     = o.get("guildId").getAsString();
-            String phoneNumber = o.get("phoneNumber").getAsString();
+            int dot = token.lastIndexOf('.');
+            if (dot < 0) return null;
+            String payload = token.substring(0, dot);
+            String sig     = token.substring(dot + 1);
+            // Signatur prüfen
+            if (!hmacSign(payload).equals(sig)) return null;
+            // Payload dekodieren
+            String data = new String(Base64.getUrlDecoder().decode(payload), StandardCharsets.UTF_8);
+            String[] parts = data.split(":", 3);
+            if (parts.length != 3) return null;
+            String guildId     = parts[0];
+            String phoneNumber = parts[1];
+            long   expires     = Long.parseLong(parts[2]);
+            if (System.currentTimeMillis() > expires) return null;
             return getContractByNumber(guildId, phoneNumber);
         } catch (Exception e) { return null; }
     }
