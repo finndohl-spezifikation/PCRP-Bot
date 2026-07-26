@@ -49,6 +49,7 @@ public class PhoneScheduler {
             long balance = BankManager.getBalance(guildId, c.userId);
             if (balance >= MONTHLY_FEE) {
                 BankManager.setBalance(guildId, c.userId, balance - MONTHLY_FEE);
+                BankManager.addTransaction(guildId, c.userId, "HANDY_MONATSGEBÜHR", MONTHLY_FEE, null);
                 charged++;
                 log.debug("[PhoneScheduler] 1.000$ von {} ({}) abgezogen.", c.displayName(), c.userId);
 

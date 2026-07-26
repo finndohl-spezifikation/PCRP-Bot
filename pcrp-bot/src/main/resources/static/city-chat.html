@@ -139,10 +139,9 @@ audio{max-width:200px;height:32px;border-radius:8px}
 .send-btn{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
 .send-btn:hover{filter:brightness(1.1)}
 .send-btn svg{width:18px;height:18px}
-.emoji-btn,.mic-btn{color:rgba(255,255,255,.4);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
-.emoji-btn:hover,.mic-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
-.emoji-btn svg,.mic-btn svg{width:20px;height:20px}
-.mic-btn.recording{color:#ff4444;animation:pulse 1s infinite}
+.emoji-btn{color:rgba(255,255,255,.4);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
+.emoji-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.emoji-btn svg{width:20px;height:20px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
 /* Emoji Picker */
@@ -239,20 +238,19 @@ audio{max-width:200px;height:32px;border-radius:8px}
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN (wird gezeigt wenn kein Token vorhanden) -->
 <div id="login-screen" class="screen">
   <div class="login-card">
     <div class="login-icon">
       <svg viewBox="0 0 48 48" fill="none"><path d="M24 4C12.95 4 4 12.95 4 24c0 3.73 1.02 7.22 2.8 10.22L4 44l10.1-2.74A19.88 19.88 0 0024 44c11.05 0 20-8.95 20-20S35.05 4 24 4z" fill="white"/><path d="M14 19h20a2 2 0 012 2v8a2 2 0 01-2 2h-7l-5 5v-5h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" fill="#CC5500"/></svg>
     </div>
     <h1>City Chat</h1>
-    <p>Paradise City Roleplay — Ingame Kommunikation</p>
-    <div class="login-fields">
-      <input id="l-phone" type="text" placeholder="Rufnummer z.B. 3105551234" autocomplete="off" inputmode="tel"/>
-      <input id="l-pin" type="password" placeholder="Safe-Pin (4 Ziffern)" maxlength="4" autocomplete="off"/>
-      <div id="login-err" class="login-err hidden"></div>
-      <button class="login-btn" id="login-btn">Anmelden</button>
-    </div>
+    <p style="font-size:1rem;color:rgba(255,255,255,.7);text-align:center;line-height:1.6">
+      Öffne City Chat über die<br/><strong style="color:var(--accent)">Handy-Zentrale</strong> auf Discord
+    </p>
+    <p style="font-size:.78rem;color:rgba(255,255,255,.25);text-align:center;margin-top:.25rem">
+      Den Link findest du in der Handy-Zentrale auf dem PCRP-Discord-Server.
+    </p>
   </div>
 </div>
 
@@ -307,6 +305,9 @@ audio{max-width:200px;height:32px;border-radius:8px}
         <button class="sb-btn" id="block-btn" title="Blockieren">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
         </button>
+        <button class="sb-btn hidden" id="gov-hide-btn" title="Nachrichten ausblenden" style="color:rgba(255,200,0,.5)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </button>
       </div>
       <div class="messages" id="messages"></div>
       <div class="input-bar" style="position:relative">
@@ -315,9 +316,6 @@ audio{max-width:200px;height:32px;border-radius:8px}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
         </button>
         <input id="msg-input" type="text" placeholder="Nachricht schreiben..."/>
-        <button class="mic-btn" id="mic-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-        </button>
         <button class="send-btn" id="send-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         </button>
@@ -457,7 +455,6 @@ audio{max-width:200px;height:32px;border-radius:8px}
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let token=null, me=null, contacts=[], chats=[], activeChatId=null, activePartner=null;
-let mediaRecorder=null, audioChunks=[], isRecording=false;
 let pollTimer=null, msgPollTimer=null;
 
 const COLORS=['#D32F2F','#C2185B','#7B1FA2','#512DA8','#1976D2','#0288D1','#00796B','#388E3C','#F57C00','#CC5500'];
@@ -504,7 +501,16 @@ async function init(){
   applyTheme();
   const params=new URLSearchParams(location.search);
   const t=params.get('token');
-  if(t){ token=t; try{ me=await api('GET','/api/city-chat/me'); showApp(); return; }catch(e){ token=null; } }
+  if(t){
+    token=t;
+    try{
+      me=await api('GET','/api/city-chat/me');
+      showApp(); return;
+    }catch(e){
+      token=null;
+      if(e.message==='WEB_BANNED'){ window.location.href='/banned'; return; }
+    }
+  }
   showLogin();
 }
 
@@ -631,17 +637,37 @@ async function openChat(chatId,phone,name){
   renderChatList();
   document.getElementById('empty-panel').classList.add('hidden');
   const ac=document.getElementById('active-chat'); ac.classList.remove('hidden'); ac.style.display='flex';
+
+  const isGov = chatId==='gov';
+
   // Avatar des Partners laden
   const partnerChat=chats.find(c=>c.chatId===chatId);
   const av=document.getElementById('ch-avatar');
-  if(partnerChat&&partnerChat.avatar){
+  if(isGov){
+    av.innerHTML='🏛️'; av.style.background='rgba(180,130,0,.25)'; av.style.fontSize='1.3rem';
+  } else if(partnerChat&&partnerChat.avatar){
     av.innerHTML=`<img src="${partnerChat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
     av.style.background='';
   } else {
     av.textContent=name[0].toUpperCase(); av.style.background=colorFor(phone);
   }
   document.getElementById('ch-name').textContent=name;
-  document.getElementById('ch-status').textContent=phone;
+  document.getElementById('ch-status').textContent=isGov?'Nur lesen — von der Regierung':phone;
+
+  // Input-Bar & Block-Button je nach Gov-Status ein/ausblenden
+  const inputBar=document.querySelector('.input-bar');
+  const blockBtn=document.getElementById('block-btn');
+  const govHideBtn=document.getElementById('gov-hide-btn');
+  if(isGov){
+    inputBar.style.display='none';
+    blockBtn.style.display='none';
+    govHideBtn.classList.remove('hidden');
+  } else {
+    inputBar.style.display='';
+    blockBtn.style.display='';
+    govHideBtn.classList.add('hidden');
+  }
+
   // Mobile
   document.getElementById('sidebar').classList.add('hide-mobile');
   document.getElementById('chat-panel').classList.add('show-mobile');
@@ -649,7 +675,7 @@ async function openChat(chatId,phone,name){
   await loadMessages();
   clearInterval(msgPollTimer);
   msgPollTimer=setInterval(()=>{ if(activeChatId===chatId) loadMessages(false); },1000);
-  document.getElementById('msg-input').focus();
+  if(!isGov) document.getElementById('msg-input').focus();
 }
 
 document.getElementById('back-btn').addEventListener('click',()=>{
@@ -662,14 +688,28 @@ document.getElementById('back-btn').addEventListener('click',()=>{
   renderChatList();
 });
 
+document.getElementById('gov-hide-btn').addEventListener('click',async()=>{
+  if(!confirm('Regierungs-Nachrichten ausblenden? Sie erscheinen wieder, wenn eine neue Nachricht kommt.')) return;
+  try{ await api('DELETE','/api/city-chat/gov-messages'); }catch(e){}
+  document.getElementById('back-btn').click();
+  await loadChats();
+});
+
 // ── Messages ───────────────────────────────────────────────────────────────
 let lastCount=0;
 async function loadMessages(scroll=true){
   if(!activeChatId) return;
   try{
-    const msgs=await api('GET',`/api/city-chat/messages/${activeChatId}`);
-    renderMessages(msgs,scroll||msgs.length!==lastCount);
-    lastCount=msgs.length;
+    const url=activeChatId==='gov'
+      ?'/api/city-chat/gov-messages'
+      :`/api/city-chat/messages/${activeChatId}`;
+    const msgs=await api('GET',url);
+    // Gov-Nachrichten in renderMessages-Format umwandeln
+    const normalized=activeChatId==='gov'
+      ?msgs.map(m=>({id:m.id,from:'gov',content:m.text,type:'text',ts:m.ts,govAuthor:m.author}))
+      :msgs;
+    renderMessages(normalized,scroll||normalized.length!==lastCount);
+    lastCount=normalized.length;
   }catch(e){}
 }
 
@@ -683,29 +723,27 @@ function renderMessages(msgs,scroll){
   for(const m of msgs){
     const d=fmtDate(m.ts);
     if(d!==lastDate){ const div=document.createElement('div'); div.className='date-sep'; div.innerHTML=`<span>${esc(d)}</span>`; c.appendChild(div); lastDate=d; lastFrom=''; }
-    const mine=m.from===me.phoneNumber;
+    const isGovMsg=m.from==='gov';
+    const mine=!isGovMsg&&m.from===me.phoneNumber;
     const gap=m.from!==lastFrom; lastFrom=m.from;
     const row=document.createElement('div');
-    row.className=`msg-row ${mine?'mine':'theirs'}${gap?' gap':''}`;
+    row.className=`msg-row ${isGovMsg?'theirs':mine?'mine':'theirs'}${gap?' gap':''}`;
     const t=new Date(m.ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    let content='';
-    if(m.type==='voice'){
-      content=`<audio controls src="${m.content}"></audio>`;
-    } else {
-      content=esc(m.content);
-    }
+    let content=esc(m.content);
+    // Gov: Absender-Label darüber
+    let authorLabel='';
+    if(isGovMsg && m.govAuthor) authorLabel=`<div style="font-size:.7rem;color:rgba(255,200,0,.6);margin-bottom:2px;font-weight:600">🏛️ ${esc(m.govAuthor)}</div>`;
     // Ticks: nur für eigene Nachrichten, wenn Lesebestätigung aktiv
     let tickHtml='';
     if(mine && cfg.read){
-      if(m.read){
-        tickHtml=`<span class="ticks" style="color:var(--accent)">${DOUBLE_TICK}</span>`;
-      } else {
-        tickHtml=`<span class="ticks" style="color:rgba(255,255,255,.25)">${DOUBLE_TICK}</span>`;
-      }
+      tickHtml=m.read
+        ?`<span class="ticks" style="color:var(--accent)">${DOUBLE_TICK}</span>`
+        :`<span class="ticks" style="color:rgba(255,255,255,.25)">${DOUBLE_TICK}</span>`;
     } else if(mine){
       tickHtml=`<span class="ticks" style="color:rgba(255,255,255,.25)">${TICK_SVG}</span>`;
     }
-    row.innerHTML=`<div class="bubble">${content}<div class="bubble-meta"><span class="bubble-time">${t}</span>${tickHtml}</div></div>`;
+    let bubbleStyle=isGovMsg?'style="background:rgba(120,90,0,.35);border-left:3px solid rgba(255,200,0,.5)"':'';
+    row.innerHTML=`<div class="bubble" ${bubbleStyle}>${authorLabel}${content}<div class="bubble-meta"><span class="bubble-time">${t}</span>${tickHtml}</div></div>`;
     c.appendChild(row);
   }
   if(scroll) c.scrollTop=c.scrollHeight;
@@ -713,8 +751,9 @@ function renderMessages(msgs,scroll){
 
 // ── Send ───────────────────────────────────────────────────────────────────
 async function sendMsg(content,type='text'){
-  if(!content||!activePartner) return;
+  if(!content||!activePartner||activeChatId==='gov') return;
   document.getElementById('msg-input').value='';
+  playSend();
   try{
     await api('POST','/api/city-chat/messages',{to:activePartner,content,type});
     await loadMessages(true); await loadChats();
@@ -768,28 +807,20 @@ buildEmojiPicker();
 document.getElementById('emoji-btn').addEventListener('click',e=>{ e.stopPropagation(); picker.classList.toggle('hidden'); });
 document.addEventListener('click',()=>picker.classList.add('hidden'));
 
-// ── Voice ──────────────────────────────────────────────────────────────────
-document.getElementById('mic-btn').addEventListener('click',async()=>{
-  if(!isRecording){
-    try{
-      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-      mediaRecorder=new MediaRecorder(stream); audioChunks=[];
-      mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
-      mediaRecorder.onstop=async()=>{
-        const blob=new Blob(audioChunks,{type:'audio/webm'});
-        const reader=new FileReader();
-        reader.onloadend=()=>sendMsg(reader.result,'voice');
-        reader.readAsDataURL(blob);
-        stream.getTracks().forEach(t=>t.stop());
-      };
-      mediaRecorder.start(); isRecording=true;
-      document.getElementById('mic-btn').classList.add('recording');
-    }catch(e){ alert('Mikrofon-Zugriff verweigert.'); }
-  } else {
-    mediaRecorder.stop(); isRecording=false;
-    document.getElementById('mic-btn').classList.remove('recording');
-  }
-});
+// ── Sende-Sound ────────────────────────────────────────────────────────────
+function playSend(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(); const g=ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type='sine'; o.frequency.setValueAtTime(880,ctx.currentTime);
+    o.frequency.linearRampToValueAtTime(1200,ctx.currentTime+0.07);
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.12,ctx.currentTime+0.02);
+    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.12);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.15);
+  }catch(_){}
+}
 
 // ── Block ──────────────────────────────────────────────────────────────────
 document.getElementById('block-btn').addEventListener('click',async()=>{
@@ -1027,7 +1058,7 @@ function renderStatusBar(){
   // Eigener Status
   const myStatus=statuses.find(s=>s.phoneNumber===me.phoneNumber);
   const myItem=document.createElement('div'); myItem.className='status-item';
-  const myRing=document.createElement('div'); myRing.className='status-ring mine'+(myStatus?'':' empty');
+  const myRing=document.createElement('div'); myRing.className='status-ring'+(myStatus?' mine':' mine empty');
   const myInner=document.createElement('div'); myInner.className='status-inner';
   if(me.avatar){ const img=document.createElement('img'); img.src=me.avatar; myInner.appendChild(img); }
   else { myInner.textContent=(me.displayName||me.phoneNumber)[0].toUpperCase(); myInner.style.background=colorFor(me.phoneNumber); }

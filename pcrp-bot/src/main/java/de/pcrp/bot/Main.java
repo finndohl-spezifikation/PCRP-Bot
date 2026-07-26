@@ -750,6 +750,21 @@ public class Main {
                 Commands.slash("vorschlag-ablehnen", "Lehnt einen aktiven Vorschlag ab")
                     .addOptions(new OptionData(OptionType.STRING, "vorschlag", "Vorschlag auswählen", true, true))
                     .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("bannen-dashboard", "Sperrt ein Mitglied von allen PCRP-Webseiten")
+                    .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.BAN_MEMBERS)),
+
+                Commands.slash("entbannen-dashboard", "Hebt den Web-Bann eines Mitglieds auf")
+                    .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.BAN_MEMBERS)),
+
+                Commands.slash("bewohner-information", "Sendet eine Regierungs-Nachricht an alle City-Chat-Nutzer")
+                    .addOption(OptionType.STRING, "nachricht", "Inhalt der Nachricht (max. 500 Zeichen)", true)
+                    .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
 
             );

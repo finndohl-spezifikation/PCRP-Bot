@@ -90,6 +90,11 @@ public class WebServer {
         app.get( "/api/city-chat/statuses",            ctx -> CityChatHandler.handleGetStatuses(ctx));
         app.post("/api/city-chat/status",              ctx -> CityChatHandler.handleSetStatus(ctx));
         app.delete("/api/city-chat/status",            ctx -> CityChatHandler.handleDeleteStatus(ctx));
+        app.get( "/api/city-chat/gov-messages",        ctx -> CityChatHandler.handleGetGovMessages(ctx));
+        app.delete("/api/city-chat/gov-messages",      ctx -> CityChatHandler.handleDeleteGov(ctx));
+
+        // Banned-Seite
+        app.get("/banned", WebServer::serveBanned);
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
@@ -138,6 +143,17 @@ public class WebServer {
 
         out.addProperty("ok", true);
         ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    // ── banned.html ────────────────────────────────────────────
+
+    private static void serveBanned(Context ctx) {
+        try (var is = WebServer.class.getResourceAsStream("/static/banned.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            ctx.status(500).result("Interner Fehler");
+        }
     }
 
     // ── city-chat.html ─────────────────────────────────────────

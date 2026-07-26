@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gesperrt — PCRP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#050000;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.card{background:#100000;border:2px solid #cc0000;border-radius:20px;padding:2.5rem 2rem;text-align:center;max-width:440px;width:100%;animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 20px rgba(200,0,0,.25);border-color:#cc0000}
+  50%{box-shadow:0 0 60px rgba(200,0,0,.7),0 0 120px rgba(200,0,0,.3);border-color:#ff2222}
+}
+.icon{font-size:4rem;margin-bottom:1rem;display:block}
+.badge{display:inline-block;background:#cc0000;color:#fff;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.3rem .9rem;border-radius:8px;margin-bottom:1.25rem}
+h1{font-size:1.55rem;font-weight:700;color:#ff3333;margin-bottom:.75rem}
+p{color:rgba(255,255,255,.6);line-height:1.7;font-size:.95rem}
+p strong{color:rgba(255,255,255,.85)}
+.sub{margin-top:1.25rem;font-size:.8rem;color:rgba(255,255,255,.25)}
+.divider{border:none;border-top:1px solid rgba(255,0,0,.15);margin:1.25rem 0}
+</style>
+</head>
+<body>
+<div class="card">
+  <span class="icon">🚫</span>
+  <div class="badge">Gesperrt</div>
+  <h1>Kein Zugriff</h1>
+  <p>Du wurdest von <strong>Paradise City Roleplay</strong> gebannt und hast daher auf keine Webseite mehr Zugriff.</p>
+  <hr class="divider"/>
+  <p class="sub">Bei Fragen wende dich über Discord an das PCRP-Team.</p>
+</div>
+</body>
+</html>

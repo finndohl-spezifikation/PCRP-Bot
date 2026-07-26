@@ -39,7 +39,8 @@ public class HandyCentraleListener extends ListenerAdapter {
     private static final String PANEL_KEY      = "panel-handy-zentrale-";
     private static final String ITEM_HANDY     = "Handy";
     private static final int    ITEM_PRICE     = 1000;
-    private static final int    NEUE_NR_PREIS  = 1500;
+    private static final int    NEUE_NR_PREIS  = 500;
+    private static final int    ERSTGEBÜHR     = 1000;
 
     // ── Panel posten ──────────────────────────────────────────────────────────
 
@@ -264,7 +265,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             long balance = BankManager.getBalance(guildId, userId);
             if (balance < NEUE_NR_PREIS) {
                 event.replyEmbeds(EmbedFactory.build("🔄 Neue Nummer",
-                    "❌ Nicht genug Geld. Du benötigst **1.500$**.\nDein Kontostand: **" +
+                    "❌ Nicht genug Geld. Du benötigst **500$**.\nDein Kontostand: **" +
                     ShopManager.formatPrice(balance) + "**"))
                     .setEphemeral(true).queue();
                 return;
@@ -279,6 +280,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             }
 
             BankManager.setBalance(guildId, userId, balance - NEUE_NR_PREIS);
+            BankManager.addTransaction(guildId, userId, "HANDY_NUMMER_WECHSEL", NEUE_NR_PREIS, null);
 
             event.replyEmbeds(
                 EmbedFactory.create()
@@ -287,7 +289,7 @@ public class HandyCentraleListener extends ListenerAdapter {
                         "✅ Deine alte Nummer wurde gelöscht.\n\n" +
                         "**Neue Rufnummer:** `" + c.phoneNumber + "`\n" +
                         "**Neuer Safe-Pin:** `" + c.safePin + "`\n\n" +
-                        "**1.500$** wurden als Service-Gebühr abgezogen.")
+                        "**500$** wurden als Service-Gebühr abgezogen.")
                     .build()
             ).setEphemeral(true).queue();
             log.info("[Handy] {} hat neue Nummer generiert: {}", userId, c.phoneNumber);
@@ -323,7 +325,19 @@ public class HandyCentraleListener extends ListenerAdapter {
             return;
         }
 
+        // Erstgebühr sofort abziehen
+        long balance = BankManager.getBalance(guildId, userId);
+        if (balance < ERSTGEBÜHR) {
+            event.replyEmbeds(EmbedFactory.build("📋 Vertrag",
+                "❌ Nicht genug Geld für die Erstgebühr.\nBenötigt: **1.000$** — Dein Kontostand: **" +
+                ShopManager.formatPrice(balance) + "**"))
+                .setEphemeral(true).queue();
+            return;
+        }
+
         PhoneManager.Contract c = PhoneManager.createContract(guildId, userId, firstName, lastName);
+        BankManager.setBalance(guildId, userId, balance - ERSTGEBÜHR);
+        BankManager.addTransaction(guildId, userId, "HANDY_VERTRAG", ERSTGEBÜHR, null);
 
         event.replyEmbeds(
             EmbedFactory.create()
@@ -333,7 +347,8 @@ public class HandyCentraleListener extends ListenerAdapter {
                     "📞 **Deine Rufnummer:** `" + c.phoneNumber + "`\n" +
                     "🔐 **Dein Safe-Pin:** `" + c.safePin + "`\n\n" +
                     "⚠️ Merke dir deinen Safe-Pin — du brauchst ihn für den City Chat.\n\n" +
-                    "💳 Monatliche Gebühr: **1.000$** (wird automatisch vom Konto abgezogen)")
+                    "💰 **Erstgebühr:** 1.000$ (sofort abgezogen)\n" +
+                    "💳 **Monatliche Gebühr:** 1.000$ (automatisch)")
                 .build()
         ).setEphemeral(true).queue();
         log.info("[Handy] {} hat Vertrag abgeschlossen: {}", userId, c.phoneNumber);

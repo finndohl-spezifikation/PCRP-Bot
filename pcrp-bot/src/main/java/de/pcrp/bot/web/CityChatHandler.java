@@ -48,6 +48,13 @@ public final class CityChatHandler {
             return;
         }
 
+        // Web-Ban prüfen
+        String webBan = DataStore.readString("web-ban-" + guildId + "-" + c.userId);
+        if (webBan != null && !webBan.isBlank()) {
+            ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
+            return;
+        }
+
         String token = PhoneManager.createSession(guildId, phone);
         JsonObject res = new JsonObject();
         res.addProperty("token",       token);
@@ -61,6 +68,12 @@ public final class CityChatHandler {
     public static void handleGetMe(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
         String guildId = guildId();
+        // Web-Ban prüfen
+        String webBan = DataStore.readString("web-ban-" + guildId + "-" + c.userId);
+        if (webBan != null && !webBan.isBlank()) {
+            ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
+            return;
+        }
         JsonObject profile = loadProfile(guildId, c.phoneNumber);
         JsonObject res = new JsonObject();
         res.addProperty("phoneNumber", c.phoneNumber);
@@ -181,7 +194,46 @@ public final class CityChatHandler {
             result.add(chat);
         }
 
-        ctx.json(GSON.toJson(result));
+        // Nach lastTs sortieren (neueste zuerst)
+        List<JsonObject> chatList = new ArrayList<>();
+        for (JsonElement el : result) chatList.add(el.getAsJsonObject());
+        chatList.sort((a, b) -> Long.compare(
+            b.get("lastTs").getAsLong(), a.get("lastTs").getAsLong()));
+
+        // Regierungs-Chat einfügen (falls vorhanden und nicht vom User ausgeblendet)
+        String govRaw = DataStore.readString("city-gov-msgs-" + guildId);
+        if (govRaw != null && !govRaw.isBlank()) {
+            try {
+                JsonArray govMsgs = JsonParser.parseString(govRaw).getAsJsonArray();
+                if (govMsgs.size() > 0) {
+                    String hiddenTsStr = DataStore.readString("city-gov-hidden-" + guildId + "-" + c.phoneNumber);
+                    long hiddenTs = hiddenTsStr != null ? Long.parseLong(hiddenTsStr) : 0;
+                    JsonObject lastGov = govMsgs.get(govMsgs.size() - 1).getAsJsonObject();
+                    long lastGovTs = lastGov.get("ts").getAsLong();
+                    if (lastGovTs > hiddenTs) {
+                        String govReadStr = DataStore.readString("city-gov-read-" + guildId + "-" + c.phoneNumber);
+                        long govReadTs = govReadStr != null ? Long.parseLong(govReadStr) : 0;
+                        int govUnread = 0;
+                        for (JsonElement el : govMsgs)
+                            if (el.getAsJsonObject().get("ts").getAsLong() > govReadTs) govUnread++;
+                        JsonObject govChat = new JsonObject();
+                        govChat.addProperty("chatId",      "gov");
+                        govChat.addProperty("phoneNumber", "gov");
+                        govChat.addProperty("displayName", "🏛️ Regierung");
+                        govChat.addProperty("lastMessage", lastGov.get("text").getAsString());
+                        govChat.addProperty("lastType",    "text");
+                        govChat.addProperty("lastTs",      lastGovTs);
+                        govChat.addProperty("unread",      govUnread);
+                        govChat.addProperty("isGov",       true);
+                        chatList.add(0, govChat); // immer ganz oben
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        JsonArray sorted = new JsonArray();
+        for (JsonObject o : chatList) sorted.add(o);
+        ctx.json(GSON.toJson(sorted));
     }
 
     // ── Nachrichten ───────────────────────────────────────────────────────────
@@ -234,6 +286,9 @@ public final class CityChatHandler {
 
         String guildId = guildId();
 
+        // Regierungs-Chat kann nicht beschrieben werden
+        if ("gov".equals(to)) { ctx.status(403).json(err("Regierungs-Nachrichten können nicht beantwortet werden")); return; }
+
         // Empfänger existiert?
         PhoneManager.Contract recipient = PhoneManager.getContractByNumber(guildId, to);
         if (recipient == null) { ctx.status(404).json(err("Rufnummer nicht gefunden")); return; }
@@ -246,6 +301,11 @@ public final class CityChatHandler {
             }
         }
 
+        // Wörterfilter
+        if (!"voice".equals(type) && WordFilter.containsBannedWord(content)) {
+            content = "🚫 Unzulässige Inhalte";
+        }
+
         String chatId = chatId(c.phoneNumber, to);
         JsonArray msgs = loadMessages(guildId, chatId);
 
@@ -253,7 +313,7 @@ public final class CityChatHandler {
         msg.addProperty("id",      UUID.randomUUID().toString().substring(0, 8));
         msg.addProperty("from",    c.phoneNumber);
         msg.addProperty("content", content);
-        msg.addProperty("type",    type);   // text | voice | emoji
+        msg.addProperty("type",    type);   // text | emoji
         msg.addProperty("ts",      System.currentTimeMillis());
         msgs.add(msg);
 
@@ -372,7 +432,17 @@ public final class CityChatHandler {
         JsonArray result = new JsonArray();
         long now   = System.currentTimeMillis();
         long limit = 24L * 3600 * 1000;
+
+        // Nur eigene Kontakte und sich selbst anzeigen
+        JsonArray myContacts = loadContacts(guildId, c.phoneNumber);
+        Set<String> visibleNumbers = new HashSet<>();
+        visibleNumbers.add(c.phoneNumber);
+        for (JsonElement el : myContacts) {
+            visibleNumbers.add(el.getAsJsonObject().get("number").getAsString());
+        }
+
         for (PhoneManager.Contract other : PhoneManager.getAllContracts(guildId)) {
+            if (!visibleNumbers.contains(other.phoneNumber)) continue;
             String raw = DataStore.readString("city-status-" + guildId + "-" + other.phoneNumber);
             if (raw == null) continue;
             try {
@@ -380,13 +450,14 @@ public final class CityChatHandler {
                 if (now - s.get("ts").getAsLong() > limit) continue;
                 s.addProperty("phoneNumber", other.phoneNumber);
                 // Anzeigename aus Kontakten
-                JsonArray contacts = loadContacts(guildId, c.phoneNumber);
                 String displayName = other.phoneNumber;
-                for (JsonElement el : contacts) {
+                for (JsonElement el : myContacts) {
                     if (other.phoneNumber.equals(el.getAsJsonObject().get("number").getAsString())) {
                         displayName = el.getAsJsonObject().get("name").getAsString(); break;
                     }
                 }
+                // Eigener Anzeigename
+                if (other.phoneNumber.equals(c.phoneNumber)) displayName = c.displayName();
                 // Avatar aus Profil
                 JsonObject profile = loadProfile(guildId, other.phoneNumber);
                 s.addProperty("displayName", displayName);
@@ -413,6 +484,34 @@ public final class CityChatHandler {
     public static void handleDeleteStatus(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
         DataStore.writeString("city-status-" + guildId() + "-" + c.phoneNumber, null);
+        ctx.json("{\"ok\":true}");
+    }
+
+    // ── Regierungs-Nachrichten ────────────────────────────────────────────────
+
+    public static void handleGetGovMessages(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String guildId = guildId();
+        String raw = DataStore.readString("city-gov-msgs-" + guildId);
+        if (raw == null || raw.isBlank()) { ctx.json("[]"); return; }
+        try {
+            JsonArray msgs = JsonParser.parseString(raw).getAsJsonArray();
+            // Als gelesen markieren
+            if (msgs.size() > 0) {
+                long lastTs = msgs.get(msgs.size() - 1).getAsJsonObject().get("ts").getAsLong();
+                DataStore.writeString("city-gov-read-" + guildId + "-" + c.phoneNumber,
+                    String.valueOf(lastTs));
+            }
+            ctx.json(raw);
+        } catch (Exception e) { ctx.json("[]"); }
+    }
+
+    public static void handleDeleteGov(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String guildId = guildId();
+        // Aktuellen Zeitstempel als "ausgeblendet bis" speichern
+        DataStore.writeString("city-gov-hidden-" + guildId + "-" + c.phoneNumber,
+            String.valueOf(System.currentTimeMillis()));
         ctx.json("{\"ok\":true}");
     }
 

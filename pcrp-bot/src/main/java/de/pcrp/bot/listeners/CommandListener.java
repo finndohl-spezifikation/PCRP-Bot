@@ -76,8 +76,11 @@ public class CommandListener extends ListenerAdapter {
             case "lobby-öffnen"        -> handleLobbyOeffnen(event);
             case "lobby-schließen"     -> handleLobbySchliessen(event);
             case "vorschlag"           -> handleVorschlag(event);
-            case "vorschlag-annehmen"  -> handleVorschlagAnnehmen(event);
-            case "vorschlag-ablehnen"  -> handleVorschlagAblehnen(event);
+            case "vorschlag-annehmen"    -> handleVorschlagAnnehmen(event);
+            case "vorschlag-ablehnen"    -> handleVorschlagAblehnen(event);
+            case "bannen-dashboard"      -> handleBannenDashboard(event);
+            case "entbannen-dashboard"   -> handleEntbannenDashboard(event);
+            case "bewohner-information"  -> handleBewohnerInformation(event);
         }
     }
 
@@ -1657,6 +1660,78 @@ public class CommandListener extends ListenerAdapter {
         event.getHook().sendMessageEmbeds(embed("✅ Einreise-Stopp aufgehoben",
             "Der Einreise-Stopp wurde entfernt. Die Einreise ist wieder möglich." + extra))
             .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /bannen-dashboard
+    // ════════════════════════════════════════════════════════════
+
+    private void handleBannenDashboard(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue(); return;
+        }
+        String guildId = event.getGuild().getId();
+        String userId  = target.getId();
+        de.pcrp.bot.common.DataStore.writeString("web-ban-" + guildId + "-" + userId, "1");
+        BotLogger.logModeration(event.getGuild(),
+            "🌐 Web-Bann",
+            "**Mitglied:** " + target.getAsMention() + " (`" + userId + "`)\n" +
+            "**Gebannt von:** " + event.getUser().getAsMention() + "\n" +
+            "**Effekt:** Alle PCRP-Webseiten gesperrt");
+        event.replyEmbeds(embed("✅ Web-Bann gesetzt",
+            "**" + target.getEffectiveName() + "** hat keinen Zugriff mehr auf PCRP-Webseiten."))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /entbannen-dashboard
+    // ════════════════════════════════════════════════════════════
+
+    private void handleEntbannenDashboard(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue(); return;
+        }
+        String guildId = event.getGuild().getId();
+        de.pcrp.bot.common.DataStore.writeString("web-ban-" + guildId + "-" + target.getId(), null);
+        event.replyEmbeds(embed("✅ Web-Bann aufgehoben",
+            "**" + target.getEffectiveName() + "** hat wieder Zugriff auf PCRP-Webseiten."))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /bewohner-information
+    // ════════════════════════════════════════════════════════════
+
+    private void handleBewohnerInformation(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String text = event.getOption("nachricht", OptionMapping::getAsString);
+        if (text == null || text.isBlank()) {
+            event.replyEmbeds(embed("Fehler", "Nachricht darf nicht leer sein.")).setEphemeral(true).queue(); return;
+        }
+        String guildId = event.getGuild().getId();
+
+        String raw = de.pcrp.bot.common.DataStore.readString("city-gov-msgs-" + guildId);
+        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
+        if (raw != null && !raw.isBlank()) {
+            try { arr = com.google.gson.JsonParser.parseString(raw).getAsJsonArray(); } catch (Exception ignored) {}
+        }
+        com.google.gson.JsonObject msg = new com.google.gson.JsonObject();
+        msg.addProperty("id",     UUID.randomUUID().toString().substring(0, 8));
+        msg.addProperty("text",   text);
+        msg.addProperty("ts",     System.currentTimeMillis());
+        msg.addProperty("author", event.getUser().getEffectiveName());
+        arr.add(msg);
+        while (arr.size() > 50) arr.remove(0);
+        de.pcrp.bot.common.DataStore.writeString("city-gov-msgs-" + guildId, arr.toString());
+
+        event.replyEmbeds(embed("✅ Bewohner-Information gesendet",
+            "Nachricht an alle City-Chat-Nutzer gesendet.\n\n**Inhalt:** " + truncate(text, 200)))
+            .setEphemeral(true).queue();
+        log.info("[BewohnerInfo] {} → {}", event.getUser().getName(), text);
     }
 
     // ════════════════════════════════════════════════════════════
