@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["jdk21_headless", "maven"]
+
+[phases.install]
+cmds = ["mvn dependency:go-offline -q"]
+
+[phases.build]
+cmds = ["mvn package -DskipTests -q"]
+
+[start]
+cmd = "java -jar target/pcrp-bot.jar"
