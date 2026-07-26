@@ -122,8 +122,8 @@ input,textarea{font-family:inherit}
 .msg-row.theirs{align-self:flex-start}
 .msg-row.gap{margin-top:6px}
 .bubble{padding:6px 9px 18px;border-radius:8px;position:relative;font-size:.88rem;line-height:1.35;word-break:break-word;white-space:pre-wrap;min-width:56px}
-.mine .bubble{background:#3d1a00;border-top-right-radius:2px;color:#ffe8d6}
-.theirs .bubble{background:#1e1e1e;border-top-left-radius:2px;color:rgba(255,255,255,.85)}
+.mine .bubble{background:var(--bubble-mine,#3d1a00);border-top-right-radius:2px;color:#ffe8d6}
+.theirs .bubble{background:var(--bubble-theirs,#1e1e1e);border-top-left-radius:2px;color:rgba(255,255,255,.85)}
 .bubble-meta{position:absolute;bottom:3px;right:6px;display:flex;align-items:center;gap:2px}
 .bubble-time{font-size:.63rem;color:rgba(255,255,255,.3);white-space:nowrap}
 .ticks{display:flex;align-items:center;gap:-2px}
@@ -205,9 +205,16 @@ audio{max-width:200px;height:32px;border-radius:8px}
 .p-av-overlay svg{width:22px;height:22px;color:#fff}
 
 /* Settings */
-.color-swatches{display:flex;gap:.5rem;flex-wrap:wrap;padding:.25rem 0}
+.color-swatches{display:flex;gap:.5rem;flex-wrap:wrap;padding:.25rem 0;align-items:center}
 .color-swatch{width:32px;height:32px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s;flex-shrink:0}
 .color-swatch.active{border-color:#fff;transform:scale(1.12)}
+.color-picker-wrap{position:relative;width:32px;height:32px;flex-shrink:0}
+.color-picker-wrap input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0}
+.color-picker-swatch{width:32px;height:32px;border-radius:50%;border:3px dashed rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;pointer-events:none;font-size:.85rem}
+.bubble-color-row{display:flex;align-items:center;gap:.75rem;padding:.3rem 0}
+.bubble-color-row label{font-size:.82rem;color:rgba(255,255,255,.6);flex:1}
+.bubble-color-preview{width:28px;height:28px;border-radius:6px;border:2px solid rgba(255,255,255,.2);cursor:pointer;position:relative;flex-shrink:0}
+.bubble-color-preview input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0}
 .bg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
 .bg-opt{height:48px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:.15s;display:flex;align-items:center;justify-content:center;font-size:.67rem;color:rgba(255,255,255,.55);font-weight:600;letter-spacing:.03em}
 .bg-opt.active{border-color:var(--accent)}
@@ -398,12 +405,16 @@ audio{max-width:200px;height:32px;border-radius:8px}
       <button onclick="closeModal('settings-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
-      <!-- Farbe -->
+      <!-- Akzentfarbe -->
       <div class="section-label">🎨 Akzentfarbe</div>
       <div class="color-swatches" id="color-swatches"></div>
 
+      <!-- Nachrichtenfarbe -->
+      <div class="section-label" style="margin-top:.25rem">💬 Nachrichtenfarbe</div>
+      <div id="bubble-colors"></div>
+
       <!-- Hintergrund -->
-      <div class="section-label">🖼️ Chat-Hintergrund</div>
+      <div class="section-label" style="margin-top:.25rem">🖼️ Chat-Hintergrund</div>
       <div class="bg-grid" id="bg-grid"></div>
 
       <!-- Lesebestätigung -->
@@ -458,26 +469,39 @@ const COLORS=['#D32F2F','#C2185B','#7B1FA2','#512DA8','#1976D2','#0288D1','#0079
 function colorFor(str){ let h=0; for(const c of str) h=(h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
 
 // ── Settings / Theme ───────────────────────────────────────────────────────
-const ACCENT_COLORS=['#CC5500','#E91E63','#7C3AED','#1E88E5','#2E7D32','#00838F'];
+const ACCENT_COLORS=['#CC5500','#E91E63','#7C3AED','#1E88E5','#2E7D32','#00838F','#FF6B00','#F44336','#9C27B0','#00BCD4','#4CAF50','#FF9800'];
 const BG_OPTS=[
-  {key:'dark',label:'Standard',style:'background:#161008'},
-  {key:'night',label:'Nacht',style:'background:#050505'},
-  {key:'warm',label:'Warm',style:'background:#1a1008'},
-  {key:'city',label:'City',style:'background:linear-gradient(180deg,#050a1a,#0a0510)'},
-  {key:'pattern',label:'Muster',style:'background:#161008;background-image:repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(255,255,255,.03) 18px,rgba(255,255,255,.03) 36px)'},
-  {key:'minimal',label:'Minimal',style:'background:#0a0a0a'},
+  {key:'dark',    label:'Standard', style:'background:#161008'},
+  {key:'night',   label:'Nacht',    style:'background:#050505'},
+  {key:'warm',    label:'Warm',     style:'background:#1a1008'},
+  {key:'city',    label:'City',     style:'background:linear-gradient(180deg,#050a1a,#0a0510)'},
+  {key:'pattern', label:'Muster',   style:'background:#161008;background-image:repeating-linear-gradient(45deg,transparent,transparent 18px,rgba(255,255,255,.03) 18px,rgba(255,255,255,.03) 36px)'},
+  {key:'minimal', label:'Minimal',  style:'background:#0a0a0a'},
+  {key:'forest',  label:'Wald',     style:'background:linear-gradient(160deg,#071a0a,#0d1f0d)'},
+  {key:'ocean',   label:'Ozean',    style:'background:linear-gradient(180deg,#020d1a,#05111f)'},
+  {key:'desert',  label:'Wüste',    style:'background:linear-gradient(160deg,#1a1005,#130d03)'},
+  {key:'violet',  label:'Violett',  style:'background:linear-gradient(160deg,#0e0514,#120819)'},
+  {key:'sunset',  label:'Sunset',   style:'background:linear-gradient(180deg,#1a0505,#0f0510)'},
+  {key:'cyber',   label:'Cyber',    style:'background:#030d0d;background-image:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(0,255,180,.03) 40px,rgba(0,255,180,.03) 41px)'},
+  {key:'blood',   label:'Dunkelrot',style:'background:linear-gradient(160deg,#130000,#0a0000)'},
+  {key:'slate',   label:'Schiefer', style:'background:linear-gradient(160deg,#0a0e14,#080c12)'},
+  {key:'aurora',  label:'Aurora',   style:'background:linear-gradient(135deg,#050d10,#070d14,#080a10)'},
 ];
 const STATUS_COLORS=['#CC5500','#7C3AED','#1E88E5','#2E7D32','#C2185B','#F57C00','#111'];
 
 let cfg={
-  accent: localStorage.getItem('cc-accent')||'#CC5500',
-  bg:     localStorage.getItem('cc-bg')||'dark',
-  read:   localStorage.getItem('cc-read')!=='false',
+  accent:      localStorage.getItem('cc-accent')||'#CC5500',
+  bg:          localStorage.getItem('cc-bg')||'dark',
+  read:        localStorage.getItem('cc-read')!=='false',
+  bubbleMine:  localStorage.getItem('cc-bubble-mine')||'#3d1a00',
+  bubbleTheirs:localStorage.getItem('cc-bubble-theirs')||'#1e1e1e',
 };
 
 function applyTheme(){
   document.documentElement.style.setProperty('--accent',cfg.accent);
   document.documentElement.style.setProperty('--accent-dim',cfg.accent+'26');
+  document.documentElement.style.setProperty('--bubble-mine',cfg.bubbleMine);
+  document.documentElement.style.setProperty('--bubble-theirs',cfg.bubbleTheirs);
   const msgs=document.getElementById('messages');
   msgs.className='messages'+(cfg.bg!=='dark'?' bg-'+cfg.bg:'');
 }
@@ -1012,20 +1036,52 @@ document.getElementById('settings-btn').addEventListener('click',()=>{
 });
 
 function buildSettingsModal(){
-  // Farben
+  // ── Akzentfarbe: Swatches + Custom-Picker ──
   const swatches=document.getElementById('color-swatches'); swatches.innerHTML='';
+  function setAccent(col){
+    cfg.accent=col; localStorage.setItem('cc-accent',col); applyTheme();
+    swatches.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
+    cpSwatch.style.background=col;
+    if(ACCENT_COLORS.includes(col)){
+      swatches.querySelectorAll('.color-swatch')[ACCENT_COLORS.indexOf(col)].classList.add('active');
+    }
+  }
   ACCENT_COLORS.forEach(col=>{
     const s=document.createElement('div'); s.className='color-swatch'+(cfg.accent===col?' active':'');
     s.style.background=col;
-    s.addEventListener('click',()=>{
-      cfg.accent=col; localStorage.setItem('cc-accent',col); applyTheme();
-      swatches.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('active'));
-      s.classList.add('active');
-    });
+    s.addEventListener('click',()=>setAccent(col));
     swatches.appendChild(s);
   });
+  // Custom color picker
+  const cpWrap=document.createElement('div'); cpWrap.className='color-picker-wrap';
+  const cpSwatch=document.createElement('div'); cpSwatch.className='color-picker-swatch'; cpSwatch.textContent='＋';
+  cpSwatch.style.background=ACCENT_COLORS.includes(cfg.accent)?'transparent':cfg.accent;
+  const cpInput=document.createElement('input'); cpInput.type='color'; cpInput.value=cfg.accent;
+  cpInput.addEventListener('input',e=>setAccent(e.target.value));
+  cpWrap.appendChild(cpSwatch); cpWrap.appendChild(cpInput);
+  swatches.appendChild(cpWrap);
 
-  // Hintergrund
+  // ── Nachrichtenfarbe ──
+  const bubbleContainer=document.getElementById('bubble-colors'); bubbleContainer.innerHTML='';
+  [
+    {label:'Meine Nachrichten',key:'bubbleMine',store:'cc-bubble-mine'},
+    {label:'Andere Nachrichten',key:'bubbleTheirs',store:'cc-bubble-theirs'},
+  ].forEach(({label,key,store})=>{
+    const row=document.createElement('div'); row.className='bubble-color-row';
+    const lbl=document.createElement('label'); lbl.textContent=label;
+    const preview=document.createElement('div'); preview.className='bubble-color-preview';
+    preview.style.background=cfg[key];
+    const inp=document.createElement('input'); inp.type='color'; inp.value=cfg[key];
+    inp.addEventListener('input',e=>{
+      cfg[key]=e.target.value; localStorage.setItem(store,e.target.value);
+      preview.style.background=e.target.value; applyTheme();
+    });
+    preview.appendChild(inp);
+    row.appendChild(lbl); row.appendChild(preview);
+    bubbleContainer.appendChild(row);
+  });
+
+  // ── Hintergrund ──
   const bgGrid=document.getElementById('bg-grid'); bgGrid.innerHTML='';
   BG_OPTS.forEach(o=>{
     const b=document.createElement('div');
@@ -1039,13 +1095,13 @@ function buildSettingsModal(){
     bgGrid.appendChild(b);
   });
 
-  // Lesebestätigung
+  // ── Lesebestätigung ──
   document.getElementById('toggle-read').checked=cfg.read;
   document.getElementById('toggle-read').onchange=e=>{
     cfg.read=e.target.checked; localStorage.setItem('cc-read',cfg.read?'true':'false');
   };
 
-  // Blockierte Nutzer
+  // ── Blockierte Nutzer ──
   loadBlockedList();
 }
 
