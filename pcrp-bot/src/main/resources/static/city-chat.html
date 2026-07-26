@@ -539,10 +539,11 @@ function renderMyAvatar(){
 }
 
 // ── Login ──────────────────────────────────────────────────────────────────
-document.getElementById('login-btn').addEventListener('click',async()=>{
+const _loginBtn=document.getElementById('login-btn');
+const _pinInput=document.getElementById('l-pin');
+if(_loginBtn) _loginBtn.addEventListener('click',async()=>{
   const phone=document.getElementById('l-phone').value.trim();
   const pin=document.getElementById('l-pin').value.trim();
-  const err=document.getElementById('login-err');
   const btn=document.getElementById('login-btn');
   if(!phone||!pin){ showErr('Bitte alle Felder ausfüllen.'); return; }
   btn.disabled=true; btn.textContent='Anmelden...';
@@ -554,7 +555,7 @@ document.getElementById('login-btn').addEventListener('click',async()=>{
     history.replaceState({},'',''); showApp();
   }catch(e){ showErr('Verbindungsfehler'); btn.disabled=false; btn.textContent='Anmelden'; }
 });
-document.getElementById('l-pin').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('login-btn').click(); });
+if(_pinInput) _pinInput.addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('login-btn').click(); });
 function showErr(msg){ const e=document.getElementById('login-err'); e.textContent=msg; e.classList.remove('hidden'); }
 
 // ── Contacts ───────────────────────────────────────────────────────────────
