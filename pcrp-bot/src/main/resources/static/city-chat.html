@@ -239,13 +239,12 @@ audio{max-width:200px;height:32px;border-radius:8px}
 </head>
 <body>
 
-<!-- LADE-SCREEN (nur kurz beim Start sichtbar) -->
-<div id="login-screen" class="screen" style="align-items:center;justify-content:center;background:#0f0a07">
-  <div id="load-error" style="display:none;text-align:center;color:rgba(255,255,255,.5);font-size:.9rem;padding:1.5rem;line-height:1.7">
+<!-- FEHLER-SCREEN (nur bei ungültigem Link) -->
+<div id="login-screen" class="screen hidden" style="align-items:center;justify-content:center;background:#0f0a07">
+  <div style="text-align:center;color:rgba(255,255,255,.5);font-size:.9rem;padding:1.5rem;line-height:1.7">
     ❌ Link ungültig oder abgelaufen.<br/>
     <span style="font-size:.8rem">Discord → Handy-Zentrale → 📞 Handy Einstellungen → 💬 City Chat öffnen</span>
   </div>
-  <div id="load-spinner" style="width:36px;height:36px;border:3px solid rgba(255,255,255,.1);border-top-color:#CC5500;border-radius:50%;animation:spin .8s linear infinite"></div>
 </div>
 
 <!-- APP -->
@@ -481,13 +480,19 @@ function applyTheme(){
 
 // ── API ────────────────────────────────────────────────────────────────────
 async function api(method, path, body){
-  const res=await fetch(path+(path.includes('?')?'&':'?')+'token='+(token||''),{
-    method, headers:body?{'Content-Type':'application/json'}:{},
-    body:body?JSON.stringify(body):undefined
-  });
-  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||res.statusText); }
-  if(res.status===204) return null;
-  return res.json();
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const res=await fetch(path+(path.includes('?')?'&':'?')+'token='+(token||''),{
+      method, headers:body?{'Content-Type':'application/json'}:{},
+      body:body?JSON.stringify(body):undefined,
+      signal:ctrl.signal
+    });
+    clearTimeout(tid);
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||res.statusText); }
+    if(res.status===204) return null;
+    return res.json();
+  }catch(e){ clearTimeout(tid); throw e; }
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -505,9 +510,7 @@ async function init(){
       if(e.message==='WEB_BANNED'){ window.location.href='/banned'; return; }
     }
   }
-  // Kein Token oder ungültig → Fehler anzeigen
-  document.getElementById('load-spinner').style.display='none';
-  document.getElementById('load-error').style.display='block';
+  showLogin();
 }
 
 function showLogin(){ document.getElementById('login-screen').classList.remove('hidden'); document.getElementById('app-screen').classList.add('hidden'); }
