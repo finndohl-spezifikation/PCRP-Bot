@@ -181,19 +181,26 @@ public class HandyCentraleListener extends ListenerAdapter {
                 Button.success("handy:vertrag_start", "📋 Vertrag abschließen")
             )).setEphemeral(true).queue();
         } else {
-            // Vertrag vorhanden — anzeigen
+            // Vertrag vorhanden — anzeigen + City Chat Link direkt generieren
+            String token   = PhoneManager.createSession(guildId, c.phoneNumber);
+            String baseUrl = System.getenv().getOrDefault("CITY_CHAT_URL",
+                "https://pcrp-bot-production-3ad1.up.railway.app");
+            String chatLink = baseUrl + "/city-chat?token=" + token;
+
             event.replyEmbeds(
                 EmbedFactory.create()
-                    .setTitle("📞 Deine Telefonnummer")
+                    .setTitle("📞 Deine Handy-Einstellungen")
                     .setDescription(
                         "**Name:** " + c.displayName() + "\n" +
                         "**Rufnummer:** `" + c.phoneNumber + "`\n" +
                         "**Safe-Pin:** `" + c.safePin + "`\n\n" +
                         "⚠️ Gib deinen Safe-Pin **niemals** weiter!\n\n" +
-                        "Möchtest du eine neue Nummer? Kosten: **1.500$** (Service-Gebühr)")
+                        "💬 Klicke auf **City Chat öffnen** um direkt in den Chat zu gelangen.\n" +
+                        "🔄 Neue Nummer kostet **500$** (Service-Gebühr)")
                     .build()
             ).addComponents(ActionRow.of(
-                Button.danger("handy:neue_nummer", "🔄 Neue Nummer generieren (1.500$)")
+                Button.link(chatLink, "💬 City Chat öffnen"),
+                Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")
             )).setEphemeral(true).queue();
         }
     }
