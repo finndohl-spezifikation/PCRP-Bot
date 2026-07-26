@@ -239,9 +239,9 @@ audio{max-width:200px;height:32px;border-radius:8px}
 </head>
 <body>
 
-<!-- FEHLER-SCREEN (nur bei ungültigem Link) -->
-<div id="login-screen" class="screen hidden" style="align-items:center;justify-content:center;background:#0f0a07">
-  <div style="text-align:center;color:rgba(255,255,255,.5);font-size:.9rem;padding:1.5rem;line-height:1.7">
+<!-- WARTE/FEHLER-SCREEN -->
+<div id="login-screen" class="screen" style="align-items:center;justify-content:center;background:#0f0a07">
+  <div id="login-err" style="display:none;text-align:center;color:rgba(255,255,255,.5);font-size:.9rem;padding:1.5rem;line-height:1.7">
     ❌ Link ungültig oder abgelaufen.<br/>
     <span style="font-size:.8rem">Discord → Handy-Zentrale → 📞 Handy Einstellungen → 💬 City Chat öffnen</span>
   </div>
@@ -510,7 +510,7 @@ async function init(){
       if(e.message==='WEB_BANNED'){ window.location.href='/banned'; return; }
     }
   }
-  showLogin();
+  document.getElementById('login-err').style.display='block';
 }
 
 function showLogin(){ document.getElementById('login-screen').classList.remove('hidden'); document.getElementById('app-screen').classList.add('hidden'); }

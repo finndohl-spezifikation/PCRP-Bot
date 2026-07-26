@@ -194,10 +194,8 @@ public class HandyCentraleListener extends ListenerAdapter {
             )).setEphemeral(true).queue();
         } else {
             // Vertrag vorhanden — anzeigen + City Chat Link direkt generieren
-            String token   = PhoneManager.createSession(guildId, c.phoneNumber);
-            String baseUrl = System.getenv().getOrDefault("CITY_CHAT_URL",
-                "https://pcrp-bot-production-3ad1.up.railway.app");
-            String chatLink = baseUrl + "/city-chat?token=" + token;
+            String token    = PhoneManager.createSession(guildId, c.phoneNumber);
+            String chatLink = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat?token=" + token;
 
             event.replyEmbeds(
                 EmbedFactory.create()
@@ -240,10 +238,8 @@ public class HandyCentraleListener extends ListenerAdapter {
         }
 
         // Session-Token generieren und Link senden
-        String token   = PhoneManager.createSession(guildId, c.phoneNumber);
-        String baseUrl = System.getenv().getOrDefault("CITY_CHAT_URL",
-            "https://pcrp-bot-production-3ad1.up.railway.app");
-        String link    = baseUrl + "/city-chat?token=" + token;
+        String token = PhoneManager.createSession(guildId, c.phoneNumber);
+        String link  = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat?token=" + token;
 
         event.replyEmbeds(
             EmbedFactory.create()
