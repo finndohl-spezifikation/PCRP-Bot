@@ -68,6 +68,10 @@ public class WebServer {
         // Admin: Nachricht in Channel senden
         app.post("/api/admin/announce",                WebServer::handleAdminAnnounce);
 
+        // ── Info / Stats ───────────────────────────────────────────────────
+        app.get("/info",          WebServer::serveInfo);
+        app.get("/api/stats",     WebServer::handleStats);
+
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
         app.post("/api/city-chat/auth",                ctx -> CityChatHandler.handleAuth(ctx));
@@ -141,6 +145,27 @@ public class WebServer {
         } catch (Exception e) {
             ctx.status(500).result("Interner Fehler");
         }
+    }
+
+    // ── /info ──────────────────────────────────────────────────
+
+    private static void serveInfo(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/info.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    // ── /api/stats ─────────────────────────────────────────────
+
+    private static void handleStats(Context ctx) {
+        JsonObject j = new JsonObject();
+        j.addProperty("commands",          BotStats.commandCount);
+        j.addProperty("moderationSystems", BotStats.MODERATION_SYSTEMS);
+        j.addProperty("webDashboards",     BotStats.WEB_DASHBOARDS);
+        ctx.contentType("application/json").result(GSON.toJson(j));
     }
 
     // ── index.html ─────────────────────────────────────────────

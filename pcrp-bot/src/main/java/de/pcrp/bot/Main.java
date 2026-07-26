@@ -113,6 +113,7 @@ public class Main {
             jda.updateCommands().queue();
 
             List<CommandData> commands = buildCommands();
+            BotStats.commandCount = commands.size();
             for (Guild guild : jda.getGuilds()) {
                 guild.updateCommands()
                     .addCommands(commands)
