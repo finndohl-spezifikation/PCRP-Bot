@@ -51,31 +51,43 @@ public class HandyCentraleListener extends ListenerAdapter {
             return;
         }
         String key = PANEL_KEY + guild.getId();
-        PanelHelper.post(ch, key, "📱 Handy-Zentrale", () -> {
-            StringSelectMenu menu = StringSelectMenu.create("handy:select")
-                .setPlaceholder("Was möchtest du tun?")
-                .addOption("📱 Handy Einschalten",   "einschalten", "Schalte dein Handy ein")
-                .addOption("📴 Handy Ausschalten",   "ausschalten", "Schalte dein Handy aus")
-                .addOption("📞 Telefonnummer",        "nummer",      "Nummer einsehen oder Vertrag abschließen")
-                .addOption("💬 City Chat",            "citychat",    "Öffne den City Chat")
-                .build();
 
-            ch.sendMessageEmbeds(
-                EmbedFactory.create()
-                    .setTitle("📱 Handy-Zentrale")
-                    .setDescription(
-                        "Willkommen in der **Handy-Zentrale** von Paradise City Roleplay.\n\n" +
-                        "Hier kannst du dein Handy verwalten, deinen Vertrag einsehen und den City Chat öffnen.\n\n" +
-                        "**📱 Handy Einschalten** — Aktiviert dein Handy (Handy im Inventar erforderlich)\n" +
-                        "**📴 Handy Ausschalten** — Deaktiviert dein Handy\n" +
-                        "**📞 Telefonnummer** — Rufnummer & Safe-Pin einsehen oder Vertrag abschließen\n" +
-                        "**💬 City Chat** — Öffnet den City Chat (Vertrag + Handy erforderlich)")
-                    .build()
-            ).addComponents(ActionRow.of(menu)).queue(
-                msg -> PanelHelper.onSent(key, msg.getId()),
-                err -> { log.error("[Handy] Panel-Post fehlgeschlagen.", err); PanelHelper.onFailed(key); }
+        // Alte Nachricht löschen → immer frisches Panel
+        String oldId = de.pcrp.bot.common.DataStore.readString(key);
+        if (oldId != null && !oldId.isBlank()) {
+            de.pcrp.bot.common.DataStore.deleteKey(key);
+            ch.deleteMessageById(oldId.trim()).queue(
+                ok  -> sendHandyPanel(ch, key),
+                err -> sendHandyPanel(ch, key)
             );
-        });
+        } else {
+            sendHandyPanel(ch, key);
+        }
+    }
+
+    private static void sendHandyPanel(TextChannel ch, String key) {
+        StringSelectMenu menu = StringSelectMenu.create("handy:select")
+            .setPlaceholder("Was möchtest du tun?")
+            .addOption("📱 Handy Einschalten",   "einschalten", "Schalte dein Handy ein")
+            .addOption("📴 Handy Ausschalten",   "ausschalten", "Schalte dein Handy aus")
+            .addOption("📞 Handy Einstellungen", "nummer",      "Rufnummer, Safe-Pin & City Chat Link")
+            .addOption("💬 City Chat",            "citychat",    "Direkt in den City Chat")
+            .build();
+
+        ch.sendMessageEmbeds(
+            EmbedFactory.create()
+                .setTitle("📱 Handy-Zentrale")
+                .setDescription(
+                    "Willkommen in der **Handy-Zentrale** von Paradise City Roleplay.\n\n" +
+                    "**📱 Handy Einschalten** — Aktiviert dein Handy (Handy im Inventar erforderlich)\n" +
+                    "**📴 Handy Ausschalten** — Deaktiviert dein Handy\n" +
+                    "**📞 Handy Einstellungen** — Rufnummer, Safe-Pin & City Chat Link\n" +
+                    "**💬 City Chat** — Öffnet den City Chat direkt (Handy + Vertrag erforderlich)")
+                .build()
+        ).addComponents(ActionRow.of(menu)).queue(
+            msg -> PanelHelper.onSent(key, msg.getId()),
+            err -> log.error("[Handy] Panel-Post fehlgeschlagen.", err)
+        );
     }
 
     // ── SelectMenu ────────────────────────────────────────────────────────────

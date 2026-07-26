@@ -238,18 +238,18 @@ audio{max-width:200px;height:32px;border-radius:8px}
 </head>
 <body>
 
-<!-- LOGIN (wird gezeigt wenn kein Token vorhanden) -->
+<!-- INFO SCREEN (kein Token oder abgelaufen) -->
 <div id="login-screen" class="screen">
   <div class="login-card">
     <div class="login-icon">
       <svg viewBox="0 0 48 48" fill="none"><path d="M24 4C12.95 4 4 12.95 4 24c0 3.73 1.02 7.22 2.8 10.22L4 44l10.1-2.74A19.88 19.88 0 0024 44c11.05 0 20-8.95 20-20S35.05 4 24 4z" fill="white"/><path d="M14 19h20a2 2 0 012 2v8a2 2 0 01-2 2h-7l-5 5v-5h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" fill="#CC5500"/></svg>
     </div>
     <h1>City Chat</h1>
-    <p style="font-size:1rem;color:rgba(255,255,255,.7);text-align:center;line-height:1.6">
+    <p id="login-msg" style="font-size:1rem;color:rgba(255,255,255,.7);text-align:center;line-height:1.6">
       Öffne City Chat über die<br/><strong style="color:var(--accent)">Handy-Zentrale</strong> auf Discord
     </p>
-    <p style="font-size:.78rem;color:rgba(255,255,255,.25);text-align:center;margin-top:.25rem">
-      Den Link findest du in der Handy-Zentrale auf dem PCRP-Discord-Server.
+    <p id="login-sub" style="font-size:.78rem;color:rgba(255,255,255,.25);text-align:center;margin-top:.25rem">
+      Den Link findest du unter <strong>📞 Handy Einstellungen</strong> auf dem PCRP-Discord-Server.
     </p>
   </div>
 </div>
@@ -509,6 +509,11 @@ async function init(){
     }catch(e){
       token=null;
       if(e.message==='WEB_BANNED'){ window.location.href='/banned'; return; }
+      // Token vorhanden aber ungültig/abgelaufen → erklärende Meldung
+      document.getElementById('login-msg').innerHTML=
+        '⚠️ Dein Link ist <strong style="color:#ff6b6b">abgelaufen</strong>.';
+      document.getElementById('login-sub').innerHTML=
+        'Gehe auf Discord → <strong>Handy-Zentrale</strong> → <strong>📞 Handy Einstellungen</strong> und klicke <strong>💬 City Chat öffnen</strong>, um einen neuen Link zu erhalten.';
     }
   }
   showLogin();
