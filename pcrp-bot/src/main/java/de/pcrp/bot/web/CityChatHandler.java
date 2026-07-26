@@ -498,6 +498,41 @@ public final class CityChatHandler {
 
     // ── Firma-Links ───────────────────────────────────────────────────────────
 
+    /** Öffentliches Profil eines anderen Nutzers: displayName, avatar, bio, firmaLinks. */
+    public static void handleGetPartnerProfile(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String phone = ctx.queryParam("phone");
+        if (phone == null || phone.isBlank()) { ctx.status(400).json(err("phone fehlt")); return; }
+        String guildId  = guildId();
+        String normPhone = phone.replaceAll("[^0-9]", "");
+        JsonObject profile = loadProfile(guildId, normPhone);
+
+        // displayName: aus Profil oder Vertrag
+        PhoneManager.Contract found = PhoneManager.getContractByNumber(guildId, phone);
+        if (found == null) {
+            for (PhoneManager.Contract other : PhoneManager.getAllContracts(guildId)) {
+                if (other.phoneNumber.replaceAll("[^0-9]", "").equals(normPhone)) { found = other; break; }
+            }
+        }
+        String displayName = profileStr(profile, "displayName", found != null ? found.displayName() : phone);
+
+        JsonObject res = new JsonObject();
+        res.addProperty("phoneNumber", phone);
+        res.addProperty("displayName", displayName);
+        res.addProperty("bio",    profileStr(profile, "status", ""));
+        res.addProperty("avatar", profileStr(profile, "avatar", ""));
+
+        // nur genehmigte Firma-Links
+        JsonArray allLinks = loadFirmaLinks(guildId, normPhone);
+        JsonArray approved = new JsonArray();
+        for (JsonElement el : allLinks) {
+            JsonObject o = el.getAsJsonObject();
+            if ("approved".equals(str(o, "status"))) approved.add(o);
+        }
+        res.add("firmaLinks", approved);
+        ctx.json(res.toString());
+    }
+
     /** Gibt eigene Links zurück (alle Status). Mit ?phone=X nur genehmigte eines anderen. */
     public static void handleGetFirmaLinks(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
