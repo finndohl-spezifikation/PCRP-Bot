@@ -103,6 +103,9 @@ public class WebServer {
         app.get( "/api/city-chat/statuses",            ctx -> CityChatHandler.handleGetStatuses(ctx));
         app.post("/api/city-chat/status",              ctx -> CityChatHandler.handleSetStatus(ctx));
         app.delete("/api/city-chat/status",            ctx -> CityChatHandler.handleDeleteStatus(ctx));
+        app.get( "/api/city-chat/firma-links",         ctx -> CityChatHandler.handleGetFirmaLinks(ctx));
+        app.post("/api/city-chat/firma-links",         ctx -> CityChatHandler.handleAddFirmaLink(ctx));
+        app.delete("/api/city-chat/firma-links/{id}",  ctx -> CityChatHandler.handleDeleteFirmaLink(ctx));
         app.get( "/api/city-chat/gov-messages",        ctx -> CityChatHandler.handleGetGovMessages(ctx));
         app.delete("/api/city-chat/gov-messages",      ctx -> CityChatHandler.handleDeleteGov(ctx));
 

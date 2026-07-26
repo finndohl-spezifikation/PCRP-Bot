@@ -124,6 +124,24 @@ input,textarea{font-family:inherit}
 .messages.bg-slate{background:linear-gradient(160deg,#0a0e14,#080c12)}
 .messages.bg-aurora{background:linear-gradient(135deg,#050d10,#070d14,#080a10)}
 a.msg-link{color:var(--accent);text-decoration:underline;word-break:break-all}
+
+/* Photo Cropper */
+#crop-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:1rem}
+#crop-modal.hidden{display:none!important}
+#crop-wrap{position:relative;width:min(90vw,360px);height:min(90vw,360px);overflow:hidden;border-radius:50%;box-shadow:0 0 0 9999px rgba(0,0,0,.7);cursor:grab;user-select:none;flex-shrink:0}
+#crop-wrap:active{cursor:grabbing}
+#crop-img{position:absolute;transform-origin:0 0;pointer-events:none}
+.crop-actions{display:flex;gap:.75rem;align-items:center}
+.crop-zoom{display:flex;align-items:center;gap:.5rem;color:rgba(255,255,255,.6);font-size:.82rem}
+.crop-zoom input[type=range]{accent-color:var(--accent);width:110px}
+.crop-save{background:var(--accent);color:#fff;font-weight:700;font-size:.9rem;padding:.65rem 1.5rem;border-radius:12px;border:none}
+.crop-cancel{color:rgba(255,255,255,.4);font-size:.82rem;padding:.4rem .8rem}
+
+/* Firma Links */
+.firma-link-btn{display:flex;align-items:center;gap:.5rem;background:rgba(88,101,242,.18);border:1px solid rgba(88,101,242,.35);color:#7289da;border-radius:10px;padding:.5rem .9rem;font-size:.85rem;font-weight:600;text-decoration:none;cursor:pointer;width:100%;justify-content:center;margin-top:.3rem}
+.firma-link-btn:hover{background:rgba(88,101,242,.28)}
+.firma-pending-item{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:rgba(255,255,255,.35);padding:.4rem 0}
+.firma-pending-item svg{flex-shrink:0;width:14px;height:14px;color:rgba(255,180,0,.5)}
 .date-sep{display:flex;justify-content:center;margin:.5rem 0}
 .date-sep span{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:.7rem;padding:.2rem .65rem;border-radius:8px}
 .msg-row{display:flex;max-width:78%}
@@ -403,6 +421,15 @@ audio{max-width:200px;height:32px;border-radius:8px}
       <div class="section-label" style="margin-top:.5rem">Mein Status (24h sichtbar)</div>
       <button class="modal-save" id="p-status-post-btn" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)">✨ Status erstellen</button>
       <button id="p-status-del-btn" class="hidden" style="color:#ff6b6b;font-size:.82rem;text-align:center;padding:.4rem">Status löschen</button>
+
+      <div class="section-label" style="margin-top:.5rem">🏢 Firma / Discord-Server</div>
+      <div id="p-firma-list"></div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;margin-top:.4rem">
+        <input id="p-firma-label" type="text" placeholder="Button-Text (z.B. PCRP Community)" maxlength="32"/>
+        <input id="p-firma-url" type="text" placeholder="discord.gg/... Link"/>
+        <button class="modal-save" id="p-firma-add-btn" style="background:rgba(88,101,242,.2);border:1px solid rgba(88,101,242,.35);color:#7289da">🔗 Anfragen</button>
+        <div id="p-firma-err" style="color:#ff6b6b;font-size:.78rem;text-align:center"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -459,6 +486,20 @@ audio{max-width:200px;height:32px;border-radius:8px}
   </div>
 </div>
 
+<!-- PHOTO CROPPER -->
+<div id="crop-modal" class="hidden">
+  <div id="crop-wrap"><img id="crop-img" draggable="false"/></div>
+  <div class="crop-actions">
+    <div class="crop-zoom">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      <input type="range" id="crop-zoom-range" min="1" max="4" step="0.01" value="1"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <button class="crop-save" id="crop-save-btn">Zuschneiden & Speichern</button>
+    <button class="crop-cancel" id="crop-cancel-btn">Abbrechen</button>
+  </div>
+</div>
+
 <!-- PARTNER PROFILE -->
 <div class="modal-overlay hidden" id="partner-profile-modal">
   <div class="modal">
@@ -472,6 +513,7 @@ audio{max-width:200px;height:32px;border-radius:8px}
       <div id="pp-phone" style="font-size:.8rem;color:rgba(255,255,255,.35)"></div>
       <div id="pp-status-text" style="margin-top:.5rem;font-size:.85rem;color:rgba(255,255,255,.55);font-style:italic"></div>
       <div id="pp-status-card" style="display:none;margin-top:.75rem;width:100%;border-radius:12px;padding:1rem;flex-direction:column;align-items:center;gap:.4rem"></div>
+      <div id="pp-firma" style="display:none;flex-direction:column;gap:.3rem;width:100%;margin-top:.5rem"></div>
     </div>
   </div>
 </div>
@@ -1047,28 +1089,90 @@ async function openProfileModal(){
   // Status button
   const myStatus=await getMyStatus();
   document.getElementById('p-status-del-btn').classList.toggle('hidden',!myStatus);
+  // Firma links
+  await loadMyFirmaLinks();
   document.getElementById('profile-modal').classList.remove('hidden');
 }
 
-document.getElementById('p-av-circle').addEventListener('click',()=>document.getElementById('p-av-input').click());
-document.getElementById('p-av-input').addEventListener('change',async(e)=>{
-  const file=e.target.files[0]; if(!file) return;
-  if(file.size>2*1024*1024){ alert('Bild zu groß (max. 2 MB)'); return; }
-  const reader=new FileReader();
-  reader.onloadend=async()=>{
-    // Bild auf 200×200 komprimieren
+// ── Photo Cropper ─────────────────────────────────────────────────────────
+(function(){
+  let cropImg=null, cropX=0, cropY=0, cropScale=1, cropSize=0;
+  let dragging=false, dragStartX=0, dragStartY=0, imgStartX=0, imgStartY=0;
+  const modal=document.getElementById('crop-modal');
+  const wrap=document.getElementById('crop-wrap');
+  const img=document.getElementById('crop-img');
+  const zoomRange=document.getElementById('crop-zoom-range');
+
+  function clamp(val,min,max){ return Math.max(min,Math.min(max,val)); }
+
+  function constrainPos(){
+    const scaledW=img.naturalWidth*cropScale;
+    const scaledH=img.naturalHeight*cropScale;
+    cropX=clamp(cropX, cropSize-scaledW, 0);
+    cropY=clamp(cropY, cropSize-scaledH, 0);
+  }
+
+  function applyTransform(){
+    img.style.transform=`translate(${cropX}px,${cropY}px) scale(${cropScale})`;
+    img.style.transformOrigin='0 0';
+  }
+
+  window.openCropper=function(src){
+    modal.classList.remove('hidden');
+    img.src=src;
+    img.onload=()=>{
+      cropSize=wrap.offsetWidth;
+      // Fit: zoom so shortest side fills circle
+      const minScale=Math.max(cropSize/img.naturalWidth, cropSize/img.naturalHeight);
+      cropScale=minScale;
+      zoomRange.min=minScale; zoomRange.max=minScale*4; zoomRange.value=minScale;
+      cropX=(cropSize-img.naturalWidth*cropScale)/2;
+      cropY=(cropSize-img.naturalHeight*cropScale)/2;
+      constrainPos(); applyTransform();
+    };
+  };
+
+  // Drag
+  wrap.addEventListener('mousedown',e=>{ dragging=true; dragStartX=e.clientX; dragStartY=e.clientY; imgStartX=cropX; imgStartY=cropY; e.preventDefault(); });
+  window.addEventListener('mousemove',e=>{ if(!dragging) return; cropX=imgStartX+(e.clientX-dragStartX); cropY=imgStartY+(e.clientY-dragStartY); constrainPos(); applyTransform(); });
+  window.addEventListener('mouseup',()=>{ dragging=false; });
+  // Touch drag
+  wrap.addEventListener('touchstart',e=>{ if(e.touches.length===1){ dragging=true; dragStartX=e.touches[0].clientX; dragStartY=e.touches[0].clientY; imgStartX=cropX; imgStartY=cropY; } },{ passive:true });
+  window.addEventListener('touchmove',e=>{ if(!dragging||e.touches.length!==1) return; cropX=imgStartX+(e.touches[0].clientX-dragStartX); cropY=imgStartY+(e.touches[0].clientY-dragStartY); constrainPos(); applyTransform(); },{ passive:true });
+  window.addEventListener('touchend',()=>{ dragging=false; });
+  // Wheel zoom
+  wrap.addEventListener('wheel',e=>{ e.preventDefault(); const factor=e.deltaY<0?1.05:0.95; cropScale=clamp(cropScale*factor,parseFloat(zoomRange.min),parseFloat(zoomRange.max)); constrainPos(); applyTransform(); zoomRange.value=cropScale; },{ passive:false });
+  // Slider zoom
+  zoomRange.addEventListener('input',()=>{ cropScale=parseFloat(zoomRange.value); constrainPos(); applyTransform(); });
+
+  document.getElementById('crop-cancel-btn').addEventListener('click',()=>{ modal.classList.add('hidden'); });
+
+  document.getElementById('crop-save-btn').addEventListener('click',async()=>{
+    cropSize=wrap.offsetWidth;
     const canvas=document.createElement('canvas'); canvas.width=200; canvas.height=200;
-    const img=new Image(); img.src=reader.result;
-    await new Promise(r=>img.onload=r);
     const ctx=canvas.getContext('2d');
-    const s=Math.min(img.width,img.height);
-    ctx.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,200,200);
-    const b64=canvas.toDataURL('image/jpeg',0.75);
+    // Draw the visible crop region into 200×200
+    const scaleToOut=200/cropSize;
+    ctx.drawImage(img,
+      -cropX/cropScale, -cropY/cropScale,
+      cropSize/cropScale, cropSize/cropScale,
+      0, 0, 200, 200
+    );
+    const b64=canvas.toDataURL('image/jpeg',0.82);
+    modal.classList.add('hidden');
     me.avatar=b64;
     await api('PUT','/api/city-chat/me',{avatar:b64});
     renderMyAvatar();
     openProfileModal();
-  };
+  });
+})();
+
+document.getElementById('p-av-circle').addEventListener('click',()=>document.getElementById('p-av-input').click());
+document.getElementById('p-av-input').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file) return;
+  if(file.size>5*1024*1024){ alert('Bild zu groß (max. 5 MB)'); return; }
+  const reader=new FileReader();
+  reader.onloadend=()=>{ openCropper(reader.result); };
   reader.readAsDataURL(file);
   e.target.value='';
 });
@@ -1089,7 +1193,63 @@ document.getElementById('p-status-post-btn').addEventListener('click',()=>{
 });
 document.getElementById('p-status-del-btn').addEventListener('click',async()=>{
   await api('DELETE','/api/city-chat/status');
-  closeModal('profile-modal'); loadStatuses();
+  document.getElementById('p-status-del-btn').classList.add('hidden');
+  loadStatuses();
+});
+
+// ── Firma Links ────────────────────────────────────────────────────────────
+let myFirmaLinks=[];
+
+async function loadMyFirmaLinks(){
+  try{ myFirmaLinks=await api('GET','/api/city-chat/firma-links'); }
+  catch(e){ myFirmaLinks=[]; }
+  renderFirmaList();
+}
+
+function renderFirmaList(){
+  const list=document.getElementById('p-firma-list'); list.innerHTML='';
+  for(const l of myFirmaLinks){
+    const row=document.createElement('div');
+    if(l.status==='approved'){
+      row.innerHTML=`<div class="firma-pending-item" style="color:rgba(255,255,255,.55)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+        <span>${esc(l.label)}</span>
+        <span style="color:rgba(100,255,100,.5);font-size:.72rem">✅ Aktiv</span>
+        <button data-id="${esc(l.id)}" class="fl-del" style="margin-left:auto;color:rgba(255,80,80,.5);font-size:.78rem">✕</button>
+      </div>`;
+    } else {
+      row.innerHTML=`<div class="firma-pending-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>${esc(l.label)}</span>
+        <span style="font-size:.72rem">Anfrage ausstehend</span>
+        <button data-id="${esc(l.id)}" class="fl-del" style="margin-left:auto;color:rgba(255,80,80,.5);font-size:.78rem">✕</button>
+      </div>`;
+    }
+    row.querySelector('.fl-del').addEventListener('click',async(e)=>{
+      const id=e.target.dataset.id;
+      await api('DELETE',`/api/city-chat/firma-links/${id}`);
+      await loadMyFirmaLinks();
+    });
+    list.appendChild(row);
+  }
+}
+
+document.getElementById('p-firma-add-btn').addEventListener('click',async()=>{
+  const label=document.getElementById('p-firma-label').value.trim();
+  const url=document.getElementById('p-firma-url').value.trim();
+  const err=document.getElementById('p-firma-err');
+  err.textContent='';
+  if(!label){ err.textContent='Bitte Button-Text eingeben.'; return; }
+  if(!url){ err.textContent='Bitte Discord-Link eingeben.'; return; }
+  try{
+    await api('POST','/api/city-chat/firma-links',{label,url});
+    document.getElementById('p-firma-label').value='';
+    document.getElementById('p-firma-url').value='';
+    err.style.color='rgba(100,255,100,.8)';
+    err.textContent='✅ Anfrage gesendet! Warte auf Bestätigung.';
+    setTimeout(()=>{ err.textContent=''; err.style.color='#ff6b6b'; },4000);
+    await loadMyFirmaLinks();
+  }catch(e){ err.textContent=e.message||'Fehler beim Senden.'; }
 });
 
 async function getMyStatus(){
@@ -1316,6 +1476,23 @@ function viewPartnerProfile(phone){
     statusText.textContent='Kein Status gesetzt';
     statusCard.style.display='none';
   }
+  // Firma links
+  const ppFirma=document.getElementById('pp-firma');
+  ppFirma.innerHTML='';
+  try{
+    const firmaLinks=await api('GET',`/api/city-chat/firma-links?phone=${encodeURIComponent(phone)}`);
+    if(firmaLinks&&firmaLinks.length){
+      ppFirma.style.display='flex';
+      ppFirma.innerHTML='<div style="font-size:.72rem;color:rgba(255,255,255,.3);margin-bottom:.25rem">🏢 Firma / Server</div>';
+      for(const l of firmaLinks){
+        const a=document.createElement('a');
+        a.className='firma-link-btn';
+        a.href=l.url; a.target='_blank'; a.rel='noopener noreferrer';
+        a.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03z"/></svg>${esc(l.label)}`;
+        ppFirma.appendChild(a);
+      }
+    } else { ppFirma.style.display='none'; }
+  }catch(e){ ppFirma.style.display='none'; }
   document.getElementById('partner-profile-modal').classList.remove('hidden');
 }
 

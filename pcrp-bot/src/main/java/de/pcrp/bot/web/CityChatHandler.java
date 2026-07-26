@@ -492,8 +492,117 @@ public final class CityChatHandler {
 
     public static void handleDeleteStatus(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
-        DataStore.writeString("city-status-" + guildId() + "-" + c.phoneNumber, null);
+        DataStore.deleteKey("city-status-" + guildId() + "-" + c.phoneNumber);
         ctx.json("{\"ok\":true}");
+    }
+
+    // ── Firma-Links ───────────────────────────────────────────────────────────
+
+    /** Gibt eigene Links zurück (alle Status). Mit ?phone=X nur genehmigte eines anderen. */
+    public static void handleGetFirmaLinks(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String phone   = ctx.queryParam("phone");
+        String guildId = guildId();
+        if (phone != null && !phone.isBlank()) {
+            JsonArray all = loadFirmaLinks(guildId, phone.replaceAll("[^0-9]", ""));
+            JsonArray approved = new JsonArray();
+            for (JsonElement el : all) {
+                JsonObject o = el.getAsJsonObject();
+                if ("approved".equals(str(o, "status"))) approved.add(o);
+            }
+            ctx.json(approved.toString());
+        } else {
+            ctx.json(loadFirmaLinks(guildId, c.phoneNumber).toString());
+        }
+    }
+
+    /** Sendet eine neue Link-Anfrage → DM an Admin. */
+    public static void handleAddFirmaLink(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        JsonObject body = parseBody(ctx);
+        if (body == null) { ctx.status(400).json(err("Ungültiger Body")); return; }
+        String url   = str(body, "url");
+        String label = str(body, "label");
+        if (url == null || url.isBlank() || label == null || label.isBlank()) {
+            ctx.status(400).json(err("url und label erforderlich")); return;
+        }
+        if (!url.startsWith("https://discord.gg/") && !url.startsWith("http://discord.gg/")) {
+            ctx.status(400).json(err("Nur discord.gg-Links erlaubt")); return;
+        }
+        String guildId = guildId();
+        JsonArray links = loadFirmaLinks(guildId, c.phoneNumber);
+        if (links.size() >= 5) { ctx.status(400).json(err("Maximal 5 Links erlaubt")); return; }
+
+        String id = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        JsonObject link = new JsonObject();
+        link.addProperty("id",    id);
+        link.addProperty("label", label.length() > 32 ? label.substring(0, 32) : label);
+        link.addProperty("url",   url);
+        link.addProperty("status", "pending");
+        link.addProperty("ts",    System.currentTimeMillis());
+        links.add(link);
+        saveFirmaLinks(guildId, c.phoneNumber, links);
+
+        sendFirmaLinkDm(guildId, c.phoneNumber, c.displayName(), id, label, url);
+        ctx.json("{\"ok\":true,\"id\":\"" + id + "\"}");
+    }
+
+    /** Löscht einen eigenen Link. */
+    public static void handleDeleteFirmaLink(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String id      = ctx.pathParam("id");
+        String guildId = guildId();
+        saveFirmaLinks(guildId, c.phoneNumber, removeWhere(loadFirmaLinks(guildId, c.phoneNumber), "id", id));
+        ctx.json("{\"ok\":true}");
+    }
+
+    /** Wird vom FirmaLinkListener aufgerufen. */
+    public static void approveFirmaLink(String guildId, String phone, String id) {
+        JsonArray links = loadFirmaLinks(guildId, phone);
+        for (JsonElement el : links) {
+            JsonObject o = el.getAsJsonObject();
+            if (id.equals(str(o, "id"))) { o.addProperty("status", "approved"); break; }
+        }
+        saveFirmaLinks(guildId, phone, links);
+    }
+
+    public static void rejectFirmaLink(String guildId, String phone, String id) {
+        saveFirmaLinks(guildId, phone, removeWhere(loadFirmaLinks(guildId, phone), "id", id));
+    }
+
+    private static JsonArray loadFirmaLinks(String guildId, String phone) {
+        String raw = DataStore.readString("city-firma-" + guildId + "-" + phone.replaceAll("[^0-9]", ""));
+        if (raw == null) return new JsonArray();
+        try { return JsonParser.parseString(raw).getAsJsonArray(); } catch (Exception e) { return new JsonArray(); }
+    }
+
+    private static void saveFirmaLinks(String guildId, String phone, JsonArray arr) {
+        DataStore.writeString("city-firma-" + guildId + "-" + phone.replaceAll("[^0-9]", ""), GSON.toJson(arr));
+    }
+
+    private static void sendFirmaLinkDm(String guildId, String phone, String displayName, String id, String label, String url) {
+        net.dv8tion.jda.api.JDA jda = de.pcrp.bot.common.BotContext.getJda();
+        if (jda == null) return;
+        jda.retrieveUserById(ModerationConfig.OWNER_ID).queue(admin -> {
+            net.dv8tion.jda.api.EmbedBuilder eb = de.pcrp.bot.common.EmbedFactory.create()
+                .setTitle("🔗 Neue Firma-Link-Anfrage")
+                .setDescription(
+                    "**Spieler:** " + displayName + " (`" + phone + "`)\n" +
+                    "**Button-Text:** " + label + "\n" +
+                    "**Link:** " + url)
+                .setFooter("GuildID: " + guildId + " | Phone: " + phone + " | ID: " + id);
+            net.dv8tion.jda.api.interactions.components.buttons.Button approve =
+                net.dv8tion.jda.api.interactions.components.buttons.Button.success(
+                    "cfl-a:" + guildId + ":" + phone + ":" + id, "✅ Genehmigen");
+            net.dv8tion.jda.api.interactions.components.buttons.Button reject =
+                net.dv8tion.jda.api.interactions.components.buttons.Button.danger(
+                    "cfl-r:" + guildId + ":" + phone + ":" + id, "❌ Ablehnen");
+            admin.openPrivateChannel().queue(ch ->
+                ch.sendMessageEmbeds(eb.build())
+                  .addActionRow(approve, reject)
+                  .queue(null, err -> {}),
+                err -> {});
+        }, err -> {});
     }
 
     // ── Regierungs-Nachrichten ────────────────────────────────────────────────

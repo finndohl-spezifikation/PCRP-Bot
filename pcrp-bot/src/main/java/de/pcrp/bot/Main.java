@@ -93,7 +93,8 @@ public class Main {
                 new ShopListener(),
                 new BankListener(),
                 new BargeldListener(),
-                new HandyCentraleListener()
+                new HandyCentraleListener(),
+                new FirmaLinkListener()
             )
             .build();
     }
