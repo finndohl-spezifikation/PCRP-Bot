@@ -1696,7 +1696,7 @@ public class CommandListener extends ListenerAdapter {
             event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue(); return;
         }
         String guildId = event.getGuild().getId();
-        de.pcrp.bot.common.DataStore.writeString("web-ban-" + guildId + "-" + target.getId(), null);
+        de.pcrp.bot.common.DataStore.deleteKey("web-ban-" + guildId + "-" + target.getId());
         event.replyEmbeds(embed("✅ Web-Bann aufgehoben",
             "**" + target.getEffectiveName() + "** hat wieder Zugriff auf PCRP-Webseiten."))
             .setEphemeral(true).queue();

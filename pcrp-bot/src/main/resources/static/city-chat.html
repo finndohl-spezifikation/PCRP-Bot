@@ -114,6 +114,16 @@ input,textarea{font-family:inherit}
 .messages.bg-pattern{background:#161008;background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,rgba(255,255,255,.015) 35px,rgba(255,255,255,.015) 70px)}
 .messages.bg-minimal{background:#0a0a0a}
 .messages.bg-city{background:linear-gradient(180deg,#050a1a 0%,#0a0510 100%)}
+.messages.bg-forest{background:linear-gradient(160deg,#071a0a,#0d1f0d)}
+.messages.bg-ocean{background:linear-gradient(180deg,#020d1a,#05111f)}
+.messages.bg-desert{background:linear-gradient(160deg,#1a1005,#130d03)}
+.messages.bg-violet{background:linear-gradient(160deg,#0e0514,#120819)}
+.messages.bg-sunset{background:linear-gradient(180deg,#1a0505,#0f0510)}
+.messages.bg-cyber{background:#030d0d;background-image:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(0,255,180,.03) 40px,rgba(0,255,180,.03) 41px)}
+.messages.bg-blood{background:linear-gradient(160deg,#130000,#0a0000)}
+.messages.bg-slate{background:linear-gradient(160deg,#0a0e14,#080c12)}
+.messages.bg-aurora{background:linear-gradient(135deg,#050d10,#070d14,#080a10)}
+a.msg-link{color:var(--accent);text-decoration:underline;word-break:break-all}
 .date-sep{display:flex;justify-content:center;margin:.5rem 0}
 .date-sep span{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4);font-size:.7rem;padding:.2rem .65rem;border-radius:8px}
 .msg-row{display:flex;max-width:78%}
@@ -449,6 +459,37 @@ audio{max-width:200px;height:32px;border-radius:8px}
   </div>
 </div>
 
+<!-- PARTNER PROFILE -->
+<div class="modal-overlay hidden" id="partner-profile-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span id="pp-title">Profil</span>
+      <button onclick="closeModal('partner-profile-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" style="align-items:center;text-align:center;gap:0.5rem">
+      <div id="pp-avatar" style="width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#fff;margin:.5rem auto;overflow:hidden;flex-shrink:0"></div>
+      <div id="pp-name" style="font-size:1.1rem;font-weight:700;color:#fff"></div>
+      <div id="pp-phone" style="font-size:.8rem;color:rgba(255,255,255,.35)"></div>
+      <div id="pp-status-text" style="margin-top:.5rem;font-size:.85rem;color:rgba(255,255,255,.55);font-style:italic"></div>
+      <div id="pp-status-card" style="display:none;margin-top:.75rem;width:100%;border-radius:12px;padding:1rem;flex-direction:column;align-items:center;gap:.4rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- KONTAKT UMBENENNEN -->
+<div class="modal-overlay hidden" id="rename-contact-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <span>✏️ Kontakt umbenennen</span>
+      <button onclick="closeModal('rename-contact-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input id="rename-input" type="text" placeholder="Neuer Name"/>
+      <button class="modal-save" id="rename-save-btn">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- STATUS VIEW -->
 <div class="modal-overlay hidden" id="status-view-modal">
   <div class="modal">
@@ -519,10 +560,19 @@ async function api(method, path, body){
       signal:ctrl.signal
     });
     clearTimeout(tid);
-    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||res.statusText); }
+    if(!res.ok){
+      const e=await res.json().catch(()=>({}));
+      if(e.error==='WEB_BANNED'){ window.location.href='/banned'; return; }
+      throw new Error(e.error||res.statusText);
+    }
     if(res.status===204) return null;
     return res.json();
   }catch(e){ clearTimeout(tid); throw e; }
+}
+
+// ── Links klickbar machen ──────────────────────────────────────────────────
+function linkify(text){
+  return text.replace(/(https?:\/\/[^\s<>"]+)/g,'<a class="msg-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -681,7 +731,12 @@ async function openChat(chatId,phone,name){
   } else {
     av.textContent=name[0].toUpperCase(); av.style.background=colorFor(phone);
   }
-  document.getElementById('ch-name').textContent=name;
+  const chName=document.getElementById('ch-name');
+  chName.textContent=name;
+  chName.style.cursor=isGov?'default':'pointer';
+  chName.onclick=isGov?null:()=>viewPartnerProfile(phone);
+  av.style.cursor=isGov?'default':'pointer';
+  av.onclick=isGov?null:()=>viewPartnerProfile(phone);
   document.getElementById('ch-status').textContent=isGov?'Nur lesen — von der Regierung':phone;
 
   // Input-Bar & Block-Button je nach Gov-Status ein/ausblenden
@@ -773,7 +828,7 @@ function renderMessages(msgs,scroll){
     const row=document.createElement('div');
     row.className=`msg-row ${isGovMsg?'theirs':mine?'mine':'theirs'}${gap?' gap':''}`;
     const t=new Date(m.ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-    let content=esc(m.content);
+    let content=linkify(esc(m.content));
     // Gov: Absender-Label darüber
     let authorLabel='';
     if(isGovMsg && m.govAuthor) authorLabel=`<div style="font-size:.7rem;color:rgba(255,200,0,.6);margin-bottom:2px;font-weight:600">🏛️ ${esc(m.govAuthor)}</div>`;
@@ -950,7 +1005,21 @@ function renderContactsList(){
     const item=document.createElement('div'); item.className='modal-item';
     const color=colorFor(c.number);
     item.innerHTML=`<div class="mi-av" style="background:${color}">${c.name[0].toUpperCase()}</div><div style="flex:1"><div class="mi-name">${esc(c.name)}</div><div class="mi-num">${esc(c.number)}</div></div>
-      <button class="mi-del" data-num="${esc(c.number)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>`;
+      <button class="mi-rename" title="Umbenennen" style="color:rgba(255,255,255,.3);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="mi-del" style="color:rgba(255,255,255,.25);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>`;
+    item.querySelector('.mi-rename').addEventListener('click',e=>{
+      e.stopPropagation();
+      document.getElementById('rename-input').value=c.name;
+      document.getElementById('rename-contact-modal').classList.remove('hidden');
+      document.getElementById('rename-input').focus();
+      document.getElementById('rename-save-btn').onclick=async()=>{
+        const newName=document.getElementById('rename-input').value.trim();
+        if(!newName) return;
+        await api('POST','/api/city-chat/contacts',{number:c.number,name:newName});
+        await loadContacts(); renderContactsList();
+        closeModal('rename-contact-modal');
+      };
+    });
     item.querySelector('.mi-del').addEventListener('click',async(e)=>{
       e.stopPropagation();
       await api('DELETE',`/api/city-chat/contacts/${encodeURIComponent(c.number)}`);
@@ -1215,6 +1284,41 @@ document.getElementById('sc-post-btn').addEventListener('click',async()=>{
   closeModal('status-create-modal'); await loadStatuses();
 });
 
+// ── Partner-Profil anzeigen ────────────────────────────────────────────────
+function viewPartnerProfile(phone){
+  const chat=chats.find(c=>c.phoneNumber===phone)||{};
+  const contact=contacts.find(c=>c.number===phone||c.number.replace(/[^0-9]/g,'')===phone.replace(/[^0-9]/g,''));
+  const displayName=contact?contact.name:(chat.displayName||phone);
+  document.getElementById('pp-title').textContent=displayName;
+  // Avatar
+  const av=document.getElementById('pp-avatar');
+  if(chat.avatar){
+    av.innerHTML=`<img src="${chat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    av.style.background='';
+  } else {
+    av.textContent=displayName[0].toUpperCase();
+    av.style.background=colorFor(phone);
+  }
+  document.getElementById('pp-name').textContent=displayName;
+  document.getElementById('pp-phone').textContent=phone;
+  // Status
+  const status=typeof statuses!=='undefined'?statuses.find(s=>s.phoneNumber===phone):null;
+  const statusText=document.getElementById('pp-status-text');
+  const statusCard=document.getElementById('pp-status-card');
+  if(status){
+    statusText.textContent='';
+    statusCard.style.display='flex';
+    statusCard.style.background=status.color&&status.color!=='#111'?status.color:'rgba(255,255,255,.07)';
+    statusCard.innerHTML='';
+    if(status.emoji){ const em=document.createElement('div'); em.style.fontSize='1.8rem'; em.textContent=status.emoji; statusCard.appendChild(em); }
+    if(status.text){ const t=document.createElement('div'); t.style.cssText='font-size:.95rem;color:#fff;font-weight:600'; t.textContent=status.text; statusCard.appendChild(t); }
+  } else {
+    statusText.textContent='Kein Status gesetzt';
+    statusCard.style.display='none';
+  }
+  document.getElementById('partner-profile-modal').classList.remove('hidden');
+}
+
 // Status anzeigen Modal
 function viewStatus(s){
   document.getElementById('sv-title').textContent=s.displayName||s.phoneNumber;
@@ -1225,6 +1329,17 @@ function viewStatus(s){
   if(s.text){ const t=document.createElement('div'); t.className='sv-text'; t.textContent=s.text; bg.appendChild(t); }
   card.appendChild(bg);
   const ts=document.createElement('div'); ts.className='sv-time'; ts.textContent=fmtTime(s.ts); card.appendChild(ts);
+  // Status löschen — nur für eigenen Status
+  if(me && s.phoneNumber===me.phoneNumber){
+    const delBtn=document.createElement('button');
+    delBtn.style.cssText='color:#ff6b6b;font-size:.82rem;padding:.4rem 1rem;margin-top:.25rem;border-radius:8px;border:1px solid rgba(255,100,100,.3);background:rgba(255,0,0,.08)';
+    delBtn.textContent='🗑️ Status löschen';
+    delBtn.addEventListener('click',async()=>{
+      await api('DELETE','/api/city-chat/status');
+      closeModal('status-view-modal'); loadStatuses();
+    });
+    card.appendChild(delBtn);
+  }
   document.getElementById('status-view-modal').classList.remove('hidden');
 }
 

@@ -68,12 +68,6 @@ public final class CityChatHandler {
     public static void handleGetMe(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
         String guildId = guildId();
-        // Web-Ban prüfen
-        String webBan = DataStore.readString("web-ban-" + guildId + "-" + c.userId);
-        if (webBan != null && !webBan.isBlank()) {
-            ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
-            return;
-        }
         JsonObject profile = loadProfile(guildId, c.phoneNumber);
         JsonObject res = new JsonObject();
         res.addProperty("phoneNumber", c.phoneNumber);
@@ -378,6 +372,12 @@ public final class CityChatHandler {
         }
         PhoneManager.Contract c = PhoneManager.validateSession(token);
         if (c == null) { ctx.status(401).json(err("Nicht authentifiziert")); return null; }
+        // Ban-Check bei jedem Request → sofortige Wirkung
+        String webBan = DataStore.readString("web-ban-" + guildId() + "-" + c.userId);
+        if (webBan != null && !webBan.isBlank()) {
+            ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
+            return null;
+        }
         return c;
     }
 
