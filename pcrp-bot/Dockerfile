@@ -1,9 +1,9 @@
 # ── Build-Stage ──────────────────────────────────────────────────────────────
 FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
-COPY pom.xml .
+COPY pcrp-bot/pom.xml .
 RUN mvn dependency:go-offline -q
-COPY src ./src
+COPY pcrp-bot/src ./src
 RUN mvn package -DskipTests -q
 
 # ── Runtime-Stage ─────────────────────────────────────────────────────────────
