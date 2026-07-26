@@ -1,0 +1,73 @@
+stage-0
+FROM ghcr.io/railwayapp/nixpacks:ubuntu-1745885067@sha256:d45c89d80e13d7ad0fd555b5130f22a866d9dd10e861f589932303ef2314c7de
+21ms
+scheduling build on Metal builder "builder-agdwnn"
+unpacking archive
+41.5 MB
+330ms
+using build driver nixpacks-v1.41.0
+ 
+╔══════════════════ Nixpacks v1.41.0 ═════════════════╗
+║ setup      │ nodejs_18, npm-9_x                     ║
+║─────────────────────────────────────────────────────║
+║ install    │ pnpm install --no-frozen-lockfile      ║
+║─────────────────────────────────────────────────────║
+║ build      │ pnpm install && pnpm run railway:build ║
+║─────────────────────────────────────────────────────║
+║ start      │ pnpm run railway:start                 ║
+╚═════════════════════════════════════════════════════╝
+ 
+ 
+Saved output to:
+  snapshot-target-unpack
+
+internal
+load build definition from Dockerfile
+0ms
+
+internal
+load metadata for ghcr.io/railwayapp/nixpacks:ubuntu-1745885067
+129ms
+uploading snapshot
+39.5 MB
+1.0s
+
+internal
+load .dockerignore
+0ms
+SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "DISCORD_TOKEN") (line 11)(https://docs.docker.com/go/dockerfile/rule/secrets-used-in-arg-or-env/)
+ details: Sensitive data should not be used in the ARG or ENV commands
+SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "SESSION_SECRET") (line 11)(https://docs.docker.com/go/dockerfile/rule/secrets-used-in-arg-or-env/)
+ details: Sensitive data should not be used in the ARG or ENV commands
+SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ENV "DISCORD_TOKEN") (line 12)(https://docs.docker.com/go/dockerfile/rule/secrets-used-in-arg-or-env/)
+ details: Sensitive data should not be used in the ARG or ENV commands
+SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ENV "SESSION_SECRET") (line 12)(https://docs.docker.com/go/dockerfile/rule/secrets-used-in-arg-or-env/)
+ details: Sensitive data should not be used in the ARG or ENV commands
+UndefinedVar: Usage of undefined variable '$NIXPACKS_PATH' (line 18)(https://docs.docker.com/go/dockerfile/rule/undefined-var/)
+ details: Variables should be defined before their use
+
+internal
+load build context
+0ms
+
+stage-0
+RUN nix-env -if .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix && nix-collect-garbage -d cached
+64ms
+
+stage-0
+COPY .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix .nixpacks/nixpkgs-ffeebf0acf3ae8b29f8c7049cd911b9636efd7e7.nix cached
+0ms
+
+stage-0
+WORKDIR /app/ cached
+0ms
+
+stage-0
+COPY . /app/.
+389ms
+
+stage-0
+RUN pnpm install --no-frozen-lockfile
+552ms
+/bin/bash: line 1: pnpm: command not found
+Build Failed: build daemon returned an error < failed to solve: process "/bin/bash -ol pipefail -c pnpm install --no-frozen-lockfile" did not complete successfully: exit code: 127 >
