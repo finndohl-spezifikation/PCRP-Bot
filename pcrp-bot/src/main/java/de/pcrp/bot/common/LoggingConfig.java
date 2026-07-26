@@ -124,6 +124,7 @@ public final class LoggingConfig {
     public static final long RUCKSACK_CHANNEL_ID     = 1529636560264232980L;
 
     /** Lotto-Panel-Kanal. */
+    public static final long BOT_INFO_CHANNEL_ID     = 1529651424491733093L;
     public static final long LOTTO_CHANNEL_ID        = 1529636566434185227L;
 
     public static final long RUBBELLOS_CHANNEL_ID   = 1529636565347995719L;

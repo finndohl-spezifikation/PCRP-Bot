@@ -30,7 +30,6 @@ public class WebServer {
         });
 
         // Frontend
-        app.get("/api/healthz",               ctx -> ctx.status(200).result("ok"));
         app.get("/",                          WebServer::serveIndex);
         app.get("/ausweis/{userId}",           WebServer::serveAusweis);
 

@@ -165,6 +165,7 @@ public class Main {
                 postRucksackPanel(guild);
                 postLottoPanel(guild);
                 postRubbellosPanel(guild);
+                postBotInfoPanel(guild);
                 ShopListener.postPanelIfNeeded(guild);
                 BankListener.postPanelIfNeeded(guild);
                 HandyCentraleListener.postPanel(guild);
@@ -470,6 +471,28 @@ public class Main {
                 .queue(
                     msg -> PanelHelper.onSent(key, msg.getId()),
                     err -> { log.error("[Rubbellos] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
+        }
+
+        private static void postBotInfoPanel(Guild guild) {
+            String key = "panel-botinfo-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.BOT_INFO_CHANNEL_ID);
+            if (ch == null) { log.warn("[BotInfo] Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "🤖 Paradise City System", () -> sendBotInfoPanel(ch, key));
+        }
+
+        private static void sendBotInfoPanel(TextChannel ch, String key) {
+            String webUrl = System.getenv().getOrDefault("CITY_CHAT_URL", "https://pcrp-bot-production-3ad1.up.railway.app");
+            ch.sendMessageEmbeds(EmbedFactory.create()
+                .setTitle("🤖 Paradise City System")
+                .setDescription(
+                    "Ein einziger Bot für dein gesamtes Roleplay-Erlebnis.\n\n" +
+                    "**36** Slash-Commands · **8** Moderations-Systeme · **5** Web-Dashboards\n\n" +
+                    "Alle Features, Infos und Statistiken auf einen Blick.")
+                .build())
+                .addActionRow(Button.link(webUrl + "/info", "🌐 Bot-Informationen öffnen"))
+                .queue(
+                    msg -> PanelHelper.onSent(key, msg.getId()),
+                    err -> { log.error("[BotInfo] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
         }
 
         private static void postRucksackPanel(Guild guild) {
