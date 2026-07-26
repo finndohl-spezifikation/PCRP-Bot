@@ -1,0 +1,77 @@
+scheduling build on Metal builder "builder-agdwnn"
+unpacking archive
+5 MB
+31ms
+uploading snapshot
+3.9 MB
+128ms
+
+internal
+load build definition from Dockerfile
+0ms
+
+internal
+load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+140ms
+
+internal
+load metadata for docker.io/library/maven:3.9-eclipse-temurin-21-alpine
+256ms
+
+internal
+load .dockerignore
+0ms
+
+build
+FROM docker.io/library/maven:3.9-eclipse-temurin-21-alpine@sha256:d88e5b38297858f65f97bc7e7964c760ab988fd18ace41589176f1468c49a489
+19ms
+
+internal
+load build context
+0ms
+
+stage-1
+FROM docker.io/library/eclipse-temurin:21-jre-alpine@sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c
+22ms
+
+build
+RUN mvn dependency:go-offline -q cached
+0ms
+
+build
+COPY pom.xml . cached
+0ms
+
+build
+WORKDIR /app cached
+0ms
+
+build
+COPY src ./src
+225ms
+
+build
+RUN mvn package -DskipTests -q
+7s
+[ERROR] COMPILATION ERROR : 
+[ERROR] /app/src/main/java/de/pcrp/bot/web/WebServer.java:[597,42] cannot find symbol
+  symbol:   variable guild
+  location: class de.pcrp.bot.web.WebServer
+[ERROR] /app/src/main/java/de/pcrp/bot/web/WebServer.java:[597,58] cannot find symbol
+  symbol:   variable guild
+  location: class de.pcrp.bot.web.WebServer
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project pcrp-bot: Compilation failure: Compilation failure: 
+[ERROR] /app/src/main/java/de/pcrp/bot/web/WebServer.java:[597,42] cannot find symbol
+[ERROR]   symbol:   variable guild
+[ERROR]   location: class de.pcrp.bot.web.WebServer
+[ERROR] /app/src/main/java/de/pcrp/bot/web/WebServer.java:[597,58] cannot find symbol
+[ERROR]   symbol:   variable guild
+[ERROR]   location: class de.pcrp.bot.web.WebServer
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+Build Failed: build daemon returned an error < failed to solve: process "/bin/sh -c mvn package -DskipTests -q" did not complete successfully: exit code: 1 >
