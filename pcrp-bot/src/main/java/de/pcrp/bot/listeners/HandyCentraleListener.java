@@ -214,7 +214,8 @@ public class HandyCentraleListener extends ListenerAdapter {
                 .setTitle("📞 Handy-Einstellungen")
                 .setDescription(
                     "**Name:** " + c.displayName() + "\n" +
-                    "**Rufnummer:** `" + c.phoneNumber + "`\n\n" +
+                    "**Rufnummer:** `" + c.phoneNumber + "`\n" +
+                    "🔑 **Safe-PIN:** `" + c.safePin + "`\n\n" +
                     ccLine + "\n" +
                     cgLine + "\n\n" +
                     "🔄 Neue Nummer kostet **500$** (Service-Gebühr)")
@@ -477,12 +478,31 @@ public class HandyCentraleListener extends ListenerAdapter {
             BankManager.setBalance(guildId, userId, balance - NEUE_NR_PREIS);
             BankManager.addTransaction(guildId, userId, "HANDY_NUMMER_WECHSEL", NEUE_NR_PREIS, null);
 
+            // Neue PIN per DM senden
+            final PhoneManager.Contract fc = c;
+            event.getUser().openPrivateChannel().queue(dm -> dm.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🔄 Neue Rufnummer & Safe-PIN")
+                    .setDescription(
+                        "Deine Rufnummer wurde gewechselt!\n\n" +
+                        "📞 **Neue Rufnummer:** `" + fc.phoneNumber + "`\n" +
+                        "🔑 **Neue Safe-PIN:** `" + fc.safePin + "`\n\n" +
+                        "⚠️ **Gib diese Zugangsdaten niemals an andere weiter!**\n" +
+                        "Mit Rufnummer + PIN kannst du dich in **City Chat** und **Citygram** einloggen.")
+                    .build()
+            ).queue(
+                ok  -> log.info("[Handy] Neue-PIN-DM an {} gesendet.", userId),
+                err -> log.warn("[Handy] Neue-PIN-DM konnte nicht gesendet werden: {}", err.getMessage())
+            ));
+
             event.replyEmbeds(
                 EmbedFactory.create()
                     .setTitle("🔄 Neue Nummer generiert")
                     .setDescription(
                         "✅ Deine alte Nummer wurde gelöscht.\n\n" +
-                        "**Neue Rufnummer:** `" + c.phoneNumber + "`\n\n" +
+                        "**Neue Rufnummer:** `" + c.phoneNumber + "`\n" +
+                        "🔑 **Neue Safe-PIN:** `" + c.safePin + "`\n\n" +
+                        "📩 Deine neuen Zugangsdaten wurden dir auch per **DM** geschickt.\n" +
                         "**500$** wurden als Service-Gebühr abgezogen.")
                     .build()
             ).setEphemeral(true).queue();
