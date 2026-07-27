@@ -208,10 +208,12 @@ public final class CityCitygramHandler {
         res.addProperty("username",       pStr(profile, "username", c.displayName()));
         res.addProperty("bio",            pStr(profile, "bio", ""));
         res.addProperty("website",        pStr(profile, "website", ""));
-        res.addProperty("hasAvatar",      !pStr(profile, "avatar", "").isEmpty());
-        res.addProperty("postCount",      postCount(guildId, c.phoneNumber));
-        res.addProperty("followerCount",  followerCount(guildId, c.phoneNumber));
-        res.addProperty("followingCount", loadFollowing(guildId, c.phoneNumber).size());
+        res.addProperty("hasAvatar",           !pStr(profile, "avatar", "").isEmpty());
+        res.addProperty("postCount",           postCount(guildId, c.phoneNumber));
+        res.addProperty("followerCount",       followerCount(guildId, c.phoneNumber));
+        res.addProperty("followingCount",      loadFollowing(guildId, c.phoneNumber).size());
+        res.addProperty("isPrivate",           profile.has("isPrivate") && profile.get("isPrivate").getAsBoolean());
+        res.addProperty("pendingRequestCount", loadFollowRequests(guildId, c.phoneNumber).size());
         ctx.json(GSON.toJson(res));
     }
 
@@ -238,8 +240,14 @@ public final class CityCitygramHandler {
         res.addProperty("postCount",      postCount(guildId, c.phoneNumber));
         res.addProperty("followerCount",  followerCount(guildId, c.phoneNumber));
         res.addProperty("followingCount", loadFollowing(guildId, c.phoneNumber).size());
+        boolean isPrivate = profile.has("isPrivate") && profile.get("isPrivate").getAsBoolean();
+        boolean isPending = false;
+        for (JsonElement e : loadFollowRequests(guildId, normT))
+            if (norm(me.phoneNumber).equals(norm(e.getAsString()))) { isPending = true; break; }
         res.addProperty("isFollowing",    isFollowing);
         res.addProperty("isMe",           norm(me.phoneNumber).equals(normT));
+        res.addProperty("isPrivate",      isPrivate);
+        res.addProperty("isPending",      isPending);
         ctx.json(GSON.toJson(res));
     }
 
@@ -249,10 +257,11 @@ public final class CityCitygramHandler {
         if (body == null) { ctx.status(400).result(err("Ungültiger Body")); return; }
         String guildId = guildId();
         JsonObject p = loadProfile(guildId, c.phoneNumber);
-        if (body.has("username")) p.addProperty("username", str(body, "username"));
-        if (body.has("bio"))      p.addProperty("bio",      str(body, "bio"));
-        if (body.has("website"))  p.addProperty("website",  str(body, "website"));
-        if (body.has("avatar"))   p.addProperty("avatar",   str(body, "avatar"));
+        if (body.has("username"))  p.addProperty("username",  str(body, "username"));
+        if (body.has("bio"))       p.addProperty("bio",       str(body, "bio"));
+        if (body.has("website"))   p.addProperty("website",   str(body, "website"));
+        if (body.has("avatar"))    p.addProperty("avatar",    str(body, "avatar"));
+        if (body.has("isPrivate")) p.addProperty("isPrivate", body.get("isPrivate").getAsBoolean());
         saveProfile(guildId, c.phoneNumber, p);
         ctx.json("{\"ok\":true}");
     }
@@ -429,6 +438,36 @@ public final class CityCitygramHandler {
         ctx.status(404).result(err("Nicht gefunden"));
     }
 
+    // ── Block helpers ─────────────────────────────────────────────────────────
+
+    private static JsonArray loadBlocked(String guildId, String phone) {
+        String s = DataStore.readString("cg-blocked-" + guildId + "-" + norm(phone));
+        if (s == null) return new JsonArray();
+        try { return GSON.fromJson(s, JsonArray.class); } catch (Exception e) { return new JsonArray(); }
+    }
+
+    private static void saveBlocked(String guildId, String phone, JsonArray a) {
+        DataStore.writeString("cg-blocked-" + guildId + "-" + norm(phone), GSON.toJson(a));
+    }
+
+    private static boolean isBlocked(String guildId, String byPhone, String ofPhone) {
+        for (JsonElement e : loadBlocked(guildId, byPhone))
+            if (norm(ofPhone).equals(norm(e.getAsString()))) return true;
+        return false;
+    }
+
+    // ── Follow-request helpers ────────────────────────────────────────────────
+
+    private static JsonArray loadFollowRequests(String guildId, String phone) {
+        String s = DataStore.readString("cg-follow-req-" + guildId + "-" + norm(phone));
+        if (s == null) return new JsonArray();
+        try { return GSON.fromJson(s, JsonArray.class); } catch (Exception e) { return new JsonArray(); }
+    }
+
+    private static void saveFollowRequests(String guildId, String phone, JsonArray a) {
+        DataStore.writeString("cg-follow-req-" + guildId + "-" + norm(phone), GSON.toJson(a));
+    }
+
     // ── Follow ────────────────────────────────────────────────────────────────
 
     public static void handleToggleFollow(Context ctx) {
@@ -437,15 +476,239 @@ public final class CityCitygramHandler {
         String normMe = norm(c.phoneNumber);
         if (normMe.equals(normT)) { ctx.status(400).result(err("Nicht möglich")); return; }
         String guildId = guildId();
+
+        // Blocked?
+        if (isBlocked(guildId, normT, normMe)) { ctx.status(403).result(err("Nicht möglich")); return; }
+
         JsonArray following = loadFollowing(guildId, c.phoneNumber);
         boolean was = false;
         for (int i = 0; i < following.size(); i++)
             if (normT.equals(norm(following.get(i).getAsString()))) { following.remove(i); was = true; break; }
-        if (!was) following.add(normT);
-        saveFollowing(guildId, c.phoneNumber, following);
+
         JsonObject res = new JsonObject();
+
+        if (!was) {
+            // Check if target account is private
+            JsonObject targetProfile = loadProfile(guildId, normT);
+            boolean isPrivate = targetProfile.has("isPrivate") && targetProfile.get("isPrivate").getAsBoolean();
+            if (isPrivate) {
+                // Check if already requested
+                JsonArray reqs = loadFollowRequests(guildId, normT);
+                boolean alreadyPending = false;
+                for (JsonElement e : reqs)
+                    if (normMe.equals(norm(e.getAsString()))) { alreadyPending = true; break; }
+                if (!alreadyPending) { reqs.add(normMe); saveFollowRequests(guildId, normT, reqs); }
+                res.addProperty("following", false);
+                res.addProperty("pending", true);
+                ctx.json(GSON.toJson(res)); return;
+            }
+            following.add(normT);
+        } else {
+            // Cancel pending request if exists
+            JsonArray reqs = loadFollowRequests(guildId, normT);
+            for (int i = 0; i < reqs.size(); i++)
+                if (normMe.equals(norm(reqs.get(i).getAsString()))) { reqs.remove(i); break; }
+            saveFollowRequests(guildId, normT, reqs);
+        }
+
+        saveFollowing(guildId, c.phoneNumber, following);
         res.addProperty("following", !was);
+        res.addProperty("pending", false);
         ctx.json(GSON.toJson(res));
+    }
+
+    public static void handleGetFollowers(Context ctx) {
+        PhoneManager.Contract me = auth(ctx); if (me == null) return;
+        String normT  = norm(ctx.pathParam("phone"));
+        String guildId = guildId();
+        List<JsonObject> list = new ArrayList<>();
+        for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId)) {
+            for (JsonElement f : loadFollowing(guildId, ct.phoneNumber)) {
+                if (normT.equals(norm(f.getAsString()))) {
+                    JsonObject profile = loadProfile(guildId, ct.phoneNumber);
+                    JsonObject u = new JsonObject();
+                    u.addProperty("phone",     norm(ct.phoneNumber));
+                    u.addProperty("username",  pStr(profile, "username", ct.displayName()));
+                    u.addProperty("hasAvatar", !pStr(profile, "avatar", "").isEmpty());
+                    list.add(u); break;
+                }
+            }
+        }
+        ctx.json(GSON.toJson(list));
+    }
+
+    public static void handleGetFollowing(Context ctx) {
+        PhoneManager.Contract me = auth(ctx); if (me == null) return;
+        String normT   = norm(ctx.pathParam("phone"));
+        String guildId = guildId();
+        PhoneManager.Contract target = null;
+        for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId))
+            if (normT.equals(norm(ct.phoneNumber))) { target = ct; break; }
+        if (target == null) { ctx.status(404).result(err("Nicht gefunden")); return; }
+        List<JsonObject> list = new ArrayList<>();
+        for (JsonElement f : loadFollowing(guildId, target.phoneNumber)) {
+            String fp = norm(f.getAsString());
+            for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId)) {
+                if (fp.equals(norm(ct.phoneNumber))) {
+                    JsonObject profile = loadProfile(guildId, ct.phoneNumber);
+                    JsonObject u = new JsonObject();
+                    u.addProperty("phone",     fp);
+                    u.addProperty("username",  pStr(profile, "username", ct.displayName()));
+                    u.addProperty("hasAvatar", !pStr(profile, "avatar", "").isEmpty());
+                    list.add(u); break;
+                }
+            }
+        }
+        ctx.json(GSON.toJson(list));
+    }
+
+    // ── Block ─────────────────────────────────────────────────────────────────
+
+    public static void handleToggleBlock(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String normT  = norm(ctx.pathParam("phone"));
+        String normMe = norm(c.phoneNumber);
+        if (normMe.equals(normT)) { ctx.status(400).result(err("Nicht möglich")); return; }
+        String guildId = guildId();
+        JsonArray blocked = loadBlocked(guildId, normMe);
+        boolean was = false;
+        for (int i = 0; i < blocked.size(); i++)
+            if (normT.equals(norm(blocked.get(i).getAsString()))) { blocked.remove(i); was = true; break; }
+        if (!was) {
+            blocked.add(normT);
+            // Remove follows both ways
+            JsonArray myF = loadFollowing(guildId, normMe);
+            for (int i = 0; i < myF.size(); i++)
+                if (normT.equals(norm(myF.get(i).getAsString()))) { myF.remove(i); break; }
+            saveFollowing(guildId, normMe, myF);
+            JsonArray theirF = loadFollowing(guildId, normT);
+            for (int i = 0; i < theirF.size(); i++)
+                if (normMe.equals(norm(theirF.get(i).getAsString()))) { theirF.remove(i); break; }
+            saveFollowing(guildId, normT, theirF);
+        }
+        saveBlocked(guildId, normMe, blocked);
+        JsonObject res = new JsonObject();
+        res.addProperty("blocked", !was);
+        ctx.json(GSON.toJson(res));
+    }
+
+    public static void handleGetBlocked(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String guildId = guildId();
+        List<JsonObject> list = new ArrayList<>();
+        for (JsonElement e : loadBlocked(guildId, norm(c.phoneNumber))) {
+            String fp = norm(e.getAsString());
+            for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId)) {
+                if (fp.equals(norm(ct.phoneNumber))) {
+                    JsonObject profile = loadProfile(guildId, ct.phoneNumber);
+                    JsonObject u = new JsonObject();
+                    u.addProperty("phone",     fp);
+                    u.addProperty("username",  pStr(profile, "username", ct.displayName()));
+                    u.addProperty("hasAvatar", !pStr(profile, "avatar", "").isEmpty());
+                    list.add(u); break;
+                }
+            }
+        }
+        ctx.json(GSON.toJson(list));
+    }
+
+    // ── Follow requests ───────────────────────────────────────────────────────
+
+    public static void handleGetFollowRequests(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String guildId = guildId();
+        String normMe  = norm(c.phoneNumber);
+        List<JsonObject> list = new ArrayList<>();
+        for (JsonElement e : loadFollowRequests(guildId, normMe)) {
+            String fp = norm(e.getAsString());
+            for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId)) {
+                if (fp.equals(norm(ct.phoneNumber))) {
+                    JsonObject profile = loadProfile(guildId, ct.phoneNumber);
+                    JsonObject u = new JsonObject();
+                    u.addProperty("phone",     fp);
+                    u.addProperty("username",  pStr(profile, "username", ct.displayName()));
+                    u.addProperty("hasAvatar", !pStr(profile, "avatar", "").isEmpty());
+                    list.add(u); break;
+                }
+            }
+        }
+        ctx.json(GSON.toJson(list));
+    }
+
+    public static void handleApproveFollowRequest(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String normReq = norm(ctx.pathParam("phone"));
+        String normMe  = norm(c.phoneNumber);
+        String guildId = guildId();
+        JsonArray reqs = loadFollowRequests(guildId, normMe);
+        boolean found = false;
+        for (int i = 0; i < reqs.size(); i++)
+            if (normReq.equals(norm(reqs.get(i).getAsString()))) { reqs.remove(i); found = true; break; }
+        if (!found) { ctx.status(404).result(err("Anfrage nicht gefunden")); return; }
+        saveFollowRequests(guildId, normMe, reqs);
+        JsonArray following = loadFollowing(guildId, normReq);
+        following.add(normMe);
+        saveFollowing(guildId, normReq, following);
+        ctx.json("{\"ok\":true}");
+    }
+
+    public static void handleRejectFollowRequest(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String normReq = norm(ctx.pathParam("phone"));
+        String normMe  = norm(c.phoneNumber);
+        String guildId = guildId();
+        JsonArray reqs = loadFollowRequests(guildId, normMe);
+        for (int i = 0; i < reqs.size(); i++)
+            if (normReq.equals(norm(reqs.get(i).getAsString()))) { reqs.remove(i); break; }
+        saveFollowRequests(guildId, normMe, reqs);
+        ctx.json("{\"ok\":true}");
+    }
+
+    // ── Delete all data for a phone (on number change) ────────────────────────
+
+    public static void deleteCitygramData(String guildId, String phone) {
+        String normP = norm(phone);
+        // Profile
+        DataStore.deleteKey("cg-profile-" + guildId + "-" + normP);
+        // Following / blocked / follow-requests
+        DataStore.deleteKey("cg-following-"  + guildId + "-" + normP);
+        DataStore.deleteKey("cg-blocked-"    + guildId + "-" + normP);
+        DataStore.deleteKey("cg-follow-req-" + guildId + "-" + normP);
+        // Posts (remove from global list, delete images/likes/comments)
+        JsonArray posts = loadPosts(guildId);
+        JsonArray remaining = new JsonArray();
+        for (JsonElement e : posts) {
+            JsonObject p = e.getAsJsonObject();
+            if (normP.equals(norm(str(p, "phone")))) {
+                String pid = str(p, "id");
+                DataStore.deleteKey("cg-img-"      + guildId + "-" + pid);
+                DataStore.deleteKey("cg-likes-"    + guildId + "-" + pid);
+                DataStore.deleteKey("cg-comments-" + guildId + "-" + pid);
+            } else {
+                remaining.add(p);
+            }
+        }
+        savePosts(guildId, remaining);
+        // Stories
+        JsonArray stories = loadStories(guildId);
+        JsonArray remainStories = new JsonArray();
+        for (JsonElement e : stories) {
+            JsonObject s = e.getAsJsonObject();
+            if (normP.equals(norm(str(s, "phone")))) {
+                DataStore.deleteKey("cg-story-img-" + guildId + "-" + str(s, "id"));
+            } else {
+                remainStories.add(s);
+            }
+        }
+        DataStore.writeString("cg-stories-" + guildId, GSON.toJson(remainStories));
+        // Remove from other users' following lists
+        for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId)) {
+            JsonArray f = loadFollowing(guildId, ct.phoneNumber);
+            boolean changed = false;
+            for (int i = 0; i < f.size(); i++)
+                if (normP.equals(norm(f.get(i).getAsString()))) { f.remove(i); changed = true; break; }
+            if (changed) saveFollowing(guildId, ct.phoneNumber, f);
+        }
     }
 
     // ── Search ────────────────────────────────────────────────────────────────

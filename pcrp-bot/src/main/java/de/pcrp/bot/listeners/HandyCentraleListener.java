@@ -446,6 +446,34 @@ public class HandyCentraleListener extends ListenerAdapter {
         }
 
         if ("handy:neue_nummer".equals(cid)) {
+            // Warnung anzeigen – erst nach Bestätigung wirklich wechseln
+            event.replyEmbeds(
+                EmbedFactory.create()
+                    .setTitle("⚠️ Rufnummer wechseln – Bestätigung erforderlich")
+                    .setDescription(
+                        "**Durch den Rufnummernwechsel werden folgende Daten dauerhaft gelöscht:**\n\n" +
+                        "📸 **Dein gesamtes Citygram-Konto** (Beiträge, Follower, Following, Stories)\n" +
+                        "🔑 **Deine Safe-PIN** wird durch eine neue ersetzt\n\n" +
+                        "City Chat Kontakte & Nachrichten werden auf die neue Nummer übertragen.\n\n" +
+                        "**❌ Dieser Vorgang kann nicht rückgängig gemacht werden!**\n" +
+                        "Kosten: **500$**")
+                    .build()
+            ).addComponents(
+                net.dv8tion.jda.api.interactions.components.ActionRow.of(
+                    Button.danger("handy:neue_nummer_confirm", "✅ Ja, Nummer wechseln"),
+                    Button.secondary("handy:neue_nummer_cancel", "❌ Abbrechen")
+                )
+            ).setEphemeral(true).queue();
+            return;
+        }
+
+        if ("handy:neue_nummer_cancel".equals(cid)) {
+            event.replyEmbeds(EmbedFactory.build("🔄 Nummernwechsel", "Abgebrochen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        if ("handy:neue_nummer_confirm".equals(cid)) {
             String userId  = event.getUser().getId();
             String guildId = event.getGuild().getId();
 
@@ -458,9 +486,14 @@ public class HandyCentraleListener extends ListenerAdapter {
                 return;
             }
 
-            // Alte Nummer vor der Änderung merken (für City-Chat-Migration)
+            // Alte Nummer vor der Änderung merken
             PhoneManager.Contract oldContract = PhoneManager.getContract(guildId, userId);
             String oldPhone = oldContract != null ? oldContract.phoneNumber : null;
+
+            // Citygram-Daten der alten Nummer dauerhaft löschen
+            if (oldPhone != null) {
+                de.pcrp.bot.web.CityCitygramHandler.deleteCitygramData(guildId, oldPhone);
+            }
 
             PhoneManager.Contract c = PhoneManager.regenerateNumber(guildId, userId);
             if (c == null) {

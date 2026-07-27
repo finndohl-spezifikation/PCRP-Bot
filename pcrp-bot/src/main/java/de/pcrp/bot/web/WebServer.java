@@ -102,6 +102,13 @@ public class WebServer {
         app.post("/api/citygram/comment/{postId}",               ctx -> CityCitygramHandler.handleAddComment(ctx));
         app.delete("/api/citygram/comment/{postId}/{commentId}", ctx -> CityCitygramHandler.handleDeleteComment(ctx));
         app.post("/api/citygram/follow/{phone}",                 ctx -> CityCitygramHandler.handleToggleFollow(ctx));
+        app.get( "/api/citygram/followers/{phone}",              ctx -> CityCitygramHandler.handleGetFollowers(ctx));
+        app.get( "/api/citygram/following/{phone}",              ctx -> CityCitygramHandler.handleGetFollowing(ctx));
+        app.post("/api/citygram/block/{phone}",                  ctx -> CityCitygramHandler.handleToggleBlock(ctx));
+        app.get( "/api/citygram/blocked",                        ctx -> CityCitygramHandler.handleGetBlocked(ctx));
+        app.get( "/api/citygram/follow-requests",                ctx -> CityCitygramHandler.handleGetFollowRequests(ctx));
+        app.post("/api/citygram/follow-requests/{phone}/approve",ctx -> CityCitygramHandler.handleApproveFollowRequest(ctx));
+        app.delete("/api/citygram/follow-requests/{phone}",      ctx -> CityCitygramHandler.handleRejectFollowRequest(ctx));
         app.get( "/api/citygram/search",                         ctx -> CityCitygramHandler.handleSearch(ctx));
         app.get( "/api/citygram/stories",                        ctx -> CityCitygramHandler.handleGetStories(ctx));
         app.post("/api/citygram/story",                          ctx -> CityCitygramHandler.handleCreateStory(ctx));

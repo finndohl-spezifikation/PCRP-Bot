@@ -345,6 +345,106 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   animation:spin .7s linear infinite;margin:40px auto;display:block}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty-msg{text-align:center;color:var(--text3);padding:60px 20px;font-size:14px}
+
+/* ── Desktop responsive ── */
+@media(min-width:600px){
+  body{background:#121212}
+  #login-screen,#app,#story-viewer,#comments-modal,#post-options,
+  #edit-profile-modal,#new-story-modal,#user-list-modal,#settings-modal{
+    max-width:480px;margin:0 auto;left:50%;transform:translateX(-50%)}
+  #login-screen{left:50%;transform:translateX(-50%)}
+  #app,#story-viewer{position:fixed;left:50%;transform:translateX(-50%);
+    width:480px;overflow:hidden}
+  #nav,#toast{max-width:480px;left:50%;transform:translateX(-50%)}
+  #toast{left:calc(50% - 240px + 50%)}
+}
+
+/* ── User list modal (followers/following/blocked) ── */
+#user-list-modal{position:fixed;inset:0;z-index:180;display:none;flex-direction:column}
+#user-list-modal.open{display:flex}
+.ulm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.ulm-sheet{position:absolute;bottom:0;left:0;right:0;background:var(--surface);
+  border-radius:16px 16px 0 0;max-height:80vh;display:flex;flex-direction:column;
+  padding-bottom:calc(8px + var(--safe-b))}
+.ulm-hdr{padding:16px;border-bottom:1px solid var(--border);
+  text-align:center;font-weight:600;font-size:15px;position:relative}
+.ulm-hdr button{position:absolute;right:16px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text2);cursor:pointer;font-size:24px;line-height:1}
+#ulm-list{flex:1;overflow-y:auto}
+.ulm-item{display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer}
+.ulm-item:active{background:#ffffff08}
+.ulm-av{width:44px;height:44px;border-radius:50%;overflow:hidden;
+  background:var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:18px}
+.ulm-av img{width:100%;height:100%;object-fit:cover}
+.ulm-name{flex:1;font-weight:600;font-size:14px}
+.ulm-unblock{background:none;border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+
+/* ── Settings modal ── */
+#settings-modal{position:fixed;inset:0;z-index:175;background:var(--bg);
+  display:none;flex-direction:column}
+#settings-modal.open{display:flex}
+.sm-hdr{height:var(--hdr);display:flex;align-items:center;justify-content:space-between;
+  padding:0 16px;border-bottom:1px solid var(--border)}
+.sm-hdr h2{font-size:16px;font-weight:600}
+.sm-hdr button{background:none;border:none;cursor:pointer;color:var(--accent);
+  font-size:14px;font-weight:600;padding:4px}
+.sm-body{flex:1;overflow-y:auto}
+.sm-section{padding:16px;border-bottom:1px solid var(--border)}
+.sm-section h3{font-size:13px;color:var(--text2);font-weight:600;margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.5px}
+.sm-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0}
+.sm-toggle-row span{font-size:14px}
+.sm-toggle-sub{font-size:12px;color:var(--text3);margin-top:4px;line-height:1.4}
+.toggle-switch{position:relative;width:50px;height:28px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--border);
+  border-radius:28px;cursor:pointer;transition:.3s}
+.toggle-slider:before{content:'';position:absolute;width:22px;height:22px;
+  left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-switch input:checked + .toggle-slider{background:var(--accent)}
+.toggle-switch input:checked + .toggle-slider:before{transform:translateX(22px)}
+.sm-requests-list{margin-top:8px}
+.sm-req-item{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--border)}
+.sm-req-item:last-child{border:none}
+.sm-req-av{width:40px;height:40px;border-radius:50%;overflow:hidden;
+  background:var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:16px}
+.sm-req-av img{width:100%;height:100%;object-fit:cover}
+.sm-req-name{flex:1;font-weight:600;font-size:13px;cursor:pointer}
+.sm-req-btns{display:flex;gap:6px}
+.sm-req-approve{background:var(--accent);color:#fff;border:none;
+  border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:600}
+.sm-req-reject{background:var(--surface);color:var(--text);border:1px solid var(--border);
+  border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+
+/* ── Private badge ── */
+.private-badge{display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;color:var(--text3);margin-left:6px}
+.private-badge svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* ── Follow pending state ── */
+.profile-follow-btn.pending{background:var(--surface);color:var(--text);
+  border-color:var(--border);font-style:italic}
+
+/* ── Ad card ── */
+.ad-card{background:linear-gradient(135deg,#1a0a2e,#16213e);
+  border-bottom:1px solid var(--border);padding:16px}
+.ad-tag{font-size:10px;color:var(--text3);margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.5px}
+.ad-body{display:flex;align-items:center;gap:12px}
+.ad-icon{width:48px;height:48px;border-radius:12px;flex-shrink:0;
+  background:var(--grad);display:flex;align-items:center;justify-content:center;
+  font-size:24px}
+.ad-text h4{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ad-text p{font-size:12px;color:var(--text2);line-height:1.4}
+
+/* ── Stat clickable ── */
+.stat-box.clickable{cursor:pointer}
+.stat-box.clickable:active{opacity:.7}
 </style>
 </head>
 <body>
@@ -422,7 +522,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <span id="profile-username-hdr" style="font-weight:600;font-size:16px"></span>
-      <div style="width:32px"></div>
+      <button id="profile-settings-btn" style="display:none;background:none;border:none;color:var(--text);cursor:pointer;padding:4px" onclick="openSettings()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
     </div>
     <div id="profile-content"></div>
   </div>
@@ -498,6 +600,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   </div>
 </div>
 
+<!-- Confirm Dialog (reusable) -->
+<div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:24px">
+  <div style="background:var(--surface);border-radius:14px;padding:24px;max-width:340px;width:100%;text-align:center">
+    <div id="confirm-msg" style="font-size:15px;margin-bottom:20px;line-height:1.5"></div>
+    <div style="display:flex;gap:10px">
+      <button id="confirm-cancel" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;cursor:pointer">Abbrechen</button>
+      <button id="confirm-ok" style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--danger);color:#fff;font-size:14px;font-weight:600;cursor:pointer">Bestätigen</button>
+    </div>
+  </div>
+</div>
+
 <!-- New Story Modal -->
 <div id="new-story-modal">
   <div class="ns-hdr">
@@ -514,6 +627,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
     <input type="file" id="ns-file" accept="image/*" onchange="handleStoryFile(this)">
   </div>
   <div id="ns-text"><input id="ns-text-input" placeholder="Text (optional)" maxlength="100"></div>
+</div>
+
+<!-- User List Modal (Follower / Following / Blockiert) -->
+<div id="user-list-modal">
+  <div class="ulm-backdrop" onclick="closeUserList()"></div>
+  <div class="ulm-sheet">
+    <div class="ulm-hdr"><span id="ulm-title">Follower</span><button onclick="closeUserList()">×</button></div>
+    <div id="ulm-list"></div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal">
+  <div class="sm-hdr">
+    <button onclick="closeSettings()">×</button>
+    <h2>Einstellungen</h2>
+    <div style="width:32px"></div>
+  </div>
+  <div class="sm-body" id="sm-body"></div>
 </div>
 
 <!-- Toast -->
@@ -621,6 +753,29 @@ function updateNavAvatar() {
 
 // ── Feed ──────────────────────────────────────────────────────────────────────
 
+const ADS = [
+  { icon:'🏙️', title:'Paradise City Roleplay', text:'Das beste GTA-Roleplay Erlebnis. Tritt unserer Community bei!' },
+  { icon:'📱', title:'Handy-Zentrale', text:'Rufnummer, City Chat & Citygram – alles über dein Handy.' },
+  { icon:'💬', title:'City Chat', text:'Chatte mit anderen Bewohnern in Echtzeit.' },
+  { icon:'🚔', title:'LSPD – Los Santos Police', text:'Serve & Protect. Werde Teil der Polizei.' },
+  { icon:'🏥', title:'LSMC – Medical Center', text:'Rette Leben. Werde Sanitäter oder Arzt.' },
+  { icon:'🎵', title:'Radio Los Santos', text:'Das beste Radio in Paradise City. Immer on air.' },
+  { icon:'🏦', title:'Maze Bank', text:'Dein Geld ist sicher. Banking direkt in der City.' },
+];
+let _adIdx = 0;
+
+function buildAdCard() {
+  const ad = ADS[_adIdx % ADS.length]; _adIdx++;
+  const div = document.createElement('div');
+  div.className = 'ad-card';
+  div.innerHTML = `<div class="ad-tag">Gesponsert</div>
+    <div class="ad-body">
+      <div class="ad-icon">${ad.icon}</div>
+      <div class="ad-text"><h4>${ad.title}</h4><p>${ad.text}</p></div>
+    </div>`;
+  return div;
+}
+
 async function loadFeed() {
   const el = document.getElementById('feed');
   el.innerHTML = '<div class="spinner"></div>';
@@ -628,7 +783,11 @@ async function loadFeed() {
     const posts = await apiFetch('GET','/api/citygram/feed');
     el.innerHTML = '';
     if (!posts.length) { el.innerHTML='<div class="empty-msg">Noch keine Beiträge.<br>Sei der Erste! ✨</div>'; return; }
-    posts.forEach(p => el.appendChild(buildPostCard(p)));
+    posts.forEach((p, i) => {
+      el.appendChild(buildPostCard(p));
+      // Werbeanzeige nach jedem 5. Beitrag
+      if ((i + 1) % 5 === 0) el.appendChild(buildAdCard());
+    });
   } catch(e) { el.innerHTML='<div class="empty-msg">Fehler beim Laden.</div>'; }
 }
 
@@ -896,6 +1055,8 @@ async function openProfile(phone) {
 async function renderProfile(phone, isMe) {
   const content = document.getElementById('profile-content');
   content.innerHTML='<div class="spinner"></div>';
+  // Show/hide settings and back buttons
+  document.getElementById('profile-settings-btn').style.display = isMe ? 'block' : 'none';
   try {
     let profile;
     if (isMe) {
@@ -908,23 +1069,37 @@ async function renderProfile(phone, isMe) {
     const avHtml = profile.hasAvatar
       ? `<img src="${avUrl(profile.phone)}" onerror="this.parentNode.innerHTML='<span class=no-av style=font-size:32px>👤</span>'">`
       : `<span class="no-av" style="font-size:32px">👤</span>`;
-    const actionBtn = isMe
-      ? `<button class="profile-edit-btn" onclick="openEditProfile()">Profil bearbeiten</button>`
-      : `<button class="profile-follow-btn ${profile.isFollowing?'following':''}" id="follow-btn" onclick="toggleFollow('${phone}')">${profile.isFollowing?'Gefolgt':'Folgen'}</button>`;
+
+    let actionBtns = '';
+    if (isMe) {
+      actionBtns = `<button class="profile-edit-btn" onclick="openEditProfile()">Profil bearbeiten</button>`;
+    } else if (profile.isFollowing) {
+      actionBtns = `<button class="profile-follow-btn following" id="follow-btn" onclick="toggleFollow('${phone}')">Gefolgt</button>
+        <button class="profile-edit-btn" style="max-width:44px" onclick="toggleBlock('${phone}')">🚫</button>`;
+    } else if (profile.isPending) {
+      actionBtns = `<button class="profile-follow-btn pending" id="follow-btn" onclick="toggleFollow('${phone}')">Angefragt</button>
+        <button class="profile-edit-btn" style="max-width:44px" onclick="toggleBlock('${phone}')">🚫</button>`;
+    } else {
+      actionBtns = `<button class="profile-follow-btn" id="follow-btn" onclick="toggleFollow('${phone}')">${profile.isPrivate ? '🔒 Folgen' : 'Folgen'}</button>
+        <button class="profile-edit-btn" style="max-width:44px" onclick="toggleBlock('${phone}')">🚫</button>`;
+    }
+
+    const privateBadge = (profile.isPrivate && !isMe) ? `<span class="private-badge"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Privat</span>` : '';
+
     content.innerHTML=`
       <div class="profile-hdr">
         <div class="profile-top">
           <div class="profile-av-big">${avHtml}</div>
           <div class="profile-stats">
             <div class="stat-box"><div class="stat-num">${profile.postCount}</div><div class="stat-lbl">Beiträge</div></div>
-            <div class="stat-box"><div class="stat-num">${profile.followerCount}</div><div class="stat-lbl">Follower</div></div>
-            <div class="stat-box"><div class="stat-num">${profile.followingCount}</div><div class="stat-lbl">Gefolgt</div></div>
+            <div class="stat-box clickable" onclick="showUserList('${profile.phone}','followers')"><div class="stat-num">${profile.followerCount}</div><div class="stat-lbl">Follower</div></div>
+            <div class="stat-box clickable" onclick="showUserList('${profile.phone}','following')"><div class="stat-num">${profile.followingCount}</div><div class="stat-lbl">Gefolgt</div></div>
           </div>
         </div>
-        <div class="profile-name">${esc(profile.username)}</div>
+        <div class="profile-name">${esc(profile.username)}${privateBadge}</div>
         ${profile.bio ? `<div class="profile-bio">${esc(profile.bio)}</div>` : ''}
         ${profile.website ? `<a href="${esc(profile.website)}" target="_blank" class="profile-web">${esc(profile.website)}</a>` : ''}
-        <div class="profile-btns">${actionBtn}</div>
+        <div class="profile-btns">${actionBtns}</div>
       </div>
       <div class="profile-tabs">
         <div class="profile-tab active" id="tab-grid">
@@ -961,10 +1136,166 @@ async function toggleFollow(phone) {
     const res = await apiFetch('POST',`/api/citygram/follow/${phone}`);
     const btn = document.getElementById('follow-btn');
     if (btn) {
-      btn.textContent = res.following ? 'Gefolgt' : 'Folgen';
-      btn.classList.toggle('following', res.following);
+      if (res.pending) {
+        btn.textContent = 'Angefragt';
+        btn.className = 'profile-follow-btn pending';
+        showToast('Anfrage gesendet ✓');
+      } else if (res.following) {
+        btn.textContent = 'Gefolgt';
+        btn.className = 'profile-follow-btn following';
+        showToast('Gefolgt ✓');
+      } else {
+        btn.textContent = 'Folgen';
+        btn.className = 'profile-follow-btn';
+        showToast('Entfolgt');
+      }
     }
-    showToast(res.following ? 'Gefolgt ✓' : 'Entfolgt');
+  } catch(e) { showToast('Fehler'); }
+}
+
+function showConfirm(msg) {
+  return new Promise(resolve => {
+    const modal = document.getElementById('confirm-modal');
+    document.getElementById('confirm-msg').textContent = msg;
+    modal.style.display = 'flex';
+    const ok  = document.getElementById('confirm-ok');
+    const no  = document.getElementById('confirm-cancel');
+    const cleanup = (val) => { modal.style.display='none'; ok.onclick=null; no.onclick=null; resolve(val); };
+    ok.onclick  = () => cleanup(true);
+    no.onclick  = () => cleanup(false);
+  });
+}
+
+async function toggleBlock(phone) {
+  const yes = await showConfirm('Nutzer blockieren? Ihr gegenseitiges Following wird aufgehoben.');
+  if (!yes) return;
+  try {
+    const res = await apiFetch('POST',`/api/citygram/block/${phone}`);
+    showToast(res.blocked ? 'Nutzer blockiert 🚫' : 'Nutzer entblockiert');
+    if (res.blocked && _currentProfilePhone) openProfile(_currentProfilePhone);
+  } catch(e) { showToast('Fehler'); }
+}
+
+// ── User list (followers / following / blocked) ────────────────────────────────
+
+async function showUserList(phone, type) {
+  const modal = document.getElementById('user-list-modal');
+  const title = document.getElementById('ulm-title');
+  const list  = document.getElementById('ulm-list');
+  title.textContent = type === 'followers' ? 'Follower' : type === 'following' ? 'Folge ich' : 'Blockiert';
+  list.innerHTML = '<div class="spinner"></div>';
+  modal.classList.add('open');
+  try {
+    let users;
+    if (type === 'blocked') {
+      users = await apiFetch('GET', '/api/citygram/blocked');
+    } else {
+      users = await apiFetch('GET', `/api/citygram/${type}/${phone}`);
+    }
+    list.innerHTML = '';
+    if (!users.length) { list.innerHTML='<div class="empty-msg">Keine Nutzer.</div>'; return; }
+    users.forEach(u => {
+      const div = document.createElement('div');
+      div.className = 'ulm-item';
+      const av = u.hasAvatar ? `<img src="${avUrl(u.phone)}">` : '👤';
+      div.innerHTML = `<div class="ulm-av">${av}</div>
+        <div class="ulm-name">${esc(u.username)}</div>
+        ${type === 'blocked' ? `<button class="ulm-unblock" onclick="unblockUser('${u.phone}',this)">Entblockieren</button>` : ''}`;
+      if (type !== 'blocked') div.onclick = () => { closeUserList(); openProfile(u.phone); };
+      list.appendChild(div);
+    });
+  } catch(e) { list.innerHTML='<div class="empty-msg">Fehler.</div>'; }
+}
+
+function closeUserList() { document.getElementById('user-list-modal').classList.remove('open'); }
+
+async function unblockUser(phone, btn) {
+  try {
+    await apiFetch('POST', `/api/citygram/block/${phone}`);
+    btn.closest('.ulm-item').remove();
+    showToast('Entblockiert');
+  } catch(e) { showToast('Fehler'); }
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+async function openSettings() {
+  const modal  = document.getElementById('settings-modal');
+  const body   = document.getElementById('sm-body');
+  body.innerHTML = '<div class="spinner"></div>';
+  modal.classList.add('open');
+  try {
+    const me       = await apiFetch('GET', '/api/citygram/me');
+    const requests = await apiFetch('GET', '/api/citygram/follow-requests');
+    const blocked  = await apiFetch('GET', '/api/citygram/blocked');
+    ME = me;
+
+    const reqHtml = requests.length === 0
+      ? '<div style="color:var(--text3);font-size:13px">Keine offenen Anfragen.</div>'
+      : requests.map(u => `
+        <div class="sm-req-item">
+          <div class="sm-req-av">${u.hasAvatar ? `<img src="${avUrl(u.phone)}">` : '👤'}</div>
+          <div class="sm-req-name" onclick="closeSettings();openProfile('${u.phone}')">${esc(u.username)}</div>
+          <div class="sm-req-btns">
+            <button class="sm-req-approve" onclick="approveRequest('${u.phone}',this)">✓</button>
+            <button class="sm-req-reject" onclick="rejectRequest('${u.phone}',this)">✕</button>
+          </div>
+        </div>`).join('');
+
+    const blockedHtml = blocked.length === 0
+      ? '<div style="color:var(--text3);font-size:13px">Keine blockierten Nutzer.</div>'
+      : `<button style="background:none;border:none;color:var(--accent);font-size:13px;cursor:pointer;padding:4px 0" onclick="closeSettings();showUserList('${me.phone}','blocked')">
+          ${blocked.length} blockierte Nutzer anzeigen →
+        </button>`;
+
+    body.innerHTML = `
+      <div class="sm-section">
+        <h3>Privatsphäre</h3>
+        <div class="sm-toggle-row">
+          <div>
+            <span>Privates Konto</span>
+            <div class="sm-toggle-sub">Nur Follower sehen deine Beiträge.<br>Neue Follower müssen bestätigt werden.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="sm-private-toggle" ${me.isPrivate ? 'checked' : ''} onchange="savePrivate(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="sm-section">
+        <h3>Follower-Anfragen ${requests.length > 0 ? `<span style="color:var(--accent)">(${requests.length})</span>` : ''}</h3>
+        <div class="sm-requests-list">${reqHtml}</div>
+      </div>
+      <div class="sm-section">
+        <h3>Blockierte Nutzer</h3>
+        ${blockedHtml}
+      </div>`;
+  } catch(e) { body.innerHTML='<div class="empty-msg">Fehler beim Laden.</div>'; }
+}
+
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+async function savePrivate(isPrivate) {
+  try {
+    await apiFetch('PUT', '/api/citygram/profile', { isPrivate });
+    ME = await apiFetch('GET', '/api/citygram/me');
+    showToast(isPrivate ? 'Konto ist jetzt privat 🔒' : 'Konto ist jetzt öffentlich');
+  } catch(e) { showToast('Fehler'); }
+}
+
+async function approveRequest(phone, btn) {
+  try {
+    await apiFetch('POST', `/api/citygram/follow-requests/${phone}/approve`);
+    btn.closest('.sm-req-item').remove();
+    showToast('Anfrage bestätigt ✓');
+  } catch(e) { showToast('Fehler'); }
+}
+
+async function rejectRequest(phone, btn) {
+  try {
+    await apiFetch('DELETE', `/api/citygram/follow-requests/${phone}`);
+    btn.closest('.sm-req-item').remove();
+    showToast('Anfrage abgelehnt');
   } catch(e) { showToast('Fehler'); }
 }
 
