@@ -9,12 +9,13 @@ import net.dv8tion.jda.api.entities.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.*;
 
 public class WebServer {
 
@@ -151,6 +152,9 @@ public class WebServer {
 
         // Banned-Seite
         app.get("/banned", WebServer::serveBanned);
+
+        // Admin-Backup
+        app.get("/admin/backup", WebServer::handleBackup);
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
@@ -1689,5 +1693,44 @@ public class WebServer {
         r.addProperty("valid", valid);
         r.addProperty("reason", reason);
         ctx.status(status).contentType("application/json").result(GSON.toJson(r));
+    }
+
+    // ── Admin-Backup (/admin/backup?key=…) ───────────────────────────────────
+
+    private static void handleBackup(Context ctx) {
+        String expected = System.getenv("SESSION_SECRET");
+        String provided = ctx.queryParam("key");
+        if (expected == null || !expected.equals(provided)) {
+            ctx.status(403).result("Forbidden");
+            return;
+        }
+        Path dataDir = Path.of("/app/data");
+        if (!Files.exists(dataDir)) {
+            ctx.status(404).result("Kein /app/data Verzeichnis gefunden.");
+            return;
+        }
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try (ZipOutputStream zip = new ZipOutputStream(baos)) {
+                Files.walk(dataDir).filter(Files::isRegularFile).forEach(file -> {
+                    try {
+                        ZipEntry entry = new ZipEntry(dataDir.relativize(file).toString());
+                        zip.putNextEntry(entry);
+                        Files.copy(file, zip);
+                        zip.closeEntry();
+                    } catch (IOException e) {
+                        log.warn("[Backup] Fehler beim Zippen von {}: {}", file, e.getMessage());
+                    }
+                });
+            }
+            byte[] zipBytes = baos.toByteArray();
+            ctx.contentType("application/zip")
+               .header("Content-Disposition", "attachment; filename=\"pcrp-backup.zip\"")
+               .result(new ByteArrayInputStream(zipBytes));
+            log.info("[Backup] Backup heruntergeladen — {} Bytes.", zipBytes.length);
+        } catch (IOException e) {
+            log.error("[Backup] Fehler: {}", e.getMessage());
+            ctx.status(500).result("Fehler beim Erstellen des Backups.");
+        }
     }
 }
