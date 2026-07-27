@@ -1365,9 +1365,6 @@ async function openProfileModal(){
   if(existing) existing.remove();
   if(me.avatar){ const img=document.createElement('img'); img.className='p-av-img'; img.src=me.avatar; circle.appendChild(img); }
 
-  // Status button
-  const myStatus=await getMyStatus();
-  document.getElementById('p-status-del-btn').classList.toggle('hidden',!myStatus);
   // Firma links
   await loadMyFirmaLinks();
   document.getElementById('profile-modal').classList.remove('hidden');
