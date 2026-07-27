@@ -517,8 +517,7 @@ public class Main {
                     .setTitle("💬 City Chat — Paradise City Roleplay")
                     .setDescription(
                         "Schreibe mit anderen Spielern über den **City Chat**.\n\n" +
-                        "Aktiviere den City Chat über **Handy-Zentrale → 💬 City Chat**.\n" +
-                        "Rufnummer & Safe-Pin findest du unter **📞 Handy Einstellungen**.")
+                        "Aktiviere den City Chat über **Handy-Zentrale → 📞 Handy Einstellungen**.")
                     .build()
             ).addComponents(ActionRow.of(
                 Button.link(url, "💬 City Chat öffnen")

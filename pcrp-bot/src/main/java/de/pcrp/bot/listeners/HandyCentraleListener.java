@@ -59,8 +59,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             .setPlaceholder("Was möchtest du tun?")
             .addOption("📱 Handy Einschalten",   "einschalten", "Schalte dein Handy ein")
             .addOption("📴 Handy Ausschalten",   "ausschalten", "Schalte dein Handy aus")
-            .addOption("📞 Handy Einstellungen", "nummer",      "Rufnummer, Safe-Pin & City Chat Link")
-            .addOption("💬 City Chat",            "citychat",    "Direkt in den City Chat")
+            .addOption("📞 Handy Einstellungen", "nummer",      "Rufnummer & City Chat aktivieren")
             .build();
 
         ch.sendMessageEmbeds(
@@ -70,8 +69,7 @@ public class HandyCentraleListener extends ListenerAdapter {
                     "Willkommen in der **Handy-Zentrale** von Paradise City Roleplay.\n\n" +
                     "**📱 Handy Einschalten** — Aktiviert dein Handy (Handy im Inventar erforderlich)\n" +
                     "**📴 Handy Ausschalten** — Deaktiviert dein Handy\n" +
-                    "**📞 Handy Einstellungen** — Rufnummer, Safe-Pin & City Chat Link\n" +
-                    "**💬 City Chat** — Öffnet den City Chat direkt (Handy + Vertrag erforderlich)")
+                    "**📞 Handy Einstellungen** — Rufnummer anzeigen & City Chat aktivieren")
                 .build()
         ).addComponents(ActionRow.of(menu)).queue(
             msg -> PanelHelper.onSent(key, msg.getId()),
@@ -96,7 +94,6 @@ public class HandyCentraleListener extends ListenerAdapter {
             case "einschalten"  -> handleEinschalten(event, guild, member, userId, guildId);
             case "ausschalten"  -> handleAusschalten(event, guild, member, userId, guildId);
             case "nummer"       -> handleNummer(event, guild, member, userId, guildId);
-            case "citychat"     -> handleCityChat(event, guild, member, userId, guildId);
         }
     }
 
@@ -159,14 +156,13 @@ public class HandyCentraleListener extends ListenerAdapter {
         log.info("[Handy] {} hat Handy ausgeschaltet.", userId);
     }
 
-    // ── Telefonnummer ─────────────────────────────────────────────────────────
+    // ── Telefonnummer / City Chat Aktivierung ────────────────────────────────
 
     private void handleNummer(StringSelectInteractionEvent event,
                               Guild guild, Member member, String userId, String guildId) {
         PhoneManager.Contract c = PhoneManager.getContract(guildId, userId);
 
         if (c == null) {
-            // Kein Vertrag — Angebot
             event.replyEmbeds(
                 EmbedFactory.create()
                     .setTitle("📞 Telefonnummer")
@@ -174,34 +170,41 @@ public class HandyCentraleListener extends ListenerAdapter {
                         "📵 **Noch keine SIM-Karte aktiviert.**\n\n" +
                         "Du hast noch keinen Handy-Vertrag. Schließe jetzt einen Vertrag ab und erhalte:\n\n" +
                         "• Eine **Los Angeles Rufnummer**\n" +
-                        "• Einen persönlichen **Safe-Pin** (4 Ziffern)\n" +
                         "• Zugang zum **City Chat**\n\n" +
                         "💳 Monatliche Gebühr: **1.000$** (wird automatisch abgebucht)")
                     .build()
             ).addComponents(ActionRow.of(
                 Button.success("handy:vertrag_start", "📋 Vertrag abschließen")
             )).setEphemeral(true).queue();
-        } else {
-            // Vertrag vorhanden — anzeigen + City Chat Link direkt generieren
-            String token    = PhoneManager.createSession(guildId, c.phoneNumber);
-            String chatLink = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat?token=" + token;
-
-            event.replyEmbeds(
-                EmbedFactory.create()
-                    .setTitle("📞 Deine Handy-Einstellungen")
-                    .setDescription(
-                        "**Name:** " + c.displayName() + "\n" +
-                        "**Rufnummer:** `" + c.phoneNumber + "`\n" +
-                        "**Safe-Pin:** `" + c.safePin + "`\n\n" +
-                        "⚠️ Gib deinen Safe-Pin **niemals** weiter!\n\n" +
-                        "💬 Klicke auf **City Chat öffnen** um direkt in den Chat zu gelangen.\n" +
-                        "🔄 Neue Nummer kostet **500$** (Service-Gebühr)")
-                    .build()
-            ).addComponents(ActionRow.of(
-                Button.link(chatLink, "💬 City Chat öffnen"),
-                Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")
-            )).setEphemeral(true).queue();
+            return;
         }
+
+        // City-Chat-Rolle direkt vergeben
+        Role cityChatRole = guild.getRoleById(CITY_CHAT_ROLE_ID);
+        boolean alreadyActive = cityChatRole != null && member.getRoles().contains(cityChatRole);
+        if (!alreadyActive && cityChatRole != null) {
+            guild.addRoleToMember(member, cityChatRole).queue(
+                ok  -> log.info("[CityChat] Rolle an {} vergeben.", userId),
+                err -> log.warn("[CityChat] Rolle konnte nicht vergeben werden: {}", err.getMessage())
+            );
+        }
+
+        String statusLine = alreadyActive
+            ? "✅ **City Chat:** bereits aktiviert"
+            : "✅ **City Chat:** soeben aktiviert!";
+
+        event.replyEmbeds(
+            EmbedFactory.create()
+                .setTitle("📞 Handy-Einstellungen")
+                .setDescription(
+                    "**Name:** " + c.displayName() + "\n" +
+                    "**Rufnummer:** `" + c.phoneNumber + "`\n\n" +
+                    statusLine + "\n\n" +
+                    "🔄 Neue Nummer kostet **500$** (Service-Gebühr)")
+                .build()
+        ).addComponents(ActionRow.of(
+            Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")
+        )).setEphemeral(true).queue();
     }
 
     private static final long CITY_CHAT_ROLE_ID    = 1529636364201627660L;
@@ -317,8 +320,7 @@ public class HandyCentraleListener extends ListenerAdapter {
                     .setTitle("🔄 Neue Nummer generiert")
                     .setDescription(
                         "✅ Deine alte Nummer wurde gelöscht.\n\n" +
-                        "**Neue Rufnummer:** `" + c.phoneNumber + "`\n" +
-                        "**Neuer Safe-Pin:** `" + c.safePin + "`\n\n" +
+                        "**Neue Rufnummer:** `" + c.phoneNumber + "`\n\n" +
                         "**500$** wurden als Service-Gebühr abgezogen.")
                     .build()
             ).setEphemeral(true).queue();
@@ -374,9 +376,7 @@ public class HandyCentraleListener extends ListenerAdapter {
                 .setTitle("✅ Vertrag abgeschlossen!")
                 .setDescription(
                     "Willkommen im PCRP-Handynetz, **" + c.displayName() + "**!\n\n" +
-                    "📞 **Deine Rufnummer:** `" + c.phoneNumber + "`\n" +
-                    "🔐 **Dein Safe-Pin:** `" + c.safePin + "`\n\n" +
-                    "⚠️ Merke dir deinen Safe-Pin — du brauchst ihn für den City Chat.\n\n" +
+                    "📞 **Deine Rufnummer:** `" + c.phoneNumber + "`\n\n" +
                     "💰 **Erstgebühr:** 1.000$ (sofort abgezogen)\n" +
                     "💳 **Monatliche Gebühr:** 1.000$ (automatisch)")
                 .build()
