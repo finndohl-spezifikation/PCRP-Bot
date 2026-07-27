@@ -149,6 +149,8 @@ public final class LoggingConfig {
     /** Zahlen-Counter-Kanal. */
     public static final long COUNTER_CHANNEL_ID      = 1529636539645034728L;
 
+    public static final long CITY_CHAT_CHANNEL_ID   = 1529636592824614933L;
+
     /**
      * Zahlen-Rang-Rolle (vergeben wenn jemand 100 zählt).
      * 0L = deaktiviert, Rolle-ID hier eintragen wenn gewünscht.

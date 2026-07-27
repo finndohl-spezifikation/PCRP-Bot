@@ -204,6 +204,9 @@ public class HandyCentraleListener extends ListenerAdapter {
         }
     }
 
+    private static final long CITY_CHAT_ROLE_ID    = 1529636364201627660L;
+    private static final String CITY_CHAT_BASE_URL = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat";
+
     // ── City Chat ─────────────────────────────────────────────────────────────
 
     private void handleCityChat(StringSelectInteractionEvent event,
@@ -226,22 +229,53 @@ public class HandyCentraleListener extends ListenerAdapter {
             return;
         }
 
-        // Session-Token generieren und Link senden
+        // Session-Token für persönlichen Link
         String token = PhoneManager.createSession(guildId, c.phoneNumber);
-        String link  = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat?token=" + token;
+        String personalLink = CITY_CHAT_BASE_URL + "?token=" + token;
 
+        // City-Chat-Rolle vergeben falls noch nicht vorhanden
+        Role cityChatRole = guild.getRoleById(CITY_CHAT_ROLE_ID);
+        boolean alreadyActivated = cityChatRole != null && member.getRoles().contains(cityChatRole);
+
+        if (!alreadyActivated && cityChatRole != null) {
+            guild.addRoleToMember(member, cityChatRole).queue(
+                ok -> log.info("[CityChat] Rolle an {} vergeben.", userId),
+                err -> log.warn("[CityChat] Rolle konnte nicht vergeben werden: {}", err.getMessage())
+            );
+
+            // Embed im City-Chat-Kanal posten
+            net.dv8tion.jda.api.entities.channel.concrete.TextChannel cityCh =
+                guild.getTextChannelById(de.pcrp.bot.common.LoggingConfig.CITY_CHAT_CHANNEL_ID);
+            if (cityCh != null) {
+                cityCh.sendMessageEmbeds(
+                    EmbedFactory.create()
+                        .setTitle("💬 City Chat — Paradise City Roleplay")
+                        .setDescription(
+                            "**" + member.getEffectiveName() + "** hat den City Chat aktiviert.\n\n" +
+                            "Öffne den City Chat über den Button unten.\n" +
+                            "📞 Rufnummer & Safe-Pin erhältst du über **Handy Einstellungen**.")
+                        .build()
+                ).addComponents(ActionRow.of(
+                    Button.link(CITY_CHAT_BASE_URL, "💬 City Chat öffnen")
+                )).queue();
+            }
+        }
+
+        // Ephemere Antwort mit persönlichem Link
         event.replyEmbeds(
             EmbedFactory.create()
                 .setTitle("💬 City Chat")
                 .setDescription(
-                    "📲 Dein persönlicher City Chat Link ist bereit.\n\n" +
+                    (alreadyActivated ? "✅ City Chat bereits aktiviert.\n\n" : "✅ City Chat wurde aktiviert!\n\n") +
                     "**Rufnummer:** `" + c.phoneNumber + "`\n\n" +
-                    "Klicke auf den Button um den Chat zu öffnen. Der Link ist **7 Tage** gültig.\n\n" +
-                    "⚠️ Teile diesen Link mit **niemandem** — er gibt vollen Zugang zu deinem Account.")
+                    "Dein persönlicher Link ist **7 Tage** gültig.\n" +
+                    "⚠️ Teile diesen Link mit **niemandem**.")
                 .build()
         ).addComponents(ActionRow.of(
-            Button.link(link, "💬 City Chat öffnen")
+            Button.link(personalLink, "💬 City Chat öffnen")
         )).setEphemeral(true).queue();
+
+        log.info("[CityChat] {} hat City Chat geöffnet (aktiviert={})", userId, !alreadyActivated);
     }
 
     // ── Button: Vertrag starten ───────────────────────────────────────────────
