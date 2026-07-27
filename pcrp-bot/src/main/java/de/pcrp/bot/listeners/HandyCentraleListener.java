@@ -94,6 +94,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             case "einschalten"  -> handleEinschalten(event, guild, member, userId, guildId);
             case "ausschalten"  -> handleAusschalten(event, guild, member, userId, guildId);
             case "nummer"       -> handleNummer(event, guild, member, userId, guildId);
+            case "citychat"     -> handleNummer(event, guild, member, userId, guildId);
         }
     }
 
