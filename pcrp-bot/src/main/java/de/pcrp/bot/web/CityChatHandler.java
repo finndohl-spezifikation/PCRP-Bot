@@ -757,7 +757,7 @@ public final class CityChatHandler {
     /** POST /api/city-chat/call-signal  – Signal an einen anderen Nutzer senden */
     public static void handleSendCallSignal(Context ctx) {
         PhoneManager.Contract c = auth(ctx); if (c == null) return;
-        JsonObject body = body(ctx);
+        JsonObject body = JsonParser.parseString(ctx.body()).getAsJsonObject();
         String to       = str(body, "to");
         String type     = str(body, "type");   // offer|answer|ice|end|reject
         String data     = body.has("data")     ? body.get("data").getAsString()     : "";

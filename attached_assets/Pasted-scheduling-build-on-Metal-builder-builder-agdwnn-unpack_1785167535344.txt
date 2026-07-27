@@ -1,0 +1,72 @@
+scheduling build on Metal builder "builder-agdwnn"
+unpacking archive
+49 MB
+206ms
+
+internal
+load build definition from pcrp-bot/Dockerfile
+0ms
+
+internal
+load metadata for docker.io/library/eclipse-temurin:21-jre-alpine
+2s
+
+internal
+load metadata for docker.io/library/maven:3.9-eclipse-temurin-21-alpine
+2s
+uploading snapshot
+46.7 MB
+1.3s
+
+internal
+load .dockerignore
+1ms
+
+build
+FROM docker.io/library/maven:3.9-eclipse-temurin-21-alpine@sha256:d88e5b38297858f65f97bc7e7964c760ab988fd18ace41589176f1468c49a489
+16ms
+
+stage-1
+FROM docker.io/library/eclipse-temurin:21-jre-alpine@sha256:3f08b13888f595cc49edabea7250ba69499ba25602b267da591720769400e08c
+18ms
+
+internal
+load build context
+0ms
+
+build
+RUN mvn dependency:go-offline -q cached
+0ms
+
+build
+COPY pcrp-bot/pom.xml . cached
+0ms
+
+build
+WORKDIR /app cached
+0ms
+
+build
+COPY pcrp-bot/src ./src
+1s
+
+build
+RUN mvn package -DskipTests -q
+7s
+[ERROR] COMPILATION ERROR : 
+[ERROR] /app/src/main/java/de/pcrp/bot/web/CityChatHandler.java:[760,27] cannot find symbol
+  symbol:   method body(io.javalin.http.Context)
+  location: class de.pcrp.bot.web.CityChatHandler
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.15.0:compile (default-compile) on project pcrp-bot: Compilation failure
+[ERROR] /app/src/main/java/de/pcrp/bot/web/CityChatHandler.java:[760,27] cannot find symbol
+[ERROR]   symbol:   method body(io.javalin.http.Context)
+[ERROR]   location: class de.pcrp.bot.web.CityChatHandler
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+Build Failed: build daemon returned an error < failed to solve: process "/bin/sh -c mvn package -DskipTests -q" did not complete successfully: exit code: 1 >
