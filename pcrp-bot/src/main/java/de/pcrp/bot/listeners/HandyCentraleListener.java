@@ -51,18 +51,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             return;
         }
         String key = PANEL_KEY + guild.getId();
-
-        // Alte Nachricht löschen → immer frisches Panel
-        String oldId = de.pcrp.bot.common.DataStore.readString(key);
-        if (oldId != null && !oldId.isBlank()) {
-            de.pcrp.bot.common.DataStore.deleteKey(key);
-            ch.deleteMessageById(oldId.trim()).queue(
-                ok  -> sendHandyPanel(ch, key),
-                err -> sendHandyPanel(ch, key)
-            );
-        } else {
-            sendHandyPanel(ch, key);
-        }
+        PanelHelper.post(ch, key, "📱 Handy-Zentrale", () -> sendHandyPanel(ch, key));
     }
 
     private static void sendHandyPanel(TextChannel ch, String key) {

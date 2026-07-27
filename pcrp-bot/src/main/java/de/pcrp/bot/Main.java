@@ -326,29 +326,12 @@ public class Main {
                 () -> sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2));
         }
 
-        /** Löscht alle Bot-Nachrichten im Kanal (max 20), dann postet das Panel neu. */
-        private static void clearAndPost(TextChannel ch, String key, String title, Runnable sender) {
-            ch.getHistory().retrievePast(20).queue(msgs -> {
-                List<net.dv8tion.jda.api.entities.Message> botMsgs = msgs.stream()
-                    .filter(m -> m.getAuthor().isBot())
-                    .collect(Collectors.toList());
-                Runnable doPost = () -> PanelHelper.post(ch, key, title, sender);
-                if (botMsgs.size() >= 2) {
-                    ch.deleteMessages(botMsgs).queue(v -> doPost.run(), e -> doPost.run());
-                } else if (botMsgs.size() == 1) {
-                    botMsgs.get(0).delete().queue(v -> doPost.run(), e -> doPost.run());
-                } else {
-                    doPost.run();
-                }
-            }, e -> PanelHelper.post(ch, key, title, sender));
-        }
-
         private static void postMeldeamtPanel(Guild guild) {
             String key    = "panel-meldeamt-v3-" + guild.getId();
             String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
             TextChannel ch = guild.getTextChannelById(LoggingConfig.MELDEAMT_CHANNEL_ID);
             if (ch == null) { log.warn("[Meldeamt] Panel-Kanal nicht gefunden."); return; }
-            clearAndPost(ch, key, "🏛️ Paradise City Einwohner Meldeamt",
+            PanelHelper.post(ch, key, "🏛️ Paradise City Einwohner Meldeamt",
                 () -> sendMeldeamtPanel(ch, key, webUrl));
         }
 
@@ -432,7 +415,7 @@ public class Main {
             String key = "panel-lotto-v7-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LOTTO_CHANNEL_ID);
             if (ch == null) { log.warn("[Lotto] Panel-Kanal nicht gefunden."); return; }
-            clearAndPost(ch, key, "🎰 Paradise City Lotto",
+            PanelHelper.post(ch, key, "🎰 Paradise City Lotto",
                 () -> sendLottoPanel(ch, key, guild));
         }
 
@@ -457,7 +440,7 @@ public class Main {
             String key = "panel-rubbellos-v5-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.RUBBELLOS_CHANNEL_ID);
             if (ch == null) { log.warn("[Rubbellos] Kanal nicht gefunden."); return; }
-            clearAndPost(ch, key, "🎰 Goldene 7 – Rubbellos",
+            PanelHelper.post(ch, key, "🎰 Goldene 7 – Rubbellos",
                 () -> sendRubbellosPanel(ch, key));
         }
 
@@ -499,10 +482,10 @@ public class Main {
             if (ch == null) { log.warn("[FrakList] Kanal nicht gefunden."); return; }
             String msgId = de.pcrp.bot.common.FraktionManager.getPanelMsgId(guild.getId());
             if (msgId != null && !msgId.isBlank()) {
-                // Alte Nachricht löschen, dann neu senden
-                ch.deleteMessageById(msgId.trim()).queue(
-                    ok -> sendFrakListPanel(ch, guild),
-                    err -> sendFrakListPanel(ch, guild)   // senden auch wenn Löschen scheitert
+                // Nachricht noch vorhanden → nur Embed aktualisieren, kein Neuversand
+                ch.retrieveMessageById(msgId.trim()).queue(
+                    existing -> de.pcrp.bot.common.FraktionManager.updatePanelEmbed(guild),
+                    err      -> sendFrakListPanel(ch, guild)  // Nachricht weg → neu senden
                 );
             } else {
                 sendFrakListPanel(ch, guild);
