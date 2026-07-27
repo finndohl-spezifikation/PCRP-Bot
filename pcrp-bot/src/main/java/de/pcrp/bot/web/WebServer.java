@@ -1530,51 +1530,54 @@ public class WebServer {
         String bp  = CharacterStore.str(ch, "birthPlace");
         String na  = CharacterStore.str(ch, "nationality");
         String re  = CharacterStore.str(ch, "residence");
-        String ps  = CharacterStore.str(ch, "psnName");
         String idNum = "LA-" + userId.substring(Math.max(0, userId.length() - 8)).toUpperCase();
 
         return "<!DOCTYPE html><html lang=\"de\"><head>" +
             "<meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
             "<title>Ausweis – " + esc(fn) + " " + esc(ln) + "</title>" +
-            "<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;" +
-            "background:linear-gradient(135deg,#0a0a0a 0%,#0f0f1a 100%);font-family:'Courier New',monospace;}" +
-            ".card{width:680px;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
+            "<style>*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;display:flex;align-items:center;justify-content:center;" +
+            "background:linear-gradient(135deg,#0a0a0a 0%,#0f0f1a 100%);" +
+            "font-family:'Courier New',monospace;padding:16px;}" +
+            ".card{width:100%;max-width:680px;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
             "border:3px solid #c8a048;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(200,160,72,0.3);}" +
             ".header{background:linear-gradient(90deg,#0a1c38,#0d2550);border-bottom:3px solid #c8a048;" +
             "padding:14px 20px;display:flex;align-items:center;gap:16px;}" +
-            ".header .bear{font-size:2.4rem;}.header-text{flex:1;}" +
+            ".header-text{flex:1;}" +
             ".header-text .state{display:block;color:#c8a048;font-size:1.3rem;font-weight:700;letter-spacing:4px;}" +
             ".header-text .city{display:block;color:#a8c4e0;font-size:0.75rem;letter-spacing:2px;margin-top:2px;}" +
-            ".type-badge{background:" + (isLegal ? "#1a5c2a" : "#5c1a1a") + ";color:" +
-            (isLegal ? "#4ef07a" : "#f04e4e") + ";padding:4px 12px;border-radius:4px;font-size:0.7rem;" +
-            "font-weight:700;letter-spacing:2px;border:1px solid " + (isLegal ? "#4ef07a" : "#f04e4e") + ";}" +
-            ".body{display:flex;}.photo-col{width:180px;min-height:240px;background:#06111f;display:flex;" +
+            ".body{display:flex;flex-wrap:wrap;}" +
+            ".photo-col{width:180px;min-height:220px;background:#06111f;display:flex;" +
             "align-items:center;justify-content:center;border-right:2px solid #c8a04840;padding:16px;flex-shrink:0;}" +
-            ".photo-col img{width:148px;height:180px;object-fit:cover;border:2px solid #c8a048;border-radius:4px;}" +
-            ".no-photo{width:148px;height:180px;display:flex;align-items:center;justify-content:center;" +
+            ".photo-col img{width:148px;height:185px;object-fit:cover;object-position:top center;" +
+            "border:2px solid #c8a048;border-radius:4px;display:block;}" +
+            ".no-photo{width:148px;height:185px;display:flex;align-items:center;justify-content:center;" +
             "background:#0a1825;border:2px solid #c8a04860;border-radius:4px;color:#445;font-size:0.7rem;text-align:center;}" +
-            ".data-col{flex:1;padding:20px;}.id-num{color:#c8a048;font-size:0.7rem;letter-spacing:2px;margin-bottom:14px;}" +
-            ".field{margin-bottom:12px;}.field label{display:block;color:#6a8fb0;font-size:0.6rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
+            ".data-col{flex:1;min-width:200px;padding:20px;}" +
+            ".id-num{color:#c8a048;font-size:0.7rem;letter-spacing:2px;margin-bottom:14px;}" +
+            ".field{margin-bottom:12px;}.field label{display:block;color:#6a8fb0;font-size:0.6rem;" +
+            "letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
             ".field .val{color:#e8e8e8;font-size:0.95rem;font-weight:700;letter-spacing:1px;}" +
             ".fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}" +
             ".footer{background:#06111f;border-top:2px solid #c8a04840;padding:10px 20px;" +
-            "display:flex;justify-content:space-between;align-items:center;}" +
-            ".footer .seal{color:#c8a04880;font-size:0.65rem;letter-spacing:1px;}" +
-            ".footer .psn{color:#4a9eff;font-size:0.7rem;}</style></head><body>" +
-            "<div class=\"card\"><div class=\"header\"><span class=\"bear\">🐻</span>" +
+            "display:flex;justify-content:center;align-items:center;}" +
+            ".footer .seal{color:#c8a04880;font-size:0.65rem;letter-spacing:1px;text-align:center;}" +
+            "@media(max-width:480px){.photo-col{width:100%;border-right:none;border-bottom:2px solid #c8a04840;min-height:auto;}" +
+            ".fields-grid{grid-template-columns:1fr;}}" +
+            "</style></head><body>" +
+            "<div class=\"card\"><div class=\"header\">" +
             "<div class=\"header-text\"><span class=\"state\">CALIFORNIA</span>" +
             "<span class=\"city\">CITY OF LOS ANGELES · PARADISE CITY ROLEPLAY</span></div>" +
-            "<span class=\"type-badge\">" + (isLegal ? "LEGAL" : "ILLEGAL") + "</span></div>" +
+            "</div>" +
             "<div class=\"body\"><div class=\"photo-col\">" +
-            (isLegal ? "<img src=\"/api/photo/" + userId + "\" onerror=\"this.parentNode.innerHTML='<div class=no-photo>Kein Foto</div>'\">"
-                     : "<div class=\"no-photo\">KEIN<br>AUSWEIS</div>") +
+            "<img src=\"/api/photo/" + userId + "\" onerror=\"this.outerHTML='<div class=no-photo>Kein Foto</div>'\">" +
             "</div><div class=\"data-col\"><div class=\"id-num\">ID-NR: " + esc(idNum) + "</div>" +
             "<div class=\"fields-grid\">" +
             field("Vorname", fn) + field("Nachname", ln) +
             (isLegal ? field("Geburtsdatum", bd) + field("Geburtsort", bp) + field("Nationalität", na) + field("Wohnort", re) : "") +
             "</div></div></div>" +
             "<div class=\"footer\"><span class=\"seal\">STATE OF CALIFORNIA · OFFICIAL IDENTIFICATION</span>" +
-            "<span class=\"psn\">PSN: " + esc(ps) + "</span></div></div></body></html>";
+            "</div></div></body></html>";
     }
 
     // ── Hilfsmethoden ──────────────────────────────────────────
