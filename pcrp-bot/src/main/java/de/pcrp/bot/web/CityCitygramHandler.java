@@ -67,7 +67,7 @@ public final class CityCitygramHandler {
         if (token != null && token.startsWith("Bearer ")) token = token.substring(7).trim();
         if (token == null || token.isBlank()) token = ctx.queryParam("token");
         if (token == null || token.isBlank()) { ctx.status(401).result(err("Nicht authentifiziert")); return null; }
-        PhoneManager.Contract c = PhoneManager.getContractBySession(guildId(), token);
+        PhoneManager.Contract c = PhoneManager.validateSession(token);
         if (c == null) { ctx.status(401).result(err("Session ungültig")); return null; }
         return c;
     }
@@ -262,7 +262,7 @@ public final class CityCitygramHandler {
         // auth check
         String token = ctx.queryParam("token");
         if (token == null) { String h = ctx.header("Authorization"); if (h != null && h.startsWith("Bearer ")) token = h.substring(7).trim(); }
-        if (PhoneManager.getContractBySession(guildId(), token) == null) { ctx.status(401).result("Unauthorized"); return; }
+        if (PhoneManager.validateSession(token) == null) { ctx.status(401).result("Unauthorized"); return; }
         String normP = norm(phone);
         for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId())) {
             if (normP.equals(norm(ct.phoneNumber))) {
@@ -351,7 +351,7 @@ public final class CityCitygramHandler {
         String postId = ctx.pathParam("postId");
         String token = ctx.queryParam("token");
         if (token == null) { String h = ctx.header("Authorization"); if (h != null && h.startsWith("Bearer ")) token = h.substring(7).trim(); }
-        if (PhoneManager.getContractBySession(guildId(), token) == null) { ctx.status(401).result("Unauthorized"); return; }
+        if (PhoneManager.validateSession(token) == null) { ctx.status(401).result("Unauthorized"); return; }
         serveImage(ctx, DataStore.readString("cg-img-" + guildId() + "-" + postId));
     }
 
@@ -527,7 +527,7 @@ public final class CityCitygramHandler {
         String storyId = ctx.pathParam("storyId");
         String token = ctx.queryParam("token");
         if (token == null) { String h = ctx.header("Authorization"); if (h != null && h.startsWith("Bearer ")) token = h.substring(7).trim(); }
-        if (PhoneManager.getContractBySession(guildId(), token) == null) { ctx.status(401).result("Unauthorized"); return; }
+        if (PhoneManager.validateSession(token) == null) { ctx.status(401).result("Unauthorized"); return; }
         serveImage(ctx, DataStore.readString("cg-story-img-" + guildId() + "-" + storyId));
     }
 }
