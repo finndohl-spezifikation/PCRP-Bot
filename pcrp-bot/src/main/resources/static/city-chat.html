@@ -526,7 +526,7 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
       <button onclick="closeModal('profile-modal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
-      <!-- Avatar -->
+      <!-- Profilbild -->
       <div class="p-avatar-wrap">
         <div class="p-avatar-circle" id="p-av-circle" title="Foto ändern">
           <span id="p-av-letter"></span>
@@ -536,10 +536,12 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
         </div>
         <input type="file" id="p-av-input" accept="image/*" class="hidden"/>
       </div>
-      <div class="section-label">Anzeigename</div>
-      <input id="p-name" type="text" placeholder="Anzeigename"/>
-      <div class="section-label">Status / Bio</div>
-      <textarea class="profile-status" id="p-status" placeholder="Status setzen..." rows="2"></textarea>
+      <div class="section-label">Profilbild</div>
+      <div style="font-size:.78rem;color:rgba(255,255,255,.35);margin-bottom:.3rem">Tippe auf den Kreis um ein Foto zu wählen</div>
+      <div class="section-label">Name</div>
+      <input id="p-name" type="text" placeholder="Name"/>
+      <div class="section-label">Info</div>
+      <textarea class="profile-status" id="p-status" placeholder="Info über dich..." rows="2"></textarea>
       <button class="modal-save" id="p-save-btn">Speichern</button>
       <div style="margin-top:.25rem;color:rgba(255,255,255,.25);font-size:.78rem;text-align:center">📞 <span id="p-phone"></span></div>
 
@@ -564,7 +566,7 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
     </div>
     <div class="mm-item" id="mm-profile">
       <div class="mm-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-      <div><div class="mm-label">Profil Bearbeiten</div><div class="mm-sub">Avatar, Name, Bio, Status</div></div>
+      <div><div class="mm-label">Profil Bearbeiten</div><div class="mm-sub">Profilbild, Name, Info, Server</div></div>
     </div>
   </div>
 </div>
@@ -887,7 +889,10 @@ async function loadContacts(){ try{ contacts=await api('GET','/api/city-chat/con
 // ── Chats ──────────────────────────────────────────────────────────────────
 let prevUnread={};
 
+let _loadingChats=false;
 async function loadChats(){
+  if(_loadingChats) return;
+  _loadingChats=true;
   try{
     const fresh=await api('GET','/api/city-chat/chats');
     for(const c of fresh){
@@ -900,7 +905,7 @@ async function loadChats(){
       prevUnread[c.chatId]=c.unread;
     }
     chats=fresh; renderChatList(); updateTitle();
-  }catch(e){}
+  }catch(e){}finally{ _loadingChats=false; }
 }
 
 function updateTitle(){
@@ -1180,14 +1185,19 @@ function toggleVoicePlay(btn, src){
 // (Anrufe deaktiviert)
 
 // ── loadMessages ───────────────────────────────────────────────────────────
+let _loadingMsgs=false;
 async function loadMessages(scroll=true){
   if(!activeChatId) return;
+  if(_loadingMsgs) return;
+  _loadingMsgs=true;
   try{
     const msgs=await api('GET',`/api/city-chat/messages/${activeChatId}`);
     renderMessages(msgs,scroll||msgs.length!==lastCount);
     lastCount=msgs.length;
-  }catch(e){}
+  }catch(e){}finally{ _loadingMsgs=false; }
 }
+// Sofort aktualisieren wenn Tab wieder aktiv wird
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ loadChats(); if(activeChatId) loadMessages(false); } });
 
 // ── Clear Chat ─────────────────────────────────────────────────────────────
 document.getElementById('clear-chat-btn').addEventListener('click',async()=>{
