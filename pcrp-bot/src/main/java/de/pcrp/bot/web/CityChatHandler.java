@@ -205,37 +205,6 @@ public final class CityChatHandler {
         chatList.sort((a, b) -> Long.compare(
             b.get("lastTs").getAsLong(), a.get("lastTs").getAsLong()));
 
-        // Regierungs-Chat einfügen (falls vorhanden und nicht vom User ausgeblendet)
-        String govRaw = DataStore.readString("city-gov-msgs-" + guildId);
-        if (govRaw != null && !govRaw.isBlank()) {
-            try {
-                JsonArray govMsgs = JsonParser.parseString(govRaw).getAsJsonArray();
-                if (govMsgs.size() > 0) {
-                    String hiddenTsStr = DataStore.readString("city-gov-hidden-" + guildId + "-" + c.phoneNumber);
-                    long hiddenTs = hiddenTsStr != null ? Long.parseLong(hiddenTsStr) : 0;
-                    JsonObject lastGov = govMsgs.get(govMsgs.size() - 1).getAsJsonObject();
-                    long lastGovTs = lastGov.get("ts").getAsLong();
-                    if (lastGovTs > hiddenTs) {
-                        String govReadStr = DataStore.readString("city-gov-read-" + guildId + "-" + c.phoneNumber);
-                        long govReadTs = govReadStr != null ? Long.parseLong(govReadStr) : 0;
-                        int govUnread = 0;
-                        for (JsonElement el : govMsgs)
-                            if (el.getAsJsonObject().get("ts").getAsLong() > govReadTs) govUnread++;
-                        JsonObject govChat = new JsonObject();
-                        govChat.addProperty("chatId",      "gov");
-                        govChat.addProperty("phoneNumber", "gov");
-                        govChat.addProperty("displayName", "🏛️ Regierung");
-                        govChat.addProperty("lastMessage", lastGov.get("text").getAsString());
-                        govChat.addProperty("lastType",    "text");
-                        govChat.addProperty("lastTs",      lastGovTs);
-                        govChat.addProperty("unread",      govUnread);
-                        govChat.addProperty("isGov",       true);
-                        chatList.add(0, govChat); // immer ganz oben
-                    }
-                }
-            } catch (Exception ignored) {}
-        }
-
         JsonArray sorted = new JsonArray();
         for (JsonObject o : chatList) sorted.add(o);
         ctx.json(GSON.toJson(sorted));
@@ -290,9 +259,6 @@ public final class CityChatHandler {
         if (to == null || content == null) { ctx.status(400).json(err("to und content erforderlich")); return; }
 
         String guildId = guildId();
-
-        // Regierungs-Chat kann nicht beschrieben werden
-        if ("gov".equals(to)) { ctx.status(403).json(err("Regierungs-Nachrichten können nicht beantwortet werden")); return; }
 
         // Empfänger existiert?
         PhoneManager.Contract recipient = PhoneManager.getContractByNumber(guildId, to);
@@ -687,34 +653,6 @@ public final class CityChatHandler {
                   .queue(null, err -> {}),
                 err -> {});
         }, err -> {});
-    }
-
-    // ── Regierungs-Nachrichten ────────────────────────────────────────────────
-
-    public static void handleGetGovMessages(Context ctx) {
-        PhoneManager.Contract c = auth(ctx); if (c == null) return;
-        String guildId = guildId();
-        String raw = DataStore.readString("city-gov-msgs-" + guildId);
-        if (raw == null || raw.isBlank()) { ctx.json("[]"); return; }
-        try {
-            JsonArray msgs = JsonParser.parseString(raw).getAsJsonArray();
-            // Als gelesen markieren
-            if (msgs.size() > 0) {
-                long lastTs = msgs.get(msgs.size() - 1).getAsJsonObject().get("ts").getAsLong();
-                DataStore.writeString("city-gov-read-" + guildId + "-" + c.phoneNumber,
-                    String.valueOf(lastTs));
-            }
-            ctx.json(raw);
-        } catch (Exception e) { ctx.json("[]"); }
-    }
-
-    public static void handleDeleteGov(Context ctx) {
-        PhoneManager.Contract c = auth(ctx); if (c == null) return;
-        String guildId = guildId();
-        // Aktuellen Zeitstempel als "ausgeblendet bis" speichern
-        DataStore.writeString("city-gov-hidden-" + guildId + "-" + c.phoneNumber,
-            String.valueOf(System.currentTimeMillis()));
-        ctx.json("{\"ok\":true}");
     }
 
     // ── Lookup ────────────────────────────────────────────────────────────────
