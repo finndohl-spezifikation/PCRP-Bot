@@ -170,6 +170,7 @@ public class Main {
                 ShopListener.postPanelIfNeeded(guild);
                 BankListener.postPanelIfNeeded(guild);
                 HandyCentraleListener.postPanel(guild);
+                postCityChatPanel(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -497,6 +498,34 @@ public class Main {
                 .queue(
                     msg -> de.pcrp.bot.common.FraktionManager.setPanelMsgId(guild.getId(), msg.getId()),
                     err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
+        }
+
+        // ── City Chat Panel ────────────────────────────────────────────────────
+
+        private static void postCityChatPanel(Guild guild) {
+            String key = "panel-citychat-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.CITY_CHAT_CHANNEL_ID);
+            if (ch == null) { log.warn("[CityChat] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "💬 City Chat — Paradise City Roleplay",
+                () -> sendCityChatPanel(ch, key));
+        }
+
+        private static void sendCityChatPanel(TextChannel ch, String key) {
+            String url = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("💬 City Chat — Paradise City Roleplay")
+                    .setDescription(
+                        "Schreibe mit anderen Spielern über den **City Chat**.\n\n" +
+                        "Aktiviere den City Chat über **Handy-Zentrale → 💬 City Chat**.\n" +
+                        "Rufnummer & Safe-Pin findest du unter **📞 Handy Einstellungen**.")
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "💬 City Chat öffnen")
+            )).queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[CityChat] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+            );
         }
 
         // ── Shop-Items Einmal-Initialisierung ──────────────────────────────────

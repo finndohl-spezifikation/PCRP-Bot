@@ -36,7 +36,7 @@ public class HandyCentraleListener extends ListenerAdapter {
     public  static final long   CHANNEL_ID    = 1529636579826729140L;
     private static final long   ROLE_HANDY_AN  = 1529636356333244608L;
     private static final long   ROLE_HANDY_AUS = 1529636359944405114L;
-    private static final String PANEL_KEY      = "panel-handy-zentrale-";
+    private static final String PANEL_KEY      = "panel-handy-zentrale-v2-";
     private static final String ITEM_HANDY     = "Handy";
     private static final int    ITEM_PRICE     = 1000;
     private static final int    NEUE_NR_PREIS  = 500;
@@ -242,23 +242,6 @@ public class HandyCentraleListener extends ListenerAdapter {
                 ok -> log.info("[CityChat] Rolle an {} vergeben.", userId),
                 err -> log.warn("[CityChat] Rolle konnte nicht vergeben werden: {}", err.getMessage())
             );
-
-            // Embed im City-Chat-Kanal posten
-            net.dv8tion.jda.api.entities.channel.concrete.TextChannel cityCh =
-                guild.getTextChannelById(de.pcrp.bot.common.LoggingConfig.CITY_CHAT_CHANNEL_ID);
-            if (cityCh != null) {
-                cityCh.sendMessageEmbeds(
-                    EmbedFactory.create()
-                        .setTitle("💬 City Chat — Paradise City Roleplay")
-                        .setDescription(
-                            "**" + member.getEffectiveName() + "** hat den City Chat aktiviert.\n\n" +
-                            "Öffne den City Chat über den Button unten.\n" +
-                            "📞 Rufnummer & Safe-Pin erhältst du über **Handy Einstellungen**.")
-                        .build()
-                ).addComponents(ActionRow.of(
-                    Button.link(CITY_CHAT_BASE_URL, "💬 City Chat öffnen")
-                )).queue();
-            }
         }
 
         // Ephemere Antwort mit persönlichem Link
