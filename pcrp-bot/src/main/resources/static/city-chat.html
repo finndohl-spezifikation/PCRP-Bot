@@ -1328,6 +1328,14 @@ function renderContactsList(){
       await api('DELETE',`/api/city-chat/contacts/${encodeURIComponent(c.number)}`);
       await loadContacts(); renderContactsList();
     });
+    // Chat öffnen wenn man auf den Kontakt klickt (nicht auf die Buttons)
+    item.addEventListener('click',()=>{
+      const parts=[me.phoneNumber,c.number].map(p=>p.replace(' ','_').replace('(','').replace(')',''));
+      parts.sort();
+      const chatId=parts.join('|');
+      closeModal('contacts-modal');
+      openChat(chatId,c.number,c.name);
+    });
     list.appendChild(item);
   }
 }
