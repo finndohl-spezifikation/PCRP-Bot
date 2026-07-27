@@ -122,7 +122,7 @@ public final class PhoneManager {
     // Format: base64url(guildId:phoneNumber:expiresMs).base64url(HMAC-SHA256)
     // Überlebt Railway-Redeploys, kein DataStore nötig.
 
-    private static final long SESSION_TTL_MS = 7L * 24 * 3600 * 1000;
+    private static final long SESSION_TTL_MS = 365L * 24 * 3600 * 1000;
 
     private static String hmacSecret() {
         String s = System.getenv("SESSION_SECRET");
