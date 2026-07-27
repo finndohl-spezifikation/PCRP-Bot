@@ -187,6 +187,7 @@ public final class CityChatHandler {
             }
 
             JsonObject chat = new JsonObject();
+            JsonObject partnerProfile = loadProfile(guildId, other.phoneNumber);
             chat.addProperty("chatId",      chatId);
             chat.addProperty("phoneNumber", other.phoneNumber);
             chat.addProperty("displayName", displayName);
@@ -194,6 +195,7 @@ public final class CityChatHandler {
             chat.addProperty("lastType",    last.get("type").getAsString());
             chat.addProperty("lastTs",      last.get("ts").getAsLong());
             chat.addProperty("unread",      unread);
+            chat.addProperty("avatar",      profileStr(partnerProfile, "avatar", ""));
             result.add(chat);
         }
 
@@ -753,6 +755,46 @@ public final class CityChatHandler {
         String raw = DataStore.readString(blockKey(guildId, phone));
         if (raw == null) return new JsonArray();
         try { return JsonParser.parseString(raw).getAsJsonArray(); } catch (Exception e) { return new JsonArray(); }
+    }
+
+    // ── WebRTC Call Signaling ─────────────────────────────────────────────────
+
+    /** POST /api/city-chat/call-signal  – Signal an einen anderen Nutzer senden */
+    public static void handleSendCallSignal(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        JsonObject body = body(ctx);
+        String to       = str(body, "to");
+        String type     = str(body, "type");   // offer|answer|ice|end|reject
+        String data     = body.has("data")     ? body.get("data").getAsString()     : "";
+        String callType = body.has("callType") ? body.get("callType").getAsString() : "";
+        if (to == null || to.isBlank()) { ctx.status(400).json("{\"error\":\"missing to\"}"); return; }
+        String guildId = guildId();
+
+        String key = "city-call-sig-" + guildId + "-" + to.replaceAll("[^0-9]", "");
+        String raw = DataStore.readString(key);
+        JsonArray arr = (raw != null && !raw.isBlank())
+            ? JsonParser.parseString(raw).getAsJsonArray() : new JsonArray();
+
+        JsonObject sig = new JsonObject();
+        sig.addProperty("from",     c.phoneNumber);
+        sig.addProperty("type",     type);
+        sig.addProperty("data",     data);
+        if (!callType.isEmpty()) sig.addProperty("callType", callType);
+        sig.addProperty("ts",       System.currentTimeMillis());
+        arr.add(sig);
+        DataStore.writeString(key, GSON.toJson(arr));
+        ctx.status(204);
+    }
+
+    /** GET /api/city-chat/call-signal  – Eigene Signale abrufen und löschen */
+    public static void handleGetCallSignal(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String guildId = guildId();
+        String key = "city-call-sig-" + guildId + "-" + c.phoneNumber.replaceAll("[^0-9]", "");
+        String raw = DataStore.readString(key);
+        if (raw == null || raw.isBlank()) { ctx.json("[]"); return; }
+        DataStore.deleteKey(key);
+        ctx.contentType("application/json").result(raw);
     }
 
     private static JsonObject loadProfile(String guildId, String phone) {

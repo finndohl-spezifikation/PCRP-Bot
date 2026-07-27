@@ -118,6 +118,8 @@ public class WebServer {
         app.delete("/api/city-chat/firma-links/{id}",  ctx -> CityChatHandler.handleDeleteFirmaLink(ctx));
         app.get( "/api/city-chat/gov-messages",        ctx -> CityChatHandler.handleGetGovMessages(ctx));
         app.delete("/api/city-chat/gov-messages",      ctx -> CityChatHandler.handleDeleteGov(ctx));
+        app.post("/api/city-chat/call-signal",         ctx -> CityChatHandler.handleSendCallSignal(ctx));
+        app.get( "/api/city-chat/call-signal",         ctx -> CityChatHandler.handleGetCallSignal(ctx));
 
         // Banned-Seite
         app.get("/banned", WebServer::serveBanned);

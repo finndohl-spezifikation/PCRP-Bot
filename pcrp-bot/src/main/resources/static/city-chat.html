@@ -706,6 +706,10 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
   </div>
 </div>
 
+<!-- Remote Media (Audio/Video für WebRTC) -->
+<audio id="remote-audio" autoplay playsinline style="display:none"></audio>
+<video id="remote-video" autoplay playsinline muted class="hidden" style="position:fixed;bottom:80px;right:16px;width:120px;height:90px;border-radius:12px;object-fit:cover;z-index:205;border:2px solid rgba(255,255,255,.2)"></video>
+
 <!-- CALL OVERLAY -->
 <div id="call-overlay" class="hidden">
   <div class="call-av" id="co-avatar"><div class="call-ring"></div></div>
@@ -951,7 +955,13 @@ function playReceive(){
   playTone(s.recv.map(x=>({f:x.f,d:x.d})));
 }
 
-function startPoll(){ clearInterval(pollTimer); pollTimer=setInterval(loadChats,1000); }
+function startPoll(){
+  clearInterval(pollTimer);
+  pollTimer=setInterval(loadChats,1000);
+  // Globales Signal-Polling für eingehende Anrufe (alle 1.5s)
+  clearInterval(globalCallPollTimer);
+  globalCallPollTimer=setInterval(pollGlobalSignals,1500);
+}
 
 function renderChatList(){
   const list=document.getElementById('chat-list');
@@ -1312,74 +1322,193 @@ function toggleVoicePlay(btn, src){
   };
 }
 
-// ── Calls ──────────────────────────────────────────────────────────────────
-let activeCall=null, ringInterval=null, incomingCallData=null;
-const seenCallMsgIds=new Set();
+// ── WebRTC Calls ───────────────────────────────────────────────────────────
+let activeCall=null, ringInterval=null, incomingCallOffer=null;
+let pc=null, localStream=null, callPollTimer=null, globalCallPollTimer=null;
+
+const ICE_SERVERS=[
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:stun.cloudflare.com:3478'},
+];
 
 document.getElementById('voice-call-btn').addEventListener('click',()=>startCall('voice'));
 document.getElementById('video-call-btn').addEventListener('click',()=>startCall('video'));
 
 async function startCall(type){
   if(!activePartner||activeChatId==='gov') return;
+  if(activeCall){ alert('Du bist bereits in einem Gespräch.'); return; }
   const name=document.getElementById('ch-name').textContent;
   const chat=chats.find(c=>c.phoneNumber===activePartner)||{};
-  activeCall={type,partner:activePartner,name,direction:'outgoing'};
-  showCallOverlay(name, type, chat.avatar, 'outgoing');
-  // Klingelton starten
-  ringInterval=setInterval(()=>playRing(),2000);
-  playRing();
-  // Anruf-Signal als Nachricht senden
   try{
-    await api('POST','/api/city-chat/messages',{to:activePartner,content:type,type:'call-'+type});
-  }catch(e){}
-  // Timeout nach 40s
-  activeCall.timeout=setTimeout(()=>endCall('missed'),40000);
+    localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:type==='video'});
+  }catch(e){
+    alert('Kein Zugriff auf Mikrofon'+(type==='video'?'/Kamera':'')+'. Bitte Erlaubnis erteilen.'); return;
+  }
+  pc=buildPeerConnection(type, activePartner);
+  localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await sendCallSignal(activePartner,{type:'offer',callType:type,data:JSON.stringify({sdp:offer.sdp,type:offer.type})});
+  activeCall={type,partner:activePartner,name,direction:'outgoing',iceBuf:[]};
+  showCallOverlay(name,type,chat.avatar,'outgoing');
+  ringInterval=setInterval(()=>playRing(),2500); playRing();
+  activeCall.timeout=setTimeout(()=>endCall('missed'),45000);
+  startCallPoll();
 }
 
-function showCallOverlay(name, type, avatar, direction){
-  const overlay=document.getElementById('call-overlay');
+function buildPeerConnection(type, partner){
+  const conn=new RTCPeerConnection({iceServers:ICE_SERVERS});
+  conn.onicecandidate=e=>{ if(e.candidate) sendCallSignal(partner,{type:'ice',data:JSON.stringify(e.candidate)}); };
+  conn.ontrack=e=>{
+    const audio=document.getElementById('remote-audio');
+    if(audio) audio.srcObject=e.streams[0];
+    if(type==='video'){
+      const vid=document.getElementById('remote-video');
+      if(vid){ vid.srcObject=e.streams[0]; vid.classList.remove('hidden'); }
+    }
+  };
+  conn.onconnectionstatechange=()=>{
+    if(conn.connectionState==='connected') document.getElementById('co-status').textContent='Verbunden ✓';
+    if(conn.connectionState==='disconnected'||conn.connectionState==='failed') endCall('remote');
+  };
+  return conn;
+}
+
+async function sendCallSignal(to,signal){
+  try{ await api('POST','/api/city-chat/call-signal',{to,...signal}); }catch(e){}
+}
+
+function startCallPoll(){ clearInterval(callPollTimer); callPollTimer=setInterval(pollCallSignals,700); }
+function stopCallPoll(){ clearInterval(callPollTimer); callPollTimer=null; }
+
+async function pollCallSignals(){
+  try{
+    const signals=await api('GET','/api/city-chat/call-signal');
+    for(const sig of (signals||[])) await handleSignal(sig);
+  }catch(e){}
+}
+
+async function handleSignal(sig){
+  if(sig.type==='offer'){
+    // Eingehender Anruf (nur wenn kein aktiver Call läuft)
+    if(!activeCall) showIncomingCall(sig.from,sig.callType||'voice',sig);
+    return;
+  }
+  if(!activeCall) return;
+  if(sig.type==='answer' && activeCall.direction==='outgoing'){
+    clearTimeout(activeCall.timeout); delete activeCall.timeout;
+    clearInterval(ringInterval); ringInterval=null;
+    document.getElementById('co-status').textContent='Verbinde…';
+    const sdp=JSON.parse(sig.data);
+    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+    for(const c of (activeCall.iceBuf||[])){ try{ await pc.addIceCandidate(new RTCIceCandidate(c)); }catch(e){} }
+    activeCall.iceBuf=[];
+  } else if(sig.type==='ice'){
+    const candidate=JSON.parse(sig.data);
+    if(pc?.remoteDescription){ try{ await pc.addIceCandidate(new RTCIceCandidate(candidate)); }catch(e){} }
+    else if(activeCall.iceBuf) activeCall.iceBuf.push(candidate);
+  } else if(sig.type==='end'||sig.type==='reject'){
+    endCall('remote');
+  }
+}
+
+function showCallOverlay(name,type,avatar,direction){
   document.getElementById('co-name').textContent=name;
   document.getElementById('co-type').textContent=type==='video'?'📹 Videoanruf':'📞 Sprachanruf';
   document.getElementById('co-status').textContent=direction==='incoming'?'Eingehender Anruf…':'Klingelt…';
   const av=document.getElementById('co-avatar');
   av.innerHTML='<div class="call-ring"></div>';
-  if(avatar){
-    const img=document.createElement('img'); img.src=avatar; av.appendChild(img);
-  } else {
-    av.insertAdjacentText('beforeend',name[0].toUpperCase());
-    av.style.background=colorFor(name);
-  }
+  if(avatar){ const img=document.createElement('img'); img.src=avatar; av.appendChild(img); }
+  else { av.insertAdjacentText('beforeend',name[0].toUpperCase()); av.style.background=colorFor(name); }
   document.getElementById('co-accept').classList.toggle('hidden',direction==='outgoing');
-  overlay.classList.remove('hidden');
+  document.getElementById('call-overlay').classList.remove('hidden');
 }
 
 function endCall(reason){
   clearInterval(ringInterval); ringInterval=null;
   if(activeCall?.timeout) clearTimeout(activeCall.timeout);
-  if(activeCall?.direction==='outgoing'){
-    api('POST','/api/city-chat/messages',{
-      to:activeCall.partner,
-      content:activeCall.type,
-      type:reason==='missed'?'call-missed':'call-end'
-    }).catch(()=>{});
-  }
-  activeCall=null;
+  if(activeCall?.dismissTimeout) clearTimeout(activeCall.dismissTimeout);
+  stopCallPoll();
+  if(reason!=='remote'&&activeCall) sendCallSignal(activeCall.partner,{type:reason==='end'?'end':'reject',data:''});
+  if(localStream){ localStream.getTracks().forEach(t=>t.stop()); localStream=null; }
+  if(pc){ pc.close(); pc=null; }
+  const ra=document.getElementById('remote-audio'); if(ra) ra.srcObject=null;
+  const rv=document.getElementById('remote-video'); if(rv){ rv.srcObject=null; rv.classList.add('hidden'); }
+  activeCall=null; incomingCallOffer=null;
   document.getElementById('call-overlay').classList.add('hidden');
+  document.getElementById('incoming-call-banner').classList.add('hidden');
 }
 
 document.getElementById('co-end').addEventListener('click',()=>endCall('end'));
-document.getElementById('co-accept').addEventListener('click',()=>{
+
+document.getElementById('co-accept').addEventListener('click',async()=>{
+  if(!incomingCallOffer||!activeCall) return;
   clearInterval(ringInterval); ringInterval=null;
-  document.getElementById('co-status').textContent='Im Gespräch…';
   document.getElementById('co-accept').classList.add('hidden');
-  // Annahme-Signal senden
-  if(incomingCallData){
-    api('POST','/api/city-chat/messages',{to:incomingCallData.partner,content:incomingCallData.type,type:'call-accept'}).catch(()=>{});
-  }
-  incomingCallData=null;
+  document.getElementById('co-status').textContent='Verbinde…';
+  const offerSig=incomingCallOffer; incomingCallOffer=null;
   document.getElementById('incoming-call-banner').classList.add('hidden');
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:activeCall.type==='video'});
+  }catch(e){
+    alert('Kein Zugriff auf Mikrofon. Bitte Erlaubnis erteilen.'); endCall('reject'); return;
+  }
+  pc=buildPeerConnection(activeCall.type, activeCall.partner);
+  localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
+  const offerData=JSON.parse(offerSig.data);
+  await pc.setRemoteDescription(new RTCSessionDescription(offerData));
+  const answer=await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  await sendCallSignal(activeCall.partner,{type:'answer',data:JSON.stringify({sdp:answer.sdp,type:answer.type})});
+  startCallPoll();
 });
 
+function showIncomingCall(fromPhone,type,offerSig){
+  if(!document.getElementById('call-overlay').classList.contains('hidden')) return;
+  const contact=contacts.find(c=>c.number===fromPhone);
+  const chat=chats.find(c=>c.phoneNumber===fromPhone)||{};
+  const name=contact?contact.name:(chat.displayName||fromPhone);
+  incomingCallOffer=offerSig;
+  activeCall={type,partner:fromPhone,name,direction:'incoming',iceBuf:[]};
+  document.getElementById('icb-name').textContent=name;
+  document.getElementById('icb-type').textContent=type==='video'?'📹 Eingehender Videoanruf':'📞 Eingehender Sprachanruf';
+  const icbAv=document.getElementById('icb-avatar');
+  if(chat.avatar){ icbAv.innerHTML=`<img src="${chat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+  else { icbAv.textContent=name[0].toUpperCase(); icbAv.style.background=colorFor(fromPhone); }
+  document.getElementById('incoming-call-banner').classList.remove('hidden');
+  clearInterval(ringInterval); ringInterval=setInterval(()=>playRing(),2500); playRing();
+  startCallPoll();
+  activeCall.dismissTimeout=setTimeout(()=>{
+    if(activeCall?.direction==='incoming'){ sendCallSignal(activeCall.partner,{type:'reject',data:''}); endCall('timeout'); }
+  },40000);
+}
+
+document.getElementById('icb-decline').addEventListener('click',()=>{
+  if(activeCall) sendCallSignal(activeCall.partner,{type:'reject',data:''});
+  endCall('remote');
+});
+document.getElementById('icb-accept').addEventListener('click',()=>{
+  if(!activeCall||!incomingCallOffer) return;
+  const chat=chats.find(c=>c.phoneNumber===activeCall.partner)||{};
+  document.getElementById('incoming-call-banner').classList.add('hidden');
+  clearTimeout(activeCall.dismissTimeout);
+  showCallOverlay(activeCall.name,activeCall.type,chat.avatar,'incoming');
+  document.getElementById('co-accept').click();
+});
+
+// ── Globales Signal-Polling (Eingehende Anrufe erkennen) ───────────────────
+async function pollGlobalSignals(){
+  if(activeCall) return; // Call-spezifischer Poll übernimmt
+  try{
+    const signals=await api('GET','/api/city-chat/call-signal');
+    for(const sig of (signals||[])){
+      if(sig.type==='offer') showIncomingCall(sig.from,sig.callType||'voice',sig);
+    }
+  }catch(e){}
+}
+
+// ── loadMessages ───────────────────────────────────────────────────────────
 async function loadMessages(scroll=true){
   if(!activeChatId) return;
   try{
@@ -1388,66 +1517,10 @@ async function loadMessages(scroll=true){
     const normalized=activeChatId==='gov'
       ?msgs.map(m=>({id:m.id,from:'gov',content:m.text,type:'text',ts:m.ts,govAuthor:m.author}))
       :msgs;
-    // Incoming call detection
-    for(const m of normalized){
-      if(m.from!==me.phoneNumber && (m.type==='call-voice'||m.type==='call-video') && !seenCallMsgIds.has(m.id)){
-        seenCallMsgIds.add(m.id);
-        const callType=m.type==='call-video'?'video':'voice';
-        showIncomingCall(m.from, callType);
-      }
-      if(m.from!==me.phoneNumber && (m.type==='call-end'||m.type==='call-missed') && !seenCallMsgIds.has(m.id)){
-        seenCallMsgIds.add(m.id);
-        document.getElementById('incoming-call-banner').classList.add('hidden');
-        if(activeCall&&activeCall.direction==='incoming'){ activeCall=null; document.getElementById('call-overlay').classList.add('hidden'); clearInterval(ringInterval); }
-      }
-    }
     renderMessages(normalized,scroll||normalized.length!==lastCount);
     lastCount=normalized.length;
   }catch(e){}
 }
-
-function showIncomingCall(fromPhone, type){
-  if(document.getElementById('call-overlay')&&!document.getElementById('call-overlay').classList.contains('hidden')) return;
-  const contact=contacts.find(c=>c.number===fromPhone);
-  const chat=chats.find(c=>c.phoneNumber===fromPhone)||{};
-  const name=contact?contact.name:(chat.displayName||fromPhone);
-  incomingCallData={partner:fromPhone,type};
-  // Banner
-  const banner=document.getElementById('incoming-call-banner');
-  document.getElementById('icb-name').textContent=name;
-  document.getElementById('icb-type').textContent=type==='video'?'📹 Eingehender Videoanruf':'📞 Eingehender Sprachanruf';
-  const icbAv=document.getElementById('icb-avatar');
-  if(chat.avatar){ icbAv.innerHTML=`<img src="${chat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
-  else { icbAv.textContent=name[0].toUpperCase(); icbAv.style.background=colorFor(fromPhone); }
-  banner.classList.remove('hidden');
-  // Klingelton
-  clearInterval(ringInterval);
-  ringInterval=setInterval(()=>playRing(),2000); playRing();
-  // Auto-dismiss nach 30s
-  setTimeout(()=>{ banner.classList.add('hidden'); clearInterval(ringInterval); },30000);
-}
-
-document.getElementById('icb-decline').addEventListener('click',()=>{
-  document.getElementById('incoming-call-banner').classList.add('hidden');
-  clearInterval(ringInterval); ringInterval=null;
-  if(incomingCallData){
-    api('POST','/api/city-chat/messages',{to:incomingCallData.partner,content:incomingCallData.type,type:'call-decline'}).catch(()=>{});
-    incomingCallData=null;
-  }
-});
-document.getElementById('icb-accept').addEventListener('click',()=>{
-  document.getElementById('incoming-call-banner').classList.add('hidden');
-  clearInterval(ringInterval); ringInterval=null;
-  if(incomingCallData){
-    const chat=chats.find(c=>c.phoneNumber===incomingCallData.partner)||{};
-    const contact=contacts.find(c=>c.number===incomingCallData.partner);
-    const name=contact?contact.name:(chat.displayName||incomingCallData.partner);
-    activeCall={type:incomingCallData.type,partner:incomingCallData.partner,name,direction:'incoming'};
-    showCallOverlay(name,incomingCallData.type,chat.avatar,'incoming');
-    api('POST','/api/city-chat/messages',{to:incomingCallData.partner,content:incomingCallData.type,type:'call-accept'}).catch(()=>{});
-    incomingCallData=null;
-  }
-});
 
 // ── Block ──────────────────────────────────────────────────────────────────
 document.getElementById('block-btn').addEventListener('click',async()=>{
