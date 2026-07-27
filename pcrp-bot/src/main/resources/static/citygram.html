@@ -520,7 +520,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <div id="toast"></div>
 
 <script>
-const API = '%%API_BASE%%';
+var API = '%%API_BASE%%';
 let TOKEN = new URLSearchParams(location.search).get('token') || localStorage.getItem('cg_token');
 let ME = null;
 let _currentCommentPostId = null;
