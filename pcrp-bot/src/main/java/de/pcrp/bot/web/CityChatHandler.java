@@ -417,6 +417,20 @@ public final class CityChatHandler {
         DataStore.writeString(msgKey(guildId, chatId), GSON.toJson(msgs));
     }
 
+    /** DELETE /api/city-chat/messages/{chatId}  – eigenen Chat-Verlauf löschen */
+    public static void handleClearChat(Context ctx) {
+        PhoneManager.Contract c = auth(ctx); if (c == null) return;
+        String chatId  = ctx.pathParam("chatId");
+        String guildId = guildId();
+        // Sicherheitscheck: Nutzer muss Teil des Chats sein
+        String normalizedPhone = c.phoneNumber.replaceAll("[^0-9]", "");
+        if (!chatId.contains(normalizedPhone)) {
+            ctx.status(403).json(err("Kein Zugriff auf diesen Chat")); return;
+        }
+        DataStore.writeString(msgKey(guildId, chatId), "[]");
+        ctx.json("{\"ok\":true}");
+    }
+
     private static JsonArray loadContacts(String guildId, String phone) {
         String raw = DataStore.readString(contactKey(guildId, phone));
         if (raw == null) return new JsonArray();

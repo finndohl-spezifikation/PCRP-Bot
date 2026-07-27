@@ -94,8 +94,9 @@ public class WebServer {
         app.post("/api/city-chat/contacts",            ctx -> CityChatHandler.handleAddContact(ctx));
         app.delete("/api/city-chat/contacts/{number}", ctx -> CityChatHandler.handleDeleteContact(ctx));
         app.get( "/api/city-chat/chats",               ctx -> CityChatHandler.handleGetChats(ctx));
-        app.get( "/api/city-chat/messages/{chatId}",   ctx -> CityChatHandler.handleGetMessages(ctx));
-        app.post("/api/city-chat/messages",            ctx -> CityChatHandler.handleSendMessage(ctx));
+        app.get(   "/api/city-chat/messages/{chatId}",  ctx -> CityChatHandler.handleGetMessages(ctx));
+        app.delete("/api/city-chat/messages/{chatId}", ctx -> CityChatHandler.handleClearChat(ctx));
+        app.post(  "/api/city-chat/messages",          ctx -> CityChatHandler.handleSendMessage(ctx));
         app.post("/api/city-chat/block",               ctx -> CityChatHandler.handleBlock(ctx));
         app.delete("/api/city-chat/block/{number}",    ctx -> CityChatHandler.handleUnblock(ctx));
         app.get( "/api/city-chat/blocked",             ctx -> CityChatHandler.handleGetBlocked(ctx));
