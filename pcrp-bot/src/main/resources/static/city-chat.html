@@ -814,7 +814,7 @@ async function doLogin(){
   if(!phone||!pin){err.textContent='Rufnummer und PIN eingeben';err.style.display='block';return;}
   btn.disabled=true;err.style.display='none';
   try{
-    const res=await fetch(API+'/api/city-chat/auth',{
+    const res=await fetch((window.API_BASE||'')+'/api/city-chat/auth',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({phoneNumber:phone,safePin:pin})
     });
