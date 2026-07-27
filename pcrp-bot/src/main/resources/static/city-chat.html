@@ -48,8 +48,8 @@ input,textarea{font-family:inherit}
 .sidebar{width:100%;max-width:360px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.07);background:var(--app-sidebar);flex-shrink:0}
 @media(max-width:767px){.sidebar{max-width:100%;display:flex}.sidebar.hide-mobile{display:none!important}}
 .sb-header{height:58px;background:var(--app-header);display:flex;align-items:center;gap:.75rem;padding:0 1rem;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.07)}
-.sb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:.95rem;flex-shrink:0;background:var(--accent);overflow:hidden;cursor:pointer}
-.sb-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.sb-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:.95rem;flex-shrink:0;background:var(--accent);overflow:hidden;cursor:pointer;position:relative}
+.sb-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .sb-name{flex:1;font-size:.9rem;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sb-btn{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.5);transition:background .15s}
 .sb-btn:hover{background:rgba(255,255,255,.08);color:#fff}
@@ -84,8 +84,8 @@ input,textarea{font-family:inherit}
 .chat-item{display:flex;align-items:center;padding:.6rem 1rem;cursor:pointer;transition:background .1s;gap:.75rem}
 .chat-item:hover{background:rgba(255,255,255,.04)}
 .chat-item.active{background:var(--accent-dim)}
-.ci-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1rem;flex-shrink:0;overflow:hidden}
-.ci-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ci-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1rem;flex-shrink:0;overflow:hidden;position:relative}
+.ci-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .ci-body{flex:1;min-width:0;border-bottom:1px solid rgba(255,255,255,.05);padding-bottom:.6rem}
 .ci-top{display:flex;justify-content:space-between;align-items:center}
 .ci-name{font-size:.93rem;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
@@ -108,8 +108,8 @@ input,textarea{font-family:inherit}
 .chat-header{height:58px;background:var(--app-header);display:flex;align-items:center;gap:.75rem;padding:0 .75rem;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
 .back-btn{display:flex;color:rgba(255,255,255,.6)}
 @media(min-width:768px){.back-btn{display:none}}
-.ch-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
-.ch-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ch-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;position:relative}
+.ch-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
 .ch-info{flex:1;min-width:0}
 .ch-name{font-size:.93rem;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ch-status{font-size:.73rem;color:rgba(255,255,255,.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -828,7 +828,7 @@ function urlBase64ToUint8Array(base64String){
 function renderMyAvatar(){
   const av=document.getElementById('my-av');
   if(me.avatar){
-    av.innerHTML=`<img src="${me.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    av.innerHTML=`<img src="${me.avatar}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>`;
   } else {
     av.textContent=(me.displayName||me.phoneNumber)[0].toUpperCase();
     av.style.background=colorFor(me.phoneNumber);
@@ -906,7 +906,7 @@ function renderChatList(){
     item.dataset.id=c.chatId;
     const color=colorFor(c.phoneNumber);
     const hasStatus=statuses.some(s=>s.phoneNumber===c.phoneNumber);
-    const avHtml=c.avatar?`<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`:`${c.displayName[0].toUpperCase()}`;
+    const avHtml=c.avatar?`<img src="${c.avatar}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>`:`${c.displayName[0].toUpperCase()}`;
     item.innerHTML=`
       <div class="ci-av-wrap${hasStatus?' has-status':''}">
         <div class="ci-avatar" style="${c.avatar?'':'background:'+color}">${avHtml}</div>
@@ -938,7 +938,7 @@ async function openChat(chatId,phone,name){
   const partnerChat=chats.find(c=>c.chatId===chatId);
   const av=document.getElementById('ch-avatar');
   if(partnerChat&&partnerChat.avatar){
-    av.innerHTML=`<img src="${partnerChat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    av.innerHTML=`<img src="${partnerChat.avatar}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>`;
     av.style.background='';
   } else {
     av.textContent=name[0].toUpperCase(); av.style.background=colorFor(phone);
@@ -1641,7 +1641,7 @@ async function viewPartnerProfile(phone){
   document.getElementById('pp-firma').style.display='none';
 
   if(chat.avatar){
-    av.innerHTML=`<img src="${chat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+    av.innerHTML=`<img src="${chat.avatar}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>`;
     av.style.background=''; setBgBlur(chat.avatar);
   } else {
     av.textContent=fallbackName[0].toUpperCase();
@@ -1657,7 +1657,7 @@ async function viewPartnerProfile(phone){
     document.getElementById('pp-name').textContent=name;
 
     if(p.avatar){
-      av.innerHTML=`<img src="${p.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+      av.innerHTML=`<img src="${p.avatar}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>`;
       av.style.background=''; setBgBlur(p.avatar);
     }
 

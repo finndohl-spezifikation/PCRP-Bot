@@ -423,10 +423,11 @@ public final class CityChatHandler {
         String chatId  = ctx.pathParam("chatId");
         String guildId = guildId();
         // Sicherheitscheck: Nutzer muss Teil des Chats sein
-        String normalizedPhone = c.phoneNumber.replaceAll("[^0-9]", "");
-        if (!chatId.contains(normalizedPhone)) {
-            ctx.status(403).json(err("Kein Zugriff auf diesen Chat")); return;
-        }
+        // chatId() normalisiert: Leerzeichen→_, Klammern entfernt
+        String normPhone = c.phoneNumber.replace(" ", "_").replace("(", "").replace(")", "");
+        boolean isMember = false;
+        for (String part : chatId.split("\\|")) { if (part.equals(normPhone)) { isMember = true; break; } }
+        if (!isMember) { ctx.status(403).json(err("Kein Zugriff auf diesen Chat")); return; }
         DataStore.writeString(msgKey(guildId, chatId), "[]");
         ctx.json("{\"ok\":true}");
     }
