@@ -50,7 +50,11 @@ public final class PhoneManager {
         if (raw == null || raw.isBlank()) return null;
         try {
             JsonObject o = JsonParser.parseString(raw).getAsJsonObject();
-            return fromJson(o);
+            boolean hadPin = o.has("safePin") && !o.get("safePin").isJsonNull();
+            Contract c = fromJson(o);
+            // Alte Verträge ohne PIN: sofort zurückspeichern damit die PIN dauerhaft bleibt
+            if (!hadPin) save(guildId, userId, c);
+            return c;
         } catch (Exception e) { return null; }
     }
 
@@ -189,7 +193,10 @@ public final class PhoneManager {
         c.firstName   = o.get("firstName").getAsString();
         c.lastName    = o.get("lastName").getAsString();
         c.phoneNumber = o.get("phoneNumber").getAsString();
-        c.safePin     = o.get("safePin").getAsString();
+        // Alte Verträge ohne safePin: eine neue generieren
+        c.safePin     = o.has("safePin") && !o.get("safePin").isJsonNull()
+                        ? o.get("safePin").getAsString()
+                        : generatePin();
         c.createdAt   = o.get("createdAt").getAsLong();
         return c;
     }
