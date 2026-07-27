@@ -36,7 +36,7 @@ public class HandyCentraleListener extends ListenerAdapter {
     public  static final long   CHANNEL_ID    = 1529636579826729140L;
     private static final long   ROLE_HANDY_AN  = 1529636356333244608L;
     private static final long   ROLE_HANDY_AUS = 1529636359944405114L;
-    private static final String PANEL_KEY      = "panel-handy-zentrale-v4-";
+    private static final String PANEL_KEY      = "panel-handy-zentrale-v5-";
     private static final String ITEM_HANDY     = "Handy";
     private static final int    ITEM_PRICE     = 1000;
     private static final int    NEUE_NR_PREIS  = 500;
@@ -57,6 +57,7 @@ public class HandyCentraleListener extends ListenerAdapter {
         DataStore.deleteKey("panel-handy-zentrale-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v2-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v3-" + guildId);
+        DataStore.deleteKey("panel-handy-zentrale-v4-" + guildId);
 
         // Alle vorhandenen Bot-Nachrichten mit Titel "📱 Handy-Zentrale" im Kanal löschen,
         // dann frisch posten
@@ -82,6 +83,8 @@ public class HandyCentraleListener extends ListenerAdapter {
             .addOption("📱 Handy Einschalten",   "einschalten", "Schalte dein Handy ein")
             .addOption("📴 Handy Ausschalten",   "ausschalten", "Schalte dein Handy aus")
             .addOption("📞 Handy Einstellungen", "nummer",      "Rufnummer & City Chat aktivieren")
+            .addOption("💬 City Chat",           "citychat",    "City Chat aktivieren & öffnen")
+            .addOption("📸 Citygram",            "citygram",    "Citygram aktivieren & öffnen")
             .build();
 
         ch.sendMessageEmbeds(
@@ -91,7 +94,9 @@ public class HandyCentraleListener extends ListenerAdapter {
                     "Willkommen in der **Handy-Zentrale** von Paradise City Roleplay.\n\n" +
                     "**📱 Handy Einschalten** — Aktiviert dein Handy (Handy im Inventar erforderlich)\n" +
                     "**📴 Handy Ausschalten** — Deaktiviert dein Handy\n" +
-                    "**📞 Handy Einstellungen** — Rufnummer anzeigen & City Chat aktivieren")
+                    "**📞 Handy Einstellungen** — Rufnummer, City Chat & Citygram\n" +
+                    "**💬 City Chat** — City Chat aktivieren & öffnen\n" +
+                    "**📸 Citygram** — Citygram aktivieren & öffnen")
                 .build()
         ).addComponents(ActionRow.of(menu)).queue(
             msg -> PanelHelper.onSent(key, msg.getId()),
@@ -117,6 +122,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             case "ausschalten"  -> handleAusschalten(event, guild, member, userId, guildId);
             case "nummer"       -> handleNummer(event, guild, member, userId, guildId);
             case "citychat"     -> handleCityChatActivate(event, guild, member, userId, guildId);
+            case "citygram"     -> handleCitygramSelect(event, guild, member, userId, guildId);
         }
     }
 
@@ -293,6 +299,50 @@ public class HandyCentraleListener extends ListenerAdapter {
                     : "✅ City Chat wurde aktiviert!\n\nDu hast die City Chat Rolle erhalten.")
                 .build()
         ).setEphemeral(true).queue();
+    }
+
+    // ── Citygram Aktivierung (Select-Menü) ───────────────────────────────────
+
+    private void handleCitygramSelect(StringSelectInteractionEvent event,
+                                      Guild guild, Member member, String userId, String guildId) {
+        Role roleAn = guild.getRoleById(ROLE_HANDY_AN);
+        if (roleAn == null || !member.getRoles().contains(roleAn)) {
+            event.replyEmbeds(EmbedFactory.build("📸 Citygram",
+                "❌ Dein Handy ist **ausgeschaltet**.\nSchalte zuerst dein Handy ein."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        PhoneManager.Contract c = PhoneManager.getContract(guildId, userId);
+        if (c == null) {
+            event.replyEmbeds(EmbedFactory.build("📸 Citygram",
+                "❌ Du hast noch keine **Rufnummer**.\nSchließe zuerst einen Vertrag ab."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        Role cgRole = guild.getRoleById(CITYGRAM_ROLE_ID);
+        boolean alreadyActive = cgRole != null && member.getRoles().contains(cgRole);
+        if (!alreadyActive && cgRole != null) {
+            guild.addRoleToMember(member, cgRole).queue(
+                ok  -> log.info("[Citygram] Rolle an {} vergeben.", userId),
+                err -> log.warn("[Citygram] Rolle konnte nicht vergeben werden: {}", err.getMessage())
+            );
+        }
+
+        String token = PhoneManager.createSession(guildId, c.phoneNumber);
+        String link  = webUrl() + "/citygram?token=" + token;
+
+        event.replyEmbeds(
+            EmbedFactory.create()
+                .setTitle("📸 Citygram")
+                .setDescription(alreadyActive
+                    ? "✅ Citygram ist bereits aktiviert."
+                    : "✅ Citygram wurde aktiviert!\n\nDu hast die Citygram-Rolle erhalten.")
+                .build()
+        ).addComponents(ActionRow.of(
+            Button.link(link, "📸 Citygram öffnen")
+        )).setEphemeral(true).queue();
     }
 
     // ── City Chat (legacy) ────────────────────────────────────────────────────
