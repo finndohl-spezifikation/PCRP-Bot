@@ -85,6 +85,28 @@ public class WebServer {
         app.get("/info",          WebServer::serveInfo);
         app.get("/api/stats",     WebServer::handleStats);
 
+        // ── Citygram ──────────────────────────────────────────────────────────
+        app.get( "/citygram",                                    WebServer::serveCitygram);
+        app.post("/api/citygram/auth",                           ctx -> CityCitygramHandler.handleAuth(ctx));
+        app.get( "/api/citygram/me",                             ctx -> CityCitygramHandler.handleGetMe(ctx));
+        app.put( "/api/citygram/profile",                        ctx -> CityCitygramHandler.handleUpdateProfile(ctx));
+        app.get( "/api/citygram/avatar/{phone}",                 ctx -> CityCitygramHandler.handleGetAvatar(ctx));
+        app.get( "/api/citygram/profile/{phone}",                ctx -> CityCitygramHandler.handleGetProfile(ctx));
+        app.get( "/api/citygram/feed",                           ctx -> CityCitygramHandler.handleFeed(ctx));
+        app.get( "/api/citygram/posts/{phone}",                  ctx -> CityCitygramHandler.handleGetUserPosts(ctx));
+        app.post("/api/citygram/post",                           ctx -> CityCitygramHandler.handleCreatePost(ctx));
+        app.delete("/api/citygram/post/{postId}",                ctx -> CityCitygramHandler.handleDeletePost(ctx));
+        app.get( "/api/citygram/img/{postId}",                   ctx -> CityCitygramHandler.handleGetPostImage(ctx));
+        app.post("/api/citygram/like/{postId}",                  ctx -> CityCitygramHandler.handleToggleLike(ctx));
+        app.get( "/api/citygram/comments/{postId}",              ctx -> CityCitygramHandler.handleGetComments(ctx));
+        app.post("/api/citygram/comment/{postId}",               ctx -> CityCitygramHandler.handleAddComment(ctx));
+        app.delete("/api/citygram/comment/{postId}/{commentId}", ctx -> CityCitygramHandler.handleDeleteComment(ctx));
+        app.post("/api/citygram/follow/{phone}",                 ctx -> CityCitygramHandler.handleToggleFollow(ctx));
+        app.get( "/api/citygram/search",                         ctx -> CityCitygramHandler.handleSearch(ctx));
+        app.get( "/api/citygram/stories",                        ctx -> CityCitygramHandler.handleGetStories(ctx));
+        app.post("/api/citygram/story",                          ctx -> CityCitygramHandler.handleCreateStory(ctx));
+        app.get( "/api/citygram/story-img/{storyId}",            ctx -> CityCitygramHandler.handleGetStoryImage(ctx));
+
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
         app.post("/api/city-chat/auth",                ctx -> CityChatHandler.handleAuth(ctx));
@@ -204,6 +226,23 @@ public class WebServer {
         try (var is = WebServer.class.getResourceAsStream("/static/banned.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
             ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    // ── citygram.html ──────────────────────────────────────────
+
+    private static void serveCitygram(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/citygram.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            String railwayUrl = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN",
+                "pcrp-bot-production-3ad1.up.railway.app");
+            if (!railwayUrl.startsWith("http")) railwayUrl = "https://" + railwayUrl;
+            railwayUrl = railwayUrl.replaceAll("/$", "");
+            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
+                .replace("%%API_BASE%%", railwayUrl);
+            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             ctx.status(500).result("Interner Fehler");
         }

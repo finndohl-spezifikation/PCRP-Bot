@@ -151,6 +151,8 @@ public final class LoggingConfig {
 
     public static final long CITY_CHAT_CHANNEL_ID   = 1529636592824614933L;
 
+    public static final long CITYGRAM_CHANNEL_ID    = 1529636589209387161L;
+
     /**
      * Zahlen-Rang-Rolle (vergeben wenn jemand 100 zählt).
      * 0L = deaktiviert, Rolle-ID hier eintragen wenn gewünscht.

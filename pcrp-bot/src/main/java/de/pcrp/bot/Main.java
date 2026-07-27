@@ -171,6 +171,7 @@ public class Main {
                 BankListener.postPanelIfNeeded(guild);
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);
+                postCitygramPanel(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -511,7 +512,7 @@ public class Main {
         }
 
         private static void sendCityChatPanel(TextChannel ch, String key) {
-            String url = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat";
+            String url = webUrl() + "/city-chat";
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
                     .setTitle("💬 City Chat — Paradise City Roleplay")
@@ -525,6 +526,44 @@ public class Main {
                 msg -> PanelHelper.onSent(key, msg.getId()),
                 err -> { log.error("[CityChat] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
             );
+        }
+
+        // ── Citygram Panel ─────────────────────────────────────────────────────
+
+        private static void postCitygramPanel(Guild guild) {
+            String key = "panel-citygram-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.CITYGRAM_CHANNEL_ID);
+            if (ch == null) { log.warn("[Citygram] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "📸 Citygram — Paradise City Roleplay",
+                () -> sendCitygramPanel(ch, key));
+        }
+
+        private static void sendCitygramPanel(TextChannel ch, String key) {
+            String url = webUrl() + "/citygram";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("📸 Citygram — Paradise City Roleplay")
+                    .setDescription(
+                        "Teile Fotos und Stories mit anderen Spielern im **Citygram**.\n\n" +
+                        "Aktiviere Citygram über **Handy-Zentrale → 📞 Handy Einstellungen**.")
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "📸 Citygram öffnen")
+            )).queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Citygram] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+            );
+        }
+
+        private static String webUrl() {
+            String url = System.getenv("WEB_URL");
+            if (url == null || url.isBlank()) {
+                String domain = System.getenv("RAILWAY_PUBLIC_DOMAIN");
+                url = (domain != null && !domain.isBlank())
+                    ? (domain.startsWith("http") ? domain : "https://" + domain)
+                    : "https://pcrp-bot-production-3ad1.up.railway.app";
+            }
+            return url.replaceAll("/$", "");
         }
 
         // ── Shop-Items Einmal-Initialisierung ──────────────────────────────────

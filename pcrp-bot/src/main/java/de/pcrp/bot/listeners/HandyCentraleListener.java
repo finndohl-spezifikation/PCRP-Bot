@@ -211,9 +211,22 @@ public class HandyCentraleListener extends ListenerAdapter {
             );
         }
 
-        String statusLine = alreadyActive
-            ? "✅ **City Chat:** bereits aktiviert"
+        // Citygram-Rolle prüfen
+        Role citygramRole   = guild.getRoleById(CITYGRAM_ROLE_ID);
+        boolean cgActive    = citygramRole != null && member.getRoles().contains(citygramRole);
+
+        String cityChatLine = alreadyActive
+            ? "✅ **City Chat:** aktiviert"
             : "✅ **City Chat:** soeben aktiviert!";
+        String citygramLine = cgActive
+            ? "✅ **Citygram:** aktiviert"
+            : "📸 **Citygram:** noch nicht aktiviert";
+
+        java.util.List<net.dv8tion.jda.api.interactions.components.ActionRow> rows = new java.util.ArrayList<>();
+        if (!cgActive) {
+            rows.add(ActionRow.of(Button.success("handy:citygram_activate", "📸 Citygram aktivieren")));
+        }
+        rows.add(ActionRow.of(Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")));
 
         event.replyEmbeds(
             EmbedFactory.create()
@@ -221,16 +234,26 @@ public class HandyCentraleListener extends ListenerAdapter {
                 .setDescription(
                     "**Name:** " + c.displayName() + "\n" +
                     "**Rufnummer:** `" + c.phoneNumber + "`\n\n" +
-                    statusLine + "\n\n" +
+                    cityChatLine + "\n" +
+                    citygramLine + "\n\n" +
                     "🔄 Neue Nummer kostet **500$** (Service-Gebühr)")
                 .build()
-        ).addComponents(ActionRow.of(
-            Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")
-        )).setEphemeral(true).queue();
+        ).addComponents(rows).setEphemeral(true).queue();
     }
 
-    private static final long CITY_CHAT_ROLE_ID    = 1529636364201627660L;
-    private static final String CITY_CHAT_BASE_URL = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat";
+    private static final long CITY_CHAT_ROLE_ID  = 1529636364201627660L;
+    private static final long CITYGRAM_ROLE_ID   = 1529636363119624293L;
+
+    private static String webUrl() {
+        String url = System.getenv("WEB_URL");
+        if (url == null || url.isBlank()) {
+            String domain = System.getenv("RAILWAY_PUBLIC_DOMAIN");
+            url = (domain != null && !domain.isBlank())
+                ? (domain.startsWith("http") ? domain : "https://" + domain)
+                : "https://pcrp-bot-production-3ad1.up.railway.app";
+        }
+        return url.replaceAll("/$", "");
+    }
 
     // ── City Chat Aktivierung (altes Panel, kein Nummern-Button) ──────────────
 
@@ -295,7 +318,7 @@ public class HandyCentraleListener extends ListenerAdapter {
 
         // Session-Token für persönlichen Link
         String token = PhoneManager.createSession(guildId, c.phoneNumber);
-        String personalLink = CITY_CHAT_BASE_URL + "?token=" + token;
+        String personalLink = webUrl() + "/city-chat?token=" + token;
 
         // City-Chat-Rolle vergeben falls noch nicht vorhanden
         Role cityChatRole = guild.getRoleById(CITY_CHAT_ROLE_ID);
@@ -341,6 +364,23 @@ public class HandyCentraleListener extends ListenerAdapter {
                         .setPlaceholder("z.B. Müller").setMinLength(2).setMaxLength(32).setRequired(true).build())
                 ).build();
             event.replyModal(modal).queue();
+        }
+
+        if ("handy:citygram_activate".equals(cid)) {
+            Guild guild    = event.getGuild();
+            Member member  = event.getMember();
+            String userId  = event.getUser().getId();
+            Role cgRole    = guild.getRoleById(CITYGRAM_ROLE_ID);
+            if (cgRole != null && member != null && !member.getRoles().contains(cgRole)) {
+                guild.addRoleToMember(member, cgRole).queue(
+                    ok  -> log.info("[Citygram] Rolle an {} vergeben.", userId),
+                    err -> log.warn("[Citygram] Rolle Fehler: {}", err.getMessage())
+                );
+            }
+            event.replyEmbeds(EmbedFactory.build("📸 Citygram",
+                "✅ **Citygram wurde aktiviert!**\n\nÖffne Citygram über den Kanal-Link."))
+                .setEphemeral(true).queue();
+            return;
         }
 
         if ("handy:neue_nummer".equals(cid)) {
