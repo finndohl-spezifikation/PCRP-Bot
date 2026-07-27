@@ -273,6 +273,141 @@ audio{max-width:200px;height:32px;border-radius:8px}
 .sv-text{font-size:1.1rem;color:#fff;font-weight:600;word-break:break-word}
 .sv-time{font-size:.72rem;color:rgba(255,255,255,.4)}
 .sv-name{font-size:.85rem;color:rgba(255,255,255,.7)}
+
+/* ── Light Mode ─────────────────────────────────────────────────────────── */
+html.light body{background:#f0f0f0}
+html.light #app-screen{background:#f0ebe5}
+html.light .sidebar{background:#fff;border-right-color:rgba(0,0,0,.1)}
+html.light .sb-header{background:#ffe8d6;border-bottom-color:rgba(0,0,0,.08)}
+html.light .sb-name{color:#1a1a1a}
+html.light .sb-btn{color:rgba(0,0,0,.45)}
+html.light .sb-btn:hover{background:rgba(0,0,0,.07);color:#1a1a1a}
+html.light .status-bar{border-bottom-color:rgba(0,0,0,.08)}
+html.light .sb-search{border-bottom-color:rgba(0,0,0,.08)}
+html.light .sb-search-inner{background:rgba(0,0,0,.06)}
+html.light .sb-search-inner input{color:#1a1a1a}
+html.light .sb-search-inner svg{color:rgba(0,0,0,.4)}
+html.light .sb-search-inner input::placeholder{color:rgba(0,0,0,.35)}
+html.light .chat-item:hover{background:rgba(0,0,0,.04)}
+html.light .chat-item.active{background:var(--accent-dim)}
+html.light .ci-name{color:#1a1a1a}
+html.light .ci-time{color:rgba(0,0,0,.35)}
+html.light .ci-preview{color:rgba(0,0,0,.45)}
+html.light .ci-body{border-bottom-color:rgba(0,0,0,.06)}
+html.light .no-chats{color:rgba(0,0,0,.35)}
+html.light .chat-panel{background:#e5ddd5}
+html.light .empty-panel{color:rgba(0,0,0,.25)}
+html.light .empty-panel h2{color:rgba(0,0,0,.3)}
+html.light .chat-header{background:#ffe8d6;border-bottom-color:rgba(0,0,0,.08)}
+html.light .ch-name{color:#1a1a1a}
+html.light .ch-status{color:rgba(0,0,0,.45)}
+html.light .messages{background:#ddd8d0}
+html.light .messages.bg-night,html.light .messages.bg-warm,html.light .messages.bg-pattern,html.light .messages.bg-minimal,html.light .messages.bg-city,html.light .messages.bg-forest,html.light .messages.bg-ocean,html.light .messages.bg-desert,html.light .messages.bg-violet,html.light .messages.bg-sunset,html.light .messages.bg-cyber,html.light .messages.bg-blood,html.light .messages.bg-slate,html.light .messages.bg-aurora{filter:brightness(2.5) saturate(.5)}
+html.light .bubble-time{color:rgba(0,0,0,.4)}
+html.light .date-sep span{background:rgba(0,0,0,.1);color:rgba(0,0,0,.5)}
+html.light .input-bar{background:#ffe8d6;border-top-color:rgba(0,0,0,.08)}
+html.light #msg-input{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.12);color:#1a1a1a}
+html.light #msg-input::placeholder{color:rgba(0,0,0,.4)}
+html.light .emoji-btn{color:rgba(0,0,0,.45)}
+html.light .emoji-btn:hover{color:#1a1a1a;background:rgba(0,0,0,.07)}
+html.light .mic-btn{color:rgba(0,0,0,.45)}
+html.light .mic-btn:hover,.mic-btn:hover{color:#1a1a1a;background:rgba(0,0,0,.07)}
+html.light .emoji-picker{background:#fff;border-color:rgba(0,0,0,.12)}
+html.light .ep-cats{background:#f5f5f5;border-bottom-color:rgba(0,0,0,.08)}
+html.light .ep-grid button:hover{background:rgba(0,0,0,.08)}
+html.light .modal{background:#fff}
+html.light .modal-hdr{background:#ffe0cc;border-bottom-color:rgba(0,0,0,.08)}
+html.light .modal-hdr span{color:#1a1a1a}
+html.light .modal-hdr button{color:rgba(0,0,0,.45)}
+html.light .modal-hdr button:hover{color:#1a1a1a;background:rgba(0,0,0,.07)}
+html.light .modal-body input,.light .profile-status{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12);color:#1a1a1a}
+html.light .modal-body input::placeholder,.light .profile-status::placeholder{color:rgba(0,0,0,.35)}
+html.light .section-label{color:var(--accent)}
+html.light .modal-item:hover{background:rgba(0,0,0,.04)}
+html.light .modal-item .mi-name{color:#1a1a1a}
+html.light .modal-item .mi-num{color:rgba(0,0,0,.4)}
+html.light .search-row{background:rgba(0,0,0,.06)}
+html.light .search-row input{color:#1a1a1a}
+html.light .search-row input::placeholder{color:rgba(0,0,0,.35)}
+html.light .toggle-row span{color:#1a1a1a}
+html.light .toggle-slider{background:rgba(0,0,0,.15)}
+html.light .bg-opt{color:rgba(0,0,0,.55)}
+html.light .bg-opt{filter:invert(1) hue-rotate(180deg)}
+html.light .bg-opt.active{filter:none;border-color:var(--accent);background:var(--accent-dim)!important;color:var(--accent)}
+html.light .bubble-color-row label{color:rgba(0,0,0,.6)}
+html.light .blocked-row{border-bottom-color:rgba(0,0,0,.07)}
+html.light .br-name{color:#1a1a1a}
+html.light .status-lbl{color:rgba(0,0,0,.5)}
+html.light .status-inner{background:#e8e0d8;border-color:#f0ebe5}
+html.light .status-inner{color:#1a1a1a}
+html.light #login-screen{background:linear-gradient(160deg,#fff8f4,#fff3ea)}
+html.light .login-card{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}
+html.light .login-card h1{color:#1a1a1a}
+html.light .login-card p{color:rgba(0,0,0,.45)}
+html.light .login-fields input{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12);color:#1a1a1a}
+html.light .login-fields input::placeholder{color:rgba(0,0,0,.35)}
+html.light .sb-footer{color:rgba(0,0,0,.3)}
+
+/* ── Mic button ───────────────────────────────────────────────────────────── */
+.mic-btn{color:rgba(255,255,255,.4);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s}
+.mic-btn:hover{color:#fff;background:rgba(255,255,255,.08)}
+.mic-btn svg{width:20px;height:20px}
+.mic-btn.recording{color:#ff4444;background:rgba(255,50,50,.15);animation:pulse .8s infinite}
+.rec-indicator{display:none;align-items:center;gap:.4rem;background:rgba(255,50,50,.15);border-radius:20px;padding:.25rem .75rem;font-size:.78rem;color:#ff6666;flex:1;max-width:140px}
+.rec-indicator.active{display:flex}
+.rec-dot{width:8px;height:8px;border-radius:50%;background:#ff4444;animation:pulse .8s infinite}
+
+/* ── Voice message in chat ─────────────────────────────────────────────────── */
+.voice-msg{display:flex;align-items:center;gap:.6rem;padding:.1rem 0}
+.voice-play-btn{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border:none;transition:.15s}
+.voice-play-btn:hover{filter:brightness(1.15)}
+.voice-play-btn svg{width:14px;height:14px;color:#fff}
+.voice-waveform{flex:1;height:28px;display:flex;align-items:center;gap:1.5px;cursor:pointer}
+.voice-waveform .wf-bar{width:2.5px;border-radius:2px;background:rgba(255,255,255,.25);transition:.1s}
+.voice-waveform .wf-bar.played{background:var(--accent)}
+.voice-duration{font-size:.72rem;color:rgba(255,255,255,.4);white-space:nowrap;min-width:34px}
+
+/* ── Call overlay ──────────────────────────────────────────────────────────── */
+#call-overlay{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;background:rgba(0,0,0,.88);backdrop-filter:blur(12px)}
+#call-overlay.hidden{display:none!important}
+.call-av{width:90px;height:90px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.2rem;font-weight:700;color:#fff;overflow:hidden;background:var(--accent);position:relative}
+.call-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.call-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid var(--accent);opacity:.5;animation:callring 1.4s ease-out infinite}
+@keyframes callring{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.35);opacity:0}}
+.call-name{font-size:1.3rem;font-weight:700;color:#fff}
+.call-type-lbl{font-size:.88rem;color:rgba(255,255,255,.5)}
+.call-status{font-size:.82rem;color:rgba(255,255,255,.4);letter-spacing:.05em}
+.call-btns{display:flex;gap:2rem;margin-top:.5rem}
+.call-btn{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;transition:.15s;flex-direction:column;gap:.25rem}
+.call-btn svg{width:24px;height:24px}
+.call-btn.end{background:#ff3b30}
+.call-btn.end:hover{background:#ff2010}
+.call-btn.accept{background:#34c759}
+.call-btn.accept:hover{background:#28a748}
+
+/* ── Incoming call banner ──────────────────────────────────────────────────── */
+#incoming-call-banner{position:fixed;top:.75rem;left:50%;transform:translateX(-50%);z-index:190;background:#1a1a1a;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;min-width:280px;max-width:90vw;box-shadow:0 12px 40px rgba(0,0,0,.6);animation:slidein .3s ease-out}
+#incoming-call-banner.hidden{display:none!important}
+@keyframes slidein{from{transform:translateX(-50%) translateY(-80px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.icb-av{width:44px;height:44px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1rem;overflow:hidden;flex-shrink:0}
+.icb-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.icb-info{flex:1;min-width:0}
+.icb-name{font-size:.95rem;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icb-type{font-size:.75rem;color:rgba(255,255,255,.45)}
+.icb-btns{display:flex;gap:.5rem}
+.icb-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;flex-shrink:0}
+.icb-btn.accept{background:#34c759}
+.icb-btn.decline{background:#ff3b30}
+.icb-btn svg{width:18px;height:18px;color:#fff}
+
+/* ── Footer ────────────────────────────────────────────────────────────────── */
+.sb-footer{font-size:.6rem;color:rgba(255,255,255,.2);text-align:center;padding:.4rem .75rem .5rem;line-height:1.4;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05)}
+
+/* ── Sound picker ──────────────────────────────────────────────────────────── */
+.sound-opts{display:flex;gap:.4rem;flex-wrap:wrap;padding:.25rem 0}
+.sound-opt{font-size:.78rem;padding:.3rem .75rem;border-radius:20px;border:1.5px solid rgba(255,255,255,.15);color:rgba(255,255,255,.55);cursor:pointer;transition:.15s;background:transparent}
+.sound-opt.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.sound-opt:hover{border-color:rgba(255,255,255,.3);color:#fff}
 </style>
 </head>
 <body>
@@ -314,6 +449,7 @@ audio{max-width:200px;height:32px;border-radius:8px}
       </div>
     </div>
     <div class="chat-list" id="chat-list"></div>
+    <div class="sb-footer">Programmiert und Bereitgestellt durch Inhaber von<br/>Paradise City Roleplay</div>
   </div>
 
   <!-- CHAT PANEL -->
@@ -342,6 +478,12 @@ audio{max-width:200px;height:32px;border-radius:8px}
         <button class="sb-btn hidden" id="gov-hide-btn" title="Nachrichten ausblenden" style="color:rgba(255,200,0,.5)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
         </button>
+        <button class="sb-btn hidden" id="voice-call-btn" title="Sprachanruf" style="color:rgba(100,220,100,.8)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.1-1.1a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+        </button>
+        <button class="sb-btn hidden" id="video-call-btn" title="Videoanruf" style="color:rgba(100,180,255,.8)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </button>
       </div>
       <div class="messages" id="messages"></div>
       <div class="input-bar" style="position:relative">
@@ -349,6 +491,10 @@ audio{max-width:200px;height:32px;border-radius:8px}
         <button class="emoji-btn" id="emoji-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
         </button>
+        <button class="mic-btn" id="mic-btn" title="Sprachnachricht halten">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <div class="rec-indicator" id="rec-indicator"><div class="rec-dot"></div><span id="rec-time">0:00</span></div>
         <input id="msg-input" type="text" placeholder="Nachricht schreiben..."/>
         <button class="send-btn" id="send-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -466,6 +612,21 @@ audio{max-width:200px;height:32px;border-radius:8px}
       <!-- Blockiert -->
       <div class="section-label" style="margin-top:.25rem">🚫 Blockierte Nutzer</div>
       <div id="blocked-list"></div>
+
+      <!-- Design-Modus -->
+      <div class="section-label" style="margin-top:.25rem">🌙 Design-Modus</div>
+      <div class="toggle-row">
+        <span>Heller Modus</span>
+        <label class="toggle"><input type="checkbox" id="toggle-light"/><span class="toggle-slider"></span></label>
+      </div>
+
+      <!-- Benachrichtigungstöne -->
+      <div class="section-label" style="margin-top:.25rem">🔔 Benachrichtigungston</div>
+      <div class="sound-opts" id="sound-opts-notify"></div>
+
+      <!-- Klingelton -->
+      <div class="section-label" style="margin-top:.25rem">📞 Klingelton</div>
+      <div class="sound-opts" id="sound-opts-ring"></div>
     </div>
   </div>
 </div>
@@ -545,6 +706,39 @@ audio{max-width:200px;height:32px;border-radius:8px}
   </div>
 </div>
 
+<!-- CALL OVERLAY -->
+<div id="call-overlay" class="hidden">
+  <div class="call-av" id="co-avatar"><div class="call-ring"></div></div>
+  <div class="call-name" id="co-name"></div>
+  <div class="call-type-lbl" id="co-type"></div>
+  <div class="call-status" id="co-status">Klingelt…</div>
+  <div class="call-btns">
+    <button class="call-btn accept hidden" id="co-accept" title="Annehmen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.1-1.1a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+    </button>
+    <button class="call-btn end" id="co-end" title="Auflegen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45c.907.34 1.85.573 2.81.7A2 2 0 0122 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.42 19.42 0 01-3.33-2.67m-2.67-3.34a19.79 19.79 0 01-3.07-8.63A2 2 0 012 2h3a2 2 0 011.72 2c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L5.91 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- INCOMING CALL BANNER -->
+<div id="incoming-call-banner" class="hidden">
+  <div class="icb-av" id="icb-avatar"></div>
+  <div class="icb-info">
+    <div class="icb-name" id="icb-name"></div>
+    <div class="icb-type" id="icb-type"></div>
+  </div>
+  <div class="icb-btns">
+    <button class="icb-btn accept" id="icb-accept" title="Annehmen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.1-1.1a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+    </button>
+    <button class="icb-btn decline" id="icb-decline" title="Ablehnen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45c.907.34 1.85.573 2.81.7A2 2 0 0122 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.42 19.42 0 01-3.33-2.67m-2.67-3.34a19.79 19.79 0 01-3.07-8.63A2 2 0 012 2h3a2 2 0 011.72 2c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L5.91 9.91"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+    </button>
+  </div>
+</div>
+
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let token=null, me=null, contacts=[], chats=[], activeChatId=null, activePartner=null;
@@ -575,11 +769,14 @@ const BG_OPTS=[
 const STATUS_COLORS=['#CC5500','#7C3AED','#1E88E5','#2E7D32','#C2185B','#F57C00','#111'];
 
 let cfg={
-  accent:      localStorage.getItem('cc-accent')||'#CC5500',
-  bg:          localStorage.getItem('cc-bg')||'dark',
-  read:        localStorage.getItem('cc-read')!=='false',
-  bubbleMine:  localStorage.getItem('cc-bubble-mine')||'#3d1a00',
-  bubbleTheirs:localStorage.getItem('cc-bubble-theirs')||'#1e1e1e',
+  accent:       localStorage.getItem('cc-accent')||'#CC5500',
+  bg:           localStorage.getItem('cc-bg')||'dark',
+  read:         localStorage.getItem('cc-read')!=='false',
+  bubbleMine:   localStorage.getItem('cc-bubble-mine')||'#3d1a00',
+  bubbleTheirs: localStorage.getItem('cc-bubble-theirs')||'#1e1e1e',
+  lightMode:    localStorage.getItem('cc-light')==='true',
+  soundNotify:  localStorage.getItem('cc-sound-notify')||'default',
+  soundRing:    localStorage.getItem('cc-sound-ring')||'default',
 };
 
 function applyTheme(){
@@ -589,6 +786,7 @@ function applyTheme(){
   document.documentElement.style.setProperty('--bubble-theirs',cfg.bubbleTheirs);
   const msgs=document.getElementById('messages');
   msgs.className='messages'+(cfg.bg!=='dark'?' bg-'+cfg.bg:'');
+  document.documentElement.classList.toggle('light',cfg.lightMode);
 }
 
 // ── API ────────────────────────────────────────────────────────────────────
@@ -749,17 +947,8 @@ function updateTitle(){
 }
 
 function playReceive(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)(); const t=ctx.currentTime;
-    [0,0.18].forEach((delay,i)=>{
-      const o=ctx.createOscillator(); const g=ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value=i===0?880:1100;
-      g.gain.setValueAtTime(0,t+delay); g.gain.linearRampToValueAtTime(.2,t+delay+.04);
-      g.gain.linearRampToValueAtTime(0,t+delay+.18);
-      o.start(t+delay); o.stop(t+delay+.2);
-    });
-  }catch(_){}
+  const s=SOUND_SCHEMES[cfg.soundNotify]; if(!s) return;
+  playTone(s.recv.map(x=>({f:x.f,d:x.d})));
 }
 
 function startPoll(){ clearInterval(pollTimer); pollTimer=setInterval(loadChats,1000); }
@@ -845,6 +1034,12 @@ async function openChat(chatId,phone,name){
     else addContactBtn.classList.remove('hidden');
   }
 
+  // Call buttons
+  const voiceCallBtn=document.getElementById('voice-call-btn');
+  const videoCallBtn=document.getElementById('video-call-btn');
+  if(isGov){ voiceCallBtn.classList.add('hidden'); videoCallBtn.classList.add('hidden'); }
+  else { voiceCallBtn.classList.remove('hidden'); videoCallBtn.classList.remove('hidden'); }
+
   // Mobile
   document.getElementById('sidebar').classList.add('hide-mobile');
   document.getElementById('chat-panel').classList.add('show-mobile');
@@ -882,21 +1077,6 @@ document.getElementById('gov-hide-btn').addEventListener('click',async()=>{
 
 // ── Messages ───────────────────────────────────────────────────────────────
 let lastCount=0;
-async function loadMessages(scroll=true){
-  if(!activeChatId) return;
-  try{
-    const url=activeChatId==='gov'
-      ?'/api/city-chat/gov-messages'
-      :`/api/city-chat/messages/${activeChatId}`;
-    const msgs=await api('GET',url);
-    // Gov-Nachrichten in renderMessages-Format umwandeln
-    const normalized=activeChatId==='gov'
-      ?msgs.map(m=>({id:m.id,from:'gov',content:m.text,type:'text',ts:m.ts,govAuthor:m.author}))
-      :msgs;
-    renderMessages(normalized,scroll||normalized.length!==lastCount);
-    lastCount=normalized.length;
-  }catch(e){}
-}
 
 // SVG tick (single or double)
 const TICK_SVG=`<svg class="tick" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 5 5.5 9 14.5 1"/></svg>`;
@@ -928,6 +1108,31 @@ function renderMessages(msgs,scroll){
       tickHtml=`<span class="ticks" style="color:rgba(255,255,255,.25)">${TICK_SVG}</span>`;
     }
     let bubbleStyle=isGovMsg?'style="background:rgba(120,90,0,.35);border-left:3px solid rgba(255,200,0,.5)"':'';
+    // Voice message
+    if(m.type==='voice'&&m.content&&m.content.startsWith('data:')){
+      const audioSrc=m.content;
+      const wfBars=Array.from({length:24},(_,i)=>{
+        const h=20+Math.round(Math.sin(i*.7+m.ts%100)*(8)+Math.random()*12);
+        return `<div class="wf-bar" style="height:${h}px"></div>`;
+      }).join('');
+      row.innerHTML=`<div class="bubble" ${bubbleStyle}>${authorLabel}<div class="voice-msg">
+        <button class="voice-play-btn" onclick="toggleVoicePlay(this,'${audioSrc}')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+        <div class="voice-waveform" id="wf-${m.id}">${wfBars}</div>
+        <span class="voice-duration" id="vd-${m.id}">0:00</span>
+      </div><div class="bubble-meta"><span class="bubble-time">${t}</span>${tickHtml}</div></div>`;
+      c.appendChild(row); continue;
+    }
+    // Call message
+    if(m.type&&m.type.startsWith('call-')){
+      const isVideo=m.content&&m.content.includes('video');
+      const icon=m.type==='call-end'?'📵':m.type==='call-decline'?'📵':(isVideo?'📹':'📞');
+      const label=m.type==='call-end'?'Anruf beendet':m.type==='call-decline'?'Anruf abgelehnt':m.type==='call-missed'?'Verpasster Anruf':(isVideo?'Videoanruf':'Sprachanruf');
+      const callStyle='style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;opacity:.8"';
+      row.innerHTML=`<div class="bubble" ${bubbleStyle}><div ${callStyle}><span style="font-size:1rem">${icon}</span>${esc(label)}</div><div class="bubble-meta"><span class="bubble-time">${t}</span>${tickHtml}</div></div>`;
+      c.appendChild(row); continue;
+    }
     row.innerHTML=`<div class="bubble" ${bubbleStyle}>${authorLabel}${content}<div class="bubble-meta"><span class="bubble-time">${t}</span>${tickHtml}</div></div>`;
     c.appendChild(row);
   }
@@ -992,20 +1197,257 @@ buildEmojiPicker();
 document.getElementById('emoji-btn').addEventListener('click',e=>{ e.stopPropagation(); picker.classList.toggle('hidden'); });
 document.addEventListener('click',()=>picker.classList.add('hidden'));
 
-// ── Sende-Sound ────────────────────────────────────────────────────────────
-function playSend(){
+// ── Sounds ─────────────────────────────────────────────────────────────────
+const SOUND_SCHEMES={
+  'default': { send:[{f:880,t:0},{f:1200,t:.07}], recv:[{f:880,d:.18},{f:1100,d:.36}] },
+  'soft':    { send:[{f:660,t:0},{f:880,t:.1}],  recv:[{f:660,d:.2},{f:820,d:.4}] },
+  'high':    { send:[{f:1200,t:0},{f:1600,t:.05}], recv:[{f:1100,d:.15},{f:1400,d:.3}] },
+  'none':    null,
+};
+
+function playTone(freqs, volume=0.12){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const o=ctx.createOscillator(); const g=ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type='sine'; o.frequency.setValueAtTime(880,ctx.currentTime);
-    o.frequency.linearRampToValueAtTime(1200,ctx.currentTime+0.07);
-    g.gain.setValueAtTime(0,ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.12,ctx.currentTime+0.02);
-    g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.12);
-    o.start(ctx.currentTime); o.stop(ctx.currentTime+0.15);
+    freqs.forEach(({f,t=0,d=0.2},i)=>{
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type='sine'; o.frequency.setValueAtTime(f,ctx.currentTime+t);
+      const start=t||d||0;
+      g.gain.setValueAtTime(0,ctx.currentTime+start);
+      g.gain.linearRampToValueAtTime(volume,ctx.currentTime+start+.03);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+start+.18);
+      o.start(ctx.currentTime+start); o.stop(ctx.currentTime+start+.22);
+    });
   }catch(_){}
 }
+
+function playSend(){
+  const s=SOUND_SCHEMES[cfg.soundNotify]; if(!s) return;
+  playTone(s.send.map((x,i)=>({f:i===0?880:1200,t:i===0?0:.07})));
+}
+
+function playRing(){
+  const s=SOUND_SCHEMES[cfg.soundRing]; if(!s) return;
+  playTone([{f:800,t:0},{f:900,t:.15},{f:800,t:.3},{f:900,t:.45}],0.18);
+}
+
+// ── Voice Message ──────────────────────────────────────────────────────────
+let mediaRecorder=null, recChunks=[], recTimer=null, recSeconds=0;
+
+const micBtn=document.getElementById('mic-btn');
+const recIndicator=document.getElementById('rec-indicator');
+const recTimeEl=document.getElementById('rec-time');
+const msgInput=document.getElementById('msg-input');
+
+micBtn.addEventListener('mousedown', startRecording);
+micBtn.addEventListener('touchstart', startRecording, {passive:true});
+micBtn.addEventListener('mouseup', stopRecording);
+micBtn.addEventListener('touchend', stopRecording);
+micBtn.addEventListener('mouseleave', ()=>{ if(mediaRecorder&&mediaRecorder.state==='recording') stopRecording(); });
+
+async function startRecording(e){
+  e.preventDefault();
+  if(!activeChatId||activeChatId==='gov') return;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    recChunks=[];
+    mediaRecorder=new MediaRecorder(stream, {mimeType:MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm'});
+    mediaRecorder.ondataavailable=e=>recChunks.push(e.data);
+    mediaRecorder.start(100);
+    micBtn.classList.add('recording');
+    msgInput.style.display='none';
+    recIndicator.classList.add('active');
+    recSeconds=0; recTimeEl.textContent='0:00';
+    recTimer=setInterval(()=>{
+      recSeconds++;
+      const m=Math.floor(recSeconds/60), s=recSeconds%60;
+      recTimeEl.textContent=m+':'+(s<10?'0':'')+s;
+      if(recSeconds>=120) stopRecording(); // max 2 min
+    },1000);
+  }catch(err){
+    alert('Mikrofon-Zugriff verweigert. Bitte Erlaubnis erteilen.');
+  }
+}
+
+async function stopRecording(){
+  if(!mediaRecorder||mediaRecorder.state==='inactive') return;
+  clearInterval(recTimer);
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+  micBtn.classList.remove('recording');
+  msgInput.style.display='';
+  recIndicator.classList.remove('active');
+  if(recSeconds<1){ mediaRecorder=null; return; } // zu kurz
+  await new Promise(r=>setTimeout(r,150));
+  const blob=new Blob(recChunks, {type:mediaRecorder.mimeType||'audio/webm'});
+  const reader=new FileReader();
+  reader.onloadend=async()=>{
+    const b64=reader.result;
+    if(b64.length>4*1024*1024){ alert('Sprachnachricht zu lang (max. 2 Minuten).'); return; }
+    playSend();
+    try{
+      await api('POST','/api/city-chat/messages',{to:activePartner,content:b64,type:'voice'});
+      await loadMessages(true); await loadChats();
+    }catch(err){ alert(err.message); }
+  };
+  reader.readAsDataURL(blob);
+  mediaRecorder=null;
+}
+
+// Voice playback
+let currentAudio=null, currentPlayBtn=null;
+function toggleVoicePlay(btn, src){
+  if(currentAudio&&!currentAudio.paused){
+    currentAudio.pause();
+    if(currentPlayBtn) currentPlayBtn.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+    if(currentPlayBtn===btn){ currentAudio=null; currentPlayBtn=null; return; }
+  }
+  currentPlayBtn=btn;
+  currentAudio=new Audio(src);
+  btn.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+  currentAudio.play();
+  currentAudio.onended=()=>{
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+    currentAudio=null; currentPlayBtn=null;
+  };
+}
+
+// ── Calls ──────────────────────────────────────────────────────────────────
+let activeCall=null, ringInterval=null, incomingCallData=null;
+const seenCallMsgIds=new Set();
+
+document.getElementById('voice-call-btn').addEventListener('click',()=>startCall('voice'));
+document.getElementById('video-call-btn').addEventListener('click',()=>startCall('video'));
+
+async function startCall(type){
+  if(!activePartner||activeChatId==='gov') return;
+  const name=document.getElementById('ch-name').textContent;
+  const chat=chats.find(c=>c.phoneNumber===activePartner)||{};
+  activeCall={type,partner:activePartner,name,direction:'outgoing'};
+  showCallOverlay(name, type, chat.avatar, 'outgoing');
+  // Klingelton starten
+  ringInterval=setInterval(()=>playRing(),2000);
+  playRing();
+  // Anruf-Signal als Nachricht senden
+  try{
+    await api('POST','/api/city-chat/messages',{to:activePartner,content:type,type:'call-'+type});
+  }catch(e){}
+  // Timeout nach 40s
+  activeCall.timeout=setTimeout(()=>endCall('missed'),40000);
+}
+
+function showCallOverlay(name, type, avatar, direction){
+  const overlay=document.getElementById('call-overlay');
+  document.getElementById('co-name').textContent=name;
+  document.getElementById('co-type').textContent=type==='video'?'📹 Videoanruf':'📞 Sprachanruf';
+  document.getElementById('co-status').textContent=direction==='incoming'?'Eingehender Anruf…':'Klingelt…';
+  const av=document.getElementById('co-avatar');
+  av.innerHTML='<div class="call-ring"></div>';
+  if(avatar){
+    const img=document.createElement('img'); img.src=avatar; av.appendChild(img);
+  } else {
+    av.insertAdjacentText('beforeend',name[0].toUpperCase());
+    av.style.background=colorFor(name);
+  }
+  document.getElementById('co-accept').classList.toggle('hidden',direction==='outgoing');
+  overlay.classList.remove('hidden');
+}
+
+function endCall(reason){
+  clearInterval(ringInterval); ringInterval=null;
+  if(activeCall?.timeout) clearTimeout(activeCall.timeout);
+  if(activeCall?.direction==='outgoing'){
+    api('POST','/api/city-chat/messages',{
+      to:activeCall.partner,
+      content:activeCall.type,
+      type:reason==='missed'?'call-missed':'call-end'
+    }).catch(()=>{});
+  }
+  activeCall=null;
+  document.getElementById('call-overlay').classList.add('hidden');
+}
+
+document.getElementById('co-end').addEventListener('click',()=>endCall('end'));
+document.getElementById('co-accept').addEventListener('click',()=>{
+  clearInterval(ringInterval); ringInterval=null;
+  document.getElementById('co-status').textContent='Im Gespräch…';
+  document.getElementById('co-accept').classList.add('hidden');
+  // Annahme-Signal senden
+  if(incomingCallData){
+    api('POST','/api/city-chat/messages',{to:incomingCallData.partner,content:incomingCallData.type,type:'call-accept'}).catch(()=>{});
+  }
+  incomingCallData=null;
+  document.getElementById('incoming-call-banner').classList.add('hidden');
+});
+
+async function loadMessages(scroll=true){
+  if(!activeChatId) return;
+  try{
+    const url=activeChatId==='gov'?'/api/city-chat/gov-messages':`/api/city-chat/messages/${activeChatId}`;
+    const msgs=await api('GET',url);
+    const normalized=activeChatId==='gov'
+      ?msgs.map(m=>({id:m.id,from:'gov',content:m.text,type:'text',ts:m.ts,govAuthor:m.author}))
+      :msgs;
+    // Incoming call detection
+    for(const m of normalized){
+      if(m.from!==me.phoneNumber && (m.type==='call-voice'||m.type==='call-video') && !seenCallMsgIds.has(m.id)){
+        seenCallMsgIds.add(m.id);
+        const callType=m.type==='call-video'?'video':'voice';
+        showIncomingCall(m.from, callType);
+      }
+      if(m.from!==me.phoneNumber && (m.type==='call-end'||m.type==='call-missed') && !seenCallMsgIds.has(m.id)){
+        seenCallMsgIds.add(m.id);
+        document.getElementById('incoming-call-banner').classList.add('hidden');
+        if(activeCall&&activeCall.direction==='incoming'){ activeCall=null; document.getElementById('call-overlay').classList.add('hidden'); clearInterval(ringInterval); }
+      }
+    }
+    renderMessages(normalized,scroll||normalized.length!==lastCount);
+    lastCount=normalized.length;
+  }catch(e){}
+}
+
+function showIncomingCall(fromPhone, type){
+  if(document.getElementById('call-overlay')&&!document.getElementById('call-overlay').classList.contains('hidden')) return;
+  const contact=contacts.find(c=>c.number===fromPhone);
+  const chat=chats.find(c=>c.phoneNumber===fromPhone)||{};
+  const name=contact?contact.name:(chat.displayName||fromPhone);
+  incomingCallData={partner:fromPhone,type};
+  // Banner
+  const banner=document.getElementById('incoming-call-banner');
+  document.getElementById('icb-name').textContent=name;
+  document.getElementById('icb-type').textContent=type==='video'?'📹 Eingehender Videoanruf':'📞 Eingehender Sprachanruf';
+  const icbAv=document.getElementById('icb-avatar');
+  if(chat.avatar){ icbAv.innerHTML=`<img src="${chat.avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`; }
+  else { icbAv.textContent=name[0].toUpperCase(); icbAv.style.background=colorFor(fromPhone); }
+  banner.classList.remove('hidden');
+  // Klingelton
+  clearInterval(ringInterval);
+  ringInterval=setInterval(()=>playRing(),2000); playRing();
+  // Auto-dismiss nach 30s
+  setTimeout(()=>{ banner.classList.add('hidden'); clearInterval(ringInterval); },30000);
+}
+
+document.getElementById('icb-decline').addEventListener('click',()=>{
+  document.getElementById('incoming-call-banner').classList.add('hidden');
+  clearInterval(ringInterval); ringInterval=null;
+  if(incomingCallData){
+    api('POST','/api/city-chat/messages',{to:incomingCallData.partner,content:incomingCallData.type,type:'call-decline'}).catch(()=>{});
+    incomingCallData=null;
+  }
+});
+document.getElementById('icb-accept').addEventListener('click',()=>{
+  document.getElementById('incoming-call-banner').classList.add('hidden');
+  clearInterval(ringInterval); ringInterval=null;
+  if(incomingCallData){
+    const chat=chats.find(c=>c.phoneNumber===incomingCallData.partner)||{};
+    const contact=contacts.find(c=>c.number===incomingCallData.partner);
+    const name=contact?contact.name:(chat.displayName||incomingCallData.partner);
+    activeCall={type:incomingCallData.type,partner:incomingCallData.partner,name,direction:'incoming'};
+    showCallOverlay(name,incomingCallData.type,chat.avatar,'incoming');
+    api('POST','/api/city-chat/messages',{to:incomingCallData.partner,content:incomingCallData.type,type:'call-accept'}).catch(()=>{});
+    incomingCallData=null;
+  }
+});
 
 // ── Block ──────────────────────────────────────────────────────────────────
 document.getElementById('block-btn').addEventListener('click',async()=>{
@@ -1376,6 +1818,55 @@ function buildSettingsModal(){
 
   // ── Blockierte Nutzer ──
   loadBlockedList();
+
+  // ── Design-Modus ──
+  document.getElementById('toggle-light').checked=cfg.lightMode;
+  document.getElementById('toggle-light').onchange=e=>{
+    cfg.lightMode=e.target.checked; localStorage.setItem('cc-light',cfg.lightMode?'true':'false');
+    applyTheme();
+  };
+
+  // ── Benachrichtigungstöne ──
+  const NOTIFY_SOUNDS=[
+    {key:'default',label:'Standard'},
+    {key:'soft',label:'Sanft'},
+    {key:'high',label:'Klar'},
+    {key:'none',label:'Stumm'},
+  ];
+  const notifyContainer=document.getElementById('sound-opts-notify'); notifyContainer.innerHTML='';
+  NOTIFY_SOUNDS.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='sound-opt'+(cfg.soundNotify===s.key?' active':'');
+    b.textContent=s.label;
+    b.addEventListener('click',()=>{
+      cfg.soundNotify=s.key; localStorage.setItem('cc-sound-notify',s.key);
+      notifyContainer.querySelectorAll('.sound-opt').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      if(s.key!=='none') playReceive();
+    });
+    notifyContainer.appendChild(b);
+  });
+
+  // ── Klingelton ──
+  const RING_SOUNDS=[
+    {key:'default',label:'Standard'},
+    {key:'soft',label:'Sanft'},
+    {key:'high',label:'Klar'},
+    {key:'none',label:'Stumm'},
+  ];
+  const ringContainer=document.getElementById('sound-opts-ring'); ringContainer.innerHTML='';
+  RING_SOUNDS.forEach(s=>{
+    const b=document.createElement('button');
+    b.className='sound-opt'+(cfg.soundRing===s.key?' active':'');
+    b.textContent=s.label;
+    b.addEventListener('click',()=>{
+      cfg.soundRing=s.key; localStorage.setItem('cc-sound-ring',s.key);
+      ringContainer.querySelectorAll('.sound-opt').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      if(s.key!=='none') playRing();
+    });
+    ringContainer.appendChild(b);
+  });
 }
 
 async function loadBlockedList(){
@@ -1414,7 +1905,7 @@ function renderStatusBar(){
   // Eigener Status
   const myStatus=statuses.find(s=>s.phoneNumber===me.phoneNumber);
   const myItem=document.createElement('div'); myItem.className='status-item';
-  const myRing=document.createElement('div'); myRing.className='status-ring'+(myStatus?' mine':' mine empty');
+  const myRing=document.createElement('div'); myRing.className='status-ring'+(myStatus?' mine':' empty');
   const myInner=document.createElement('div'); myInner.className='status-inner';
   if(me.avatar){ const img=document.createElement('img'); img.src=me.avatar; myInner.appendChild(img); }
   else { myInner.textContent=(me.displayName||me.phoneNumber)[0].toUpperCase(); myInner.style.background=colorFor(me.phoneNumber); }
