@@ -94,7 +94,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             case "einschalten"  -> handleEinschalten(event, guild, member, userId, guildId);
             case "ausschalten"  -> handleAusschalten(event, guild, member, userId, guildId);
             case "nummer"       -> handleNummer(event, guild, member, userId, guildId);
-            case "citychat"     -> handleNummer(event, guild, member, userId, guildId);
+            case "citychat"     -> handleCityChatActivate(event, guild, member, userId, guildId);
         }
     }
 
@@ -211,7 +211,46 @@ public class HandyCentraleListener extends ListenerAdapter {
     private static final long CITY_CHAT_ROLE_ID    = 1529636364201627660L;
     private static final String CITY_CHAT_BASE_URL = "https://pcrp-bot-production-3ad1.up.railway.app/city-chat";
 
-    // ── City Chat ─────────────────────────────────────────────────────────────
+    // ── City Chat Aktivierung (altes Panel, kein Nummern-Button) ──────────────
+
+    private void handleCityChatActivate(StringSelectInteractionEvent event,
+                                        Guild guild, Member member, String userId, String guildId) {
+        Role roleAn = guild.getRoleById(ROLE_HANDY_AN);
+        if (roleAn == null || !member.getRoles().contains(roleAn)) {
+            event.replyEmbeds(EmbedFactory.build("💬 City Chat",
+                "❌ Dein Handy ist **ausgeschaltet**.\nSchalte zuerst dein Handy ein."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        PhoneManager.Contract c = PhoneManager.getContract(guildId, userId);
+        if (c == null) {
+            event.replyEmbeds(EmbedFactory.build("💬 City Chat",
+                "❌ Du hast noch keine **Rufnummer**.\nSchließe zuerst einen Vertrag ab."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        Role cityChatRole = guild.getRoleById(CITY_CHAT_ROLE_ID);
+        boolean alreadyActive = cityChatRole != null && member.getRoles().contains(cityChatRole);
+        if (!alreadyActive && cityChatRole != null) {
+            guild.addRoleToMember(member, cityChatRole).queue(
+                ok  -> log.info("[CityChat] Rolle an {} vergeben.", userId),
+                err -> log.warn("[CityChat] Rolle konnte nicht vergeben werden: {}", err.getMessage())
+            );
+        }
+
+        event.replyEmbeds(
+            EmbedFactory.create()
+                .setTitle("💬 City Chat")
+                .setDescription(alreadyActive
+                    ? "✅ City Chat ist bereits aktiviert."
+                    : "✅ City Chat wurde aktiviert!\n\nDu hast die City Chat Rolle erhalten.")
+                .build()
+        ).setEphemeral(true).queue();
+    }
+
+    // ── City Chat (legacy) ────────────────────────────────────────────────────
 
     private void handleCityChat(StringSelectInteractionEvent event,
                                 Guild guild, Member member, String userId, String guildId) {
