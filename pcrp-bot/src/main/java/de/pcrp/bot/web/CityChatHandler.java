@@ -306,11 +306,6 @@ public final class CityChatHandler {
             }
         }
 
-        // Wörterfilter
-        if (!"voice".equals(type) && WordFilter.containsBannedWord(content)) {
-            content = "🚫 Unzulässige Inhalte";
-        }
-
         String chatId = chatId(c.phoneNumber, to);
         JsonArray msgs = loadMessages(guildId, chatId);
 
