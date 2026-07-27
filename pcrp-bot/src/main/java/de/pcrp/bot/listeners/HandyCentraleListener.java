@@ -36,7 +36,7 @@ public class HandyCentraleListener extends ListenerAdapter {
     public  static final long   CHANNEL_ID    = 1529636579826729140L;
     private static final long   ROLE_HANDY_AN  = 1529636356333244608L;
     private static final long   ROLE_HANDY_AUS = 1529636359944405114L;
-    private static final String PANEL_KEY      = "panel-handy-zentrale-v3-";
+    private static final String PANEL_KEY      = "panel-handy-zentrale-v4-";
     private static final String ITEM_HANDY     = "Handy";
     private static final int    ITEM_PRICE     = 1000;
     private static final int    NEUE_NR_PREIS  = 500;
@@ -56,6 +56,7 @@ public class HandyCentraleListener extends ListenerAdapter {
         // Alte DataStore-Keys aller Vorgängerversionen löschen
         DataStore.deleteKey("panel-handy-zentrale-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v2-" + guildId);
+        DataStore.deleteKey("panel-handy-zentrale-v3-" + guildId);
 
         // Alle vorhandenen Bot-Nachrichten mit Titel "📱 Handy-Zentrale" im Kanal löschen,
         // dann frisch posten
