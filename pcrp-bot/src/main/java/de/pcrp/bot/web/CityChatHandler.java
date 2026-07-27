@@ -12,7 +12,7 @@ import java.util.*;
  * Authentifizierung: Bearer-Token oder Query-Param "token" (Session aus PhoneManager).
  *
  * Routen (werden in WebServer.start() registriert):
- *   POST /api/city-chat/auth                 → Login mit Rufnummer + Safe-Pin
+ *   POST /api/city-chat/auth                 → Login mit Rufnummer
  *   GET  /api/city-chat/me                   → Eigenes Profil
  *   PUT  /api/city-chat/me                   → Profil bearbeiten (status, displayName)
  *   GET  /api/city-chat/contacts             → Kontaktliste
@@ -39,7 +39,7 @@ public final class CityChatHandler {
 
         String phone = str(body, "phoneNumber");
         String pin   = str(body, "safePin");
-        if (phone == null || pin == null) { ctx.status(400).json(err("Rufnummer und Safe-Pin erforderlich")); return; }
+        if (phone == null || pin == null) { ctx.status(400).json(err("Rufnummer erforderlich")); return; }
 
         String guildId = guildId();
         PhoneManager.Contract c = PhoneManager.getContractByNumber(guildId, phone);

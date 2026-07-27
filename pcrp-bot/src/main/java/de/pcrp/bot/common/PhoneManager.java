@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * Verwaltet Handy-Verträge (Rufnummer + Safe-Pin) und City-Chat-Sessions.
+ * Verwaltet Handy-Verträge (Rufnummer) und City-Chat-Sessions.
  * DataStore-Key: {@code phone-{guildId}-{userId}} → JSON-Objekt
  */
 public final class PhoneManager {
