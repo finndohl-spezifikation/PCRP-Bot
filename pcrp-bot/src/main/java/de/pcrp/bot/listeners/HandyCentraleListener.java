@@ -36,7 +36,7 @@ public class HandyCentraleListener extends ListenerAdapter {
     public  static final long   CHANNEL_ID    = 1529636579826729140L;
     private static final long   ROLE_HANDY_AN  = 1529636356333244608L;
     private static final long   ROLE_HANDY_AUS = 1529636359944405114L;
-    private static final String PANEL_KEY      = "panel-handy-zentrale-v6-";
+    private static final String PANEL_KEY      = "panel-handy-zentrale-v7-";
     private static final String ITEM_HANDY     = "Handy";
     private static final int    ITEM_PRICE     = 1000;
     private static final int    NEUE_NR_PREIS  = 500;
@@ -59,23 +59,9 @@ public class HandyCentraleListener extends ListenerAdapter {
         DataStore.deleteKey("panel-handy-zentrale-v3-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v4-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v5-" + guildId);
+        DataStore.deleteKey("panel-handy-zentrale-v6-" + guildId);
 
-        // Alle vorhandenen Bot-Nachrichten mit Titel "📱 Handy-Zentrale" im Kanal löschen,
-        // dann frisch posten
-        ch.getHistory().retrievePast(50).queue(
-            messages -> {
-                messages.stream()
-                    .filter(m -> m.getAuthor().isBot()
-                        && !m.getEmbeds().isEmpty()
-                        && "📱 Handy-Zentrale".equals(m.getEmbeds().get(0).getTitle()))
-                    .forEach(m -> m.delete().queue(
-                        ok  -> log.info("[Handy] Altes Panel {} gelöscht.", m.getId()),
-                        err -> log.warn("[Handy] Konnte altes Panel nicht löschen: {}", err.getMessage())
-                    ));
-                PanelHelper.post(ch, key, "📱 Handy-Zentrale", () -> sendHandyPanel(ch, key));
-            },
-            err -> PanelHelper.post(ch, key, "📱 Handy-Zentrale", () -> sendHandyPanel(ch, key))
-        );
+        PanelHelper.post(ch, key, "📱 Handy-Zentrale", () -> sendHandyPanel(ch, key));
     }
 
     private static void sendHandyPanel(TextChannel ch, String key) {
@@ -452,11 +438,8 @@ public class HandyCentraleListener extends ListenerAdapter {
                     err -> log.warn("[Citygram] Rolle Fehler: {}", err.getMessage())
                 );
             }
-            String cgToken = PhoneManager.createSession(guildId, cg.phoneNumber);
-            String cgLink  = webUrl() + "/citygram?token=" + cgToken;
             event.replyEmbeds(EmbedFactory.build("📸 Citygram",
-                "✅ **Citygram aktiviert!**"))
-                .addComponents(ActionRow.of(Button.link(cgLink, "📸 Citygram öffnen")))
+                "✅ **Citygram wurde aktiviert!**\n\nDu findest den Zugang im Citygram-Kanal."))
                 .setEphemeral(true).queue();
             return;
         }
