@@ -533,12 +533,30 @@ public class HandyCentraleListener extends ListenerAdapter {
         BankManager.setBalance(guildId, userId, balance - ERSTGEBÜHR);
         BankManager.addTransaction(guildId, userId, "HANDY_VERTRAG", ERSTGEBÜHR, null);
 
+        // Safe-PIN per DM senden
+        event.getUser().openPrivateChannel().queue(dm -> dm.sendMessageEmbeds(
+            EmbedFactory.create()
+                .setTitle("🔐 Deine City-App Zugangsdaten")
+                .setDescription(
+                    "Willkommen im PCRP-Handynetz, **" + c.displayName() + "**!\n\n" +
+                    "📞 **Rufnummer:** `" + c.phoneNumber + "`\n" +
+                    "🔑 **Safe-PIN:** `" + c.safePin + "`\n\n" +
+                    "⚠️ **Gib diese Zahlen niemals an andere weiter!**\n" +
+                    "Mit Rufnummer + PIN kannst du dich in **City Chat** und **Citygram** einloggen.\n" +
+                    "Nach dem ersten Login bleibst du **1 Jahr** automatisch eingeloggt.")
+                .build()
+        ).queue(
+            ok  -> log.info("[Handy] PIN-DM an {} gesendet.", userId),
+            err -> log.warn("[Handy] PIN-DM konnte nicht gesendet werden: {}", err.getMessage())
+        ));
+
         event.replyEmbeds(
             EmbedFactory.create()
                 .setTitle("✅ Vertrag abgeschlossen!")
                 .setDescription(
                     "Willkommen im PCRP-Handynetz, **" + c.displayName() + "**!\n\n" +
                     "📞 **Deine Rufnummer:** `" + c.phoneNumber + "`\n\n" +
+                    "🔐 **Deine Safe-PIN wurde dir per DM zugeschickt.**\n\n" +
                     "💰 **Erstgebühr:** 1.000$ (sofort abgezogen)\n" +
                     "💳 **Monatliche Gebühr:** 1.000$ (automatisch)")
                 .build()

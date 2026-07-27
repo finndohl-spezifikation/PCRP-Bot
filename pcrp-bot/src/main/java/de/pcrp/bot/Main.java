@@ -598,6 +598,10 @@ public class Main {
         private static List<CommandData> buildCommands() {
             return List.of(
 
+                Commands.slash("handy-reset", "Löscht alle Handy-Verträge und entfernt City Chat/Citygram Rollen")
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.ADMINISTRATOR)),
+
                 Commands.slash("löschen", "Löscht 1–200 Nachrichten im aktuellen Kanal")
                     .addOption(OptionType.INTEGER, "anzahl",
                         "Anzahl der zu löschenden Nachrichten (1–200)", true)

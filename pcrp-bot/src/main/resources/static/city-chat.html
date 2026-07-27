@@ -400,11 +400,22 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
 </head>
 <body>
 
-<!-- WARTE/FEHLER-SCREEN -->
+<!-- LOGIN-SCREEN -->
 <div id="login-screen" class="screen" style="align-items:center;justify-content:center;background:#0f0a07">
-  <div id="login-err" style="display:none;text-align:center;color:rgba(255,255,255,.5);font-size:.9rem;padding:1.5rem;line-height:1.7">
-    ❌ Link ungültig oder abgelaufen.<br/>
-    <span style="font-size:.8rem">Discord → Handy-Zentrale → 📞 Handy Einstellungen → 💬 City Chat öffnen</span>
+  <div class="login-card">
+    <div class="login-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <h1>City Chat</h1>
+    <p>Paradise City Roleplay</p>
+    <div class="login-fields">
+      <input id="li-phone" type="tel" placeholder="Rufnummer z.B. (310) 234-5678" autocomplete="off">
+      <input id="li-pin" type="password" placeholder="Safe-PIN (4 Stellen)" autocomplete="off" maxlength="4">
+      <button class="login-btn" id="li-btn" onclick="doLogin()">Einloggen</button>
+      <div id="login-err" class="login-err" style="display:none"></div>
+    </div>
   </div>
 </div>
 
@@ -771,7 +782,6 @@ function linkify(text){
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init(){
   applyTheme();
-  // Token aus URL oder localStorage laden
   const params=new URLSearchParams(location.search);
   const urlToken=params.get('token');
   const storedToken=localStorage.getItem('cc-token');
@@ -780,8 +790,8 @@ async function init(){
     token=t;
     try{
       me=await api('GET','/api/city-chat/me');
-      localStorage.setItem('cc-token',t); // gültigen Token merken
-      if(urlToken) history.replaceState({},'',location.pathname); // Token aus URL entfernen
+      localStorage.setItem('cc-token',t);
+      if(urlToken) history.replaceState({},'',location.pathname);
       showApp(); return;
     }catch(e){
       token=null;
@@ -789,7 +799,32 @@ async function init(){
     }
   }
   localStorage.removeItem('cc-token');
-  document.getElementById('login-err').style.display='block';
+  showLogin();
+}
+
+async function doLogin(){
+  const phone=document.getElementById('li-phone').value.trim();
+  const pin=document.getElementById('li-pin').value.trim();
+  const err=document.getElementById('login-err');
+  const btn=document.getElementById('li-btn');
+  if(!phone||!pin){err.textContent='Rufnummer und PIN eingeben';err.style.display='block';return;}
+  btn.disabled=true;err.style.display='none';
+  try{
+    const res=await fetch(API+'/api/city-chat/auth',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phoneNumber:phone,safePin:pin})
+    });
+    if(!res.ok) throw new Error((await res.json()).error||'Ungültige Zugangsdaten');
+    const data=await res.json();
+    token=data.token;
+    localStorage.setItem('cc-token',token);
+    me=await api('GET','/api/city-chat/me');
+    showApp();
+  }catch(e){
+    err.textContent=e.message||'Anmeldung fehlgeschlagen';
+    err.style.display='block';
+  }
+  btn.disabled=false;
 }
 
 function showLogin(){ document.getElementById('login-screen').classList.remove('hidden'); document.getElementById('app-screen').classList.add('hidden'); }

@@ -194,6 +194,14 @@ public final class PhoneManager {
         return c;
     }
 
+    /** Löscht alle Verträge einer Guild (für Admin-Reset). */
+    public static synchronized void deleteAllContracts(String guildId) {
+        for (String uid : getUserIds(guildId)) {
+            DataStore.deleteKey(key(guildId, uid));
+        }
+        DataStore.deleteKey(allKey(guildId));
+    }
+
     // ── Index (alle User-IDs mit Vertrag) ─────────────────────────────────────
 
     private static List<String> getUserIds(String guildId) {

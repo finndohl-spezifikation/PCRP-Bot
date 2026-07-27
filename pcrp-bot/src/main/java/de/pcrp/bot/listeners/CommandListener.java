@@ -81,6 +81,7 @@ public class CommandListener extends ListenerAdapter {
             case "bannen-dashboard"      -> handleBannenDashboard(event);
             case "entbannen-dashboard"   -> handleEntbannenDashboard(event);
             case "bewohner-information"  -> handleBewohnerInformation(event);
+            case "handy-reset"           -> handleHandyReset(event);
         }
     }
 
@@ -1769,5 +1770,46 @@ public class CommandListener extends ListenerAdapter {
 
     private static String truncate(String s, int max) {
         return s != null && s.length() > max ? s.substring(0, max - 1) + "…" : (s != null ? s : "");
+    }
+
+    // ── /handy-reset ──────────────────────────────────────────────────────────
+
+    private static final long CC_ROLE_ID = 1529636364201627660L;
+    private static final long CG_ROLE_ID = 1529636363119624293L;
+
+    private void handleHandyReset(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Guild  guild   = event.getGuild();
+        String guildId = guild.getId();
+
+        event.deferReply(true).queue();
+
+        // 1. Alle Verträge löschen
+        PhoneManager.deleteAllContracts(guildId);
+
+        // 2. City Chat + Citygram Rollen von allen Mitgliedern entfernen
+        Role ccRole = guild.getRoleById(CC_ROLE_ID);
+        Role cgRole = guild.getRoleById(CG_ROLE_ID);
+
+        guild.loadMembers().onSuccess(members -> {
+            int[] stripped = {0};
+            for (net.dv8tion.jda.api.entities.Member m : members) {
+                boolean hasCC = ccRole != null && m.getRoles().contains(ccRole);
+                boolean hasCG = cgRole != null && m.getRoles().contains(cgRole);
+                if (hasCC) { guild.removeRoleFromMember(m, ccRole).queue(); stripped[0]++; }
+                if (hasCG)   guild.removeRoleFromMember(m, cgRole).queue();
+            }
+            event.getHook().sendMessageEmbeds(
+                EmbedFactory.build("🔄 Handy-Reset abgeschlossen",
+                    "✅ Alle Verträge gelöscht.\n" +
+                    "✅ City Chat & Citygram Rollen bei **" + stripped[0] + "** Mitgliedern entfernt.\n\n" +
+                    "Jeder muss einen neuen Vertrag abschließen und erhält eine neue Rufnummer + Safe-PIN per DM.")
+            ).setEphemeral(true).queue();
+        }).onError(err -> {
+            log.error("[HandyReset] Mitglieder laden fehlgeschlagen.", err);
+            event.getHook().sendMessageEmbeds(
+                EmbedFactory.build("❌ Fehler", "Konnte Mitglieder nicht laden: " + err.getMessage()))
+                .setEphemeral(true).queue();
+        });
     }
 }
