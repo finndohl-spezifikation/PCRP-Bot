@@ -144,6 +144,7 @@ a.msg-link{color:var(--accent);text-decoration:underline;word-break:break-all}
 .msg-row.mine{align-self:flex-end}
 .msg-row.theirs{align-self:flex-start}
 .msg-row.gap{margin-top:6px}
+.sys-msg{text-align:center;font-size:.75rem;color:rgba(255,255,255,.35);background:rgba(255,255,255,.05);border-radius:12px;padding:.35rem .85rem;margin:.4rem auto;max-width:80%;width:fit-content}
 .bubble{padding:6px 9px 18px;border-radius:8px;position:relative;font-size:.88rem;line-height:1.35;word-break:break-word;white-space:pre-wrap;min-width:56px}
 .mine .bubble{background:var(--bubble-mine,#3d1a00);border-top-right-radius:2px;color:#fff}
 .theirs .bubble{background:var(--bubble-theirs,#1e1e1e);border-top-left-radius:2px;color:rgba(255,255,255,.85)}
@@ -1062,6 +1063,13 @@ function renderMessages(msgs,scroll){
         <span class="voice-duration" id="vd-${m.id}">0:00</span>
       </div><div class="bubble-meta"><span class="bubble-time">${t}</span>${tickHtml}</div></div>`;
       c.appendChild(row); continue;
+    }
+    // System message (Nummernwechsel-Hinweis)
+    if(m.type==='system'||m.from==='__system__'){
+      const sysDiv=document.createElement('div');
+      sysDiv.className='sys-msg';
+      sysDiv.textContent=m.content;
+      c.appendChild(sysDiv); lastFrom=''; continue;
     }
     // Call message
     if(m.type&&m.type.startsWith('call-')){

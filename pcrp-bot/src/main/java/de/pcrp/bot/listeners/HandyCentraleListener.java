@@ -275,12 +275,21 @@ public class HandyCentraleListener extends ListenerAdapter {
                 return;
             }
 
+            // Alte Nummer vor der Änderung merken (für City-Chat-Migration)
+            PhoneManager.Contract oldContract = PhoneManager.getContract(guildId, userId);
+            String oldPhone = oldContract != null ? oldContract.phoneNumber : null;
+
             PhoneManager.Contract c = PhoneManager.regenerateNumber(guildId, userId);
             if (c == null) {
                 event.replyEmbeds(EmbedFactory.build("🔄 Neue Nummer",
                     "❌ Fehler — kein aktiver Vertrag gefunden."))
                     .setEphemeral(true).queue();
                 return;
+            }
+
+            // City-Chat-Daten auf neue Nummer migrieren
+            if (oldPhone != null && !oldPhone.equals(c.phoneNumber)) {
+                de.pcrp.bot.web.CityChatMigration.migrate(guildId, oldPhone, c.phoneNumber);
             }
 
             BankManager.setBalance(guildId, userId, balance - NEUE_NR_PREIS);
