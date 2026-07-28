@@ -362,11 +362,13 @@ public final class CityChatHandler {
         }
         PhoneManager.Contract c = PhoneManager.validateSession(token);
         if (c == null) { ctx.status(401).json(err("Nicht authentifiziert")); return null; }
-        // Ban-Check bei jedem Request → sofortige Wirkung
-        String webBan = DataStore.readString("web-ban-" + guildId() + "-" + c.userId);
-        if (webBan != null && !webBan.isBlank()) {
-            ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
-            return null;
+        // Ban-Check bei jedem Request → sofortige Wirkung (nur wenn userId bekannt)
+        if (c.userId != null) {
+            String webBan = DataStore.readString("web-ban-" + guildId() + "-" + c.userId);
+            if (webBan != null && !webBan.isBlank()) {
+                ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
+                return null;
+            }
         }
         return c;
     }

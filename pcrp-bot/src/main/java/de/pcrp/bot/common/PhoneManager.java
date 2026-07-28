@@ -152,7 +152,10 @@ public final class PhoneManager {
         return payload + "." + sig;
     }
 
-    /** Gibt Vertrag zurück wenn Token gültig und nicht abgelaufen, sonst null. */
+    /** Gibt Vertrag zurück wenn Token gültig und nicht abgelaufen, sonst null.
+     *  Überlebt Railway-Redeploys auch wenn der DataStore kurzfristig nicht erreichbar ist:
+     *  Der HMAC-Token enthält guildId + Rufnummer und wird ohne DataStore-Lookup verifiziert.
+     *  Kann der Vertrag geladen werden, wird er zurückgegeben — sonst ein Minimal-Objekt. */
     public static Contract validateSession(String token) {
         if (token == null || token.isBlank()) return null;
         try {
@@ -160,17 +163,25 @@ public final class PhoneManager {
             if (dot < 0) return null;
             String payload = token.substring(0, dot);
             String sig     = token.substring(dot + 1);
-            // Signatur prüfen
+            // 1. Signatur prüfen (kein DataStore nötig)
             if (!hmacSign(payload).equals(sig)) return null;
-            // Payload dekodieren
+            // 2. Payload dekodieren
             String data = new String(Base64.getUrlDecoder().decode(payload), StandardCharsets.UTF_8);
             String[] parts = data.split(":", 3);
             if (parts.length != 3) return null;
             String guildId     = parts[0];
             String phoneNumber = parts[1];
             long   expires     = Long.parseLong(parts[2]);
+            // 3. Ablaufzeit prüfen
             if (System.currentTimeMillis() > expires) return null;
-            return getContractByNumber(guildId, phoneNumber);
+            // 4. Vertrag laden (Best-Effort) — falls Daten nicht erreichbar: Minimal-Objekt
+            Contract full = getContractByNumber(guildId, phoneNumber);
+            if (full != null) return full;
+            // Minimal-Contract: Token ist kryptografisch gültig, Daten temporär nicht erreichbar
+            Contract minimal = new Contract();
+            minimal.phoneNumber = phoneNumber;
+            minimal.userId      = null; // wird nachgeladen wenn benötigt
+            return minimal;
         } catch (Exception e) { return null; }
     }
 
