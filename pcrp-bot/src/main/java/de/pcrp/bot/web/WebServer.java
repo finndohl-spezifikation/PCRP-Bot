@@ -137,9 +137,11 @@ public class WebServer {
         // Push-Benachrichtigungen
         app.get( "/sw.js",                              WebServer::serveServiceWorker);
         app.get( "/manifest.json",                      WebServer::serveManifest);
-        app.get( "/icon-192.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-192.png", "image/png"));
-        app.get( "/icon-512.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-512.png", "image/png"));
-        app.get( "/badge-72.png",                       ctx -> serveStaticBinary(ctx, "/static/badge-72.png",  "image/png"));
+        app.get( "/icon-192.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-192.png",    "image/png"));
+        app.get( "/icon-512.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-512.png",    "image/png"));
+        app.get( "/badge-72.png",                       ctx -> serveStaticBinary(ctx, "/static/badge-72.png",    "image/png"));
+        app.get( "/cc-bg-dark.jpg",                     ctx -> serveStaticBinary(ctx, "/static/cc-bg-dark.jpg",  "image/jpeg"));
+        app.get( "/cc-bg-light.jpg",                    ctx -> serveStaticBinary(ctx, "/static/cc-bg-light.jpg", "image/jpeg"));
         app.get( "/api/city-chat/vapid-public-key",     ctx -> ctx.contentType("application/json").result("{\"key\":\"" + PushService.VAPID_PUBLIC + "\"}"));
         app.post("/api/city-chat/push-subscribe",       ctx -> CityChatHandler.handlePushSubscribe(ctx));
         app.post("/api/city-chat/push-unsubscribe",     ctx -> CityChatHandler.handlePushUnsubscribe(ctx));
