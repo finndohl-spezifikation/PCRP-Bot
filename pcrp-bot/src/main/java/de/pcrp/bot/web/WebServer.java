@@ -266,12 +266,16 @@ public class WebServer {
     private static void serveCityChat(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/city-chat.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
-            String railwayUrl = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN",
-                "pcrp-bot-production-3ad1.up.railway.app");
-            if (!railwayUrl.startsWith("http")) railwayUrl = "https://" + railwayUrl;
-            railwayUrl = railwayUrl.replaceAll("/$", "");
+            // API_BASE = Cloudflare-URL (WEB_URL), damit alle API-Aufrufe über Cloudflare laufen
+            String base = System.getenv("WEB_URL");
+            if (base == null || base.isBlank()) {
+                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN",
+                    "pcrp-bot-production-3ad1.up.railway.app");
+                if (!base.startsWith("http")) base = "https://" + base;
+            }
+            base = base.replaceAll("/$", "");
             String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
-                .replace("%%API_BASE%%", railwayUrl);
+                .replace("%%API_BASE%%", base);
             ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             ctx.status(500).result("Interner Fehler");

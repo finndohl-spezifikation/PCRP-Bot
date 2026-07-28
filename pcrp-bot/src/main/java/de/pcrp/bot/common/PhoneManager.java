@@ -30,7 +30,12 @@ public final class PhoneManager {
         public String safePin;
         public long   createdAt;
 
-        public String displayName() { return firstName + " " + lastName; }
+        public String displayName() {
+            String f = firstName != null ? firstName : "";
+            String l = lastName  != null ? lastName  : "";
+            String full = (f + " " + l).trim();
+            return full.isEmpty() ? (phoneNumber != null ? phoneNumber : "?") : full;
+        }
     }
 
     // ── Schlüssel ─────────────────────────────────────────────────────────────
