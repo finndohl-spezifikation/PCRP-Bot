@@ -428,6 +428,14 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
   </div>
 </div>
 
+<!-- LOADING SPLASH: ALWAYS visible until safeInit() decides what to show -->
+<div id="loading-screen" style="position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;padding:1.5rem">
+  <div style="width:36px;height:36px;border:3px solid #262626;border-top-color:#CC5500;border-radius:50%;animation:ccspin .8s linear infinite;margin-bottom:18px"></div>
+  <div style="font-size:14px;color:rgba(255,255,255,.7);letter-spacing:.5px">City Chat wird geladen…</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:8px">Discord-Auto-Login aktiv</div>
+</div>
+<style>@keyframes ccspin{to{transform:rotate(360deg)}}</style>
+
 <!-- APP -->
 <div id="app-screen" class="screen hidden">
 
@@ -789,6 +797,21 @@ function linkify(text){
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
+async function safeInit(){
+  const L=document.getElementById("login-screen");
+  const A=document.getElementById("app-screen");
+  const S=document.getElementById("loading-screen");
+  if (S) S.style.display="flex";
+  try { await init(); } catch(e) {
+    console.error("[CityChat] init crashed:",e);
+    try{localStorage.removeItem("cc-token");}catch(_){}
+    try { if (S) S.style.display="none"; } catch(_){}
+    try { if (A) A.classList.add("hidden"); } catch(_){}
+    try { if (L) L.classList.remove("hidden"); L.style.display="flex"; } catch(_){}
+  } finally { if (S) S.style.display="none"; }
+}
+
+async function init(){
 async function init(){
   applyTheme();
   const params=new URLSearchParams(location.search);
@@ -1823,7 +1846,7 @@ function fmtTime(ts){ const d=new Date(ts),n=new Date(); if(d.toDateString()===n
 function fmtDate(ts){ return new Date(ts).toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-init();
+safeInit();
 </script>
 </body>
 </html>

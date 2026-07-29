@@ -472,6 +472,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 </noscript>
 
 <!-- App -->
+<!-- Loading splash: ALWAYS visible until init decides what to show -->
+<div id="loading-screen" style="position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;font-family:-apple-system,Segoe UI,sans-serif;text-align:center">
+  <div style="width:36px;height:36px;border:3px solid #262626;border-top-color:#0095f6;border-radius:50%;animation:cgspin .8s linear infinite;margin-bottom:18px"></div>
+  <div style="font-size:14px;color:#cfcfcf;letter-spacing:.5px">Citygram wird geladen…</div>
+  <div style="font-size:11px;color:#737373;margin-top:8px">Discord-Auto-Login aktiv</div>
+</div>
+<style>@keyframes cgspin{to{transform:rotate(360deg)}}</style>
+
 <div id="app" style="display:none">
   <!-- Page: Home -->
   <div id="page-home" class="page active">
@@ -670,19 +678,33 @@ let _currentProfilePhone = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-async function init() {
-  if (!TOKEN) { showLogin(); return; }
+async function safeInit(){
+  const L=document.getElementById('login-screen');
+  const A=document.getElementById('app');
+  const S=document.getElementById('loading-screen');
+  // Defensive: niemals L+A+S gleichzeitig versteckt. Lade-Splash immer bis zur Entscheidung.
+  if (S) S.style.display='flex';
   try {
+    if (!TOKEN) {
+      if (S) S.style.display='none';
+      if (L) L.style.display='flex';
+      if (A) A.style.display='none';
+      return;
+    }
     ME = await apiFetch('GET','/api/citygram/me');
     localStorage.setItem('cg_token', TOKEN);
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+    if (S) S.style.display='none';
+    if (L) L.style.display='none';
+    if (A) A.style.display='block';
     await loadFeed();
     loadStories();
     updateNavAvatar();
   } catch(e) {
-    localStorage.removeItem('cg_token');
-    showLogin();
+    console.error('[Citygram] init failed:',e);
+    try{localStorage.removeItem('cg_token');}catch(_){}
+    if (S) S.style.display='none';
+    if (L) L.style.display='flex';
+    if (A) A.style.display='none';
   }
 }
 
@@ -1493,7 +1515,7 @@ function compressImage(file, maxW, maxH, quality, cb) {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-init();
+safeInit();
 </script>
 </body>
 </html>
