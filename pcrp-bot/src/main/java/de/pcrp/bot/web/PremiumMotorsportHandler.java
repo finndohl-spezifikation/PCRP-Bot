@@ -362,9 +362,10 @@ public class PremiumMotorsportHandler {
     // ── Offers ─────────────────────────────────────────────────────────────────
 
     public static void handleListOffers(Context ctx) {
-        PremiumMotorsportManager.AuthInfo info = auth(ctx);
-        if (info == null) return;
-        List<PremiumMotorsportManager.Offer> list = PremiumMotorsportManager.getOffers(info.guildId);
+        // Öffentlich: Angebote werden auf der Startseite anonymen Besuchern angezeigt — kein Auth-Check.
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { err(ctx, 503, "Guild nicht verfügbar."); return; }
+        List<PremiumMotorsportManager.Offer> list = PremiumMotorsportManager.getOffers(guild.getId());
         JsonArray arr = new JsonArray();
         for (PremiumMotorsportManager.Offer o : list) {
             JsonObject j = new JsonObject();
@@ -408,6 +409,110 @@ public class PremiumMotorsportHandler {
             err(ctx, 404, "Angebot nicht gefunden."); return;
         }
         ok(ctx);
+    }
+
+    // ── Contact Tickets ──────────────────────────────────────────────────────────────────────────
+
+    /** Liefert die Standard-Themen für das Kontakt-Dropdown. Public, ohne Auth. */
+    public static void handleTicketTopics(Context ctx) {
+        JsonArray arr = new JsonArray();
+        for (String t : PremiumMotorsportManager.TICKET_TOPICS) arr.add(t);
+        JsonObject r = new JsonObject();
+        r.addProperty("ok", true);
+        r.add("topics", arr);
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    /** POST /api/pd/tickets — Body: {topic, message}. Erstellt ein Ticket für den eingeloggten User. */
+    public static void handleCreateTicket(Context ctx) {
+        PremiumMotorsportManager.AuthInfo info = auth(ctx);
+        if (info == null) return;
+        JsonObject body;
+        try { body = JsonParser.parseString(ctx.body()).getAsJsonObject(); }
+        catch (Exception e) { err(ctx, 400, "Ungültige JSON-Anfrage."); return; }
+        String topic = safeTrim(body.has("topic") ? body.get("topic").getAsString() : "");
+        String msg = safeTrim(body.has("message") ? body.get("message").getAsString() : "");
+        if (topic.isEmpty() || msg.isEmpty()) {
+            err(ctx, 400, "Thema und Nachricht erforderlich.");
+            return;
+        }
+        if (msg.length() > 2000) { err(ctx, 400, "Nachricht zu lang (max. 2000 Zeichen)."); return; }
+
+        PremiumMotorsportManager.ContactTicket t = PremiumMotorsportManager.createTicket(
+            info.guildId, info.userId, info.displayName, topic, msg);
+
+        JsonObject resp = new JsonObject();
+        resp.addProperty("ok", true);
+        resp.addProperty("id", t.id);
+        resp.addProperty("topic", t.topic);
+        resp.addProperty("message", t.message);
+        resp.add("ticket", ticketToJson(t));
+        ctx.contentType("application/json").result(GSON.toJson(resp));
+    }
+
+    /** GET /api/pd/tickets/mine — eigene Tickets. */
+    public static void handleMyTickets(Context ctx) {
+        PremiumMotorsportManager.AuthInfo info = auth(ctx);
+        if (info == null) return;
+        JsonArray arr = new JsonArray();
+        for (PremiumMotorsportManager.ContactTicket t : PremiumMotorsportManager.getMyTickets(info.guildId, info.userId))
+            arr.add(ticketToJson(t));
+        JsonObject r = new JsonObject();
+        r.addProperty("ok", true);
+        r.add("tickets", arr);
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    /** GET /api/pd/tickets/all?status=open|resolved|closed — Mitarbeiter-Liste. */
+    public static void handleAllTickets(Context ctx) {
+        PremiumMotorsportManager.AuthInfo info = auth(ctx);
+        if (info == null) return;
+        if (!requireEmployee(ctx, info)) return;
+        String filter = ctx.queryParam("status");
+        JsonArray arr = new JsonArray();
+        List<PremiumMotorsportManager.ContactTicket> all = PremiumMotorsportManager.getAllTickets(info.guildId);
+        // neuste zuerst
+        all.sort((a, b) -> Long.compare(b.createdAt, a.createdAt));
+        for (PremiumMotorsportManager.ContactTicket t : all) {
+            if (filter != null && !filter.isBlank() && !filter.equalsIgnoreCase(t.status)) continue;
+            arr.add(ticketToJson(t));
+        }
+        JsonObject r = new JsonObject();
+        r.addProperty("ok", true);
+        r.add("tickets", arr);
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    /** POST /api/pd/tickets/{id}/status — Body: {status}. Setzt Status auf resolved/closed. */
+    public static void handleSetTicketStatus(Context ctx) {
+        PremiumMotorsportManager.AuthInfo info = auth(ctx);
+        if (info == null) return;
+        if (!requireEmployee(ctx, info)) return;
+        JsonObject body;
+        try { body = JsonParser.parseString(ctx.body()).getAsJsonObject(); }
+        catch (Exception e) { err(ctx, 400, "Ungültige JSON-Anfrage."); return; }
+        String status = safeTrim(body.has("status") ? body.get("status").getAsString() : "");
+        if (!status.equals("open") && !status.equals("resolved") && !status.equals("closed")) {
+            err(ctx, 400, "Status muss open|resolved|closed sein."); return;
+        }
+        if (!PremiumMotorsportManager.setTicketStatus(info.guildId, ctx.pathParam("id"), status)) {
+            err(ctx, 404, "Ticket nicht gefunden.");
+            return;
+        }
+        ok(ctx);
+    }
+
+    private static JsonObject ticketToJson(PremiumMotorsportManager.ContactTicket t) {
+        JsonObject o = new JsonObject();
+        o.addProperty("id", t.id);
+        o.addProperty("userId", t.userId);
+        o.addProperty("displayName", t.displayName);
+        o.addProperty("topic", t.topic);
+        o.addProperty("message", t.message);
+        o.addProperty("status", t.status);
+        o.addProperty("createdAt", t.createdAt);
+        if (t.resolvedAt != null) o.addProperty("resolvedAt", t.resolvedAt);
+        return o;
     }
 
     // ── Util ───────────────────────────────────────────────────────────────────

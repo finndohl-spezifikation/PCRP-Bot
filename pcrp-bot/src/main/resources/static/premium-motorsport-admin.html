@@ -142,6 +142,7 @@
     <button class="active" data-tab="vehicles">🏎️ Fahrzeuge</button>
     <button data-tab="info">📌 Mitteilungen</button>
     <button data-tab="offers">🔥 Angebote</button>
+    <button data-tab="tickets">📩 Anfragen</button>
   </div>
 
   <!-- VEHICLES -->
@@ -211,7 +212,6 @@
   <!-- OFFERS -->
   <section class="tab" id="tab-offers">
     <div class="sec-head"><h2>Angebote<small>HOT DEALS</small></h2></div>
-    <div class="card" style="margin-bottom:20px">
       <div class="form-grid">
         <div><label>Titel</label><input id="o-title" placeholder="z.B. Sommer-Rabatt"/></div>
         <div><label>Rabatt (%)</label><input id="o-discount" type="number" placeholder="z.B. 25" value="10"/></div>
@@ -222,6 +222,21 @@
       </div>
     </div>
     <div id="offers-list"></div>
+  <!-- TICKETS -->
+  <section class="tab" id="tab-tickets">
+    <div class="sec-head" style="display:flex;justify-content:space-between;align-items:end;gap:14px;flex-wrap:wrap">
+      <h2 style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px">Kundenanfragen<small style="display:block;color:var(--gold);font-size:11px;font-weight:600;letter-spacing:3px;margin-top:4px">TICKETS</small></h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="margin:0;color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">Filter:</label>
+        <select id="t-filter" class="sort-select" style="width:auto;padding:8px 12px">
+          <option value="open">Offen</option>
+          <option value="resolved">Gelöst</option>
+          <option value="closed">Geschlossen</option>
+          <option value="">Alle</option>
+        </select>
+      </div>
+    </div>
+    <div id="tickets-list"></div>
   </section>
 </div>
 
@@ -230,8 +245,8 @@
 <script>
 const API = "%%API_BASE%%";
 const EMPLOYEE_NAME = "%%EMPLOYEE_NAME%%";
-const CATEGORIES = ["Super","Sport","Muscle","Coupe","Sedan","SUV","Compact","Motorcycle","Off-Road","Industrial","Utility","Van","Bicycle","Helicopter","Plane","Boat"];
-const CAT_EMOJI  = {"Super":"🏎️","Sport":"🚗","Muscle":"💪","Coupe":"🚙","Sedan":"🚘","SUV":"🚙","Compact":"🚐","Motorcycle":"🏍️","Off-Road":"🛻","Industrial":"🚛","Utility":"🚚","Van":"🚐","Bicycle":"🚲","Helicopter":"🚁","Plane":"✈️","Boat":"🛥️"};
+const CATEGORIES = ["Super","Sport","Muscle","Coupe","Sedan","SUV","Compact","Motorcycle","Off-Road","Industrial","Utility","Van"];
+const CAT_EMOJI  = {"Super":"🏎️","Sport":"🚗","Muscle":"💪","Coupe":"🚙","Sedan":"🚘","SUV":"🚙","Compact":"🚐","Motorcycle":"🏍️","Off-Road":"🛻","Industrial":"🚛","Utility":"🚚","Van":"🚐"};
 
 let token = null, me = null;
 
@@ -253,6 +268,7 @@ async function api(path, opts={}){
   return res.json();
 }
 function fmt$(n){ return n.toLocaleString("de-DE")+" $"; }
+function htmlEscape(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 
 function setLoggedIn(t, info){
   token = t; me = info;
@@ -424,7 +440,54 @@ document.getElementById("o-create").addEventListener("click",(async ()=>{
   }catch(e){ toast(e.message,true); }
 }));
 
-function loadAll(){ loadVehicles(); loadInfo(); loadOffers(); }
+document.getElementById("t-filter").addEventListener("change", e=>loadTickets(e.target.value));
+
+async function loadTickets(statusFilter){
+  const f = statusFilter || document.getElementById("t-filter").value || "open";
+  const root = document.getElementById("tickets-list");
+  root.innerHTML = `<div class="empty">Lade…</div>`;
+  try{
+    const data = await api("/api/pd/tickets/all?status="+encodeURIComponent(f));
+    const list = (data.tickets||[]);
+    if(!list.length){ root.innerHTML = `<div class="empty">Keine Tickets im Status "${f==""?"alle":f}".</div>`; return; }
+    root.innerHTML = list.map(t=>{
+      const pill = t.status==="open" ? "pill-low" : t.status==="resolved" ? "pill-ok" : "pill-out";
+      const pillLbl = t.status==="open" ? "Offen" : t.status==="resolved" ? "Gelöst" : "Geschlossen";
+      const accent = t.status==="open" ? "var(--gold)" : t.status==="resolved" ? "var(--ok)" : "var(--close)";
+      const safeMsg = htmlEscape(t.message);
+      const safeTopic = htmlEscape(t.topic);
+      const safeName  = htmlEscape(t.displayName);
+      return `<div class="card" style="margin-bottom:14px;border-left:4px solid ${accent};">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+              <span class="pill ${pill}">${pillLbl}</span>
+              <span style="color:var(--gold);font-size:14px;font-weight:700">${safeTopic}</span>
+              <span style="color:var(--text2);font-size:11px">#${t.id}</span>
+            </div>
+            <div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:8px">👤 ${safeName} <span style="color:var(--text2);font-size:12px;font-weight:400">· ${t.userId}</span></div>
+            <div style="color:var(--text);font-size:14px;margin:6px 0 10px;padding:12px 14px;background:#0d0d0d;border-radius:8px;line-height:1.5;white-space:pre-wrap">${safeMsg}</div>
+            <div style="color:var(--text2);font-size:11px">Eingegangen: ${new Date(t.createdAt).toLocaleString("de-DE")}${t.resolvedAt?' · Bearbeitet: '+new Date(t.resolvedAt).toLocaleString("de-DE"):''}</div>
+          </div>
+          ${t.status !== "closed" ? `<div style="display:flex;flex-direction:column;gap:6px;min-width:140px">
+            ${t.status !== "resolved" ? `<button class="btn btn-sm btn-ok" onclick="setTicketStatus('${t.id}','resolved')">✓ Gelöst</button>` : ""}
+            <button class="btn btn-sm btn-danger" onclick="setTicketStatus('${t.id}','closed')">× Schließen</button>
+            ${t.status === "resolved" ? `<button class="btn btn-sm" onclick="setTicketStatus('${t.id}','open')" style="background:#444">↩ Wieder öffnen</button>` : ""}
+          </div>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+  }catch(e){ root.innerHTML = `<div class="empty" style="color:var(--red)">Fehler: ${e.message}</div>`; }
+}
+async function setTicketStatus(id, status){
+  try{
+    await api("/api/pd/tickets/"+id+"/status", {method:"POST", body:JSON.stringify({status})});
+    toast("✅ Status auf „"+status+"“ gesetzt.");
+    loadTickets();
+  }catch(e){ toast(e.message,true); }
+}
+
+function loadAll(){ loadVehicles(); loadInfo(); loadOffers(); loadTickets(); }
 
 // Auto-Login via Query-Token (kommt vom Mitarbeiter-Login-Flow)
 (async function(){

@@ -24,11 +24,21 @@ public final class PremiumMotorsportManager {
     private static final Logger log  = LoggerFactory.getLogger(PremiumMotorsportManager.class);
     private static final Gson   GSON = new GsonBuilder().create();
 
-    /** Alle GTA-Online Fahrzeugklassen. */
+    /** Fahrzeugklassen — nur Automobile (Boote, Fahrräder, Helikopter, Flugzeuge sind hier kein Angebot). */
     public static final String[] CATEGORIES = {
         "Super", "Sport", "Muscle", "Coupe", "Sedan", "SUV",
         "Compact", "Motorcycle", "Off-Road", "Industrial",
-        "Utility", "Van", "Bicycle", "Helicopter", "Plane", "Boat"
+        "Utility", "Van"
+    };
+
+    /** Themen für Kontakt-Tickets. */
+    public static final String[] TICKET_TOPICS = {
+        "Allgemeine Frage",
+        "Probefahrt",
+        "Verkaufsanfrage",
+        "Werkstatt / Service",
+        "Garantie / Reklamation",
+        "Sonstiges"
     };
 
     /** Display-Reihenfolge in der Sidebar. */
@@ -46,10 +56,6 @@ public final class PremiumMotorsportManager {
         CAT_EMOJI.put("Industrial",  "🚛");
         CAT_EMOJI.put("Utility",     "🚚");
         CAT_EMOJI.put("Van",         "🚐");
-        CAT_EMOJI.put("Bicycle",     "🚲");
-        CAT_EMOJI.put("Helicopter",  "🚁");
-        CAT_EMOJI.put("Plane",       "✈️");
-        CAT_EMOJI.put("Boat",        "🛥️");
     }
 
     /** Cache der Auth-Resolves (Token → Guild/User Info), kurzlebig (5 min). */
@@ -122,6 +128,25 @@ public final class PremiumMotorsportManager {
 
         /** Item-Name mit 🚘 | Prefix (Diskord-Item-Konvention für Garage). */
         public String displayName() { return "🚘 | " + name; }
+    }
+
+    /** Eine Kundenanfrage — erstellt über das Kontakt-Formular auf der Webseite. */
+    public static class ContactTicket {
+        public final String  id;
+        public final String  userId;
+        public final String  displayName;
+        public final String  topic;       // siehe TICKET_TOPICS
+        public final String  message;
+        public final String  status;      // "open" | "resolved" | "closed"
+        public final long    createdAt;
+        public final Long    resolvedAt;  // nullable
+
+        public ContactTicket(String id, String userId, String displayName, String topic,
+                             String message, String status, long createdAt, Long resolvedAt) {
+            this.id = id; this.userId = userId; this.displayName = displayName;
+            this.topic = topic; this.message = message; this.status = status;
+            this.createdAt = createdAt; this.resolvedAt = resolvedAt;
+        }
     }
 
     public static class AuthInfo {
@@ -277,6 +302,68 @@ public final class PremiumMotorsportManager {
         return null;
     }
 
+    // ── Contact Tickets (Kontaktformular auf der Webseite) ───────────────────────────
+
+    public static synchronized ContactTicket createTicket(String guildId, String userId, String displayName,
+                                                          String topic, String message) {
+        String id = UUID.randomUUID().toString().substring(0, 8);
+        String tk = keyTickets(guildId);
+        String raw = DataStore.readString(tk);
+        JsonArray arr;
+        try { arr = (raw == null || raw.isBlank()) ? new JsonArray() : JsonParser.parseString(raw).getAsJsonArray(); }
+        catch (Exception e) { arr = new JsonArray(); }
+
+        JsonObject o = new JsonObject();
+        o.addProperty("id", id);
+        o.addProperty("userId", userId);
+        o.addProperty("displayName", displayName);
+        o.addProperty("topic", topic);
+        o.addProperty("message", message);
+        o.addProperty("status", "open");
+        o.addProperty("createdAt", System.currentTimeMillis());
+        arr.add(o);
+        DataStore.writeString(tk, GSON.toJson(arr));
+        log.info("[PD] Ticket {} von {} ({}): [{}] {}", id, displayName, userId, topic, message);
+        return new ContactTicket(id, userId, displayName, topic, message, "open", o.get("createdAt").getAsLong(), null);
+    }
+
+    public static List<ContactTicket> getMyTickets(String guildId, String userId) {
+        List<ContactTicket> all = readArray(keyTickets(guildId), ContactTicket.class);
+        List<ContactTicket> mine = new ArrayList<>();
+        for (ContactTicket t : all) if (userId.equals(t.userId)) mine.add(t);
+        mine.sort((a, b) -> Long.compare(b.createdAt, a.createdAt));
+        return mine;
+    }
+
+    public static List<ContactTicket> getAllTickets(String guildId) {
+        return readArray(keyTickets(guildId), ContactTicket.class);
+    }
+
+    public static synchronized boolean setTicketStatus(String guildId, String ticketId, String newStatus) {
+        String tk = keyTickets(guildId);
+        String raw = DataStore.readString(tk);
+        if (raw == null || raw.isBlank()) return false;
+        try {
+            JsonArray arr = JsonParser.parseString(raw).getAsJsonArray();
+            boolean changed = false;
+            for (int i = 0; i < arr.size(); i++) {
+                JsonObject o = arr.get(i).getAsJsonObject();
+                if (o.get("id").getAsString().equals(ticketId)) {
+                    o.addProperty("status", newStatus);
+                    if ("resolved".equals(newStatus) || "closed".equals(newStatus)) {
+                        o.addProperty("resolvedAt", System.currentTimeMillis());
+                    }
+                    changed = true; break;
+                }
+            }
+            if (changed) DataStore.writeString(tk, GSON.toJson(arr));
+            return changed;
+        } catch (Exception e) {
+            log.warn("[PD] setTicketStatus Fehler: {}", e.getMessage());
+            return false;
+        }
+    }
+
     // ── Auth (Token → AuthInfo) ──────────────────────────────────────────────
 
     /**
@@ -328,6 +415,7 @@ public final class PremiumMotorsportManager {
     private static String keyVehicles(String guildId) { return "pd-vehicles-" + guildId; }
     private static String keyInfo(String guildId)     { return "pd-info-" + guildId; }
     private static String keyOffers(String guildId)   { return "pd-offers-" + guildId; }
+    private static String keyTickets(String guildId)  { return "pd-tickets-" + guildId; }
     private static String keyGarage(String guildId, String userId) {
         return "pd-garage-" + guildId + "-" + userId;
     }
@@ -392,6 +480,19 @@ public final class PremiumMotorsportManager {
                 o.has("purchasedAt") ? o.get("purchasedAt").getAsLong() : System.currentTimeMillis()
             );
         }
+        if (type == ContactTicket.class) {
+            Long resolved = o.has("resolvedAt") && !o.get("resolvedAt").isJsonNull() ? o.get("resolvedAt").getAsLong() : null;
+            return new ContactTicket(
+                o.get("id").getAsString(),
+                o.has("userId")      ? o.get("userId").getAsString() : "",
+                o.has("displayName") ? o.get("displayName").getAsString() : "",
+                o.has("topic")       ? o.get("topic").getAsString() : "Sonstiges",
+                o.has("message")     ? o.get("message").getAsString() : "",
+                o.has("status")      ? o.get("status").getAsString() : "open",
+                o.has("createdAt")   ? o.get("createdAt").getAsLong() : System.currentTimeMillis(),
+                resolved
+            );
+        }
         return null;
     }
 
@@ -427,6 +528,15 @@ public final class PremiumMotorsportManager {
                 o.addProperty("category", g.category);
                 o.addProperty("pricePaid", g.pricePaid);
                 o.addProperty("purchasedAt", g.purchasedAt);
+            } else if (item instanceof ContactTicket t) {
+                o.addProperty("id", t.id);
+                o.addProperty("userId", t.userId);
+                o.addProperty("displayName", t.displayName);
+                o.addProperty("topic", t.topic);
+                o.addProperty("message", t.message);
+                o.addProperty("status", t.status);
+                o.addProperty("createdAt", t.createdAt);
+                if (t.resolvedAt != null) o.addProperty("resolvedAt", t.resolvedAt);
             }
             arr.add(o);
         }
