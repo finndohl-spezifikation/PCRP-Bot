@@ -454,7 +454,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   <div class="login-logo">Citygram</div>
   <div class="login-sub">Paradise City Roleplay</div>
   <div class="login-form">
-    <input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
+    <div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Gib deine Safe-PIN ein.</div>
     <input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
     <button id="li-btn" onclick="doLogin()" style="padding:12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">Anmelden</button>
     <div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>
@@ -474,7 +474,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <div id="loading-screen" style="position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;font-family:-apple-system,Segoe UI,sans-serif;text-align:center">
   <div style="width:36px;height:36px;border:3px solid #262626;border-top-color:#0095f6;border-radius:50%;animation:cgspin .8s linear infinite;margin-bottom:18px"></div>
   <div style="font-size:14px;color:#cfcfcf;letter-spacing:.5px">Citygram wird geladen…</div>
-  <div style="font-size:11px;color:#737373;margin-top:8px">Login mit Rufnummer + Safe-PIN</div>
+  <div style="font-size:11px;color:#737373;margin-top:8px">Sicherer Login mit Safe-PIN</div>
 </div>
 <style>@keyframes cgspin{to{transform:rotate(360deg)}}</style>
 
@@ -680,13 +680,29 @@ async function safeInit(){
   const L=document.getElementById('login-screen');
   const A=document.getElementById('app');
   const S=document.getElementById('loading-screen');
-  // Defensive: niemals L+A+S gleichzeitig versteckt. Lade-Splash immer bis zur Entscheidung.
   if (S) S.style.display='flex';
   try {
     if (!TOKEN) {
-      if (S) S.style.display='none';
-      if (L) L.style.display='flex';
-      if (A) A.style.display='none';
+      const params=new URLSearchParams(location.search);
+      if(params.get('token')){
+        // Token in URL aber nicht in localStorage → PIN eingeben
+        if (S) S.style.display='none';
+        if (L) L.style.display='flex';
+        if (A) A.style.display='none';
+      } else {
+        // Kein Token → Hinweis anzeigen
+        if (S) S.style.display='none';
+        document.getElementById('login-screen').innerHTML=
+          '<div class="login-logo">Citygram</div>'+
+          '<div class="login-sub">Paradise City Roleplay</div>'+
+          '<div class="login-form" style="text-align:center">'+
+          '<div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:20px 16px;margin-top:6px">'+
+          '<div style="font-size:16px;color:var(--text2);margin-bottom:12px">🔐 Kein Zugang gefunden</div>'+
+          '<div style="font-size:13px;color:var(--text3);line-height:1.6">Gehe zu <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>und aktiviere Citygram. Du bekommst dann einen Link.</div>'+
+          '</div></div>';
+        if (L) L.style.display='flex';
+        if (A) A.style.display='none';
+      }
       return;
     }
     ME = await apiFetch('GET','/api/citygram/me');
@@ -712,21 +728,24 @@ function showLogin() {
 }
 
 async function doLogin() {
-  const phone = document.getElementById('li-phone').value.trim();
   const pin   = document.getElementById('li-pin').value.trim();
   const err   = document.getElementById('login-err');
   const btn   = document.getElementById('li-btn');
-  if (!phone || !pin) { err.textContent='Rufnummer und PIN eingeben'; err.style.display='block'; return; }
+  if (!pin) { err.textContent='Safe-PIN eingeben'; err.style.display='block'; return; }
+  const params=new URLSearchParams(location.search);
+  const loginToken=params.get('token')||localStorage.getItem('cg_token');
+  if(!loginToken){err.textContent='Kein Zugangstoken — aktiviere zuerst in Discord';err.style.display='block';return;}
   btn.disabled = true; err.style.display = 'none';
   try {
-    const res = await fetch(API+'/api/citygram/auth',{
+    const res = await fetch(API+'/api/citygram/pin-verify',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({phoneNumber: phone, safePin: pin})
+      body: JSON.stringify({token: loginToken, safePin: pin})
     });
-    if (!res.ok) throw new Error('Ungültige Zugangsdaten');
+    if (!res.ok) throw new Error('Falsche Safe-PIN');
     const data = await res.json();
     TOKEN = data.token;
     localStorage.setItem('cg_token', TOKEN);
+    if(params.get('token')) history.replaceState({},'',location.pathname);
     ME = await apiFetch('GET','/api/citygram/me');
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'block';

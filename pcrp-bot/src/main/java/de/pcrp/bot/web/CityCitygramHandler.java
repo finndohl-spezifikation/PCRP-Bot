@@ -197,6 +197,31 @@ public final class CityCitygramHandler {
         ctx.json(GSON.toJson(res));
     }
 
+    // ── PIN-Verify ────────────────────────────────────────────────────────────
+
+    public static void handlePinVerify(Context ctx) {
+        JsonObject body = parseBody(ctx);
+        if (body == null) { ctx.status(400).result(err("Ungültiger Body")); return; }
+        String token  = str(body, "token");
+        String safePin = str(body, "safePin");
+        if (token == null || safePin == null) { ctx.status(400).result(err("token und safePin erforderlich")); return; }
+        PhoneManager.Contract c = PhoneManager.validateSession(token);
+        if (c == null) { ctx.status(401).result(err("Ungültiger oder abgelaufener Token")); return; }
+        String guildId = guildId();
+        PhoneManager.Contract contract = PhoneManager.getContractByNumber(guildId, c.phoneNumber);
+        if (contract == null) { ctx.status(404).result(err("Vertrag nicht gefunden")); return; }
+        if (!contract.safePin.equals(safePin)) { ctx.status(401).result(err("Falsche Safe-PIN")); return; }
+        String webBan = DataStore.readString("web-ban-" + guildId + "-" + contract.userId);
+        if (webBan != null && !webBan.isBlank()) { ctx.status(403).result("{\"error\":\"WEB_BANNED\",\"banned\":true}"); return; }
+        String newToken = PhoneManager.createSession(guildId, contract.phoneNumber);
+        JsonObject profile = loadProfile(guildId, contract.phoneNumber);
+        JsonObject res = new JsonObject();
+        res.addProperty("token",    newToken);
+        res.addProperty("phone",    norm(contract.phoneNumber));
+        res.addProperty("username", pStr(profile, "username", contract.displayName()));
+        ctx.json(GSON.toJson(res));
+    }
+
     // ── Profile ───────────────────────────────────────────────────────────────
 
     public static void handleGetMe(Context ctx) {

@@ -226,6 +226,17 @@ public class HandyCentraleListener extends ListenerAdapter {
     private static final long CITY_CHAT_ROLE_ID  = 1529636364201627660L;
     private static final long CITYGRAM_ROLE_ID   = 1529636363119624293L;
 
+    private static String webUrl() {
+        String url = System.getenv("WEB_URL");
+        if (url == null || url.isBlank()) {
+            String domain = System.getenv("RAILWAY_PUBLIC_DOMAIN");
+            url = (domain != null && !domain.isBlank())
+                ? (domain.startsWith("http") ? domain : "https://" + domain)
+                : "https://dashboards.paradisecity-roleplay-85a.workers.dev";
+        }
+        return url.replaceAll("/$", "");
+    }
+
     // ── City Chat Aktivierung (altes Panel, kein Nummern-Button) ──────────────
 
     private void handleCityChatActivate(StringSelectInteractionEvent event,
@@ -393,12 +404,13 @@ public class HandyCentraleListener extends ListenerAdapter {
                     err -> log.warn("[CityChat] Rolle Fehler: {}", err.getMessage())
                 );
             }
+            String ccToken = PhoneManager.createSession(guildId, cc.phoneNumber);
+            String ccLink  = webUrl() + "/city-chat?token=" + ccToken;
             event.replyEmbeds(EmbedFactory.build("💬 City Chat",
                 "✅ **City Chat wurde aktiviert!**\n\n" +
-                "**Rufnummer:** `" + cc.phoneNumber + "`\n" +
                 "**Safe-PIN:** `" + cc.safePin + "`\n\n" +
-                "Logge dich auf der Webseite mit **Rufnummer + Safe-PIN** ein.\n" +
                 "⚠️ **Gebe deine Safe-PIN niemals weiter!**"))
+                .addComponents(ActionRow.of(Button.link(ccLink, "💬 City Chat öffnen")))
                 .setEphemeral(true).queue();
             return;
         }
@@ -422,12 +434,13 @@ public class HandyCentraleListener extends ListenerAdapter {
                     err -> log.warn("[Citygram] Rolle Fehler: {}", err.getMessage())
                 );
             }
+            String cgToken = PhoneManager.createSession(guildId, cg.phoneNumber);
+            String cgLink  = webUrl() + "/citygram?token=" + cgToken;
             event.replyEmbeds(EmbedFactory.build("📸 Citygram",
                 "✅ **Citygram wurde aktiviert!**\n\n" +
-                "**Rufnummer:** `" + cg.phoneNumber + "`\n" +
                 "**Safe-PIN:** `" + cg.safePin + "`\n\n" +
-                "Logge dich auf der Webseite mit **Rufnummer + Safe-PIN** ein.\n" +
                 "⚠️ **Gebe deine Safe-PIN niemals weiter!**"))
+                .addComponents(ActionRow.of(Button.link(cgLink, "📸 Citygram öffnen")))
                 .setEphemeral(true).queue();
             return;
         }

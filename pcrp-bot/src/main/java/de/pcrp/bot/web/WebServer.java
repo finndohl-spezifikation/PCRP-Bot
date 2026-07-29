@@ -107,6 +107,7 @@ public class WebServer {
             r.addProperty("service", "citygram");
             ctx.contentType("application/json").result(WebServer.GSON.toJson(r));
         });
+        app.post("/api/citygram/pin-verify",                     ctx -> CityCitygramHandler.handlePinVerify(ctx));
         app.post("/api/citygram/auth",                           ctx -> CityCitygramHandler.handleAuth(ctx));
         app.get( "/api/citygram/me",                             ctx -> CityCitygramHandler.handleGetMe(ctx));
         app.put( "/api/citygram/profile",                        ctx -> CityCitygramHandler.handleUpdateProfile(ctx));
@@ -136,6 +137,7 @@ public class WebServer {
 
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
+        app.post("/api/city-chat/pin-verify",           ctx -> CityChatHandler.handlePinVerify(ctx));
         app.post("/api/city-chat/auth",                ctx -> CityChatHandler.handleAuth(ctx));
         app.get( "/api/city-chat/me",                  ctx -> CityChatHandler.handleGetMe(ctx));
         app.put( "/api/city-chat/me",                  ctx -> CityChatHandler.handleUpdateMe(ctx));

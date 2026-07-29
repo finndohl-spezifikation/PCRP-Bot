@@ -63,6 +63,46 @@ public final class CityChatHandler {
         ctx.json(res.toString());
     }
 
+    // ── PIN-Verify (Token + Safe-PIN, kein phoneNumber) ──────────────────────
+
+    public static void handlePinVerify(Context ctx) {
+        JsonObject body = parseBody(ctx);
+        if (body == null) { ctx.status(400).json(err("Ungültiger Body")); return; }
+
+        String token  = str(body, "token");
+        String safePin = str(body, "safePin");
+        if (token == null || safePin == null) { ctx.status(400).json(err("token und safePin erforderlich")); return; }
+
+        // Session anhand des Tokens validieren
+        PhoneManager.Contract c = PhoneManager.validateSession(token);
+        if (c == null) { ctx.status(401).json(err("Ungültiger oder abgelaufener Token")); return; }
+
+        String guildId = guildId();
+        PhoneManager.Contract contract = PhoneManager.getContractByNumber(guildId, c.phoneNumber);
+        if (contract == null) { ctx.status(404).json(err("Vertrag nicht gefunden")); return; }
+
+        // Safe-PIN prüfen
+        if (!contract.safePin.equals(safePin)) {
+            ctx.status(401).json(err("Falsche Safe-PIN"));
+            return;
+        }
+
+        // Web-Ban prüfen
+        String webBan = DataStore.readString("web-ban-" + guildId + "-" + contract.userId);
+        if (webBan != null && !webBan.isBlank()) {
+            ctx.status(403).json("{\"error\":\"WEB_BANNED\",\"banned\":true}");
+            return;
+        }
+
+        // Neuen Session-Token ausstellen (gültig für 1 Jahr)
+        String newToken = PhoneManager.createSession(guildId, contract.phoneNumber);
+        JsonObject res = new JsonObject();
+        res.addProperty("token",       newToken);
+        res.addProperty("phoneNumber", contract.phoneNumber);
+        res.addProperty("displayName", contract.displayName());
+        ctx.json(res.toString());
+    }
+
     // ── Profil ────────────────────────────────────────────────────────────────
 
     public static void handleGetMe(Context ctx) {
