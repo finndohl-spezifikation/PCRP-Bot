@@ -2268,19 +2268,19 @@ public class CommandListener extends ListenerAdapter {
             event.getUser().getId(), event.getUser().getName());
         int total = TeamWarnStore.addWarn(guildId, userId, warn);
 
-        // Log-Embed in den Team-Warn-Kanal (PCRP-Orange).
+        // Log-Embed in den Team-Warn-Kanal (Rot — ausnahmsweise, da Team-Warns
+        // keine Auto-Timeouts auslösen, aber visuell als schwerwiegend markiert sind).
         TextChannel warnCh = event.getGuild().getTextChannelById(LoggingConfig.TEAM_WARN_CHANNEL_ID);
         if (warnCh != null) {
             warnCh.sendMessageEmbeds(new EmbedBuilder()
-                .setColor(new Color(0xCC5500))
+                .setColor(Color.RED)
                 .setTitle("🛡️ Team-Verwarnung — " + target.getUser().getName())
                 .setDescription(
                     "**Verwarnung " + total + "/3**\n\n" +
                     "**Mitglied:** " + target.getAsMention() + "\n" +
                     "**Grund:** " + grund + "\n" +
                     "**Konsequenz:** " + konsequenz + "\n" +
-                    "**Ausgesprochen von:** " + event.getUser().getAsMention() + "\n\n" +
-                    "_Es findet **kein automatischer Timeout** statt — Team-Verwarnungen dienen nur zur Dokumentation._")
+                    "**Ausgesprochen von:** " + event.getUser().getAsMention())
                 .build()).queue();
         }
 
