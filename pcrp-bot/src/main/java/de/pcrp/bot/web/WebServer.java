@@ -1698,31 +1698,29 @@ public class WebServer {
             "body{min-height:100vh;display:flex;align-items:center;justify-content:center;" +
             "background:linear-gradient(135deg,#0a0a0a 0%,#0f0f1a 100%);" +
             "font-family:'Courier New',monospace;padding:16px;}" +
-            ".card{width:100%;max-width:680px;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
+            ".card{width:100%;max-width:380px;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
             "border:3px solid #c8a048;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(200,160,72,0.3);}" +
             ".header{background:linear-gradient(90deg,#0a1c38,#0d2550);border-bottom:3px solid #c8a048;" +
             "padding:14px 20px;display:flex;align-items:center;gap:16px;}" +
             ".header-text{flex:1;}" +
             ".header-text .state{display:block;color:#c8a048;font-size:1.3rem;font-weight:700;letter-spacing:4px;}" +
             ".header-text .city{display:block;color:#a8c4e0;font-size:0.75rem;letter-spacing:2px;margin-top:2px;}" +
-            ".body{display:flex;flex-wrap:wrap;}" +
-            ".photo-col{width:180px;min-height:220px;background:#06111f;display:flex;" +
-            "align-items:center;justify-content:center;border-right:2px solid #c8a04840;padding:16px;flex-shrink:0;}" +
-            ".photo-col img{width:148px;height:185px;object-fit:cover;object-position:top center;" +
+            ".body{display:flex;flex-direction:column;}" +
+            ".photo-col{width:100%;min-height:auto;background:#06111f;display:flex;" +
+            "align-items:center;justify-content:center;border-bottom:2px solid #c8a04840;padding:20px;}" +
+            ".photo-col img{width:140px;height:175px;object-fit:cover;object-position:top center;" +
             "border:2px solid #c8a048;border-radius:4px;display:block;}" +
-            ".no-photo{width:148px;height:185px;display:flex;align-items:center;justify-content:center;" +
+            ".no-photo{width:140px;height:175px;display:flex;align-items:center;justify-content:center;" +
             "background:#0a1825;border:2px solid #c8a04860;border-radius:4px;color:#445;font-size:0.7rem;text-align:center;}" +
-            ".data-col{flex:1;min-width:200px;padding:20px;}" +
-            ".id-num{color:#c8a048;font-size:0.7rem;letter-spacing:2px;margin-bottom:14px;}" +
+            ".data-col{width:100%;padding:20px;}" +
+            ".id-num{color:#c8a048;font-size:0.7rem;letter-spacing:2px;margin-bottom:14px;text-align:center;}" +
             ".field{margin-bottom:12px;}.field label{display:block;color:#6a8fb0;font-size:0.6rem;" +
             "letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
             ".field .val{color:#e8e8e8;font-size:0.95rem;font-weight:700;letter-spacing:1px;}" +
-            ".fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}" +
+            ".fields-grid{display:grid;grid-template-columns:1fr;gap:6px 0;}" +
             ".footer{background:#06111f;border-top:2px solid #c8a04840;padding:10px 20px;" +
             "display:flex;justify-content:center;align-items:center;}" +
             ".footer .seal{color:#c8a04880;font-size:0.65rem;letter-spacing:1px;text-align:center;}" +
-            "@media(max-width:480px){.photo-col{width:100%;border-right:none;border-bottom:2px solid #c8a04840;min-height:auto;}" +
-            ".fields-grid{grid-template-columns:1fr;}}" +
             "</style></head><body>" +
             "<div class=\"card\"><div class=\"header\">" +
             "<div class=\"header-text\"><span class=\"state\">CALIFORNIA</span>" +
@@ -1922,7 +1920,7 @@ public class WebServer {
         log.info("[Ausweis] Gespeichert für {} / {} durch {}.", userId, guildId, a.erstelltVon);
         JsonObject r = new JsonObject();
         r.addProperty("ok", true);
-        r.addProperty("viewUrl", "/ausweis/" + userId + "?orient=landscape");
+        r.addProperty("viewUrl", "/ausweis/" + userId);
         ctx.contentType("application/json").result(GSON.toJson(r));
     }
 
@@ -2315,7 +2313,7 @@ public class WebServer {
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
             "body{min-height:100vh;background:#e8d9bf;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Courier New',Consolas,monospace;}" +
-            ".id{width:100%;max-width:640px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
+            ".id{width:100%;max-width:380px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
             ".id-hdr{background:#1c4587;color:#fff;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #ffd641;}" +
             ".id-hdr .left{font-size:.66rem;letter-spacing:1.5px;line-height:1.35;}" +
             ".id-hdr .left b{font-size:.85rem;letter-spacing:3px;display:block;}" +
@@ -2323,25 +2321,25 @@ public class WebServer {
             ".id-title{text-align:center;padding:5px 0;background:#fff8e0;border-bottom:1.5px solid #1c4587;}" +
             ".id-title h1{color:#8b1a1a;font-size:1.25rem;letter-spacing:6px;margin:0;font-weight:900;}" +
             ".id-title h2{color:#1c4587;font-size:.6rem;letter-spacing:3px;margin:2px 0 0 0;font-weight:700;}" +
-            ".id-body{display:flex;flex-wrap:wrap;padding:10px 14px;}" +
-            ".id-photo{width:160px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;}" +
-            ".id-photo img{width:100%;height:200px;object-fit:cover;object-position:top center;display:block;}" +
+            ".id-body{display:flex;flex-direction:column;padding:10px 14px;}" +
+            ".id-photo-wrap{display:flex;flex-direction:column;align-items:center;border-bottom:1px solid #1c4587;padding-bottom:8px;margin-bottom:10px;}" +
+            ".id-photo{width:140px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;margin:0 auto;}" +
+            ".id-photo img{width:100%;height:175px;object-fit:cover;object-position:top center;display:block;}" +
             ".id-photo .dd{position:absolute;top:2px;left:2px;background:#8b1a1a;color:#fff;font-size:.5rem;letter-spacing:1px;padding:1px 4px;border-radius:0 2px 0 0;font-weight:700;}" +
-            ".id-sig{margin-top:6px;border-top:1px solid #444;height:30px;position:relative;background:#fff8e0;}" +
+            ".id-sig{margin-top:8px;border-top:1px solid #444;width:100%;max-width:240px;height:30px;position:relative;background:#fff8e0;}" +
             ".id-sig span{position:absolute;bottom:2px;left:6px;font-size:.65rem;font-style:italic;color:#1c4587;}" +
-            ".id-data{flex:1;min-width:240px;padding-left:18px;}" +
-            ".id-data .row{display:flex;gap:14px;margin-bottom:8px;}" +
-            ".id-data .field{display:flex;flex-direction:column;flex:1;}" +
+            ".id-data{width:100%;padding-left:0;}" +
+            ".id-data .row{display:block;margin-bottom:8px;}" +
+            ".id-data .field{display:flex;flex-direction:column;width:100%;margin-bottom:6px;}" +
             ".id-data .label{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;}" +
             ".id-data .val{font-size:1rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;letter-spacing:.5px;}" +
             ".id-data .addr{font-size:.85rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;min-height:24px;}" +
-            "@media(max-width:560px){.id-body{flex-direction:column;}.id-data{padding-left:0;margin-top:14px;}}" +
             "</style></head><body>" +
             "<div class='id'>" +
             "<div class='id-hdr'><div class='left'><b>STATE OF CALIFORNIA</b>DEPARTMENT OF MOTOR VEHICLES · DMV</div><div class='star' title='REAL ID'>\u2605</div></div>" +
             "<div class='id-title'><h1>IDENTIFICATION CARD</h1><h2>ID " + idNum + "</h2></div>" +
             "<div class='id-body'>" +
-            "<div><div class='id-photo'>" + photoImg +
+            "<div class='id-photo-wrap'><div class='id-photo'>" + photoImg +
             "<div class='dd'>DD</div></div>" +
             "<div class='id-sig'><span>" + vorname + " " + nachname + "</span></div></div>" +
             "<div class='id-data'>" +
@@ -2380,7 +2378,7 @@ public class WebServer {
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
             "body{min-height:100vh;background:#e8d9bf;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Courier New',Consolas,monospace;}" +
-            ".dl{width:100%;max-width:640px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
+            ".dl{width:100%;max-width:380px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
             ".dl-hdr{background:#1c4587;color:#fff;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #ffd641;}" +
             ".dl-hdr .left{font-size:.66rem;letter-spacing:1.5px;line-height:1.35;}" +
             ".dl-hdr .left b{font-size:.85rem;letter-spacing:3px;display:block;}" +
@@ -2388,15 +2386,16 @@ public class WebServer {
             ".dl-title{text-align:center;padding:5px 0;background:#fff8e0;border-bottom:1.5px solid #1c4587;}" +
             ".dl-title h1{color:#8b1a1a;font-size:1.25rem;letter-spacing:6px;margin:0;font-weight:900;}" +
             ".dl-title h2{color:#1c4587;font-size:.6rem;letter-spacing:3px;margin:2px 0 0 0;font-weight:700;}" +
-            ".dl-body{display:flex;flex-wrap:wrap;padding:10px 14px;}" +
-            ".dl-photo{width:160px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;}" +
-            ".dl-photo img{width:100%;height:200px;object-fit:cover;object-position:top center;display:block;}" +
+            ".dl-body{display:flex;flex-direction:column;padding:10px 14px;}" +
+            ".dl-photo-wrap{display:flex;flex-direction:column;align-items:center;border-bottom:1px solid #1c4587;padding-bottom:8px;margin-bottom:10px;}" +
+            ".dl-photo{width:140px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;margin:0 auto;}" +
+            ".dl-photo img{width:100%;height:175px;object-fit:cover;object-position:top center;display:block;}" +
             ".dl-photo .dd{position:absolute;top:2px;right:2px;background:#8b1a1a;color:#fff;font-size:.5rem;letter-spacing:1px;padding:1px 4px;border-radius:0 0 0 2px;font-weight:700;}" +
-            ".dl-sig{margin-top:6px;border-top:1px solid #444;height:30px;position:relative;background:#fff8e0;}" +
+            ".dl-sig{margin-top:8px;border-top:1px solid #444;width:100%;max-width:240px;height:30px;position:relative;background:#fff8e0;}" +
             ".dl-sig span{position:absolute;bottom:2px;left:6px;font-size:.65rem;font-style:italic;color:#1c4587;}" +
-            ".dl-data{flex:1;min-width:240px;padding-left:18px;}" +
-            ".dl-data .row{display:flex;gap:14px;margin-bottom:8px;}" +
-            ".dl-data .field{display:flex;flex-direction:column;flex:1;}" +
+            ".dl-data{width:100%;padding-left:0;}" +
+            ".dl-data .row{display:block;margin-bottom:8px;}" +
+            ".dl-data .field{display:flex;flex-direction:column;width:100%;margin-bottom:6px;}" +
             ".dl-data .label{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;}" +
             ".dl-data .val{font-size:1rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;letter-spacing:.5px;}" +
             ".dl-data .addr{font-size:.85rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;min-height:24px;}" +
@@ -2405,14 +2404,14 @@ public class WebServer {
             ".dl-classes .val{font-size:1.4rem;font-weight:900;letter-spacing:5px;color:#1a1a1a;}" +
             ".dl-foot{background:#1c4587;color:#fff;padding:6px 14px;text-align:center;font-size:.55rem;letter-spacing:1.5px;border-top:3px solid #ffd641;}" +
             ".dl-foot .legal{opacity:.85;font-size:.5rem;margin-top:2px;letter-spacing:2px;}" +
-            "@media(max-width:560px){.dl-body{flex-direction:column;}.dl-data{padding-left:0;margin-top:14px;}}" +
+            "" +
             "</style></head><body>" +
             "<div class='dl'>" +
             "<div class='dl-hdr'><div class='left'><b>STATE OF CALIFORNIA</b>DEPARTMENT OF MOTOR VEHICLES · DMV</div><div class='star' title='REAL ID'>\u2605</div></div>" +
             "<div class='dl-title'><h1>DRIVER LICENSE</h1><h2>DL " + esc(dl) + " · CLASS " + esc(String.join("/", f.klassen != null ? f.klassen : List.of("C"))) + "</h2></div>" +
             "<div class='dl-body'>" +
-            "<div><div class='dl-photo'>" +
-            "<img src='/api/license-photo/" + esc(userId) + "' onerror=\"this.outerHTML='<div style=&quot;height:200px;display:flex;align-items:center;justify-content:center;color:#888;font-size:.7rem&quot;>Kein Foto</div>'\">" +
+            "<div class='dl-photo-wrap'><div class='dl-photo'>" +
+            "<img src='/api/license-photo/" + esc(userId) + "' onerror=\"this.outerHTML='<div style=&quot;height:175px;display:flex;align-items:center;justify-content:center;color:#888;font-size:.7rem&quot;>Kein Foto</div>'\">" +
             "<div class='dd'>DD</div></div>" +
             "<div class='dl-sig'><span>" + vorname + " " + nachname + "</span></div></div>" +
             "<div class='dl-data'>" +
