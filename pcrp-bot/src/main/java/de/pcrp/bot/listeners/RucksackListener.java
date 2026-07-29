@@ -5,10 +5,12 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -27,6 +29,11 @@ public class RucksackListener extends ListenerAdapter {
     public void onButtonInteraction(ButtonInteractionEvent event) {
         String id = event.getComponentId();
 
+        if (id.startsWith("rucksack-unhide-prompt:")) {
+            handleUnhidePrompt(event);
+            return;
+        }
+
         switch (id) {
             case "rucksack-open"     -> handleOwnRucksack(event);
             case "rucksack-other"    -> handleOtherRucksackPrompt(event);
@@ -34,7 +41,7 @@ public class RucksackListener extends ListenerAdapter {
         }
     }
 
-    /** Eigenen Rucksack — ephemeral mit "Item Übergeben"-Button. */
+    /** Eigenen Rucksack — ephemeral mit "Item Übergeben"-Button und optional "Aus Versteck holen". */
     private void handleOwnRucksack(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
         String guildId = event.getGuild().getId();
@@ -43,10 +50,57 @@ public class RucksackListener extends ListenerAdapter {
             ? event.getMember().getEffectiveName()
             : event.getUser().getName();
 
-        event.replyEmbeds(InventoryManager.buildEmbed(guildId, userId, name))
-            .addActionRow(Button.primary("rucksack-transfer", "📦 Item Übergeben"))
+        var hiddenItems = InventoryManager.getHiddenItems(guildId, userId);
+        ActionRow row;
+        if (hiddenItems.isEmpty()) {
+            row = ActionRow.of(Button.primary("rucksack-transfer", "📦 Item Übergeben"));
+        } else {
+            row = ActionRow.of(
+                Button.primary("rucksack-transfer", "📦 Item Übergeben"),
+                Button.secondary("rucksack-unhide-prompt:" + userId,
+                    "🗝️ Aus Versteck holen (" + hiddenItems.size() + ")"));
+        }
+
+        event.replyEmbeds(InventoryManager.buildEmbedWithHidden(guildId, userId, name))
+            .addComponents(row)
             .setEphemeral(true)
             .queue();
+    }
+
+    /** "Aus Versteck holen" — öffnet eine Auswahl mit den aktuell versteckten Items. */
+    private void handleUnhidePrompt(ButtonInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String guildId = event.getGuild().getId();
+        String[] parts = event.getComponentId().split(":", 2);
+        String userId  = parts.length > 1 ? parts[1] : event.getUser().getId();
+
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler",
+                "Du kannst nur deine eigenen Items aus dem Versteck holen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        List<InventoryManager.Item> hidden = InventoryManager.getHiddenItems(guildId, userId);
+        if (hidden.isEmpty()) {
+            event.replyEmbeds(EmbedFactory.build("🗝️ Kein Versteck",
+                "Du hast aktuell keine versteckten Items."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        StringSelectMenu.Builder menu = StringSelectMenu.create("rucksack-unhide-select:" + userId)
+            .setPlaceholder("Items auswählen, die wieder sichtbar sein sollen…")
+            .setMinValues(1)
+            .setMaxValues(Math.min(hidden.size(), 25));
+        for (InventoryManager.Item it : hidden) {
+            menu.addOption(it.name + " × " + it.quantity, it.name);
+        }
+
+        event.replyEmbeds(EmbedFactory.build("🗝️ Aus Versteck holen",
+            "Wähle unten die Items, die wieder im Inventar normal erscheinen sollen."))
+            .addActionRow(menu.build())
+            .setEphemeral(true).queue();
     }
 
     /** "Anderen Rucksack Öffnen" → User-Suchleiste (EntitySelectMenu). */
@@ -90,6 +144,44 @@ public class RucksackListener extends ListenerAdapter {
         } else if (id.equals("rucksack-transfer-select")) {
             handleTransferItemsPrompt(event);
         }
+    }
+
+    // ── String-Select (Aus-Versteck-Auswahl) ───────────────────────────────────
+
+    @Override
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
+        String id = event.getComponentId();
+        if (id.startsWith("rucksack-unhide-select:")) {
+            handleUnhideExecute(event);
+        }
+        // IDs der CommandListener-Hierachie (lizenzen/verbrauchen/verstecken) laufen separat
+    }
+
+    /** Auswahl-Ende: setze hidden=false für die gewählten Items, KEIN Info-Embed im Kanal. */
+    private void handleUnhideExecute(StringSelectInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String guildId = event.getGuild().getId();
+        String[] parts = event.getComponentId().split(":", 2);
+        String userId  = parts.length > 1 ? parts[1] : event.getUser().getId();
+
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler",
+                "Du kannst nur deine eigenen Items aus dem Versteck holen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        List<String> picked = event.getValues();
+        StringBuilder sb = new StringBuilder();
+        for (String name : picked) {
+            InventoryManager.setHidden(guildId, userId, name, false);
+            sb.append("• **").append(name).append("**\n");
+        }
+
+        event.replyEmbeds(EmbedFactory.build(
+            "🗝️ Wieder im Inventar",
+            "Folgende Items sind wieder normal sichtbar:\n\n" + sb))
+            .setEphemeral(true).queue();
     }
 
     /** Nach Spieler-Auswahl: Fremden Rucksack anzeigen. */

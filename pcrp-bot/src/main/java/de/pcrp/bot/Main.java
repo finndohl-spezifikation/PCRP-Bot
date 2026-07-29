@@ -638,9 +638,39 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
-                Commands.slash("ausweis", "Zeigt deinen Personalausweis (nur im Ausweis-Kanal)")
-                    .addOptions(new OptionData(OptionType.STRING, "nutzer",
-                        "Discord-Nutzername für fremden Ausweis (optional)", false))
+                Commands.slash("lizenzen", "Zeigt Lizenzen (Ausweis / Führerschein). Nur im Ausweis-Kanal.")
+                    .addOption(OptionType.USER, "wer",
+                        "Spieler (zeigt deine Lizenzen wenn leer)", false)
+                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
+
+                Commands.slash("ausweis-erstellen", "Erstellt einen Personalausweis für einen Bewohner")
+                    .addOption(OptionType.USER, "wer",
+                        "Bewohner (muss Legaler Bewohner sein)", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("ausweis-löschen", "Löscht den Personalausweis (Inventar/Geld/Rollen bleiben)")
+                    .addOptions(new OptionData(OptionType.STRING, "wer",
+                        "Discord-Nutzername (leer = eigener Ausweis)", false, true))
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("führerschein-erstellen", "Erstellt einen Führerschein für einen Bewohner")
+                    .addOption(OptionType.USER, "wer",
+                        "Bewohner", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("führerschein-löschen", "Löscht einen Führerschein")
+                    .addOptions(new OptionData(OptionType.STRING, "wer",
+                        "Discord-Nutzername (leer = eigener Führerschein)", false, true))
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("verbrauchen", "Items aus deinem Inventar verbrauchen (nur im Inventar-Aktionen-Kanal)")
+                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
+
+                Commands.slash("verstecken", "Items im Inventar verstecken (nur im Inventar-Aktionen-Kanal)")
                     .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
 
                 Commands.slash("abstimmung", "Erstellt eine Abstimmung im Abstimmungs-Kanal")

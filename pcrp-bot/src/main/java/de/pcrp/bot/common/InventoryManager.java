@@ -17,8 +17,9 @@ public final class InventoryManager {
     // ── Datenklasse ───────────────────────────────────────────────────────────
 
     public static class Item {
-        public String name;
-        public int    quantity;
+        public String  name;
+        public int     quantity;
+        public boolean hidden;   // Optional — Legacy-Daten ohne Feld werden als sichtbar behandelt
         public Item(String name, int quantity) { this.name = name; this.quantity = quantity; }
     }
 
@@ -54,10 +55,14 @@ public final class InventoryManager {
             JsonObject o = new JsonObject();
             o.addProperty("name",     it.name);
             o.addProperty("quantity", it.quantity);
+            o.addProperty("hidden",   it.hidden);
             arr.add(o);
         }
         DataStore.writeString(key(guildId, userId), GSON.toJson(arr));
     }
+
+    private static final java.util.stream.Collector<Item, ?, List<Item>> TO_LIST =
+        java.util.stream.Collectors.toList();
 
     // ── Operationen ───────────────────────────────────────────────────────────
 
@@ -164,6 +169,85 @@ public final class InventoryManager {
             eb.setDescription(sb.toString());
         }
         return eb.build();
+    }
+
+    /**
+     * Erweiterte Embed-Variante: versteckte Items werden durchgestrichen dargestellt
+     * mit Hinweis „⬇ Item Versteckt". Der bestehende {@link #buildEmbed} bleibt unverändert.
+     */
+    public static MessageEmbed buildEmbedWithHidden(String guildId, String userId, String displayName) {
+        List<Item> inv = getInventory(guildId, userId);
+        inv.removeIf(it -> nameMatches(it.name, "Bargeld"));
+
+        EmbedBuilder eb = EmbedFactory.create()
+            .setTitle("🎒 Rucksack — " + displayName);
+
+        List<Item> visible = new ArrayList<>();
+        List<Item> hidden  = new ArrayList<>();
+        for (Item it : inv) {
+            (it.hidden ? hidden : visible).add(it);
+        }
+
+        if (visible.isEmpty() && hidden.isEmpty()) {
+            eb.setDescription("Dein Rucksack ist leer.");
+            return eb.build();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        if (visible.isEmpty()) {
+            sb.append("_Keine sichtbaren Items._\n");
+        } else {
+            sb.append("**Sichtbar:**\n");
+            for (Item it : visible) {
+                sb.append("• **").append(it.name).append("** × ").append(it.quantity).append("\n");
+            }
+        }
+
+        if (!hidden.isEmpty()) {
+            sb.append("\n**Versteckt:**\n");
+            for (Item it : hidden) {
+                sb.append("• ~~").append(it.name).append("~~ × ").append(it.quantity).append("\n");
+                sb.append("  ⬇ Item Versteckt\n");
+            }
+        }
+
+        eb.setDescription(sb.toString());
+        return eb.build();
+    }
+
+    /**
+     * Liefert nur die aktuell versteckten Items eines Spielers (mit quantity > 0).
+     * Bargeld wird wie in {@link #buildEmbed} herausgefiltert.
+     */
+    public static List<Item> getHiddenItems(String guildId, String userId) {
+        return getInventory(guildId, userId).stream()
+            .filter(i -> i.hidden && i.quantity > 0 && !nameMatches(i.name, "Bargeld"))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Liefert nur die aktuell sichtbaren Items (Kandidaten für /verstecken).
+     */
+    public static List<Item> getVisibleItems(String guildId, String userId) {
+        return getInventory(guildId, userId).stream()
+            .filter(i -> !i.hidden && i.quantity > 0 && !nameMatches(i.name, "Bargeld"))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Setzt das hidden-Flag für alle Items mit passendem Namen auf den gewünschten Wert.
+     * Mehrere Items mit gleichem Namen werden alle gleichzeitig behandelt (idempotent).
+     */
+    public static synchronized void setHidden(String guildId, String userId, String itemName, boolean hidden) {
+        List<Item> inv = getInventory(guildId, userId);
+        boolean changed = false;
+        for (Item it : inv) {
+            if (nameMatches(it.name, itemName)) {
+                it.hidden = hidden;
+                changed = true;
+            }
+        }
+        if (changed) saveInventory(guildId, userId, inv);
     }
 
     private InventoryManager() {}

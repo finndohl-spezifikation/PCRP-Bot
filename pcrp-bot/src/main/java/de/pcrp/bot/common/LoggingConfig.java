@@ -128,6 +128,9 @@ public final class LoggingConfig {
 
     public static final long RUBBELLOS_CHANNEL_ID   = 1529636565347995719L;
 
+    /** Inventar-Aktionen-Kanal (/verbrauchen, /verstecken). */
+    public static final long INVENTORY_ACTIONS_CHANNEL_ID = 1529636557038817361L;
+
     /** Handy-Zentrale Panel-Kanal. */
     public static final long HANDY_ZENTRALE_CHANNEL_ID = 1529636579826729140L;
 

@@ -7,12 +7,19 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.*;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +32,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +57,13 @@ public class CommandListener extends ListenerAdapter {
             case "bannen"           -> handleBannen(event);
             case "entbannen"        -> handleEntbannen(event);
             case "timeout"          -> handleTimeout(event);
-            case "ausweis"          -> handleAusweis(event);
+            case "lizenzen"               -> handleLizenzen(event);
+            case "ausweis-erstellen"      -> handleAusweisErstellen(event);
+            case "ausweis-löschen"        -> handleAusweisLoeschen(event);
+            case "führerschein-erstellen" -> handleFuehrerscheinErstellen(event);
+            case "führerschein-löschen"   -> handleFuehrerscheinLoeschen(event);
+            case "verbrauchen"            -> handleVerbrauchen(event);
+            case "verstecken"             -> handleVerstecken(event);
             case "abstimmung"       -> handleAbstimmung(event);
             case "aktivitätscheck"  -> handleAktivitaetscheck(event);
             case "event"               -> handleEvent(event);
@@ -227,6 +241,22 @@ public class CommandListener extends ListenerAdapter {
                         .toList();
                     event.replyChoices(choices).queue(null, err -> {});
                 }, err -> event.replyChoices().queue(null, e -> {}));
+            }
+            case "ausweis-löschen", "führerschein-löschen" -> {
+                if (!"wer".equals(event.getFocusedOption().getName())) return;
+                String typed = event.getFocusedOption().getValue().toLowerCase();
+                if (BotContext.getGuild() == null) { event.replyChoices().queue(null, e -> {}); return; }
+                List<Command.Choice> choices = BotContext.getGuild().getMembers().stream()
+                    .filter(m -> !m.getUser().isBot())
+                    .filter(m -> m.getUser().getName().toLowerCase().contains(typed)
+                              || m.getEffectiveName().toLowerCase().contains(typed)
+                              || m.getUser().getId().contains(typed))
+                    .limit(25)
+                    .map(m -> new Command.Choice(
+                        m.getEffectiveName() + " (" + m.getUser().getId() + ")",
+                        m.getUser().getId()))
+                    .collect(Collectors.toList());
+                event.replyChoices(choices).queue(null, e -> {});
             }
         }
     }
@@ -510,57 +540,541 @@ public class CommandListener extends ListenerAdapter {
     }
 
     // ════════════════════════════════════════════════════════════
-    //  /ausweis
+    //  /lizenzen — Dropdown Ausweis / Führerschein zeigen
     // ════════════════════════════════════════════════════════════
 
-    private void handleAusweis(SlashCommandInteractionEvent event) {
+    private void handleLizenzen(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
 
-        Member executor = event.getMember();
-        if (executor == null) return;
+        // Channel-Restriction: nur im Ausweis-Kanal
+        if (event.getChannel().getIdLong() != RoleConfig.AUSWEIS_CHANNEL_ID) {
+            event.replyEmbeds(embed("Falscher Kanal",
+                "`/lizenzen` ist nur im Ausweis-Kanal erlaubt."))
+                .setEphemeral(true).queue();
+            return;
+        }
 
-        // Optionaler Fremd-Ausweis
-        String targetUsername = event.getOption("nutzer", OptionMapping::getAsString);
-        Member target;
+        // Ziel bestimmen (Executor oder @wer)
+        User targetUser;
+        Member targetMember = event.getOption("wer", OptionMapping::getAsMember);
+        if (targetMember != null) {
+            targetUser = targetMember.getUser();
+        } else {
+            targetUser = event.getUser();
+        }
 
-        if (targetUsername != null && !targetUsername.isBlank()) {
-            target = BotContext.findMemberByUsername(targetUsername);
-            if (target == null) {
+        String displayName = targetMember != null
+            ? targetMember.getEffectiveName()
+            : targetUser.getName();
+
+        StringSelectMenu menu = StringSelectMenu.create("lizenzen-pick:" + targetUser.getId())
+            .setPlaceholder("Welche Lizenz möchtest du anzeigen?")
+            .addOption("🪪 Ausweis zeigen",        "ausweis",
+                "Personalausweis von " + displayName,
+                Emoji.fromUnicode("🪪"))
+            .addOption("🚗 Führerschein zeigen",  "fuehrerschein",
+                "Führerschein von " + displayName,
+                Emoji.fromUnicode("🚗"))
+            .build();
+
+        event.replyEmbeds(EmbedFactory.create()
+            .setTitle("📜 Lizenzen — " + displayName)
+            .setDescription(
+                "Wähle unten aus, welche Lizenz du anzeigen möchtest.\n\n" +
+                "ℹ️ Du kannst mit **`wer: @nutzer`** auch Lizenzen anderer Mitglieder abrufen.")
+            .setThumbnail(targetUser.getEffectiveAvatarUrl())
+            .build())
+            .addActionRow(menu)
+            .setEphemeral(true)
+            .queue();
+    }
+
+    /** Verarbeitet die Auswahl aus dem /lizenzen-Dropdown. */
+    private void handleLizenzenPick(StringSelectInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String guildId = event.getGuild().getId();
+        String[] parts = event.getComponentId().split(":", 2);
+        if (parts.length < 2) return;
+        String targetUserId = parts[1];
+
+        // Cached Member bevorzugen, KEIN blockierender .complete()-Aufruf.
+        Member targetMember = event.getGuild().getMemberById(targetUserId);
+        String displayName = targetMember != null
+            ? targetMember.getEffectiveName()
+            : "<@" + targetUserId + ">";
+
+        String choice = event.getValues().get(0);
+        event.deferReply(true).queue();
+
+        if ("ausweis".equals(choice)) {
+            Optional<DocumentsManager.Ausweis> opt = DocumentsManager.getAusweis(guildId, targetUserId);
+            if (opt.isEmpty()) {
+                event.getHook().sendMessageEmbeds(EmbedFactory.build(
+                    "Kein Ausweis hinterlegt",
+                    "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Ausweis."))
+                    .setEphemeral(true).queue();
+                return;
+            }
+            DocumentsManager.Ausweis a = opt.get();
+            String htmlName = a.vorname + " " + a.nachname;
+            String info =
+                "**" + htmlName + "**\n" +
+                "Geburtsdatum: " + (a.geburtsdatum.isBlank() ? "—" : a.geburtsdatum) + "\n" +
+                "Staatsangehörigkeit: " + (a.staatsang.isBlank() ? "—" : a.staatsang) + "\n" +
+                "Wohnort: " + (a.wohnort.isBlank() ? (a.adresse.isBlank() ? "—" : a.adresse) : a.wohnort) + "\n" +
+                "Ausweis-Nr.: " + (a.ausweisNr.isBlank() ? "—" : a.ausweisNr) + "\n" +
+                "Erstellt von: " + (a.erstelltVon.isBlank() ? "—" : a.erstelltVon);
+            var eb = EmbedFactory.create()
+                .setTitle("🪪 Personalausweis — " + displayName)
+                .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
+            if (targetMember != null) {
+                eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
+            }
+            event.getHook().sendMessageEmbeds(eb.build())
+                .addActionRow(Button.link(
+                    DocumentsManager.ausweisViewUrl(targetUserId),
+                    "🪪 Ausweis im Browser öffnen"))
+                .setEphemeral(true).queue();
+        } else if ("fuehrerschein".equals(choice)) {
+            Optional<DocumentsManager.Fuehrerschein> opt =
+                DocumentsManager.getFuehrerschein(guildId, targetUserId);
+            if (opt.isEmpty()) {
+                event.getHook().sendMessageEmbeds(EmbedFactory.build(
+                    "Kein Führerschein hinterlegt",
+                    "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Führerschein."))
+                    .setEphemeral(true).queue();
+                return;
+            }
+            DocumentsManager.Fuehrerschein f = opt.get();
+            String klassen = (f.klassen == null || f.klassen.isEmpty())
+                ? "—"
+                : String.join(", ", f.klassen);
+            String info =
+                "**" + f.vorname + " " + f.nachname + "**\n" +
+                "Geburtsdatum: " + (f.geburtsdatum.isBlank() ? "—" : f.geburtsdatum) + "\n" +
+                "Klassen: " + klassen + "\n" +
+                "Gültig bis: <t:" + f.gueltigBis + ":d>\n" +
+                "Erstellt von: " + (f.erstelltVon.isBlank() ? "—" : f.erstelltVon);
+            var eb = EmbedFactory.create()
+                .setTitle("🚗 Führerschein — " + displayName)
+                .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
+            if (targetMember != null) {
+                eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
+            }
+            event.getHook().sendMessageEmbeds(eb.build())
+                .addActionRow(Button.link(
+                    DocumentsManager.fuehrerscheinViewUrl(targetUserId),
+                    "🚗 Führerschein im Browser öffnen"))
+                .setEphemeral(true).queue();
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /ausweis-erstellen — DM an Executor mit Web-Form-Link
+    // ════════════════════════════════════════════════════════════
+
+    private void handleAusweisErstellen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target = event.getOption("wer", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        // Rolle prüfen: nur Legaler Bewohner
+        boolean isLegalResident = target.getRoles().stream()
+            .anyMatch(r -> r.getIdLong() == RoleConfig.LEGAL_RESIDENT_ROLE_ID);
+        if (!isLegalResident) {
+            event.replyEmbeds(embed("Fehler",
+                target.getAsMention() + " hat **nicht** die Rolle **Legaler Bewohner** " +
+                "(<@&" + RoleConfig.LEGAL_RESIDENT_ROLE_ID + ">). Ausweis-Erstellung nur " +
+                "nach legaler Einreise möglich."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String guildId   = event.getGuild().getId();
+        String createUrl = DocumentsManager.ausweisCreateUrl(guildId, target.getId());
+
+        // DM-Öffnung ist async — daher deferReply VOR .queue(...)
+        event.deferReply(true).queue();
+
+        final Member finTarget = target;
+        final String finUrl    = createUrl;
+
+        event.getUser().openPrivateChannel().queue(pc -> {
+            pc.sendMessageEmbeds(EmbedFactory.build(
+                "🪪 Personalausweis erstellen — " + finTarget.getEffectiveName(),
+                "Klicke unten auf den Link und fülle das Formular aus.\n\n" +
+                "**Zielperson:** " + finTarget.getAsMention() + "\n" +
+                "**Server:** " + event.getGuild().getName() + "\n\n" +
+                "Der ausgefüllte Ausweis wird automatisch im Bot gespeichert."))
+                .setActionRow(Button.link(finUrl, "🪪 Ausweis-Formular öffnen"))
+                .queue(ok -> event.getHook().sendMessageEmbeds(embed("✅ DM gesendet",
+                    "Kontrolliere deine DMs — das Ausweis-Formular wartet auf dich."))
+                    .setEphemeral(true).queue(),
+                    err -> event.getHook().sendMessageEmbeds(embed("❌ DM geschlossen",
+                        "Deine DMs sind geschlossen. Öffne sie und versuche es erneut."))
+                        .setEphemeral(true).queue());
+        }, err -> event.getHook().sendMessageEmbeds(embed("❌ Fehler",
+            "DM-Kanal konnte nicht geöffnet werden."))
+            .setEphemeral(true).queue());
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /ausweis-löschen — löscht nur den Ausweis-Datensatz
+    // ════════════════════════════════════════════════════════════
+
+    private void handleAusweisLoeschen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        String targetId;
+        String targetName;
+
+        String werOpt = event.getOption("wer", OptionMapping::getAsString);
+        if (werOpt != null && !werOpt.isBlank()) {
+            try {
+                Member m = event.getGuild().retrieveMemberById(werOpt).complete();
+                if (m == null) throw new IllegalArgumentException("not in guild");
+                targetId   = m.getId();
+                targetName = m.getEffectiveName();
+            } catch (Exception e) {
                 event.replyEmbeds(embed("Nicht gefunden",
-                    "Kein Mitglied mit dem Nutzernamen **" + targetUsername + "** gefunden."))
+                    "Kein Mitglied mit dieser ID gefunden."))
                     .setEphemeral(true).queue();
                 return;
             }
         } else {
-            target = executor;
+            targetId   = event.getUser().getId();
+            Member execA = event.getMember();
+            targetName = (execA != null ? execA.getEffectiveName() : event.getUser().getName());
         }
 
-        // Einreiseart aus Rollen ableiten
-        boolean isLegal   = target.getRoles().stream().anyMatch(r -> r.getIdLong() == RoleConfig.LEGAL_RESIDENT_ROLE_ID);
-        boolean isIllegal = !isLegal && target.getRoles().stream()
-            .anyMatch(r -> {
-                for (long id : RoleConfig.ILLEGAL_ROLES) if (r.getIdLong() == id) return true;
-                return false;
-            });
+        String guildId = event.getGuild().getId();
+        if (!DocumentsManager.hasAusweis(guildId, targetId)) {
+            event.replyEmbeds(embed("Kein Ausweis",
+                "**" + targetName + "** hat aktuell keinen Ausweis."))
+                .setEphemeral(true).queue();
+            return;
+        }
 
-        String einreise = isLegal ? "✅ Legal" : isIllegal ? "🚫 Illegal" : "❓ Unbekannt";
-
-        // Konto-Erstellungsdatum (Epoch-Sekunden)
-        long createdEpoch = target.getUser().getTimeCreated().toEpochSecond();
-        // Beitrittsdatum
-        long joinedEpoch  = target.getTimeJoined().toEpochSecond();
-
-        String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
-        String ausweisUrl = webUrl + "/ausweis/" + target.getId();
-
-        event.replyEmbeds(EmbedFactory.create()
-            .setTitle("🪪 Personalausweis — " + target.getUser().getName())
-            .setThumbnail(target.getUser().getEffectiveAvatarUrl())
-            .setDescription("Klicke auf den Button um den Ausweis von **" +
-                target.getEffectiveName() + "** zu öffnen.")
-            .build())
-            .addActionRow(Button.link(ausweisUrl, "🪪 Ausweis öffnen"))
+        DocumentsManager.deleteAusweis(guildId, targetId);
+        String finalTargetName = targetName;
+        event.replyEmbeds(embed("🗑️ Ausweis gelöscht",
+            "Der Ausweis von **" + finalTargetName + "** wurde entfernt.\n\n" +
+            "ℹ️ Inventar, Geld und Rollen sind **unverändert** geblieben."))
             .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /führerschein-erstellen — DM an Executor mit Web-Form-Link
+    // ════════════════════════════════════════════════════════════
+
+    private void handleFuehrerscheinErstellen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        Member target = event.getOption("wer", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String guildId   = event.getGuild().getId();
+        String createUrl = DocumentsManager.fuehrerscheinCreateUrl(guildId, target.getId());
+
+        // DM-Öffnung ist async — daher deferReply VOR .queue(...)
+        event.deferReply(true).queue();
+
+        final Member finTarget = target;
+        final String finUrl    = createUrl;
+
+        event.getUser().openPrivateChannel().queue(pc -> {
+            pc.sendMessageEmbeds(EmbedFactory.build(
+                "🚗 Führerschein erstellen — " + finTarget.getEffectiveName(),
+                "Klicke unten auf den Link und fülle das Formular aus.\n\n" +
+                "**Zielperson:** " + finTarget.getAsMention() + "\n" +
+                "**Server:** " + event.getGuild().getName() + "\n\n" +
+                "Trage alle Daten ein, die für einen Führerschein nötig sind.\n" +
+                "Der ausgefüllte Führerschein wird automatisch im Bot gespeichert."))
+                .setActionRow(Button.link(finUrl, "🚗 Führerschein-Formular öffnen"))
+                .queue(ok -> event.getHook().sendMessageEmbeds(embed("✅ DM gesendet",
+                    "Kontrolliere deine DMs — das Führerschein-Formular wartet auf dich."))
+                    .setEphemeral(true).queue(),
+                    err -> event.getHook().sendMessageEmbeds(embed("❌ DM geschlossen",
+                        "Deine DMs sind geschlossen. Öffne sie und versuche es erneut."))
+                        .setEphemeral(true).queue());
+        }, err -> event.getHook().sendMessageEmbeds(embed("❌ Fehler",
+            "DM-Kanal konnte nicht geöffnet werden."))
+            .setEphemeral(true).queue());
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /führerschein-löschen
+    // ════════════════════════════════════════════════════════════
+
+    private void handleFuehrerscheinLoeschen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        String targetId;
+        String targetName;
+
+        String werOpt = event.getOption("wer", OptionMapping::getAsString);
+        if (werOpt != null && !werOpt.isBlank()) {
+            try {
+                Member m = event.getGuild().retrieveMemberById(werOpt).complete();
+                if (m == null) throw new IllegalArgumentException("not in guild");
+                targetId   = m.getId();
+                targetName = m.getEffectiveName();
+            } catch (Exception e) {
+                event.replyEmbeds(embed("Nicht gefunden",
+                    "Kein Mitglied mit dieser ID gefunden."))
+                    .setEphemeral(true).queue();
+                return;
+            }
+        } else {
+            targetId   = event.getUser().getId();
+            Member execB = event.getMember();
+            targetName = (execB != null ? execB.getEffectiveName() : event.getUser().getName());
+        }
+
+        String guildId = event.getGuild().getId();
+        if (!DocumentsManager.hasFuehrerschein(guildId, targetId)) {
+            event.replyEmbeds(embed("Kein Führerschein",
+                "**" + targetName + "** hat aktuell keinen Führerschein."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        DocumentsManager.deleteFuehrerschein(guildId, targetId);
+        String finalTargetName = targetName;
+        event.replyEmbeds(embed("🗑️ Führerschein gelöscht",
+            "Der Führerschein von **" + finalTargetName + "** wurde entfernt."))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /verbrauchen  —  Item auswählen → Modal mit Menge → Info-Embed
+    // ════════════════════════════════════════════════════════════
+
+    private void handleVerbrauchen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        if (event.getChannel().getIdLong() != LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID) {
+            event.replyEmbeds(embed("Falscher Kanal",
+                "`/verbrauchen` ist nur im Inventar-Aktionen-Kanal erlaubt."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        String guildId = event.getGuild().getId();
+        String userId  = event.getUser().getId();
+
+        List<InventoryManager.Item> items = InventoryManager.getVisibleItems(guildId, userId);
+        if (items.isEmpty()) {
+            event.replyEmbeds(embed("Leeres Inventar",
+                "Du hast aktuell keine sichtbaren Items zum Verbrauchen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        StringSelectMenu.Builder menu = StringSelectMenu.create("verbrauchen-item:" + userId)
+            .setPlaceholder("Welches Item möchtest du verbrauchen?")
+            .setMinValues(1).setMaxValues(1);
+        int n = 0;
+        for (InventoryManager.Item it : items) {
+            if (++n > 25) break;
+            menu.addOption(it.name + " × " + it.quantity, it.name);
+        }
+
+        event.replyEmbeds(EmbedFactory.build("🍽️ Item verbrauchen",
+            "Wähle unten das Item aus — danach wirst du nach der Menge gefragt."))
+            .addActionRow(menu.build())
+            .setEphemeral(true).queue();
+    }
+
+    /** Öffnet das Modal zur Mengen-Eingabe. */
+    private void openVerbrauchenQtyModal(StringSelectInteractionEvent event) {
+        String[] parts = event.getComponentId().split(":", 2);
+        if (parts.length < 2) return;
+        String userId = parts[1];
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(embed("❌ Fehler",
+                "Du kannst nur deine eigenen Items verbrauchen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String itemName = event.getValues().get(0);
+        String guildId  = event.getGuild().getId();
+
+        int maxQty = InventoryManager.getVisibleItems(guildId, userId).stream()
+            .filter(it -> InventoryManager.nameMatches(it.name, itemName))
+            .mapToInt(it -> it.quantity).sum();
+
+        // Trenner `~~` statt `:` — verhindert Bruch, falls Item-Namen mal `:` enthalten
+        Modal modal = Modal.create(
+                "verbrauchen-qty~~" + userId + "~~" + itemName,
+                "Menge für " + itemName)
+            .addComponents(ActionRow.of(
+                TextInput.create("menge",
+                    "Menge (1 bis " + Math.max(maxQty, 1) + ")",
+                    TextInputStyle.SHORT)
+                    .setPlaceholder("z. B. 1")
+                    .setRequired(true)
+                    .setMaxLength(6)
+                    .build()))
+            .build();
+
+        event.replyModal(modal).queue();
+    }
+
+    /** Modal-Submit: führt das Verbrauchen aus + postet Info-Embed im Kanal. */
+    private void handleVerbrauchenQtySubmit(ModalInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        // Trenner `~~` siehe openVerbrauchenQtyModal
+        String[] parts = event.getModalId().split("~~", 3);
+        if (parts.length < 3) return;
+        String userId   = parts[1];
+        String itemName = parts[2];
+
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(embed("❌ Fehler",
+                "Nur deine eigenen Items können verbraucht werden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        int qty;
+        try {
+            qty = Integer.parseInt(
+                event.getValue("menge").getAsString().trim());
+        } catch (NumberFormatException ex) {
+            event.replyEmbeds(embed("❌ Ungültig",
+                "Bitte eine gültige Zahl eingeben."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        if (qty <= 0) {
+            event.replyEmbeds(embed("❌ Ungültig",
+                "Die Menge muss größer als 0 sein."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String guildId = event.getGuild().getId();
+        boolean removed = InventoryManager.removeItem(guildId, userId, itemName, qty);
+        if (!removed) {
+            event.replyEmbeds(embed("❌ Nicht genug",
+                "So viele **" + itemName + "** sind nicht im Inventar."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        event.replyEmbeds(embed("✅ Verbraucht",
+            "Du hast **" + itemName + "** × " + qty + " verbraucht."))
+            .setEphemeral(true).queue();
+
+        // Öffentliches Info-Embed im Inventar-Aktionen-Kanal
+        Member member = event.getMember();
+        String actor  = member != null ? member.getEffectiveName() : event.getUser().getName();
+        TextChannel ch = event.getGuild().getTextChannelById(
+            LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID);
+        if (ch != null) {
+            ch.sendMessageEmbeds(EmbedFactory.build("🍽️ Item verbraucht",
+                "**" + actor + "** hat **" + itemName + "** × " + qty + " verbraucht."))
+                .queue();
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /verstecken — Item auswählen → setHidden(true) + Info-Embed
+    // ════════════════════════════════════════════════════════════
+
+    private void handleVerstecken(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        if (event.getChannel().getIdLong() != LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID) {
+            event.replyEmbeds(embed("Falscher Kanal",
+                "`/verstecken` ist nur im Inventar-Aktionen-Kanal erlaubt."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        String guildId = event.getGuild().getId();
+        String userId  = event.getUser().getId();
+
+        List<InventoryManager.Item> items = InventoryManager.getVisibleItems(guildId, userId);
+        if (items.isEmpty()) {
+            event.replyEmbeds(embed("Leeres Inventar",
+                "Du hast aktuell keine sichtbaren Items zum Verstecken."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        StringSelectMenu.Builder menu = StringSelectMenu.create("verstecken-item:" + userId)
+            .setPlaceholder("Welches Item möchtest du verstecken?")
+            .setMinValues(1).setMaxValues(1);
+        int n = 0;
+        for (InventoryManager.Item it : items) {
+            if (++n > 25) break;
+            menu.addOption(it.name + " × " + it.quantity, it.name);
+        }
+
+        event.replyEmbeds(EmbedFactory.build("🫣 Item verstecken",
+            "Wähle unten das Item aus, das im Inventar versteckt werden soll."))
+            .addActionRow(menu.build())
+            .setEphemeral(true).queue();
+    }
+
+    /** StringSelect: führt das Verstecken aus + postet Info-Embed im Kanal. */
+    private void handleVersteckenSelect(StringSelectInteractionEvent event) {
+        String[] parts = event.getComponentId().split(":", 2);
+        if (parts.length < 2) return;
+        String userId = parts[1];
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(embed("❌ Fehler",
+                "Nur deine eigenen Items können versteckt werden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String itemName = event.getValues().get(0);
+        String guildId  = event.getGuild().getId();
+
+        InventoryManager.setHidden(guildId, userId, itemName, true);
+
+        event.replyEmbeds(embed("✅ Versteckt",
+            "**" + itemName + "** ist jetzt im Inventar versteckt."))
+            .setEphemeral(true).queue();
+
+        Member member = event.getMember();
+        String actor  = member != null ? member.getEffectiveName() : event.getUser().getName();
+        TextChannel ch = event.getGuild().getTextChannelById(
+            LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID);
+        if (ch != null) {
+            ch.sendMessageEmbeds(EmbedFactory.build("🫣 Item versteckt",
+                "**" + actor + "** hat **" + itemName + "** im Inventar versteckt.\n\n" +
+                "Das Item bleibt im Inventar — wird aber durchgestrichen angezeigt."))
+                .queue();
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  StringSelect & Modal Event-Handler
+    // ════════════════════════════════════════════════════════════
+
+    @Override
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
+        String id = event.getComponentId();
+        if (id.startsWith("lizenzen-pick:"))         handleLizenzenPick(event);
+        else if (id.startsWith("verbrauchen-item:")) openVerbrauchenQtyModal(event);
+        else if (id.startsWith("verstecken-item:"))  handleVersteckenSelect(event);
+        // Weitere IDs (rucksack-unhide-…) werden vom RucksackListener behandelt
+    }
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        String id = event.getModalId();
+        if (id.startsWith("verbrauchen-qty:")) {
+            handleVerbrauchenQtySubmit(event);
+        }
+        // Andere Modal-IDs (rucksack-transfer-items) werden vom RucksackListener behandelt
     }
 
     // ════════════════════════════════════════════════════════════
