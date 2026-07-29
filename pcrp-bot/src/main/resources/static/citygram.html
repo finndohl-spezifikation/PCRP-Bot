@@ -454,12 +454,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   <div class="login-logo">Citygram</div>
   <div class="login-sub">Paradise City Roleplay</div>
   <div class="login-form">
-    <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:14px 16px;margin-top:6px;text-align:center">
-      <div style="font-size:15px;color:#0095f6;font-weight:700;margin-bottom:8px">🔐 Automatischer Login über Discord</div>
-      <div style="font-size:13px;color:#cfcfcf;line-height:1.55;margin-bottom:10px">Die Anmeldung erfolgt nicht mehr hier. Tippe in Discord einfach</div>
-      <div style="background:#000;border:1px solid #333;border-radius:6px;padding:8px 10px;font-family:'Courier New',monospace;font-size:15px;color:#0095f6;font-weight:700;letter-spacing:1px;margin:6px 0 10px">/web-zugang</div>
-      <div style="font-size:12px;color:#9a9a9a;line-height:1.5">Du bekommst sofort einen klickbaren Link per DM.<br>Token ist 1 Jahr gültig — kein Login mehr nötig.<br><span style="opacity:.75">Aktiviere <b>Direktnachrichten</b> falls du keine DM bekommst.</span></div>
-    </div>
+    <input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
+    <input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
+    <button id="li-btn" onclick="doLogin()" style="padding:12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">Anmelden</button>
+    <div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>
   </div>
 </div>
 <!-- No-JS fallback (also shown if script fails) -->
@@ -476,7 +474,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <div id="loading-screen" style="position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;font-family:-apple-system,Segoe UI,sans-serif;text-align:center">
   <div style="width:36px;height:36px;border:3px solid #262626;border-top-color:#0095f6;border-radius:50%;animation:cgspin .8s linear infinite;margin-bottom:18px"></div>
   <div style="font-size:14px;color:#cfcfcf;letter-spacing:.5px">Citygram wird geladen…</div>
-  <div style="font-size:11px;color:#737373;margin-top:8px">Discord-Auto-Login aktiv</div>
+  <div style="font-size:11px;color:#737373;margin-top:8px">Login mit Rufnummer + Safe-PIN</div>
 </div>
 <style>@keyframes cgspin{to{transform:rotate(360deg)}}</style>
 

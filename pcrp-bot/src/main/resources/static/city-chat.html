@@ -412,18 +412,10 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
     <h1>City Chat</h1>
     <p>Paradise City Roleplay</p>
     <div class="login-fields">
-      <p style="color:rgba(255,255,255,.6);font-size:.95rem;text-align:center;line-height:1.55;margin:.5rem 0 1rem">
-        🔐 <b>Anmeldung erfolgt automatisch über Discord.</b>
-      </p>
-      <p style="color:rgba(255,255,255,.45);font-size:.85rem;text-align:center;line-height:1.6;margin:0 0 1.25rem">
-        Tippe in Discord einfach den Befehl<br>
-        <code style="color:#CC5500;background:rgba(255,255,255,.08);padding:.2rem .55rem;border-radius:6px;font-size:.95rem;font-weight:600">/web-zugang</code><br>
-        Du bekommst sofort einen klickbaren Link per DM.
-      </p>
-      <p style="color:rgba(255,255,255,.35);font-size:.75rem;text-align:center;line-height:1.5;margin:0">
-        Der Link ist 1 Jahr gültig — kein Login nötig.<br>
-        Aktiviere <b>Direktnachrichten</b> in den Privatsphäre-Einstellungen, falls du keine DM bekommst.
-      </p>
+      <input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off">
+      <input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off">
+      <button class="login-btn" id="li-btn" onclick="doLogin()">Anmelden</button>
+      <div class="login-err" id="login-err" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -432,7 +424,7 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
 <div id="loading-screen" style="position:fixed;inset:0;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;padding:1.5rem">
   <div style="width:36px;height:36px;border:3px solid #262626;border-top-color:#CC5500;border-radius:50%;animation:ccspin .8s linear infinite;margin-bottom:18px"></div>
   <div style="font-size:14px;color:rgba(255,255,255,.7);letter-spacing:.5px">City Chat wird geladen…</div>
-  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:8px">Discord-Auto-Login aktiv</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:8px">Login mit Rufnummer + Safe-PIN</div>
 </div>
 <style>@keyframes ccspin{to{transform:rotate(360deg)}}</style>
 
