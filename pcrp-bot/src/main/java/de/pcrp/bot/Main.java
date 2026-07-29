@@ -501,7 +501,7 @@ public class Main {
                     err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
         }
 
-        // ── City Chat Panel ────────────────────────────────────────────────────
+        // ── City Chat Panel ───────────────────────────────────────────────────
 
         private static void postCityChatPanel(Guild guild) {
             String key = "panel-citychat-v1-" + guild.getId();
@@ -555,13 +555,21 @@ public class Main {
             );
         }
 
+        /**
+         * Zentrale URL-Auflösung für alle Cloudflare-Worker-Links.
+         *
+         *  Reihenfolge:
+         *    1. Env-Var  {@code WEB_URL}    (auf Railway gesetzt, z. B. https://dashboards.paradisecity-roleplay-85a.workers.dev)
+         *    2. Env-Var  {@code RAILWAY_PUBLIC_DOMAIN}  (interne Railway-Domain — nur Fallback für lokale Tests)
+         *    3. Hardcoded Cloudflare-Worker-URL
+         */
         private static String webUrl() {
             String url = System.getenv("WEB_URL");
             if (url == null || url.isBlank()) {
                 String domain = System.getenv("RAILWAY_PUBLIC_DOMAIN");
                 url = (domain != null && !domain.isBlank())
                     ? (domain.startsWith("http") ? domain : "https://" + domain)
-                    : "https://pcrp-bot-production-3ad1.up.railway.app";
+                    : "https://dashboards.paradisecity-roleplay-85a.workers.dev";
             }
             return url.replaceAll("/$", "");
         }
@@ -638,7 +646,11 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
-                Commands.slash("lizenzen", "Zeigt Lizenzen (Ausweis / Führerschein). Nur im Ausweis-Kanal.")
+                Commands.slash("lizenzen", "Zeigt eine Lizenz (Ausweis / Führerschein). Nur im Ausweis-Kanal.")
+                    .addOptions(new OptionData(OptionType.STRING, "was",
+                        "Welche Lizenz angezeigt werden soll", true)
+                        .addChoice("🪪 Ausweis",       "ausweis")
+                        .addChoice("🚗 Führerschein",  "fuehrerschein"))
                     .addOption(OptionType.USER, "wer",
                         "Spieler (zeigt deine Lizenzen wenn leer)", false)
                     .setDefaultPermissions(DefaultMemberPermissions.ENABLED),

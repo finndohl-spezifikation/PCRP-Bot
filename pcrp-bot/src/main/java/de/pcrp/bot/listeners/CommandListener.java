@@ -540,19 +540,20 @@ public class CommandListener extends ListenerAdapter {
     }
 
     // ════════════════════════════════════════════════════════════
-    //  /lizenzen — Dropdown Ausweis / Führerschein zeigen
+    //  /lizenzen  —  direkte Auswahl (was: Ausweis|Führerschein) + optional wer
     // ════════════════════════════════════════════════════════════
 
     private void handleLizenzen(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
 
-        // Channel-Restriction: nur im Ausweis-Kanal
+        // Channel-Restriction: nur im Ausweis-Kanal — als PLAIN-Nachricht (kein Embed)
         if (event.getChannel().getIdLong() != RoleConfig.AUSWEIS_CHANNEL_ID) {
-            event.replyEmbeds(embed("Falscher Kanal",
-                "`/lizenzen` ist nur im Ausweis-Kanal erlaubt."))
+            event.reply("Dieser command funktioniert nur in <#" + RoleConfig.AUSWEIS_CHANNEL_ID + ">")
                 .setEphemeral(true).queue();
             return;
         }
+
+        String was = event.getOption("was", "", OptionMapping::getAsString).toLowerCase();
 
         // Ziel bestimmen (Executor oder @wer)
         User targetUser;
@@ -567,106 +568,91 @@ public class CommandListener extends ListenerAdapter {
             ? targetMember.getEffectiveName()
             : targetUser.getName();
 
-        StringSelectMenu menu = StringSelectMenu.create("lizenzen-pick:" + targetUser.getId())
-            .setPlaceholder("Welche Lizenz möchtest du anzeigen?")
-            .addOption("🪪 Ausweis zeigen",        "ausweis",
-                "Personalausweis von " + displayName,
-                Emoji.fromUnicode("🪪"))
-            .addOption("🚗 Führerschein zeigen",  "fuehrerschein",
-                "Führerschein von " + displayName,
-                Emoji.fromUnicode("🚗"))
-            .build();
-
-        event.replyEmbeds(EmbedFactory.create()
-            .setTitle("📜 Lizenzen — " + displayName)
-            .setDescription(
-                "Wähle unten aus, welche Lizenz du anzeigen möchtest.\n\n" +
-                "ℹ️ Du kannst mit **`wer: @nutzer`** auch Lizenzen anderer Mitglieder abrufen.")
-            .setThumbnail(targetUser.getEffectiveAvatarUrl())
-            .build())
-            .addActionRow(menu)
-            .setEphemeral(true)
-            .queue();
-    }
-
-    /** Verarbeitet die Auswahl aus dem /lizenzen-Dropdown. */
-    private void handleLizenzenPick(StringSelectInteractionEvent event) {
-        if (event.getGuild() == null) return;
-        String guildId = event.getGuild().getId();
-        String[] parts = event.getComponentId().split(":", 2);
-        if (parts.length < 2) return;
-        String targetUserId = parts[1];
-
-        // Cached Member bevorzugen, KEIN blockierender .complete()-Aufruf.
-        Member targetMember = event.getGuild().getMemberById(targetUserId);
-        String displayName = targetMember != null
-            ? targetMember.getEffectiveName()
-            : "<@" + targetUserId + ">";
-
-        String choice = event.getValues().get(0);
         event.deferReply(true).queue();
 
-        if ("ausweis".equals(choice)) {
-            Optional<DocumentsManager.Ausweis> opt = DocumentsManager.getAusweis(guildId, targetUserId);
-            if (opt.isEmpty()) {
-                event.getHook().sendMessageEmbeds(EmbedFactory.build(
-                    "Kein Ausweis hinterlegt",
-                    "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Ausweis."))
+        switch (was) {
+            case "ausweis"        -> showAusweis(event, targetUser, displayName);
+            case "fuehrerschein"  -> showFuehrerschein(event, targetUser, displayName);
+            default -> {
+                event.getHook().sendMessage(
+                    "Unbekannte Auswahl `" + was + "`. Erwartet: `ausweis` oder `fuehrerschein`.")
                     .setEphemeral(true).queue();
-                return;
             }
-            DocumentsManager.Ausweis a = opt.get();
-            String htmlName = a.vorname + " " + a.nachname;
-            String info =
-                "**" + htmlName + "**\n" +
-                "Geburtsdatum: " + (a.geburtsdatum.isBlank() ? "—" : a.geburtsdatum) + "\n" +
-                "Staatsangehörigkeit: " + (a.staatsang.isBlank() ? "—" : a.staatsang) + "\n" +
-                "Wohnort: " + (a.wohnort.isBlank() ? (a.adresse.isBlank() ? "—" : a.adresse) : a.wohnort) + "\n" +
-                "Ausweis-Nr.: " + (a.ausweisNr.isBlank() ? "—" : a.ausweisNr) + "\n" +
-                "Erstellt von: " + (a.erstelltVon.isBlank() ? "—" : a.erstelltVon);
-            var eb = EmbedFactory.create()
-                .setTitle("🪪 Personalausweis — " + displayName)
-                .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
-            if (targetMember != null) {
-                eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
-            }
-            event.getHook().sendMessageEmbeds(eb.build())
-                .addActionRow(Button.link(
-                    DocumentsManager.ausweisViewUrl(targetUserId),
-                    "🪪 Ausweis im Browser öffnen"))
-                .setEphemeral(true).queue();
-        } else if ("fuehrerschein".equals(choice)) {
-            Optional<DocumentsManager.Fuehrerschein> opt =
-                DocumentsManager.getFuehrerschein(guildId, targetUserId);
-            if (opt.isEmpty()) {
-                event.getHook().sendMessageEmbeds(EmbedFactory.build(
-                    "Kein Führerschein hinterlegt",
-                    "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Führerschein."))
-                    .setEphemeral(true).queue();
-                return;
-            }
-            DocumentsManager.Fuehrerschein f = opt.get();
-            String klassen = (f.klassen == null || f.klassen.isEmpty())
-                ? "—"
-                : String.join(", ", f.klassen);
-            String info =
-                "**" + f.vorname + " " + f.nachname + "**\n" +
-                "Geburtsdatum: " + (f.geburtsdatum.isBlank() ? "—" : f.geburtsdatum) + "\n" +
-                "Klassen: " + klassen + "\n" +
-                "Gültig bis: <t:" + f.gueltigBis + ":d>\n" +
-                "Erstellt von: " + (f.erstelltVon.isBlank() ? "—" : f.erstelltVon);
-            var eb = EmbedFactory.create()
-                .setTitle("🚗 Führerschein — " + displayName)
-                .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
-            if (targetMember != null) {
-                eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
-            }
-            event.getHook().sendMessageEmbeds(eb.build())
-                .addActionRow(Button.link(
-                    DocumentsManager.fuehrerscheinViewUrl(targetUserId),
-                    "🚗 Führerschein im Browser öffnen"))
-                .setEphemeral(true).queue();
         }
+    }
+
+    /** Liefert sofort das Ausweis-Embed. */
+    private void showAusweis(SlashCommandInteractionEvent event, User targetUser, String displayName) {
+        String guildId     = event.getGuild().getId();
+        String userId      = targetUser.getId();
+        Member targetMember = event.getGuild().getMemberById(userId);
+
+        Optional<DocumentsManager.Ausweis> opt = DocumentsManager.getAusweis(guildId, userId);
+        if (opt.isEmpty()) {
+            event.getHook().sendMessageEmbeds(EmbedFactory.build(
+                "Kein Ausweis hinterlegt",
+                "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Ausweis."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        DocumentsManager.Ausweis a = opt.get();
+        String htmlName = a.vorname + " " + a.nachname;
+        String info =
+            "**" + htmlName + "**\n" +
+            "Geburtsdatum: " + (a.geburtsdatum.isBlank() ? "—" : a.geburtsdatum) + "\n" +
+            "Staatsangehörigkeit: " + (a.staatsang.isBlank() ? "—" : a.staatsang) + "\n" +
+            "Wohnort: " + (a.wohnort.isBlank() ? (a.adresse.isBlank() ? "—" : a.adresse) : a.wohnort) + "\n" +
+            "Ausweis-Nr.: " + (a.ausweisNr.isBlank() ? "—" : a.ausweisNr) + "\n" +
+            "Erstellt von: " + (a.erstelltVon.isBlank() ? "—" : a.erstelltVon);
+        var eb = EmbedFactory.create()
+            .setTitle("🪪 Personalausweis — " + displayName)
+            .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
+        if (targetMember != null) {
+            eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
+        }
+        event.getHook().sendMessageEmbeds(eb.build())
+            .addActionRow(Button.link(
+                DocumentsManager.ausweisViewUrl(userId),
+                "🪪 Ausweis im Browser öffnen"))
+            .setEphemeral(true).queue();
+    }
+
+    /** Liefert sofort das Führerschein-Embed. */
+    private void showFuehrerschein(SlashCommandInteractionEvent event, User targetUser, String displayName) {
+        String guildId  = event.getGuild().getId();
+        String userId   = targetUser.getId();
+        Member targetMember = event.getGuild().getMemberById(userId);
+
+        Optional<DocumentsManager.Fuehrerschein> opt =
+            DocumentsManager.getFuehrerschein(guildId, userId);
+        if (opt.isEmpty()) {
+            event.getHook().sendMessageEmbeds(EmbedFactory.build(
+                "Kein Führerschein hinterlegt",
+                "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Führerschein."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        DocumentsManager.Fuehrerschein f = opt.get();
+        String klassen = (f.klassen == null || f.klassen.isEmpty())
+            ? "—"
+            : String.join(", ", f.klassen);
+        String info =
+            "**" + f.vorname + " " + f.nachname + "**\n" +
+            "Geburtsdatum: " + (f.geburtsdatum.isBlank() ? "—" : f.geburtsdatum) + "\n" +
+            "Klassen: " + klassen + "\n" +
+            "Gültig bis: <t:" + f.gueltigBis + ":d>\n" +
+            "Erstellt von: " + (f.erstelltVon.isBlank() ? "—" : f.erstelltVon);
+        var eb = EmbedFactory.create()
+            .setTitle("🚗 Führerschein — " + displayName)
+            .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
+        if (targetMember != null) {
+            eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
+        }
+        event.getHook().sendMessageEmbeds(eb.build())
+            .addActionRow(Button.link(
+                DocumentsManager.fuehrerscheinViewUrl(userId),
+                "🚗 Führerschein im Browser öffnen"))
+            .setEphemeral(true).queue();
     }
 
     // ════════════════════════════════════════════════════════════
@@ -858,9 +844,9 @@ public class CommandListener extends ListenerAdapter {
 
     private void handleVerbrauchen(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
+        // PLAIN-Nachricht (kein Embed) bei falschem Kanal
         if (event.getChannel().getIdLong() != LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID) {
-            event.replyEmbeds(embed("Falscher Kanal",
-                "`/verbrauchen` ist nur im Inventar-Aktionen-Kanal erlaubt."))
+            event.reply("Dieser command funktioniert nur in <#" + LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID + ">")
                 .setEphemeral(true).queue();
             return;
         }
@@ -1062,8 +1048,8 @@ public class CommandListener extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent event) {
         String id = event.getComponentId();
-        if (id.startsWith("lizenzen-pick:"))         handleLizenzenPick(event);
-        else if (id.startsWith("verbrauchen-item:")) openVerbrauchenQtyModal(event);
+        // „lizenzen-pick:" gibt es nicht mehr — direkte Auswahl über das was-Argument im CommandData.
+        if (id.startsWith("verbrauchen-item:")) openVerbrauchenQtyModal(event);
         else if (id.startsWith("verstecken-item:"))  handleVersteckenSelect(event);
         // Weitere IDs (rucksack-unhide-…) werden vom RucksackListener behandelt
     }
