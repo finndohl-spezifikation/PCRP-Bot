@@ -287,7 +287,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .ep-change-photo{color:var(--accent);font-size:14px;font-weight:600;cursor:pointer}
 .ep-field{margin-bottom:16px}
 .ep-field label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:600}
-.ep-field input,.ep-field textarea{width:100%;background:var(--surface);border:1px solid var(--border);
+.ep-field input,.ep-field textarea{width:100%;background:#1a1a1a;border:1px solid #333;
   border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;
   transition:border-color .2s}
 .ep-field input:focus,.ep-field textarea:focus{border-color:var(--accent)}
@@ -312,7 +312,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 #ns-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
 #ns-text{margin:12px 16px}
-#ns-text input{width:100%;background:var(--surface);border:1px solid var(--border);
+#ns-text input{width:100%;background:#1a1a1a;border:1px solid #333;
   border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none}
 
 /* ── Toast ── */
@@ -330,7 +330,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
   background-clip:text;margin-bottom:8px}
 .login-sub{color:var(--text2);font-size:14px;margin-bottom:36px;text-align:center}
 .login-form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
-.login-form input{width:100%;background:var(--surface);border:1px solid var(--border);
+.login-form input{width:100%;background:#1a1a1a;border:1px solid #333;
   border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;
   transition:border-color .2s;box-sizing:border-box}
 .login-form input:focus{border-color:var(--accent)}
@@ -450,18 +450,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <body>
 
 <!-- Login -->
-<div id="login-screen">
-  <div class="login-logo">📸 Citygram</div>
+<div id="login-screen" style="display:flex">
+  <div class="login-logo">Citygram</div>
   <div class="login-sub">Paradise City Roleplay</div>
   <div class="login-form">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:6px;text-align:center">
-      <div style="font-size:15px;color:var(--accent);font-weight:700;margin-bottom:8px">🔐 Automatischer Login über Discord</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:10px">Die Anmeldung erfolgt nicht mehr hier. Tippe in Discord einfach</div>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:'Courier New',monospace;font-size:15px;color:var(--accent);font-weight:700;letter-spacing:1px;margin:6px 0 10px">/web-zugang</div>
-      <div style="font-size:12px;color:var(--text3);line-height:1.5">Du bekommst sofort einen klickbaren Link per DM.<br>Token ist 1 Jahr gültig — kein Login mehr nötig.<br><span style="opacity:.75">Aktiviere <b>Direktnachrichten</b> falls du keine DM bekommst.</span></div>
+    <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:14px 16px;margin-top:6px;text-align:center">
+      <div style="font-size:15px;color:#0095f6;font-weight:700;margin-bottom:8px">🔐 Automatischer Login über Discord</div>
+      <div style="font-size:13px;color:#cfcfcf;line-height:1.55;margin-bottom:10px">Die Anmeldung erfolgt nicht mehr hier. Tippe in Discord einfach</div>
+      <div style="background:#000;border:1px solid #333;border-radius:6px;padding:8px 10px;font-family:'Courier New',monospace;font-size:15px;color:#0095f6;font-weight:700;letter-spacing:1px;margin:6px 0 10px">/web-zugang</div>
+      <div style="font-size:12px;color:#9a9a9a;line-height:1.5">Du bekommst sofort einen klickbaren Link per DM.<br>Token ist 1 Jahr gültig — kein Login mehr nötig.<br><span style="opacity:.75">Aktiviere <b>Direktnachrichten</b> falls du keine DM bekommst.</span></div>
     </div>
   </div>
 </div>
+<!-- No-JS fallback (also shown if script fails) -->
+<noscript style="position:fixed;inset:0;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;font-family:sans-serif;text-align:center;z-index:999">
+  <div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:24px;max-width:400px">
+    <div style="font-size:20px;color:#0095f6;font-weight:700;margin-bottom:12px">🔐 Citygram Login</div>
+    <div style="color:#cfcfcf;line-height:1.6;margin-bottom:12px">Diese Seite braucht Discord-Auto-Login.<br>Tippe in Discord: <strong style="color:#0095f6;font-family:monospace;background:#000;padding:4px 8px;border-radius:4px">/web-zugang</strong></div>
+    <div style="font-size:12px;color:#9a9a9a">Du bekommst einen klickbaren Link per DM.</div>
+  </div>
+</noscript>
 
 <!-- App -->
 <div id="app" style="display:none">
