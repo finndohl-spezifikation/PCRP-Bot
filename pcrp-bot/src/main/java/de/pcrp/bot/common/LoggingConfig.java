@@ -38,6 +38,9 @@ public final class LoggingConfig {
     /** Starter-Paket-Panel (Fahrzeuge & Startgeld). */
     public static final long STARTER_PAKET_CHANNEL_ID      = 1529636476961161277L;
 
+    /** Kanal in den Team-Verwarnungs-Embeds gepostet werden. */
+    public static final long TEAM_WARN_CHANNEL_ID         = 1529636459827560558L;
+
     /** RP-Spiel-Einstellungen-Panel (Spieleranzeige, Minimap). */
     public static final long RP_EINSTELLUNGEN_CHANNEL_ID   = 1529636478236495983L;
 

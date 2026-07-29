@@ -75,6 +75,10 @@ public class CommandListener extends ListenerAdapter {
             case "frakwarn-entfernen"  -> handleFrakWarnEntfernen(event);
             case "frak-sperren"        -> handleFrakSperren(event);
             case "frak-entsperren"     -> handleFrakEntsprerren(event);
+            case "teamverwarnung"        -> handleTeamverwarnung(event);
+            case "teamverwarnung-entfernen" -> handleTeamverwarnungEntfernen(event);
+            case "teamverwarnung-liste"  -> handleTeamverwarnungListe(event);
+            case "spieler-info"          -> handleSpielerInfo(event);
             case "item-geben"          -> handleItemGeben(event);
             case "item-erstellen"      -> handleItemErstellen(event);
             case "item-bearbeiten"     -> handleItemBearbeiten(event);
@@ -177,7 +181,8 @@ public class CommandListener extends ListenerAdapter {
         String guildId = event.getGuild().getId();
 
         switch (event.getName()) {
-            case "verwarnung-löschen" -> handleVerwarnungLoeschenAutocomplete(event);
+            case "verwarnung-löschen"      -> handleVerwarnungLoeschenAutocomplete(event);
+            case "teamverwarnung-entfernen" -> handleTeamverwarnungEntfernenAutocomplete(event);
             // Item-Management: Wert = itemId
             case "item-bearbeiten", "item-löschen" -> {
                 if (!"item".equals(event.getFocusedOption().getName())) return;
@@ -2274,14 +2279,254 @@ public class CommandListener extends ListenerAdapter {
             event.getHook().sendMessageEmbeds(
                 EmbedFactory.build("🔄 Handy-Reset abgeschlossen",
                     "✅ Alle Verträge gelöscht.\n" +
-                    "✅ City Chat & Citygram Rollen bei **" + stripped[0] + "** Mitgliedern entfernt.\n\n" +
-                    "Jeder muss einen neuen Vertrag abschließen und erhält eine neue Rufnummer + Safe-PIN per DM.")
+                    "✅ City Chat & Citygram Rollen bei **" + stripped[0] + "** Mitgliedern entfernt.\n\n" +                "Jeder muss einen neuen Vertrag abschließen und erhält eine neue Rufnummer + Safe-PIN per DM.")
             ).setEphemeral(true).queue();
         }).onError(err -> {
             log.error("[HandyReset] Mitglieder laden fehlgeschlagen.", err);
             event.getHook().sendMessageEmbeds(
                 EmbedFactory.build("❌ Fehler", "Konnte Mitglieder nicht laden: " + err.getMessage()))
-                .setEphemeral(true).queue();
+            .setEphemeral(true).queue();
         });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /teamverwarnung  +  /teamverwarnung-entfernen  +  /teamverwarnung-liste
+    // ════════════════════════════════════════════════════════════
+
+    private void handleTeamverwarnung(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target     = event.getOption("mitglied", OptionMapping::getAsMember);
+        String grund      = event.getOption("grund",      OptionMapping::getAsString);
+        String konsequenz = event.getOption("konsequenz", OptionMapping::getAsString);
+
+        if (target == null || grund == null || konsequenz == null) {
+            event.replyEmbeds(embed("Fehler", "Alle Felder sind erforderlich.")).setEphemeral(true).queue();
+            return;
+        }
+        if (target.getUser().isBot()) {
+            event.replyEmbeds(embed("Fehler", "Bots können keine Team-Verwarnung erhalten.")).setEphemeral(true).queue();
+            return;
+        }
+
+        long guildId = event.getGuild().getIdLong();
+        long userId  = target.getIdLong();
+
+        // Ziel muss Teammitglied-Rolle besitzen.
+        boolean targetIsMitglied = target.getRoles().stream()
+            .anyMatch(r -> r.getIdLong() == RoleConfig.TEAMMITGLIED_ROLE_ID);
+        if (!targetIsMitglied) {
+            event.replyEmbeds(embed("Fehler",
+                target.getAsMention() + " ist **kein Teammitglied** und kann keine Team-Verwarnung erhalten."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        List<WarnStore.WarnEntry> existing = TeamWarnStore.getWarns(guildId, userId);
+        if (existing.size() >= 3) {
+            event.replyEmbeds(embed("Maximum erreicht",
+                target.getAsMention() + " hat bereits **3 Team-Verwarnungen** und kann keine weiteren erhalten."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+
+        WarnStore.WarnEntry warn = new WarnStore.WarnEntry(
+            grund, konsequenz,
+            event.getUser().getId(), event.getUser().getName());
+        int total = TeamWarnStore.addWarn(guildId, userId, warn);
+
+        // Log-Embed in den Team-Warn-Kanal (PCRP-Orange).
+        TextChannel warnCh = event.getGuild().getTextChannelById(LoggingConfig.TEAM_WARN_CHANNEL_ID);
+        if (warnCh != null) {
+            warnCh.sendMessageEmbeds(new EmbedBuilder()
+                .setColor(new Color(0xCC5500))
+                .setTitle("🛡️ Team-Verwarnung — " + target.getUser().getName())
+                .setDescription(
+                    "**Verwarnung " + total + "/3**\n\n" +
+                    "**Mitglied:** " + target.getAsMention() + "\n" +
+                    "**Grund:** " + grund + "\n" +
+                    "**Konsequenz:** " + konsequenz + "\n" +
+                    "**Ausgesprochen von:** " + event.getUser().getAsMention() + "\n\n" +
+                    "_Es findet **kein automatischer Timeout** statt — Team-Verwarnungen dienen nur zur Dokumentation._")
+                .build()).queue();
+        }
+
+        event.getHook().sendMessageEmbeds(embed("✅ Team-Verwarnung erteilt",
+            target.getAsMention() + " hat jetzt **" + total + "/3** Team-Verwarnungen."))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleTeamverwarnungEntfernen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        String warnId = event.getOption("warn-id",   OptionMapping::getAsString);
+
+        if (target == null || warnId == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied oder Team-Verwarnungs-ID nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        long guildId = event.getGuild().getIdLong();
+        long userId  = target.getIdLong();
+
+        boolean removed = TeamWarnStore.removeWarn(guildId, userId, warnId);
+        if (!removed) {
+            event.replyEmbeds(embed("Nicht gefunden",
+                "Team-Verwarnung mit dieser ID wurde nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        List<WarnStore.WarnEntry> remaining = TeamWarnStore.getWarns(guildId, userId);
+
+        event.replyEmbeds(embed("✅ Team-Verwarnung entfernt",
+            "Eine Team-Verwarnung von " + target.getAsMention() + " wurde gelöscht.\n" +
+            "Aktuelle Team-Verwarnungen: **" + remaining.size() + "/3**"))
+            .setEphemeral(true).queue();
+    }
+
+    private void handleTeamverwarnungListe(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        List<WarnStore.WarnEntry> warns = TeamWarnStore.getWarns(
+            event.getGuild().getIdLong(), target.getIdLong());
+
+        if (warns.isEmpty()) {
+            event.replyEmbeds(embed("Keine Team-Verwarnungen",
+                target.getAsMention() + " hat keine Team-Verwarnungen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("**").append(target.getUser().getName())
+          .append("** — ").append(warns.size()).append("/3 Team-Verwarnungen\n\n");
+        sb.append("━━━━━━━━━━━━━━━━━━━━━━\n\n");
+
+        for (int i = 0; i < warns.size(); i++) {
+            WarnStore.WarnEntry w = warns.get(i);
+            sb.append("**").append(i + 1).append(". Team-Verwarnung** (").append(w.dateString()).append(")\n");
+            sb.append("📝 **Grund:** ").append(w.reason).append("\n");
+            sb.append("⚖️ **Konsequenz:** ").append(w.consequence).append("\n");
+            sb.append("👮 **Von:** <@").append(w.byId).append(">\n");
+            sb.append("`ID: ").append(w.id, 0, 8).append("…`\n");
+            if (i < warns.size() - 1) sb.append("\n");
+        }
+
+        event.replyEmbeds(buildWarnListEmbed("🛡️ **Team-Verwarnungen — " + target.getUser().getName() + "**\n\n" + sb.toString()))
+            .setEphemeral(true).queue();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  Autocomplete für /teamverwarnung-entfernen  (Warn-ID-Picker)
+    // ════════════════════════════════════════════════════════════
+
+    private void handleTeamverwarnungEntfernenAutocomplete(CommandAutoCompleteInteractionEvent event) {
+        OptionMapping memberOpt = event.getOption("mitglied");
+        if (memberOpt == null) { event.replyChoices().queue(null, e -> {}); return; }
+
+        long userId;
+        try { userId = Long.parseLong(memberOpt.getAsString()); }
+        catch (NumberFormatException e) { event.replyChoices().queue(null, ex -> {}); return; }
+
+        List<WarnStore.WarnEntry> warns = TeamWarnStore.getWarns(event.getGuild().getIdLong(), userId);
+        String query = event.getFocusedOption().getValue().toLowerCase();
+
+        List<Command.Choice> choices = new ArrayList<>();
+        for (int i = 0; i < warns.size(); i++) {
+            WarnStore.WarnEntry w = warns.get(i);
+            String label = (i + 1) + ". " + truncate(w.reason, 40) + " — " + w.dateString();
+            if (query.isBlank() || label.toLowerCase().contains(query) || w.id.startsWith(query)) {
+                choices.add(new Command.Choice(truncate(label, 100), w.id));
+            }
+        }
+        event.replyChoices(choices).queue(null, e -> {});
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /spieler-info  – IC-Daten + Kontostand + Bargeld + Inventar
+    // ════════════════════════════════════════════════════════════
+
+    private void handleSpielerInfo(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue();
+            return;
+        }
+
+        long guildId     = event.getGuild().getIdLong();
+        String gIdStr    = event.getGuild().getId();
+        long userId      = target.getIdLong();
+        String userIdStr = target.getId();
+
+        event.deferReply(true).queue();
+
+        // 1) IC-Charakter-Daten
+        StringBuilder charLines = new StringBuilder();
+        JsonObject charData = CharacterStore.get(guildId, userId);
+        if (charData == null) {
+            charLines.append("— Kein Charakter angelegt —");
+        } else {
+            String typeRaw = CharacterStore.str(charData, "type");
+            String typePretty = "legal".equalsIgnoreCase(typeRaw)   ? "📗 Legal"
+                              : "illegal".equalsIgnoreCase(typeRaw) ? "📕 Illegal"
+                              : typeRaw;
+            charLines.append("**Charakter-Typ:** ").append(typePretty).append("\n");
+            charLines.append("**Vorname:** ").append(CharacterStore.str(charData, "firstName")).append("\n");
+            charLines.append("**Nachname:** ").append(CharacterStore.str(charData, "lastName")).append("\n");
+            String birth = CharacterStore.str(charData, "birthDate");
+            if (!"-".equals(birth)) charLines.append("**Geburtsdatum:** ").append(birth).append("\n");
+            String birthPlace = CharacterStore.str(charData, "birthPlace");
+            if (!"-".equals(birthPlace)) charLines.append("**Geburtsort:** ").append(birthPlace).append("\n");
+            String nat = CharacterStore.str(charData, "nationality");
+            if (!"-".equals(nat)) charLines.append("**Nationalität:** ").append(nat).append("\n");
+            String residence = CharacterStore.str(charData, "residence");
+            if (!"-".equals(residence)) charLines.append("**Wohnsitz:** ").append(residence).append("\n");
+            String regAt = CharacterStore.str(charData, "registeredAt");
+            if (!"-".equals(regAt)) charLines.append("**Registriert seit:** ").append(regAt);
+        }
+
+        // 2) Geld: Kontostand + Bargeld
+        long bank = BankManager.getBalance(gIdStr, userIdStr);
+        long cash = BargeldManager.get(gIdStr, userIdStr);
+        String moneyBlock = "💳 **Kontostand:** " + BankManager.formatAmount(bank)
+                          + "\n💵 **Bargeld:** "   + BankManager.formatAmount(cash);
+
+        // 3) Sichtbare Inventar-Items (Top 25, +Zähler)
+        List<InventoryManager.Item> items = InventoryManager.getVisibleItems(gIdStr, userIdStr);
+        StringBuilder invBlock = new StringBuilder();
+        if (items == null || items.isEmpty()) {
+            invBlock.append("— Inventar ist leer —");
+        } else {
+            int shown = 0;
+            for (InventoryManager.Item it : items) {
+                if (shown >= 25) {
+                    invBlock.append("_… +").append(items.size() - shown).append(" weitere_");
+                    break;
+                }
+                invBlock.append("• ").append(it.name).append(" ×").append(it.quantity).append("\n");
+                shown++;
+            }
+        }
+
+        event.getHook().sendMessageEmbeds(new EmbedBuilder()
+                .setColor(new Color(0xCC5500))
+                .setTitle("📋 Spieler-Info — " + target.getUser().getName())
+                .setDescription(
+                    "**__🧑 IC-Charakter__**\n" + charLines + "\n\n" +
+                    "**__💰 Geld__**\n" + moneyBlock + "\n\n" +
+                    "**__📦 Inventar (sichtbar)__**\n" + invBlock)
+                .build())
+            .queue();
     }
 }

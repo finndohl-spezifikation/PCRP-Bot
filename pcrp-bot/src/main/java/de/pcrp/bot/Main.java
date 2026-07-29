@@ -780,6 +780,30 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
+                Commands.slash("teamverwarnung", "Verwarnt ein anderes Teammitglied (nur Teammitglieder)")
+                    .addOption(OptionType.USER,   "mitglied",    "Das Teammitglied, das verwarnt werden soll", true)
+                    .addOption(OptionType.STRING,  "grund",       "Grund der Team-Verwarnung",                   true)
+                    .addOption(OptionType.STRING,  "konsequenz",  "Konsequenz / Maßnahme",                      true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("teamverwarnung-liste", "Zeigt alle Team-Verwarnungen eines Teammitglieds")
+                    .addOption(OptionType.USER, "mitglied", "Das Teammitglied", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("teamverwarnung-entfernen", "Entfernt eine Team-Verwarnung von einem Teammitglied")
+                    .addOption(OptionType.USER, "mitglied", "Das Teammitglied", true)
+                    .addOptions(new OptionData(OptionType.STRING, "warn-id",
+                        "Welche Team-Verwarnung soll entfernt werden?", true, true))
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
+                Commands.slash("spieler-info", "Zeigt IC-Charakter, Kontostand, Bargeld und Inventar eines Spielers")
+                    .addOption(OptionType.USER, "mitglied", "Das Mitglied, das angezeigt werden soll", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
                 Commands.slash("gewinnspiel", "Startet ein Gewinnspiel im Gewinnspiel-Kanal")
                     .addOption(OptionType.STRING, "titel", "Titel des Gewinnspiels",          true)
                     .addOption(OptionType.STRING, "was",   "Was kann man gewinnen?",           true)

@@ -39,6 +39,9 @@ public final class RoleConfig {
     /** Kanal, in dem /ausweis ausgeführt werden darf. */
     public static final long AUSWEIS_CHANNEL_ID = 1529636558628716586L;
 
+  /** Rolle „Teammitglied" – Voraussetzung, um /teamverwarnung zu erhalten. */
+    public static final long TEAMMITGLIED_ROLE_ID = 1529636279128555583L;
+
     /** Warn-Rollen (Index 0 = 1. Warn, 1 = 2. Warn, 2 = 3. Warn). */
     public static final long[] WARN_ROLES = {
         1529636318374658050L,   // Warn 1
