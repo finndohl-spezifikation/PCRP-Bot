@@ -1072,6 +1072,25 @@ public class WebServer {
             ".tk-res.win h2{color:#7ddd55}.tk-res.lose h2{color:#b8860b}" +
             ".tk-ra{color:#FFD700;font-size:1.5rem;font-weight:900;display:block;margin:4px 0}" +
             ".tk-rd{color:#999;font-size:.77rem;font-family:'Segoe UI',sans-serif;line-height:1.6}" +
+            // Rubbellos-Scratch Verbesserungen (Layout)
+            ".hint-strip{background:linear-gradient(90deg,#1a0d00,#3a2200,#1a0d00);" +
+            "padding:9px 14px;display:flex;align-items:center;justify-content:space-between;" +
+            "border-top:2px solid #6b3e00;border-bottom:1px solid #6b3e00;" +
+            "background-image:radial-gradient(circle at 18% 50%,rgba(255,200,0,.10),transparent 70%)}" +
+            ".hint-strip .hnt{color:#ffd34d;font-size:.78rem;font-weight:800;letter-spacing:1px;font-family:'Segoe UI',sans-serif;text-shadow:0 1px 0 rgba(0,0,0,.6)}" +
+            ".hint-strip .p-text{color:#ffd34d;font-size:.66rem;letter-spacing:1.5px;font-family:'Segoe UI',sans-serif;font-weight:700;background:rgba(0,0,0,.45);padding:3px 9px;border-radius:11px;border:1px solid #6b3e00}" +
+            ".tools{background:linear-gradient(180deg,#0c0700,#1a0f00);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #6b3e00}" +
+            ".tools .prob{color:#b8860b;font-size:.62rem;letter-spacing:2px;font-weight:800;font-family:'Segoe UI',sans-serif}" +
+            ".auto-rev{background:linear-gradient(180deg,#c07000 0%,#8b5e00 50%,#c07000 100%);border:1px solid #d49000;color:#fff5d3;" +
+            "font-size:.6rem;font-weight:800;letter-spacing:1.5px;padding:7px 12px;border-radius:6px;cursor:pointer;" +
+            "font-family:'Segoe UI',sans-serif;text-transform:uppercase;transition:transform .15s,opacity .15s,box-shadow .15s;" +
+            "text-shadow:1px 1px 0 rgba(60,30,0,.6)}" +
+            ".auto-rev:hover{transform:translateY(-1px);opacity:.95;box-shadow:0 3px 10px rgba(255,180,0,.3)}" +
+            ".auto-rev:active{transform:translateY(0);opacity:.85}" +
+            ".wl-glow{position:absolute;inset:0;border-radius:6px;pointer-events:none;" +
+            "box-shadow:0 0 24px rgba(255,210,80,.7),inset 0 0 12px rgba(255,210,80,.4);" +
+            "animation:glow 1.4s ease-in-out infinite}" +
+            "@keyframes glow{0%,100%{opacity:.7}50%{opacity:1}}" +
             "</style></head><body>" +
             "<canvas id='pcanvas'></canvas>" +
             "<div class='ticket'>" +
@@ -1109,6 +1128,11 @@ public class WebServer {
             "<div class='tk-info' id='infoArea'>" +
             "<div class='tk-itxt'>3 gleiche Betr&#228;ge waagerecht, senkrecht oder diagonal = Gewinn!</div>" +
             "<div class='tk-ich'>8 GEWINNCHANCEN</div></div>" +
+            // Neue Rubbellos-Scratch UI: Hint-Strip + Tools (Aufdecken-Button)
+            "<div class='hint-strip'><span class='hnt'>👉 Rubbel die Goldfolie mit Maus oder Finger frei 👈</span>" +
+            "<span class='p-text' id='p-text'>0% freigerubbelt</span></div>" +
+            "<div class='tools'><span class='prob'>3 GLEICHE BETRÄGE = SOFORTIGER GEWINN</span>" +
+            "<button class='auto-rev' onclick='autoReveal()'>🎫 Schnell aufdecken</button></div>" +
             "<div class='tk-res' id='tres'><h2 id='trt'></h2><span class='tk-ra' id='tra'></span><div class='tk-rd' id='trd'></div></div>" +
             "</div>" +
             "<script>" +
@@ -1169,7 +1193,7 @@ public class WebServer {
             "const rc=wr.getBoundingClientRect();" +
             "const W=Math.round(rc.width),H=Math.round(rc.height);" +
             "if(!W||!H)return;" +
-            "cv.width=W;cv.height=H;" +
+            "const dpr0=window.devicePixelRatio||1;cv.width=Math.round(W*dpr0);cv.height=Math.round(H*dpr0);ctx.scale(dpr0,dpr0);" +
             "const ctx=cv.getContext('2d');" +
             "const gd=ctx.createLinearGradient(0,0,W,H);" +
             "gd.addColorStop(0,'#ffe050');gd.addColorStop(.35,'#ffbe00');" +
@@ -1210,9 +1234,9 @@ public class WebServer {
             "cv.addEventListener('touchstart',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});" +
             "cv.addEventListener('touchmove',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});}" +
             "function chkRev(ctx,i,W,H){if(rev[i])return;" +
-            "const d=ctx.getImageData(0,0,W,H).data;" +
+            "const d=ctx.getImageData(0,0,cv.width,cv.height).data;" +
             "let tot=0,clr=0;for(let j=3;j<d.length;j+=4){tot++;if(d[j]<64)clr++;}" +
-            "if(clr/tot>.54){rev[i]=true;" +
+            "if(clr/tot>.32){rev[i]=true;cv.classList.add('rev');updateProgress();" +
             "const cv=document.getElementById('cc'+i);" +
             "cv.style.transition='opacity .3s';cv.style.opacity='0';" +
             "setTimeout(()=>cv.style.display='none',320);checkAll();}}" +
@@ -1237,6 +1261,24 @@ public class WebServer {
             "document.getElementById('trd').textContent='Kein Treffer – beim n\\u00e4chsten Rubbellos klappts bestimmt!';}" +
             "el.style.display='block';" +
             "}catch(e){}}" +
+            // Neue Rubbellos-Scratch Effekte: Audio + Haptik + Fortschritt + Auto-Aufdecken + Resize
+            "let auctx=null;" +
+            "function playSc(){try{if(navigator.vibrate)navigator.vibrate(6);" +
+            "if(!auctx)auctx=new (window.AudioContext||window.webkitAudioContext)();" +
+            "if(!auctx)return;if(auctx.state==='suspended')auctx.resume();" +
+            "const len=auctx.sampleRate*0.012;const buf=auctx.createBuffer(1,len,auctx.sampleRate);" +
+            "const dat=buf.getChannelData(0);for(let i=0;i<len;i++)dat[i]=Math.random()*2-1;" +
+            "const src=auctx.createBufferSource();src.buffer=buf;" +
+            "const lp=auctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1800;" +
+            "const gn=auctx.createGain();gn.gain.value=0.05;" +
+            "src.connect(lp);lp.connect(gn);gn.connect(auctx.destination);src.start();}catch(e){}}" +
+            "function updateProgress(){try{const cvs=document.querySelectorAll('.sc');" +
+            "let pct=0;cvs.forEach(cv=>{if(cv.classList.contains('rev'))pct+=100/9;});" +
+            "const txt=document.getElementById('p-text');if(txt)txt.textContent=Math.min(99,Math.round(pct))+'% freigerubbelt';}catch(e){}}" +
+            "function autoReveal(){document.querySelectorAll('.sc').forEach(cv=>{" +
+            "if(!cv.classList.contains('rev')){cv.classList.add('rev');cv.style.transition='opacity 0.5s';cv.style.opacity='0';" +
+            "setTimeout(()=>{cv.style.display='none';},520);}});setTimeout(()=>{if(typeof checkAll==='function')checkAll();},620);}" +
+            "addEventListener('resize',()=>{if(typeof initC==='function')document.querySelectorAll('.sc').forEach(cv=>{if(!cv.classList.contains('rev'))initC(parseInt(cv.id.slice(2)));});});" +
             "</script></body></html>";
     }
 
@@ -1402,6 +1444,25 @@ public class WebServer {
             ".tk-res.win h2{color:#7ddd55}.tk-res.lose h2{color:#b8860b}" +
             ".tk-ra{color:#FFD700;font-size:1.5rem;font-weight:900;display:block;margin:4px 0}" +
             ".tk-rd{color:#999;font-size:.77rem;font-family:'Segoe UI',sans-serif;line-height:1.6}" +
+            // Rubbellos-Scratch Verbesserungen (Layout)
+            ".hint-strip{background:linear-gradient(90deg,#1a0d00,#3a2200,#1a0d00);" +
+            "padding:9px 14px;display:flex;align-items:center;justify-content:space-between;" +
+            "border-top:2px solid #6b3e00;border-bottom:1px solid #6b3e00;" +
+            "background-image:radial-gradient(circle at 18% 50%,rgba(255,200,0,.10),transparent 70%)}" +
+            ".hint-strip .hnt{color:#ffd34d;font-size:.78rem;font-weight:800;letter-spacing:1px;font-family:'Segoe UI',sans-serif;text-shadow:0 1px 0 rgba(0,0,0,.6)}" +
+            ".hint-strip .p-text{color:#ffd34d;font-size:.66rem;letter-spacing:1.5px;font-family:'Segoe UI',sans-serif;font-weight:700;background:rgba(0,0,0,.45);padding:3px 9px;border-radius:11px;border:1px solid #6b3e00}" +
+            ".tools{background:linear-gradient(180deg,#0c0700,#1a0f00);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #6b3e00}" +
+            ".tools .prob{color:#b8860b;font-size:.62rem;letter-spacing:2px;font-weight:800;font-family:'Segoe UI',sans-serif}" +
+            ".auto-rev{background:linear-gradient(180deg,#c07000 0%,#8b5e00 50%,#c07000 100%);border:1px solid #d49000;color:#fff5d3;" +
+            "font-size:.6rem;font-weight:800;letter-spacing:1.5px;padding:7px 12px;border-radius:6px;cursor:pointer;" +
+            "font-family:'Segoe UI',sans-serif;text-transform:uppercase;transition:transform .15s,opacity .15s,box-shadow .15s;" +
+            "text-shadow:1px 1px 0 rgba(60,30,0,.6)}" +
+            ".auto-rev:hover{transform:translateY(-1px);opacity:.95;box-shadow:0 3px 10px rgba(255,180,0,.3)}" +
+            ".auto-rev:active{transform:translateY(0);opacity:.85}" +
+            ".wl-glow{position:absolute;inset:0;border-radius:6px;pointer-events:none;" +
+            "box-shadow:0 0 24px rgba(255,210,80,.7),inset 0 0 12px rgba(255,210,80,.4);" +
+            "animation:glow 1.4s ease-in-out infinite}" +
+            "@keyframes glow{0%,100%{opacity:.7}50%{opacity:1}}" +
             "</style></head><body>" +
             "<canvas id='pcanvas'></canvas>" +
             "<div class='ticket'>" +
@@ -1431,6 +1492,11 @@ public class WebServer {
             "<div class='tk-info'>" +
             "<div class='tk-itxt'>Rubbele alle 9 Felder frei! 3 gleiche Betr&#228;ge waagerecht, senkrecht oder diagonal = Gewinn!</div>" +
             "<div class='tk-ich'>8 GEWINNCHANCEN</div></div>" +
+            // Neue Rubbellos-Scratch UI: Hint-Strip + Tools (Aufdecken-Button)
+            "<div class='hint-strip'><span class='hnt'>👉 Rubbel die Goldfolie mit Maus oder Finger frei 👈</span>" +
+            "<span class='p-text' id='p-text'>0% freigerubbelt</span></div>" +
+            "<div class='tools'><span class='prob'>3 GLEICHE BETRÄGE = SOFORTIGER GEWINN</span>" +
+            "<button class='auto-rev' onclick='autoReveal()'>🎫 Schnell aufdecken</button></div>" +
             "<div class='tk-res' id='tres'><h2 id='trt'></h2><span class='tk-ra' id='tra'></span><div class='tk-rd' id='trd'></div></div>" +
             "</div>" +
             "<script>" +
@@ -1466,7 +1532,7 @@ public class WebServer {
             "const rc=wr.getBoundingClientRect();" +
             "const W=Math.round(rc.width),H=Math.round(rc.height);" +
             "if(!W||!H)return;" +
-            "cv.width=W;cv.height=H;" +
+            "const dpr0=window.devicePixelRatio||1;cv.width=Math.round(W*dpr0);cv.height=Math.round(H*dpr0);ctx.scale(dpr0,dpr0);" +
             "const ctx=cv.getContext('2d');" +
             // gold gradient
             "const gd=ctx.createLinearGradient(0,0,W,H);" +
@@ -1515,9 +1581,9 @@ public class WebServer {
             "cv.addEventListener('touchstart',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});" +
             "cv.addEventListener('touchmove',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});}" +
             "function chkRev(ctx,i,W,H){if(rev[i])return;" +
-            "const d=ctx.getImageData(0,0,W,H).data;" +
+            "const d=ctx.getImageData(0,0,cv.width,cv.height).data;" +
             "let tot=0,clr=0;for(let j=3;j<d.length;j+=4){tot++;if(d[j]<64)clr++;}" +
-            "if(clr/tot>.54){rev[i]=true;" +
+            "if(clr/tot>.32){rev[i]=true;cv.classList.add('rev');updateProgress();" +
             "const cv=document.getElementById('cc'+i);" +
             "cv.style.transition='opacity .3s';cv.style.opacity='0';" +
             "setTimeout(()=>cv.style.display='none',320);" +
@@ -1548,6 +1614,23 @@ public class WebServer {
             "document.getElementById('trd').textContent='Bitte erneut versuchen.';el.style.display='block';}}" +
             // init canvases after full layout render
             "requestAnimationFrame(()=>requestAnimationFrame(()=>{for(let i=0;i<9;i++)initC(i);}));" +
+            "let auctx=null;" +
+            "function playSc(){try{if(navigator.vibrate)navigator.vibrate(6);" +
+            "if(!auctx)auctx=new (window.AudioContext||window.webkitAudioContext)();" +
+            "if(!auctx)return;if(auctx.state==='suspended')auctx.resume();" +
+            "const len=auctx.sampleRate*0.012;const buf=auctx.createBuffer(1,len,auctx.sampleRate);" +
+            "const dat=buf.getChannelData(0);for(let i=0;i<len;i++)dat[i]=Math.random()*2-1;" +
+            "const src=auctx.createBufferSource();src.buffer=buf;" +
+            "const lp=auctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1800;" +
+            "const gn=auctx.createGain();gn.gain.value=0.05;" +
+            "src.connect(lp);lp.connect(gn);gn.connect(auctx.destination);src.start();}catch(e){}}" +
+            "function updateProgress(){try{const cvs=document.querySelectorAll('.sc');" +
+            "let pct=0;cvs.forEach(cv=>{if(cv.classList.contains('rev'))pct+=100/9;});" +
+            "const txt=document.getElementById('p-text');if(txt)txt.textContent=Math.min(99,Math.round(pct))+'% freigerubbelt';}catch(e){}}" +
+            "function autoReveal(){document.querySelectorAll('.sc').forEach(cv=>{" +
+            "if(!cv.classList.contains('rev')){cv.classList.add('rev');cv.style.transition='opacity 0.5s';cv.style.opacity='0';" +
+            "setTimeout(()=>{cv.style.display='none';},520);}});setTimeout(()=>{if(typeof checkAll==='function')checkAll();},620);}" +
+            "addEventListener('resize',()=>{if(typeof initC==='function')document.querySelectorAll('.sc').forEach(cv=>{if(!cv.classList.contains('rev'))initC(parseInt(cv.id.slice(2)));});});" +
             "</script></body></html>";
     }
 

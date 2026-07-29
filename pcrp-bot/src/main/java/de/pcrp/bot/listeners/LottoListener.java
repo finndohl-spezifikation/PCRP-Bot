@@ -53,16 +53,8 @@ public class LottoListener extends ListenerAdapter {
                     return;
                 }
 
-                // Lottoschein einlösen
-                boolean removed = InventoryManager.removeItem(guildId, userId, "Lottoschein", 1);
-                if (!removed) {
-                    event.replyEmbeds(EmbedFactory.build(
-                        "❌ Fehler",
-                        "Der Lottoschein konnte nicht eingelöst werden. Bitte versuche es erneut."))
-                        .setEphemeral(true).queue();
-                    return;
-                }
-
+                // Nur prüfen — der Lottoschein wird beim eigentlichen Abgeben (LottoManager.enroll)
+                // entfernt. So vermeiden wir Doppel-Abzug, wenn der User die Seite öffnet und abbricht.
                 String token  = LottoManager.createToken(guildId, userId);
                 String webUrl = "https://dashboards.paradisecity-roleplay-85a.workers.dev";
                 try {
@@ -78,7 +70,7 @@ public class LottoListener extends ListenerAdapter {
                     event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Interner Fehler. Bitte versuche es erneut."))
                         .setEphemeral(true).queue();
                 }
-                log.info("[Lotto] Token für {} generiert, Lottoschein eingelöst.", event.getUser().getAsTag());
+                log.info("[Lotto] Token für {} generiert, Lottoschein wird beim Abgeben eingelöst.", event.getUser().getAsTag());
             }
         }
     }
