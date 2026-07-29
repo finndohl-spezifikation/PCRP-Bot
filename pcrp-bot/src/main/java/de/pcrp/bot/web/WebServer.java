@@ -98,6 +98,12 @@ public class WebServer {
 
         // ── Citygram ──────────────────────────────────────────────────────────
         app.get( "/citygram",                                    WebServer::serveCitygram);
+        app.get( "/api/citygram/health",                         ctx -> {
+            JsonObject r = new JsonObject();
+            r.addProperty("ok", true);
+            r.addProperty("service", "citygram");
+            ctx.contentType("application/json").result(WebServer.GSON.toJson(r));
+        });
         app.post("/api/citygram/auth",                           ctx -> CityCitygramHandler.handleAuth(ctx));
         app.get( "/api/citygram/me",                             ctx -> CityCitygramHandler.handleGetMe(ctx));
         app.put( "/api/citygram/profile",                        ctx -> CityCitygramHandler.handleUpdateProfile(ctx));
@@ -259,15 +265,13 @@ public class WebServer {
     private static void serveCitygram(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/citygram.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
-            // API_BASE = Cloudflare-URL (WEB_URL) bevorzugt — identisch zu serveCityChat.
-            // So laufen alle Citygram-API-Calls über Cloudflare (kein direkter Railway-Hit),
-            // und es funktioniert egal ob die Seite über Cloudflare- oder Railway-URL aufgerufen wird.
             String base = System.getenv("WEB_URL");
             if (base == null || base.isBlank()) {
                 base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
                 if (!base.startsWith("http")) base = "https://" + base;
             }
             base = base.replaceAll("/$", "");
+            log.info("[Citygram] served mit API_BASE = {}", base);
             String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
                 .replace("%%API_BASE%%", base);
             ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
@@ -1965,7 +1969,15 @@ public class WebServer {
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
             "<title>🪪 Personalausweis erstellen — " + esc(displayName) + "</title>" +
+            "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css'>" +
+            "<script src='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js'></script>" +
             "<style>" + CSS +
+            ".crop-wrap{position:relative;max-width:100%;margin-bottom:10px;background:#06111f;border:1px solid #c8a04866;border-radius:8px;padding:10px}" +
+            ".crop-wrap img{display:block;max-width:100%;max-height:340px}" +
+            ".crop-tools{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}" +
+            ".crop-tools button{flex:1;padding:8px;background:#0a1c38;border:1px solid #c8a04866;border-radius:6px;color:#e8c878;font-weight:700;letter-spacing:1px;cursor:pointer;font-size:.78rem}" +
+            ".crop-tools button:hover{background:#0d2550;border-color:#c8a048}" +
+            ".crop-stage{display:none}.crop-stage.on{display:block}" +
             ".photo-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;padding:14px;background:#06111f;border:2px dashed #c8a04866;border-radius:8px}" +
             ".photo-field label{margin-bottom:2px}" +
             ".photo-field input[type=file]{padding:8px;background:transparent;border:0;color:#a8c4e0}" +
@@ -1992,29 +2004,63 @@ public class WebServer {
             fieldHtml("ausweisNr", "Ausweis-Nummer",   true) +
             "</div>" +
             "<div class='photo-field'>" +
-            "<label>📷 Passfoto (JPG/PNG) — wird als Foto im Ausweis angezeigt</label>" +
-            "<input type='file' name='photo' accept='image/png,image/jpeg' required>" +
+            "<label>📷 Passfoto (JPG/PNG) — Bild auswählen, dann zuschneiden / drehen / zoomen</label>" +
+            "<input type='file' id='cropFile' accept='image/png,image/jpeg'>" +
             "</div>" +
+            "<div class='crop-stage' id='cropStage'>" +
+            "<div class='crop-wrap'><img id='cropImg' alt='Vorschau'></div>" +
+            "<div class='crop-tools'>" +
+            "<button type='button' data-act='rotL'>↺ Links</button>" +
+            "<button type='button' data-act='rotR'>↻ Rechts</button>" +
+            "<button type='button' data-act='zoomIn'>+ Zoom</button>" +
+            "<button type='button' data-act='zoomOut'>− Zoom</button>" +
+            "<button type='button' data-act='reset'>⟲ Reset</button>" +
+            "</div></div>" +
             "<button type='submit' class='submit' id='btn'>🪪 Ausweis speichern</button>" +
             "<div class='msg' id='m'></div></form>" +
             "<div class='nav'>Formular wird automatisch gespeichert — du wirst zum Ausweis weitergeleitet.</div>" +
             "</div>" +
             "<script>" +
-            "document.getElementById('f').onsubmit=async e=>{" +
+            "let cropper=null;" +
+            "const cropFile=document.getElementById('cropFile');" +
+            "const cropImg=document.getElementById('cropImg');" +
+            "const cropStage=document.getElementById('cropStage');" +
+            "function show(t,c){const m=document.getElementById('m');m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "cropFile.addEventListener('change',e=>{" +
+            "  const file=e.target.files[0];if(!file)return;" +
+            "  if(file.size>10*1024*1024){show('⚠️ Foto zu groß (max 10 MB).','err');cropFile.value='';return;}" +
+            "  if(cropper){cropper.destroy();cropper=null;}" +
+            "  const reader=new FileReader();" +
+            "  reader.onload=ev=>{cropImg.src=ev.target.result;cropStage.classList.add('on');" +
+            "    if(window.Cropper){cropper=new Cropper(cropImg,{aspectRatio:3/4,viewMode:1,autoCropArea:0.9,responsive:true,restore:true,background:false});}" +
+            "    else{show('⚠️ Cropper konnte nicht geladen werden.','err');}" +
+            "  };" +
+            "  reader.readAsDataURL(file);" +
+            "});" +
+            "document.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>{" +
+            "  if(!cropper)return;const a=b.dataset.act;" +
+            "  if(a==='rotL')cropper.rotate(-90);else if(a==='rotR')cropper.rotate(90);" +
+            "  else if(a==='zoomIn')cropper.zoom(0.15);else if(a==='zoomOut')cropper.zoom(-0.15);" +
+            "  else if(a==='reset')cropper.reset();" +
+            "}));" +
+            "document.getElementById('f').addEventListener('submit',async e=>{" +
             "  e.preventDefault();" +
+            "  if(!cropper){show('⚠️ Bitte zuerst ein Foto auswahlen & zuschneiden.','err');return;}" +
             "  const btn=document.getElementById('btn');btn.disabled=true;" +
-            "  const fd=new FormData(e.target);" +
-            "  const file=fd.get('photo');" +
-            "  if(!file||!file.name){show('⚠️ Bitte lade ein Passfoto hoch.','err');btn.disabled=false;return;}" +
-            "  if(file.size>10*1024*1024){show('⚠️ Foto zu groß (max. 10 MB).','err');btn.disabled=false;return;}" +
-            "  try{const r=await fetch('/api/save-ausweis',{method:'POST',body:fd});" +
+            "  try{" +
+            "    const canvas=cropper.getCroppedCanvas({width:600,height:800,minWidth:320,minHeight:420,maxWidth:1600,maxHeight:2000,fillColor:'#fff',imageSmoothingQuality:'high'});" +
+            "    if(!canvas)throw new Error('crop-empty');" +
+            "    const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.92));" +
+            "    if(!blob)throw new Error('blob-empty');" +
+            "    const fd=new FormData(e.target);" +
+            "    fd.delete('cropFile');" +
+            "    fd.set('photo',blob,'cropped.jpg');" +
+            "    const r=await fetch('/api/save-ausweis',{method:'POST',body:fd});" +
             "    const d=await r.json();" +
-            "    if(d.ok){show('✅ Ausweis gespeichert! Leite weiter …','ok');" +
-            "      setTimeout(()=>location.href=d.viewUrl,900);}" +
-            "    else{show(d.error||'Fehler.','err');btn.disabled=false;}}" +
-            "  catch(err){show('Verbindungsfehler.','err');btn.disabled=false;}};" +
-            "function show(t,c){const m=document.getElementById('m');" +
-            "  m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "    if(d.ok){show('✅ Ausweis gespeichert!','ok');setTimeout(()=>location.href=d.viewUrl,900);}" +
+            "    else{show(d.error||'Fehler.','err');btn.disabled=false;}" +
+            "  }catch(err){show('Verbindungsfehler: '+(err.message||err),'err');btn.disabled=false;}" +
+            "});" +
             "</script></body></html>";
     }
 
@@ -2068,6 +2114,8 @@ public class WebServer {
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
             "<title>🚗 California Driver License — " + esc(displayName) + "</title>" +
+            "<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css'>" +
+            "<script src='https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js'></script>" +
             "<style>" + CSS + "</style></head><body>" +
             "<div class='wrap'>" +
             "<div class='hdr'>" +
@@ -2088,32 +2136,66 @@ public class WebServer {
             fieldHtml("adresse", "ADDRESS", true) +
             kb.toString() +
             "<div class='photo-field'>" +
-            "<label>📷 Passfoto (JPG/PNG) — wird als Foto im Führerschein angezeigt</label>" +
-            "<input type='file' name='photo' accept='image/png,image/jpeg' required>" +
+            "<label>📷 Passfoto (JPG/PNG) — Bild auswählen, dann zuschneiden / drehen / zoomen</label>" +
+            "<input type='file' id='cropFile' accept='image/png,image/jpeg'>" +
             "</div>" +
+            "<div class='crop-stage' id='cropStage'>" +
+            "<div class='crop-wrap'><img id='cropImg' alt='Vorschau'></div>" +
+            "<div class='crop-tools'>" +
+            "<button type='button' data-act='rotL'>↺ Links</button>" +
+            "<button type='button' data-act='rotR'>↻ Rechts</button>" +
+            "<button type='button' data-act='zoomIn'>+ Zoom</button>" +
+            "<button type='button' data-act='zoomOut'>− Zoom</button>" +
+            "<button type='button' data-act='reset'>⟲ Reset</button>" +
+            "</div></div>" +
             "<button type='submit' class='submit' id='btn'>🚗 Führerschein speichern</button>" +
             "<div class='msg' id='m'></div></form>" +
             "<div class='nav'>Formular wird automatisch gespeichert — du wirst zum Führerschein weitergeleitet.</div>" +
             "</div>" +
             "<script>" +
-            "document.getElementById('f').onsubmit=async e=>{" +
+            "let cropper=null;function cls(){" +
+            "  const ck=document.querySelectorAll('input[name=\\\"klassen\\\"]:checked');return Array.from(ck).map(c=>c.value);}" +
+            "const cropFile=document.getElementById('cropFile');" +
+            "const cropImg=document.getElementById('cropImg');" +
+            "const cropStage=document.getElementById('cropStage');" +
+            "function show(t,c){const m=document.getElementById('m');m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "cropFile.addEventListener('change',e=>{" +
+            "  const file=e.target.files[0];if(!file)return;" +
+            "  if(file.size>10*1024*1024){show('⚠️ Foto zu groß (max 10 MB).','err');cropFile.value='';return;}" +
+            "  if(cropper){cropper.destroy();cropper=null;}" +
+            "  const reader=new FileReader();" +
+            "  reader.onload=ev=>{cropImg.src=ev.target.result;cropStage.classList.add('on');" +
+            "    if(window.Cropper){cropper=new Cropper(cropImg,{aspectRatio:3/4,viewMode:1,autoCropArea:0.9,responsive:true,restore:true,background:false});}" +
+            "    else{show('⚠️ Cropper konnte nicht geladen werden.','err');}" +
+            "  };" +
+            "  reader.readAsDataURL(file);" +
+            "});" +
+            "document.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>{" +
+            "  if(!cropper)return;const a=b.dataset.act;" +
+            "  if(a==='rotL')cropper.rotate(-90);else if(a==='rotR')cropper.rotate(90);" +
+            "  else if(a==='zoomIn')cropper.zoom(0.15);else if(a==='zoomOut')cropper.zoom(-0.15);" +
+            "  else if(a==='reset')cropper.reset();" +
+            "}));" +
+            "document.getElementById('f').addEventListener('submit',async e=>{" +
             "  e.preventDefault();" +
+            "  if(!cropper){show('⚠️ Bitte zuerst ein Foto auswahlen & zuschneiden.','err');return;}" +
             "  const btn=document.getElementById('btn');btn.disabled=true;" +
-            "  const fd=new FormData(e.target);" +
-            "  const klassen=Array.from(document.querySelectorAll('input[name=\\\"klassen\\\"]:checked')).map(c=>c.value);" +
-            "  fd.delete('klassen');" +
-            "  for(const k of klassen)fd.append('klassen',k);" +
-            "  const file=fd.get('photo');" +
-            "  if(!file||!file.name){show('⚠️ Bitte lade ein Passfoto hoch.','err');btn.disabled=false;return;}" +
-            "  if(file.size>10*1024*1024){show('⚠️ Foto zu groß (max. 10 MB).','err');btn.disabled=false;return;}" +
-            "  try{const r=await fetch('/api/save-fuehrerschein',{method:'POST',body:fd});" +
+            "  try{" +
+            "    const canvas=cropper.getCroppedCanvas({width:600,height:800,minWidth:320,minHeight:420,maxWidth:1600,maxHeight:2000,fillColor:'#fff',imageSmoothingQuality:'high'});" +
+            "    if(!canvas)throw new Error('crop-empty');" +
+            "    const blob=await new Promise(res=>canvas.toBlob(res,'image/jpeg',0.92));" +
+            "    if(!blob)throw new Error('blob-empty');" +
+            "    const fd=new FormData(e.target);" +
+            "    fd.delete('cropFile');" +
+            "    fd.delete('klassen');" +
+            "    for(const k of cls())fd.append('klassen',k);" +
+            "    fd.set('photo',blob,'cropped.jpg');" +
+            "    const r=await fetch('/api/save-fuehrerschein',{method:'POST',body:fd});" +
             "    const d=await r.json();" +
-            "    if(d.ok){show('✅ Führerschein gespeichert!','ok');" +
-            "      setTimeout(()=>location.href=d.viewUrl,900);}" +
-            "    else{show(d.error||'Fehler.','err');btn.disabled=false;}}" +
-            "  catch(err){show('Verbindungsfehler.','err');btn.disabled=false;}};" +
-            "function show(t,c){const m=document.getElementById('m');" +
-            "  m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "    if(d.ok){show('✅ Führerschein gespeichert!','ok');setTimeout(()=>location.href=d.viewUrl,900);}" +
+            "    else{show(d.error||'Fehler.','err');btn.disabled=false;}" +
+            "  }catch(err){show('Verbindungsfehler: '+(err.message||err),'err');btn.disabled=false;}" +
+            "});" +
             "</script></body></html>";
     }
 
@@ -2136,64 +2218,65 @@ public class WebServer {
         String idNum = a.ausweisNr.isBlank()
             ? "LA-" + userId.substring(Math.max(0, userId.length() - 8)).toUpperCase()
             : esc(a.ausweisNr);
-        // Foto: bevorzugt das hochgeladene Passfoto (/api/ausweis-photo), Discord-Avatar als Fallback.
         String photoSrc = "/api/ausweis-photo/" + esc(userId);
         String photoFallback = (m != null)
             ? m.getUser().getEffectiveAvatarUrl() + "?size=512"
             : "";
         String photoImg = "<img src='" + photoSrc + "'" +
             (photoFallback.isEmpty() ? "" : " data-fb='" + esc(photoFallback) + "'") +
-            " onerror=\"if(this.dataset.fb){this.src=this.dataset.fb}else{this.outerHTML='<div style=color:#445>Kein Foto</div>'}\">";
+            " onerror=\"if(this.dataset.fb){this.src=this.dataset.fb}else{this.outerHTML='<div style=color:#666;font-size:.7rem'>Kein Foto</div>'}\">";
+        String addrText = esc(a.adresse.isBlank() ? a.wohnort : a.adresse);
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
-            "<title>🪪 Ausweis — " + vorname + " " + nachname + "</title>" +
+            "<title>🪪 California ID — " + vorname + " " + nachname + "</title>" +
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;display:flex;align-items:center;justify-content:center;" +
-            "background:linear-gradient(135deg,#0a0a0a 0%,#0f0f1a 100%);" +
-            "font-family:'Courier New',monospace;padding:16px;}" +
-            ".card{width:100%;max-width:680px;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
-            "border:3px solid #c8a048;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(200,160,72,0.3);}" +
-            ".header{background:linear-gradient(90deg,#0a1c38,#0d2550);border-bottom:3px solid #c8a048;" +
-            "padding:14px 20px;display:flex;align-items:center;gap:16px;}" +
-            ".header .state{display:block;color:#c8a048;font-size:1.3rem;font-weight:700;letter-spacing:4px;}" +
-            ".header .city{display:block;color:#a8c4e0;font-size:.75rem;letter-spacing:2px;margin-top:2px;}" +
-            ".body{display:flex;flex-wrap:wrap;}" +
-            ".photo-col{width:180px;min-height:220px;background:#06111f;display:flex;" +
-            "align-items:center;justify-content:center;border-right:2px solid #c8a04840;padding:16px;flex-shrink:0;}" +
-            ".photo-col img{width:148px;height:185px;object-fit:cover;object-position:top center;" +
-            "border:2px solid #c8a048;border-radius:4px;display:block;}" +
-            ".data-col{flex:1;min-width:200px;padding:20px;}" +
-            ".id-num{color:#c8a048;font-size:.7rem;letter-spacing:2px;margin-bottom:14px;}" +
-            ".field{margin-bottom:12px;}.field label{display:block;color:#6a8fb0;font-size:.6rem;" +
-            "letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
-            ".field .val{color:#e8e8e8;font-size:.95rem;font-weight:700;letter-spacing:1px;}" +
-            ".fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}" +
-            ".footer{background:#06111f;border-top:2px solid #c8a04840;padding:10px 20px;" +
-            "display:flex;justify-content:center;align-items:center;}" +
-            ".footer .seal{color:#c8a04880;font-size:.65rem;letter-spacing:1px;text-align:center;}" +
-            "@media(max-width:480px){.photo-col{width:100%;border-right:none;border-bottom:2px solid #c8a04840;min-height:auto;}" +
-            ".fields-grid{grid-template-columns:1fr;}}" +
+            "body{min-height:100vh;background:#e8d9bf;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Courier New',Consolas,monospace;}" +
+            ".id{width:100%;max-width:640px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
+            ".id-hdr{background:#1c4587;color:#fff;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #ffd641;}" +
+            ".id-hdr .left{font-size:.66rem;letter-spacing:1.5px;line-height:1.35;}" +
+            ".id-hdr .left b{font-size:.85rem;letter-spacing:3px;display:block;}" +
+            ".id-hdr .star{color:#ffd641;font-size:1.8rem;line-height:1;font-family:serif;filter:drop-shadow(0 0 4px rgba(255,214,65,.6));}" +
+            ".id-title{text-align:center;padding:5px 0;background:#fff8e0;border-bottom:1.5px solid #1c4587;}" +
+            ".id-title h1{color:#8b1a1a;font-size:1.25rem;letter-spacing:6px;margin:0;font-weight:900;}" +
+            ".id-title h2{color:#1c4587;font-size:.6rem;letter-spacing:3px;margin:2px 0 0 0;font-weight:700;}" +
+            ".id-body{display:flex;flex-wrap:wrap;padding:10px 14px;}" +
+            ".id-photo{width:160px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;}" +
+            ".id-photo img{width:100%;height:200px;object-fit:cover;object-position:top center;display:block;}" +
+            ".id-photo .dd{position:absolute;top:2px;left:2px;background:#8b1a1a;color:#fff;font-size:.5rem;letter-spacing:1px;padding:1px 4px;border-radius:0 2px 0 0;font-weight:700;}" +
+            ".id-sig{margin-top:6px;border-top:1px solid #444;height:30px;position:relative;background:#fff8e0;}" +
+            ".id-sig span{position:absolute;bottom:2px;left:6px;font-size:.65rem;font-style:italic;color:#1c4587;}" +
+            ".id-data{flex:1;min-width:240px;padding-left:18px;}" +
+            ".id-data .row{display:flex;gap:14px;margin-bottom:8px;}" +
+            ".id-data .field{display:flex;flex-direction:column;flex:1;}" +
+            ".id-data .label{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;}" +
+            ".id-data .val{font-size:1rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;letter-spacing:.5px;}" +
+            ".id-data .addr{font-size:.85rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;min-height:24px;}" +
+            "@media(max-width:560px){.id-body{flex-direction:column;}.id-data{padding-left:0;margin-top:14px;}}" +
             "</style></head><body>" +
-            "<div class='card'><div class='header'>" +
-            "<div><span class='state'>CALIFORNIA</span>" +
-            "<span class='city'>CITY OF LOS ANGELES · PARADISE CITY ROLEPLAY</span></div>" +
+            "<div class='id'>" +
+            "<div class='id-hdr'><div class='left'><b>STATE OF CALIFORNIA</b>DEPARTMENT OF MOTOR VEHICLES · DMV</div><div class='star' title='REAL ID'>\u2605</div></div>" +
+            "<div class='id-title'><h1>IDENTIFICATION CARD</h1><h2>ID " + idNum + "</h2></div>" +
+            "<div class='id-body'>" +
+            "<div><div class='id-photo'>" + photoImg +
+            "<div class='dd'>DD</div></div>" +
+            "<div class='id-sig'><span>" + vorname + " " + nachname + "</span></div></div>" +
+            "<div class='id-data'>" +
+            "<div class='row'>" +
+            "<div class='field'><div class='label'>LN · LAST NAME</div><div class='val'>" + nachname + "</div></div>" +
+            "<div class='field'><div class='label'>FN · FIRST NAME</div><div class='val'>" + vorname + "</div></div>" +
             "</div>" +
-            "<div class='body'><div class='photo-col'>" + photoImg +
-            "</div><div class='data-col'><div class='id-num'>ID-NR: " + idNum + "</div>" +
-            "<div class='fields-grid'>" +
-            docField("Vorname", vorname) +
-            docField("Nachname", nachname) +
-            docField("Geburtsdatum", esc(a.geburtsdatum)) +
-            docField("Staatsangehörigkeit", esc(a.staatsang)) +
-            docField("Wohnort", esc(a.wohnort)) +
-            docField("Adresse", esc(a.adresse)) +
-            "</div>" + (a.erstelltVon.isBlank() ? "" :
-                "<div style='margin-top:14px;color:#888;font-size:.7rem'>Erstellt von: " + esc(a.erstelltVon) + "</div>") +
+            "<div class='row'>" +
+            "<div class='field'><div class='label'>DOB</div><div class='val'>" + esc(a.geburtsdatum) + "</div></div>" +
+            "<div class='field'><div class='label'>NATIONALITY</div><div class='val'>" + esc(a.staatsang) + "</div></div>" +
+            "</div>" +
+            "<div class='field' style='margin-bottom:8px'><div class='label'>ADDRESS</div><div class='addr'>" + addrText + "</div></div>" +
+            (a.erstelltVon.isBlank() ? "" :
+                "<div style='margin-top:8px;font-size:.55rem;color:#888'>Erstellt von: " + esc(a.erstelltVon) + "</div>") +
             "</div></div>" +
-            "<div class='footer'><span class='seal'>STATE OF CALIFORNIA · OFFICIAL IDENTIFICATION</span>" +
-            "</div></div></body></html>";
-
+            "<div style='background:#1c4587;color:#fff;padding:6px 14px;text-align:center;font-size:.55rem;letter-spacing:1.5px;border-top:3px solid #ffd641;'>" +
+            "STATE OF CALIFORNIA · IDENTIFICATION CARD</div>" +
+            "</div></body></html>";
     }
 
     private static String buildDocumentFuehrerscheinPage(DocumentsManager.Fuehrerschein f, Member m, String userId) {
