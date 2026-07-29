@@ -1848,5 +1848,62 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 
 safeInit();
 </script>
+<!-- ── PCRP Build-Version / Cache-Buster ─────────────────────── -->
+<style>
+.pcrp-update-bar{position:fixed;left:16px;right:16px;bottom:16px;z-index:99999;
+  background:#0d0d0d;color:#f5f5f5;border:1px solid #2a2a2a;border-radius:12px;
+  padding:12px 16px;display:none;align-items:center;gap:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.55);font:14px/1.4 -apple-system,Segoe UI,Roboto,sans-serif;
+  max-width:560px;margin:0 auto}
+.pcrp-update-bar.show{display:flex;animation:pcrpSlideUp .35s ease-out}
+@keyframes pcrpSlideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+.pcrp-update-bar .pcrp-icon{font-size:22px;flex-shrink:0}
+.pcrp-update-bar .pcrp-text{flex:1;min-width:0;color:#a8a8a8;font-size:13px}
+.pcrp-update-bar .pcrp-text b{color:#CC5500;display:block;font-size:13px;
+  margin-bottom:1px;font-weight:700;letter-spacing:.02em}
+.pcrp-update-bar .pcrp-btn{background:#CC5500;color:#fff;border:none;
+  border-radius:8px;padding:8px 16px;font-weight:600;cursor:pointer;font-size:13px;
+  transition:background .15s;white-space:nowrap;flex-shrink:0}
+.pcrp-update-bar .pcrp-btn:hover{background:#e36400}
+.pcrp-update-bar .pcrp-dismiss{background:none;border:none;color:#888;
+  cursor:pointer;font-size:20px;padding:4px 8px;line-height:1;border-radius:6px;
+  flex-shrink:0}
+.pcrp-update-bar .pcrp-dismiss:hover{color:#fff;background:#222}
+@media (max-width:480px){
+  .pcrp-update-bar{flex-wrap:wrap}
+  .pcrp-update-bar .pcrp-text{flex:1 1 calc(100% - 36px);order:1}
+  .pcrp-update-bar .pcrp-btn{order:2;flex:1;font-size:12px;padding:8px 12px}
+  .pcrp-update-bar .pcrp-dismiss{order:3}
+}
+</style>
+<div id="pcrp-update-bar" class="pcrp-update-bar" role="status" aria-live="polite">
+  <span class="pcrp-icon">&#128260;</span>
+  <div class="pcrp-text">
+    <b>Neue Version verf&uuml;gbar</b>
+    Klick <em>Neu laden</em> damit alles korrekt aussieht.
+  </div>
+  <button class="pcrp-btn" id="pcrp-update-btn" type="button">Neu laden</button>
+  <button class="pcrp-dismiss" id="pcrp-update-x" type="button" aria-label="Schlie&szlig;en">&times;</button>
+</div>
+<script>
+(function(){
+  try {
+    var BUILD = '2026-07-30-1';
+    var KEY   = 'pcrp-seen-build';
+    var seen  = null;
+    try { seen = localStorage.getItem(KEY); } catch(e){}
+    if (seen && seen !== BUILD) {
+      var bar = document.getElementById('pcrp-update-bar');
+      var btn = document.getElementById('pcrp-update-btn');
+      var x   = document.getElementById('pcrp-update-x');
+      if (bar) bar.classList.add('show');
+      if (btn) btn.onclick = function(){ location.reload(); };
+      if (x)   x.onclick   = function(){ bar.classList.remove('show'); };
+    }
+    try { localStorage.setItem(KEY, BUILD); } catch(e){}
+  } catch(e){}
+})();
+</script>
+
 </body>
 </html>
