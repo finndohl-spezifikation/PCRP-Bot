@@ -661,6 +661,11 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.ADMINISTRATOR)),
 
+                Commands.slash("charakter-zurücksetzen", "Setzt Inventar + Bargeld + Kontostand eines Spielers auf 0 (Ausweis/Führerschein bleiben)")
+                    .addOption(OptionType.USER, "mitglied", "Das Mitglied, dessen Charakter zurückgesetzt wird", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
+
 
                 Commands.slash("löschen", "Löscht 1–200 Nachrichten im aktuellen Kanal")
                     .addOption(OptionType.INTEGER, "anzahl",

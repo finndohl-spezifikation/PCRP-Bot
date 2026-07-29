@@ -96,6 +96,7 @@ public class CommandListener extends ListenerAdapter {
             case "entbannen-dashboard"   -> handleEntbannenDashboard(event);
             case "bewohner-information"  -> handleBewohnerInformation(event);
             case "handy-reset"           -> handleHandyReset(event);
+            case "charakter-zurücksetzen" -> handleCharakterZuruecksetzen(event);
         }
     }
 
@@ -2218,6 +2219,69 @@ public class CommandListener extends ListenerAdapter {
                 EmbedFactory.build("❌ Fehler", "Konnte Mitglieder nicht laden: " + err.getMessage()))
             .setEphemeral(true).queue();
         });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /charakter-zurücksetzen — Inventory + Bargeld + Kontostand auf 0
+    // ════════════════════════════════════════════════════════════
+
+    private void handleCharakterZuruecksetzen(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
+        if (target == null) {
+            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+        if (target.getUser().isBot()) {
+            event.replyEmbeds(embed("Fehler", "Bots können nicht zurückgesetzt werden."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String guildId = event.getGuild().getId();
+        String userId  = target.getId();
+
+        // 1) Vorzustand für Audit-Log einfangen
+        long preBank  = BankManager.getBalance(guildId, userId);
+        long preCash  = BargeldManager.get(guildId, userId);
+        int preItemsCount = InventoryManager.getInventory(guildId, userId).stream()
+            .mapToInt(i -> i.quantity).sum();
+
+        // 2) Zurücksetzen: Inventar leeren, Bargeld + Kontostand auf 0
+        InventoryManager.clearInventory(guildId, userId);
+        BargeldManager.set(guildId, userId, 0L);
+        BankManager.setBalance(guildId, userId, 0L);
+
+        // 3) Bestätigung an den Admin (ephemeral)
+        StringBuilder sb = new StringBuilder();
+        sb.append("**").append(target.getUser().getName()).append("** wurde zurückgesetzt:\n\n");
+        sb.append("💳 **Kontostand:** ").append(BankManager.formatAmount(preBank)).append(" → **0$**\n");
+        sb.append("💵 **Bargeld:** ").append(BargeldManager.format(preCash)).append(" → **0$**\n");
+        sb.append("📦 **Inventar:** ").append(preItemsCount).append(" Items entfernt\n\n");
+        sb.append("_Ausweis + Führerschein + Rollen + Handy-Vertrag bleiben erhalten._");
+        event.replyEmbeds(embed("🔄 Charakter zurückgesetzt", sb.toString()))
+            .setEphemeral(true).queue();
+
+        // 4) DM an betroffenen Spieler
+        BotLogger.tryDm(target.getUser(), EmbedFactory.build("🔄 Charakter zurückgesetzt",
+            "Dein Charakter wurde von einem Teammitglied zurückgesetzt:\n\n" +
+            "💳 **Kontostand:** " + BankManager.formatAmount(preBank) + " → 0$\n" +
+            "💵 **Bargeld:** " + BargeldManager.format(preCash) + " → 0$\n" +
+            "📦 **Inventar:** " + preItemsCount + " Items entfernt\n\n" +
+            "_Ausweis + Führerschein + Rollen + Handy-Vertrag bleiben erhalten._"));
+
+        // 5) Audit-Log in den Item-Log-Channel
+        BotLogger.logItem(event.getGuild(), "🔄 Charakter-Reset",
+            "**Mitglied:** " + target.getAsMention() + "\n" +
+            "**Bank:** " + BankManager.formatAmount(preBank) + " → 0$\n" +
+            "**Bargeld:** " + BargeldManager.format(preCash) + " → 0$\n" +
+            "**Items entfernt:** " + preItemsCount + "\n" +
+            "**Von:** " + event.getUser().getAsMention());
+
+        log.info("[Charakter-Reset] {} reset {} (Bank {}→0, Bargeld {}→0, {} Items entfernt)",
+            event.getUser().getAsTag(), target.getUser().getAsTag(), preBank, preCash, preItemsCount);
     }
 
     // ════════════════════════════════════════════════════════════

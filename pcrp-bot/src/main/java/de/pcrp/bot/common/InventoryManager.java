@@ -250,5 +250,13 @@ public final class InventoryManager {
         if (changed) saveInventory(guildId, userId, inv);
     }
 
+    /**
+     * Setzt das Inventar eines Spielers vollständig zurück (leeres Array).
+     * Wird für /charakter-zurücksetzen verwendet.
+     */
+    public static synchronized void clearInventory(String guildId, String userId) {
+        DataStore.writeString(key(guildId, userId), GSON.toJson(new JsonArray()));
+    }
+
     private InventoryManager() {}
 }
