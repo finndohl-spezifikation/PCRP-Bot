@@ -812,12 +812,11 @@ async function safeInit(){
 }
 
 async function init(){
-async function init(){
   applyTheme();
   const params=new URLSearchParams(location.search);
   const urlToken=params.get('token');
   const storedToken=localStorage.getItem('cc-token');
-  const candidates=[urlToken,storedToken].filter(Boolean);
+  const candidates=[...new Set([urlToken,storedToken].filter(Boolean))];
   for(const t of candidates){
     token=t;
     try{
@@ -987,7 +986,7 @@ function playReceive(){
 
 function startPoll(){
   clearInterval(pollTimer);
-  pollTimer=setInterval(loadChats,1000);
+  pollTimer=setInterval(loadChats,4000);
 }
 
 function renderChatList(){
@@ -1063,7 +1062,7 @@ async function openChat(chatId,phone,name){
   applyTheme();
   await loadMessages();
   clearInterval(msgPollTimer);
-  msgPollTimer=setInterval(()=>{ if(activeChatId===chatId) loadMessages(false); },1000);
+  msgPollTimer=setInterval(()=>{ if(activeChatId===chatId) loadMessages(false); },4000);
   document.getElementById('msg-input').focus();
 }
 
