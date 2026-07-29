@@ -94,8 +94,7 @@ public class CommandListener extends ListenerAdapter {
             case "vorschlag-ablehnen"    -> handleVorschlagAblehnen(event);
             case "bannen-dashboard"      -> handleBannenDashboard(event);
             case "entbannen-dashboard"   -> handleEntbannenDashboard(event);
-            case "bewohner-information"  -> handleBewohnerInformation(event);
-            case "handy-reset"           -> handleHandyReset(event);
+            // (handy-reset + bewohner-information entfernt — siehe Commit-History)
             case "charakter-zurücksetzen" -> handleCharakterZuruecksetzen(event);
         }
     }
@@ -2113,38 +2112,6 @@ public class CommandListener extends ListenerAdapter {
     }
 
     // ════════════════════════════════════════════════════════════
-    //  /bewohner-information
-    // ════════════════════════════════════════════════════════════
-
-    private void handleBewohnerInformation(SlashCommandInteractionEvent event) {
-        if (event.getGuild() == null) return;
-        String text = event.getOption("nachricht", OptionMapping::getAsString);
-        if (text == null || text.isBlank()) {
-            event.replyEmbeds(embed("Fehler", "Nachricht darf nicht leer sein.")).setEphemeral(true).queue(); return;
-        }
-        String guildId = event.getGuild().getId();
-
-        String raw = de.pcrp.bot.common.DataStore.readString("city-gov-msgs-" + guildId);
-        com.google.gson.JsonArray arr = new com.google.gson.JsonArray();
-        if (raw != null && !raw.isBlank()) {
-            try { arr = com.google.gson.JsonParser.parseString(raw).getAsJsonArray(); } catch (Exception ignored) {}
-        }
-        com.google.gson.JsonObject msg = new com.google.gson.JsonObject();
-        msg.addProperty("id",     UUID.randomUUID().toString().substring(0, 8));
-        msg.addProperty("text",   text);
-        msg.addProperty("ts",     System.currentTimeMillis());
-        msg.addProperty("author", event.getUser().getEffectiveName());
-        arr.add(msg);
-        while (arr.size() > 50) arr.remove(0);
-        de.pcrp.bot.common.DataStore.writeString("city-gov-msgs-" + guildId, arr.toString());
-
-        event.replyEmbeds(embed("✅ Bewohner-Information gesendet",
-            "Nachricht an alle City-Chat-Nutzer gesendet.\n\n**Inhalt:** " + truncate(text, 200)))
-            .setEphemeral(true).queue();
-        log.info("[BewohnerInfo] {} → {}", event.getUser().getName(), text);
-    }
-
-    // ════════════════════════════════════════════════════════════
     //  HILFS-METHODEN
     // ════════════════════════════════════════════════════════════
 
@@ -2181,45 +2148,7 @@ public class CommandListener extends ListenerAdapter {
         return s != null && s.length() > max ? s.substring(0, max - 1) + "…" : (s != null ? s : "");
     }
 
-    // ── /handy-reset ──────────────────────────────────────────────────────────
-
-    private static final long CC_ROLE_ID = 1529636364201627660L;
-    private static final long CG_ROLE_ID = 1529636363119624293L;
-
-    private void handleHandyReset(SlashCommandInteractionEvent event) {
-        if (event.getGuild() == null) return;
-        Guild  guild   = event.getGuild();
-        String guildId = guild.getId();
-
-        event.deferReply(true).queue();
-
-        // 1. Alle Verträge löschen
-        PhoneManager.deleteAllContracts(guildId);
-
-        // 2. City Chat + Citygram Rollen von allen Mitgliedern entfernen
-        Role ccRole = guild.getRoleById(CC_ROLE_ID);
-        Role cgRole = guild.getRoleById(CG_ROLE_ID);
-
-        guild.loadMembers().onSuccess(members -> {
-            int[] stripped = {0};
-            for (net.dv8tion.jda.api.entities.Member m : members) {
-                boolean hasCC = ccRole != null && m.getRoles().contains(ccRole);
-                boolean hasCG = cgRole != null && m.getRoles().contains(cgRole);
-                if (hasCC) { guild.removeRoleFromMember(m, ccRole).queue(); stripped[0]++; }
-                if (hasCG)   guild.removeRoleFromMember(m, cgRole).queue();
-            }
-            event.getHook().sendMessageEmbeds(
-                EmbedFactory.build("🔄 Handy-Reset abgeschlossen",
-                    "✅ Alle Verträge gelöscht.\n" +
-                    "✅ City Chat & Citygram Rollen bei **" + stripped[0] + "** Mitgliedern entfernt.\n\n" +                "Jeder muss einen neuen Vertrag abschließen und erhält eine neue Rufnummer + Safe-PIN per DM.")
-            ).setEphemeral(true).queue();
-        }).onError(err -> {
-            log.error("[HandyReset] Mitglieder laden fehlgeschlagen.", err);
-            event.getHook().sendMessageEmbeds(
-                EmbedFactory.build("❌ Fehler", "Konnte Mitglieder nicht laden: " + err.getMessage()))
-            .setEphemeral(true).queue();
-        });
-    }
+    // ── /handy-reset entfernt (war destruktiver Admin-Command) ──────────────
 
     // ════════════════════════════════════════════════════════════
     //  /charakter-zurücksetzen — Inventory + Bargeld + Kontostand auf 0

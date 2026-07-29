@@ -657,10 +657,6 @@ public class Main {
         private static List<CommandData> buildCommands() {
             return List.of(
 
-                Commands.slash("handy-reset", "Löscht alle Handy-Verträge und entfernt City Chat/Citygram Rollen")
-                    .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.ADMINISTRATOR)),
-
                 Commands.slash("charakter-zurücksetzen", "Setzt Inventar + Bargeld + Kontostand eines Spielers auf 0 (Ausweis/Führerschein bleiben)")
                     .addOption(OptionType.USER, "mitglied", "Das Mitglied, dessen Charakter zurückgesetzt wird", true)
                     .setDefaultPermissions(
@@ -949,12 +945,7 @@ public class Main {
                 Commands.slash("entbannen-dashboard", "Hebt den Web-Bann eines Mitglieds auf")
                     .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
                     .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.BAN_MEMBERS)),
-
-                Commands.slash("bewohner-information", "Sendet eine Regierungs-Nachricht an alle City-Chat-Nutzer")
-                    .addOption(OptionType.STRING, "nachricht", "Inhalt der Nachricht (max. 500 Zeichen)", true)
-                    .setDefaultPermissions(
-                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS))
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.BAN_MEMBERS))
 
             );
         }
