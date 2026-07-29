@@ -46,6 +46,11 @@ public class WebServer {
         // Frontend
         app.get("/",                          WebServer::serveIndex);
         app.get("/ausweis/{userId}",           WebServer::serveAusweis);
+        app.get("/ausweis-erstellen/{guildId}/{userId}", WebServer::serveAusweisErstellen);
+        app.get("/fuehrerschein-erstellen/{guildId}/{userId}", WebServer::serveFuehrerscheinErstellen);
+        app.get("/fuehrerschein/{userId}",     WebServer::serveFuehrerscheinViewer);
+        app.post("/api/save-ausweis",          WebServer::handleSaveAusweis);
+        app.post("/api/save-fuehrerschein",    WebServer::handleSaveFuehrerschein);
 
         // API Status
         app.get("/api/einreise-status",        WebServer::handleEinreiseStatus);
@@ -1676,7 +1681,8 @@ public class WebServer {
 
     private static String esc(String s) {
         if (s == null) return "";
-        return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;");
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("\"", "&quot;").replace("'", "&#39;");
     }
 
     private static boolean isBlank(String... values) {
@@ -1739,4 +1745,436 @@ public class WebServer {
             ctx.status(500).result("Fehler beim Erstellen des Backups.");
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  AUSWEIS + FUEHRERSCHEIN — Erstellen, Anzeigen, Speichern
+    //  (Nutzt DocumentsManager; CharacterStore-Ausweis bleibt der alte Pfad)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private static void serveAusweisErstellen(Context ctx) {
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { ctx.status(503).html("<h1>Bot nicht bereit.</h1>"); return; }
+        String guildId = ctx.pathParam("guildId");
+        String userId  = ctx.pathParam("userId");
+        if (!guildId.equals(guild.getId())) { ctx.status(403).html("<h1>Falscher Server.</h1>"); return; }
+        Member target = guild.getMemberById(userId);
+        if (target == null) { ctx.status(404).html("<h1>Mitglied nicht gefunden.</h1>"); return; }
+        ctx.contentType("text/html;charset=utf-8")
+           .result(buildAusweisFormHtml(guildId, userId, target.getEffectiveName(), target.getUser().getEffectiveAvatarUrl()));
+    }
+
+    private static void serveFuehrerscheinErstellen(Context ctx) {
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { ctx.status(503).html("<h1>Bot nicht bereit.</h1>"); return; }
+        String guildId = ctx.pathParam("guildId");
+        String userId  = ctx.pathParam("userId");
+        if (!guildId.equals(guild.getId())) { ctx.status(403).html("<h1>Falscher Server.</h1>"); return; }
+        Member target = guild.getMemberById(userId);
+        if (target == null) { ctx.status(404).html("<h1>Mitglied nicht gefunden.</h1>"); return; }
+        ctx.contentType("text/html;charset=utf-8")
+           .result(buildFuehrerscheinFormHtml(guildId, userId, target.getEffectiveName(), target.getUser().getEffectiveAvatarUrl()));
+    }
+
+    private static void serveFuehrerscheinViewer(Context ctx) {
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { ctx.status(503).html("<h1>Bot nicht bereit.</h1>"); return; }
+        String userId = ctx.pathParam("userId");
+        try { Long.parseLong(userId); }
+        catch (NumberFormatException e) { ctx.status(400).html("<h1>Ungültige ID.</h1>"); return; }
+        Optional<DocumentsManager.Fuehrerschein> opt =
+            DocumentsManager.getFuehrerschein(guild.getId(), userId);
+        if (opt.isEmpty()) {
+            Member m = guild.getMemberById(userId);
+            ctx.contentType("text/html;charset=utf-8").result(buildNoCharacterPage(
+                m != null ? m.getEffectiveName() : "Unbekannt",
+                m != null ? m.getUser().getEffectiveAvatarUrl() : ""));
+            return;
+        }
+        Member m = guild.getMemberById(userId);
+        ctx.contentType("text/html;charset=utf-8")
+           .result(buildDocumentFuehrerscheinPage(opt.get(), m, userId));
+    }
+
+    private static void handleSaveAusweis(Context ctx) {
+        if (!BotContext.isReady()) { json(ctx, 503, "error", "Bot noch nicht bereit."); return; }
+        String guildId = nzp(ctx.formParam("guildId"));
+        String userId  = nzp(ctx.formParam("userId"));
+        if (guildId.isEmpty() || userId.isEmpty()) { json(ctx, 400, "error", "Fehlende Parameter."); return; }
+        Guild guild = BotContext.getGuild();
+        if (guild == null || !guild.getId().equals(guildId)) { json(ctx, 403, "error", "Falscher Server."); return; }
+
+        DocumentsManager.Ausweis a = new DocumentsManager.Ausweis();
+        a.vorname      = nzp(ctx.formParam("vorname"));
+        a.nachname     = nzp(ctx.formParam("nachname"));
+        a.geburtsdatum = nzp(ctx.formParam("geburtsdatum"));
+        a.staatsang    = nzp(ctx.formParam("staatsangehoerigkeit"));
+        a.adresse      = nzp(ctx.formParam("adresse"));
+        a.wohnort      = nzp(ctx.formParam("wohnort"));
+        a.ausweisNr    = nzp(ctx.formParam("ausweisNr"));
+        a.erstelltVon  = nzp(ctx.formParam("erstelltVon"));
+        a.erstelltAm   = Instant.now().getEpochSecond();
+
+        if (a.vorname.isEmpty() || a.nachname.isEmpty()) {
+            json(ctx, 400, "error", "Vor- und Nachname sind Pflichtfelder."); return;
+        }
+        DocumentsManager.saveAusweis(guildId, userId, a);
+        log.info("[Ausweis] Gespeichert für {} / {} durch {}.", userId, guildId, a.erstelltVon);
+        JsonObject r = new JsonObject();
+        r.addProperty("ok", true);
+        r.addProperty("viewUrl", "/ausweis/" + userId + "?orient=landscape");
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    private static void handleSaveFuehrerschein(Context ctx) {
+        if (!BotContext.isReady()) { json(ctx, 503, "error", "Bot noch nicht bereit."); return; }
+        String guildId = nzp(ctx.formParam("guildId"));
+        String userId  = nzp(ctx.formParam("userId"));
+        if (guildId.isEmpty() || userId.isEmpty()) { json(ctx, 400, "error", "Fehlende Parameter."); return; }
+        Guild guild = BotContext.getGuild();
+        if (guild == null || !guild.getId().equals(guildId)) { json(ctx, 403, "error", "Falscher Server."); return; }
+
+        DocumentsManager.Fuehrerschein f = new DocumentsManager.Fuehrerschein();
+        f.vorname      = nzp(ctx.formParam("vorname"));
+        f.nachname     = nzp(ctx.formParam("nachname"));
+        f.geburtsdatum = nzp(ctx.formParam("geburtsdatum"));
+        f.adresse      = nzp(ctx.formParam("adresse"));
+        f.erstelltVon  = nzp(ctx.formParam("erstelltVon"));
+        f.erstelltAm   = Instant.now().getEpochSecond();
+
+        // Mehrfachauswahl Klassen (Checkbox-Gruppe liefert "B" ODER "B,C1" je nach Encoding)
+        List<String> klassen = new ArrayList<>();
+        for (String raw : ctx.formParams("klassen")) {
+            for (String k : raw.split(",")) {
+                String t = k.trim().toUpperCase();
+                if (!t.isEmpty() && !klassen.contains(t)) klassen.add(t);
+            }
+        }
+        f.klassen = klassen;
+
+        String gueltigBisRaw = nzp(ctx.formParam("gueltigBis"));
+        if (!gueltigBisRaw.isEmpty()) {
+            try { f.gueltigBis = Long.parseLong(gueltigBisRaw); }
+            catch (NumberFormatException ignore) { /* Tag-Monat-Jahr Format optional */ }
+        }
+
+        if (f.vorname.isEmpty() || f.nachname.isEmpty()) {
+            json(ctx, 400, "error", "Vor- und Nachname sind Pflichtfelder."); return;
+        }
+        DocumentsManager.saveFuehrerschein(guildId, userId, f);
+        log.info("[Fuehrerschein] Gespeichert für {} / {} durch {}. Klassen: {}",
+            userId, guildId, f.erstelltVon, String.join(",", klassen));
+        JsonObject r = new JsonObject();
+        r.addProperty("ok", true);
+        r.addProperty("viewUrl", "/fuehrerschein/" + userId);
+        ctx.contentType("application/json").result(GSON.toJson(r));
+    }
+
+    private static String nzp(String s) { return s == null ? "" : s.trim(); }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Form-HTML (dynamisch gebaut — gleicher Stil wie buildIdCard)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private static String buildAusweisFormHtml(String guildId, String userId, String displayName, String avatar) {
+        String CSS =
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#0a0a0a 0%,#0f0f1a 100%);" +
+            "font-family:'Segoe UI',sans-serif;padding:16px;color:#e8e8e8}" +
+            "input,select{width:100%;padding:9px 12px;background:#06111f;border:1px solid #c8a04866;" +
+            "border-radius:6px;color:#e8e8e8;font-size:.92rem;outline:none;font-family:inherit}" +
+            "input:focus,select:focus{border-color:#c8a048;background:#081830}" +
+            "label{display:block;color:#6a8fb0;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}" +
+            ".field{margin-bottom:10px}" +
+            ".wrap{max-width:680px;margin:0 auto;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
+            "border:3px solid #c8a048;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(200,160,72,.25)}" +
+            ".hdr{background:linear-gradient(90deg,#0a1c38,#0d2550);border-bottom:3px solid #c8a048;padding:14px 20px;display:flex;align-items:center;gap:16px}" +
+            ".hdr .st{color:#c8a048;font-size:1.3rem;font-weight:700;letter-spacing:4px}" +
+            ".hdr .ct{display:block;color:#a8c4e0;font-size:.75rem;letter-spacing:2px;margin-top:2px}" +
+            ".photo{width:80px;height:80px;border-radius:50%;border:2px solid #c8a048}" +
+            ".photo img{width:100%;height:100%;border-radius:50%;object-fit:cover}" +
+            ".meta{padding:14px 20px 0;font-size:.85rem;color:#a8c4e0}" +
+            ".meta b{color:#c8a048}" +
+            "form{padding:18px 20px}" +
+            ".row{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}" +
+            "@media(max-width:480px){.row{grid-template-columns:1fr}}" +
+            ".submit{display:block;width:100%;margin-top:14px;padding:13px;background:linear-gradient(90deg,#c8a048,#e8c878);" +
+            "border:none;border-radius:8px;color:#1a0800;font-size:.95rem;font-weight:700;letter-spacing:1px;cursor:pointer}" +
+            ".submit:hover{opacity:.9}.submit:disabled{opacity:.4;cursor:not-allowed}" +
+            ".msg{margin-top:10px;padding:10px;border-radius:8px;font-size:.85rem;text-align:center;display:none}" +
+            ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
+            ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
+            ".nav{padding:0 20px 14px;text-align:center;font-size:.78rem;color:#6a8fb0}";
+        String avatarHtml = avatar.isEmpty() ? "" : "<img src='" + esc(avatar) + "' alt='avatar'>";
+        return "<!DOCTYPE html><html lang='de'><head>" +
+            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>🪪 Personalausweis erstellen — " + esc(displayName) + "</title>" +
+            "<style>" + CSS + "</style></head><body>" +
+            "<div class='wrap'>" +
+            "<div class='hdr'>" +
+            "<div class='photo'>" + avatarHtml + "</div>" +
+            "<div><span class='st'>CALIFORNIA</span><span class='ct'>CITY OF LOS ANGELES · PERSONALAUSWEIS</span></div>" +
+            "</div>" +
+            "<div class='meta'>Ausweis für <b>" + esc(displayName) + "</b> · User-ID <b>" + esc(userId) + "</b></div>" +
+            "<form id='f'>" +
+            "<input type='hidden' name='guildId' value='" + esc(guildId) + "'>" +
+            "<input type='hidden' name='userId'  value='" + esc(userId)  + "'>" +
+            "<input type='hidden' name='erstelltVon' value='" + esc(displayName) + "'>" +
+            "<div class='row'>" +
+            fieldHtml("vorname",              "Vorname",                true)  +
+            fieldHtml("nachname",             "Nachname",               true)  +
+            fieldHtml("geburtsdatum",         "Geburtsdatum",           true, "date") +
+            fieldHtml("staatsangehoerigkeit", "Staatsangehörigkeit",    true)  +
+            "</div>" +
+            fieldHtml("adresse",   "Adresse / Straße + Hausnummer", true) +
+            "<div class='row'>" +
+            fieldHtml("wohnort",   "Wohnort",          true) +
+            fieldHtml("ausweisNr", "Ausweis-Nummer",   true) +
+            "</div>" +
+            "<button type='submit' class='submit' id='btn'>🪪 Ausweis speichern</button>" +
+            "<div class='msg' id='m'></div></form>" +
+            "<div class='nav'>Formular wird automatisch gespeichert. Du kehrst danach zum Ausweis zurück.</div>" +
+            "</div>" +
+            "<script>" +
+            "document.getElementById('f').onsubmit=async e=>{" +
+            "  e.preventDefault();" +
+            "  const btn=document.getElementById('btn');btn.disabled=true;" +
+            "  const fd=new FormData(e.target);" +
+            "  try{const r=await fetch('/api/save-ausweis',{method:'POST',body:fd});" +
+            "    const d=await r.json();" +
+            "    if(d.ok){show('✅ Ausweis gespeichert! Leite weiter …','ok');" +
+            "      setTimeout(()=>location.href=d.viewUrl,900);}" +
+            "    else{show(d.error||'Fehler.','err');btn.disabled=false;}}" +
+            "  catch(err){show('Verbindungsfehler.','err');btn.disabled=false;}};" +
+            "function show(t,c){const m=document.getElementById('m');" +
+            "  m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "</script></body></html>";
+    }
+
+    private static String buildFuehrerscheinFormHtml(String guildId, String userId, String displayName, String avatar) {
+        String CSS =
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#0a0a0a 0%,#1a0a05 100%);" +
+            "font-family:'Segoe UI',sans-serif;padding:16px;color:#e8e8e8}" +
+            "input,select{width:100%;padding:9px 12px;background:#1a0f05;border:1px solid #e8b80066;" +
+            "border-radius:6px;color:#e8e8e8;font-size:.92rem;outline:none;font-family:inherit}" +
+            "input:focus,select:focus{border-color:#e8b800;background:#241404}" +
+            "label{display:block;color:#c89a4a;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}" +
+            ".field{margin-bottom:10px}" +
+            ".wrap{max-width:680px;margin:0 auto;background:linear-gradient(135deg,#241400 0%,#1a0e00 100%);" +
+            "border:3px solid #e8b800;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(232,184,0,.25)}" +
+            ".hdr{background:linear-gradient(90deg,#241400,#3a2400);border-bottom:3px solid #e8b800;padding:14px 20px;display:flex;align-items:center;gap:16px}" +
+            ".hdr .st{color:#e8b800;font-size:1.3rem;font-weight:700;letter-spacing:4px}" +
+            ".hdr .ct{display:block;color:#c89a4a;font-size:.75rem;letter-spacing:2px;margin-top:2px}" +
+            ".photo{width:80px;height:80px;border-radius:50%;border:2px solid #e8b800}" +
+            ".photo img{width:100%;height:100%;border-radius:50%;object-fit:cover}" +
+            ".meta{padding:14px 20px 0;font-size:.85rem;color:#c89a4a}" +
+            ".meta b{color:#e8b800}" +
+            "form{padding:18px 20px}" +
+            ".row{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}" +
+            "@media(max-width:480px){.row{grid-template-columns:1fr}}" +
+            ".kbox{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:4px}" +
+            ".kbox label{display:flex;align-items:center;justify-content:center;background:#1a0f05;border:1px solid #e8b80066;" +
+            "border-radius:6px;padding:8px 4px;cursor:pointer;font-weight:700;letter-spacing:1.5px;color:#e8b800;" +
+            "font-size:.85rem;transition:all .15s}" +
+            ".kbox input{display:none}" +
+            ".kbox label:has(input:checked){background:#e8b800;color:#1a0f05}" +
+            ".submit{display:block;width:100%;margin-top:14px;padding:13px;background:linear-gradient(90deg,#e8b800,#ffd840);" +
+            "border:none;border-radius:8px;color:#1a0f05;font-size:.95rem;font-weight:700;letter-spacing:1px;cursor:pointer}" +
+            ".submit:hover{opacity:.9}.submit:disabled{opacity:.4;cursor:not-allowed}" +
+            ".msg{margin-top:10px;padding:10px;border-radius:8px;font-size:.85rem;text-align:center;display:none}" +
+            ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
+            ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
+            ".nav{padding:0 20px 14px;text-align:center;font-size:.78rem;color:#c89a4a}";
+        String avatarHtml = avatar.isEmpty() ? "" : "<img src='" + esc(avatar) + "' alt='avatar'>";
+        String klassen = "AM,A1,A2,A,B,B1,C,C1,CE,D,BE,M,L,T";
+        StringBuilder kb = new StringBuilder("<div class='kbox'>");
+        for (String k : klassen.split(",")) {
+            kb.append("<label><input type='checkbox' name='klassen' value='").append(k).append("'>").append(k).append("</label>");
+        }
+        kb.append("</div><label>Führerschein-Klassen (Mehrfachauswahl)</label>");
+        String avatarHtmlSafe = avatarHtml;
+        return "<!DOCTYPE html><html lang='de'><head>" +
+            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>🚗 Führerschein erstellen — " + esc(displayName) + "</title>" +
+            "<style>" + CSS + "</style></head><body>" +
+            "<div class='wrap'>" +
+            "<div class='hdr'>" +
+            "<div class='photo'>" + avatarHtmlSafe + "</div>" +
+            "<div><span class='st'>DRIVER LICENSE</span><span class='ct'>STATE OF CALIFORNIA · PCRP</span></div>" +
+            "</div>" +
+            "<div class='meta'>Führerschein für <b>" + esc(displayName) + "</b> · User-ID <b>" + esc(userId) + "</b></div>" +
+            "<form id='f'>" +
+            "<input type='hidden' name='guildId' value='" + esc(guildId) + "'>" +
+            "<input type='hidden' name='userId'  value='" + esc(userId)  + "'>" +
+            "<input type='hidden' name='erstelltVon' value='" + esc(displayName) + "'>" +
+            "<div class='row'>" +
+            fieldHtml("vorname",      "Vorname",         true) +
+            fieldHtml("nachname",     "Nachname",        true) +
+            fieldHtml("geburtsdatum", "Geburtsdatum",    true, "date") +
+            fieldHtml("gueltigBis",   "Gültig bis (Unix-Sek)", false, "number") +
+            "</div>" +
+            fieldHtml("adresse", "Adresse / Straße + Hausnummer", true) +
+            kb.toString() +
+            "<button type='submit' class='submit' id='btn'>🚗 Führerschein speichern</button>" +
+            "<div class='msg' id='m'></div></form>" +
+            "<div class='nav'>Formular wird automatisch gespeichert. Du kehrst danach zum Führerschein zurück.</div>" +
+            "</div>" +
+            "<script>" +
+            "document.getElementById('f').onsubmit=async e=>{" +
+            "  e.preventDefault();" +
+            "  const btn=document.getElementById('btn');btn.disabled=true;" +
+            "  const fd=new FormData(e.target);" +
+            "  const klassen=Array.from(document.querySelectorAll('input[name=\\\"klassen\\\"]:checked')).map(c=>c.value);" +
+            "  fd.delete('klassen');" +
+            "  for(const k of klassen)fd.append('klassen',k);" +
+            "  try{const r=await fetch('/api/save-fuehrerschein',{method:'POST',body:fd});" +
+            "    const d=await r.json();" +
+            "    if(d.ok){show('✅ Führerschein gespeichert! Leite weiter …','ok');" +
+            "      setTimeout(()=>location.href=d.viewUrl,900);}" +
+            "    else{show(d.error||'Fehler.','err');btn.disabled=false;}}" +
+            "  catch(err){show('Verbindungsfehler.','err');btn.disabled=false;}};" +
+            "function show(t,c){const m=document.getElementById('m');" +
+            "  m.textContent=t;m.className='msg '+c;m.style.display='block';}" +
+            "</script></body></html>";
+    }
+
+    private static String fieldHtml(String name, String label, boolean required) {
+        return fieldHtml(name, label, required, "text");
+    }
+
+    private static String fieldHtml(String name, String label, boolean required, String type) {
+        return "<div class='field'><label>" + esc(label) + (required ? "" : " (optional)") + "</label>" +
+            "<input type='" + type + "' name='" + esc(name) + "'" +
+            (required ? " required" : "") + "></div>";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Viewer-Seiten (DocumentsManager-basiert) — analog zu buildIdCard
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private static String buildDocumentAusweisPage(DocumentsManager.Ausweis a, Member m, String userId) {
+        String avatar = m != null ? m.getUser().getEffectiveAvatarUrl() : "";
+        String vorname = esc(a.vorname), nachname = esc(a.nachname);
+        String idNum = a.ausweisNr.isBlank()
+            ? "LA-" + userId.substring(Math.max(0, userId.length() - 8)).toUpperCase()
+            : esc(a.ausweisNr);
+        return "<!DOCTYPE html><html lang='de'><head>" +
+            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>🪪 Ausweis — " + vorname + " " + nachname + "</title>" +
+            "<style>" +
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;display:flex;align-items:center;justify-content:center;" +
+            "background:linear-gradient(135deg,#0a0a0a 0%,#0f0f1a 100%);" +
+            "font-family:'Courier New',monospace;padding:16px;}" +
+            ".card{width:100%;max-width:680px;background:linear-gradient(135deg,#0d2346 0%,#081830 100%);" +
+            "border:3px solid #c8a048;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(200,160,72,0.3);}" +
+            ".header{background:linear-gradient(90deg,#0a1c38,#0d2550);border-bottom:3px solid #c8a048;" +
+            "padding:14px 20px;display:flex;align-items:center;gap:16px;}" +
+            ".header .state{display:block;color:#c8a048;font-size:1.3rem;font-weight:700;letter-spacing:4px;}" +
+            ".header .city{display:block;color:#a8c4e0;font-size:.75rem;letter-spacing:2px;margin-top:2px;}" +
+            ".body{display:flex;flex-wrap:wrap;}" +
+            ".photo-col{width:180px;min-height:220px;background:#06111f;display:flex;" +
+            "align-items:center;justify-content:center;border-right:2px solid #c8a04840;padding:16px;flex-shrink:0;}" +
+            ".photo-col img{width:148px;height:185px;object-fit:cover;object-position:top center;" +
+            "border:2px solid #c8a048;border-radius:4px;display:block;}" +
+            ".data-col{flex:1;min-width:200px;padding:20px;}" +
+            ".id-num{color:#c8a048;font-size:.7rem;letter-spacing:2px;margin-bottom:14px;}" +
+            ".field{margin-bottom:12px;}.field label{display:block;color:#6a8fb0;font-size:.6rem;" +
+            "letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
+            ".field .val{color:#e8e8e8;font-size:.95rem;font-weight:700;letter-spacing:1px;}" +
+            ".fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}" +
+            ".footer{background:#06111f;border-top:2px solid #c8a04840;padding:10px 20px;" +
+            "display:flex;justify-content:center;align-items:center;}" +
+            ".footer .seal{color:#c8a04880;font-size:.65rem;letter-spacing:1px;text-align:center;}" +
+            "@media(max-width:480px){.photo-col{width:100%;border-right:none;border-bottom:2px solid #c8a04840;min-height:auto;}" +
+            ".fields-grid{grid-template-columns:1fr;}}" +
+            "</style></head><body>" +
+            "<div class='card'><div class='header'>" +
+            "<div><span class='state'>CALIFORNIA</span>" +
+            "<span class='city'>CITY OF LOS ANGELES · PARADISE CITY ROLEPLAY</span></div>" +
+            "</div>" +
+            "<div class='body'><div class='photo-col'>" +
+            (avatar.isEmpty() ? "<div style='color:#445'>Kein Avatar</div>"
+                : "<img src='" + esc(avatar) + "' onerror=\"this.outerHTML='<div style=color:#445>Kein Foto</div>'\">") +
+            "</div><div class='data-col'><div class='id-num'>ID-NR: " + idNum + "</div>" +
+            "<div class='fields-grid'>" +
+            docField("Vorname", vorname) +
+            docField("Nachname", nachname) +
+            docField("Geburtsdatum", esc(a.geburtsdatum)) +
+            docField("Staatsangehörigkeit", esc(a.staatsang)) +
+            docField("Wohnort", esc(a.wohnort)) +
+            docField("Adresse", esc(a.adresse)) +
+            "</div>" + (a.erstelltVon.isBlank() ? "" :
+                "<div style='margin-top:14px;color:#888;font-size:.7rem'>Erstellt von: " + esc(a.erstelltVon) + "</div>") +
+            "</div></div>" +
+            "<div class='footer'><span class='seal'>STATE OF CALIFORNIA · OFFICIAL IDENTIFICATION</span>" +
+            "</div></div></body></html>";
+    }
+
+    private static String buildDocumentFuehrerscheinPage(DocumentsManager.Fuehrerschein f, Member m, String userId) {
+        String avatar = m != null ? m.getUser().getEffectiveAvatarUrl() : "";
+        String vorname = esc(f.vorname), nachname = esc(f.nachname);
+        String klassen = (f.klassen == null || f.klassen.isEmpty()) ? "—" : esc(String.join(", ", f.klassen));
+        return "<!DOCTYPE html><html lang='de'><head>" +
+            "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>🚗 Führerschein — " + vorname + " " + nachname + "</title>" +
+            "<style>" +
+            "*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;display:flex;align-items:center;justify-content:center;" +
+            "background:linear-gradient(135deg,#0a0a0a 0%,#1a0a05 100%);" +
+            "font-family:'Courier New',monospace;padding:16px;}" +
+            ".card{width:100%;max-width:680px;background:linear-gradient(135deg,#241400 0%,#1a0e00 100%);" +
+            "border:3px solid #e8b800;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(232,184,0,.3);}" +
+            ".header{background:linear-gradient(90deg,#241400,#3a2400);border-bottom:3px solid #e8b800;" +
+            "padding:14px 20px;}" +
+            ".header .state{display:block;color:#e8b800;font-size:1.3rem;font-weight:700;letter-spacing:4px;}" +
+            ".header .city{display:block;color:#c89a4a;font-size:.75rem;letter-spacing:2px;margin-top:2px;}" +
+            ".body{display:flex;flex-wrap:wrap;}" +
+            ".photo-col{width:180px;min-height:220px;background:#1a0f05;display:flex;" +
+            "align-items:center;justify-content:center;border-right:2px solid #e8b80040;padding:16px;flex-shrink:0;}" +
+            ".photo-col img{width:148px;height:185px;object-fit:cover;object-position:top center;" +
+            "border:2px solid #e8b800;border-radius:4px;display:block;}" +
+            ".data-col{flex:1;min-width:200px;padding:20px;}" +
+            ".id-num{color:#e8b800;font-size:.7rem;letter-spacing:2px;margin-bottom:14px;}" +
+            ".field{margin-bottom:12px;}.field label{display:block;color:#c89a4a;font-size:.6rem;" +
+            "letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
+            ".field .val{color:#fff8e0;font-size:.95rem;font-weight:700;letter-spacing:1px;}" +
+            ".fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}" +
+            ".footer{background:#1a0f05;border-top:2px solid #e8b80040;padding:10px 20px;" +
+            "display:flex;justify-content:center;align-items:center;}" +
+            ".footer .seal{color:#e8b80080;font-size:.65rem;letter-spacing:1px;text-align:center;}" +
+            ".klassen-big{color:#e8b800;font-size:1.4rem;font-weight:900;letter-spacing:4px;" +
+            "background:linear-gradient(90deg,transparent,#e8b80020,transparent);padding:8px 12px;" +
+            "border:1px dashed #e8b80066;border-radius:4px;display:inline-block;margin-top:8px;}" +
+            "@media(max-width:480px){.photo-col{width:100%;border-right:none;border-bottom:2px solid #e8b80040;min-height:auto;}" +
+            ".fields-grid{grid-template-columns:1fr;}}" +
+            "</style></head><body>" +
+            "<div class='card'><div class='header'>" +
+            "<div><span class='state'>DRIVER LICENSE</span>" +
+            "<span class='city'>STATE OF CALIFORNIA · PCRP</span></div>" +
+            "</div>" +
+            "<div class='body'><div class='photo-col'>" +
+            (avatar.isEmpty() ? "<div style='color:#445'>Kein Avatar</div>"
+                : "<img src='" + esc(avatar) + "' onerror=\"this.outerHTML='<div style=color:#445>Kein Foto</div>'\">") +
+            "</div><div class='data-col'>" +
+            "<div class='fields-grid'>" +
+            docField("Vorname", vorname) +
+            docField("Nachname", nachname) +
+            docField("Geburtsdatum", esc(f.geburtsdatum)) +
+            docField("Adresse", esc(f.adresse)) +
+            "</div>" +
+            "<div style='margin-top:14px'><div class='id-num'>KLASSEN</div>" +
+            "<div class='klassen-big'>" + klassen + "</div></div>" +
+            (f.erstelltVon.isBlank() ? "" :
+                "<div style='margin-top:14px;color:#888;font-size:.7rem'>Erstellt von: " + esc(f.erstelltVon) + "</div>") +
+            "</div></div>" +
+            "<div class='footer'><span class='seal'>STATE OF CALIFORNIA · DRIVER LICENSE</span>" +
+            "</div></div></body></html>";
+    }
+
+    private static String docField(String label, String value) {
+        String v = value == null || value.isEmpty() ? "—" : value;
+        return "<div class='field'><label>" + esc(label) + "</label><div class='val'>" + v + "</div></div>";
+    }
+
 }
