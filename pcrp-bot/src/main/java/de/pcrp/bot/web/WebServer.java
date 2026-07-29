@@ -22,6 +22,9 @@ public class WebServer {
     private static final Logger log  = LoggerFactory.getLogger(WebServer.class);
     private static final Gson   GSON = new GsonBuilder().create();
 
+    /** Letzter Fallback für API_BASE in HTML-Templates (wenn weder WEB_URL noch RAILWAY_PUBLIC_DOMAIN gesetzt sind). */
+    private static final String DEFAULT_RAILWAY_URL = "pcrp-bot-production-3ad1.up.railway.app";
+
     private WebServer() {}
 
     public static void start(int port) {
@@ -51,6 +54,8 @@ public class WebServer {
         app.get("/fuehrerschein/{userId}",     WebServer::serveFuehrerscheinViewer);
         app.post("/api/save-ausweis",          WebServer::handleSaveAusweis);
         app.post("/api/save-fuehrerschein",    WebServer::handleSaveFuehrerschein);
+        app.get("/api/license-photo/{userId}",  ctx -> serveDocumentPhoto(ctx, "fuehrerschein"));
+        app.get("/api/ausweis-photo/{userId}",  ctx -> serveDocumentPhoto(ctx, "ausweis"));
 
         // API Status
         app.get("/api/einreise-status",        WebServer::handleEinreiseStatus);
@@ -254,14 +259,20 @@ public class WebServer {
     private static void serveCitygram(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/citygram.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
-            String railwayUrl = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN",
-                "pcrp-bot-production-3ad1.up.railway.app");
-            if (!railwayUrl.startsWith("http")) railwayUrl = "https://" + railwayUrl;
-            railwayUrl = railwayUrl.replaceAll("/$", "");
+            // API_BASE = Cloudflare-URL (WEB_URL) bevorzugt — identisch zu serveCityChat.
+            // So laufen alle Citygram-API-Calls über Cloudflare (kein direkter Railway-Hit),
+            // und es funktioniert egal ob die Seite über Cloudflare- oder Railway-URL aufgerufen wird.
+            String base = System.getenv("WEB_URL");
+            if (base == null || base.isBlank()) {
+                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
+                if (!base.startsWith("http")) base = "https://" + base;
+            }
+            base = base.replaceAll("/$", "");
             String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
-                .replace("%%API_BASE%%", railwayUrl);
+                .replace("%%API_BASE%%", base);
             ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
+            log.error("[Citygram] Fehler beim Ausliefern.", e);
             ctx.status(500).result("Interner Fehler");
         }
     }
@@ -1817,7 +1828,10 @@ public class WebServer {
         if (a.vorname.isEmpty() || a.nachname.isEmpty()) {
             json(ctx, 400, "error", "Vor- und Nachname sind Pflichtfelder."); return;
         }
+        UploadedFile photo = ctx.uploadedFile("photo");
+        if (photo == null) { json(ctx, 400, "error", "Passfoto ist erforderlich."); return; }
         DocumentsManager.saveAusweis(guildId, userId, a);
+        saveAusweisDocPhoto(photo, userId);
         log.info("[Ausweis] Gespeichert für {} / {} durch {}.", userId, guildId, a.erstelltVon);
         JsonObject r = new JsonObject();
         r.addProperty("ok", true);
@@ -1860,7 +1874,10 @@ public class WebServer {
         if (f.vorname.isEmpty() || f.nachname.isEmpty()) {
             json(ctx, 400, "error", "Vor- und Nachname sind Pflichtfelder."); return;
         }
+        UploadedFile photo = ctx.uploadedFile("photo");
+        if (photo == null) { json(ctx, 400, "error", "Passfoto ist erforderlich."); return; }
         DocumentsManager.saveFuehrerschein(guildId, userId, f);
+        saveLicensePhoto(photo, userId);
         log.info("[Fuehrerschein] Gespeichert für {} / {} durch {}. Klassen: {}",
             userId, guildId, f.erstelltVon, String.join(",", klassen));
         JsonObject r = new JsonObject();
@@ -1870,6 +1887,46 @@ public class WebServer {
     }
 
     private static String nzp(String s) { return s == null ? "" : s.trim(); }
+
+    private static void saveLicensePhoto(UploadedFile photo, String userId) {
+        if (photo == null) return;
+        String ext = photoExt(photo);
+        Path p = DataStore.getPath("photos").resolve("fuehrerschein-" + userId + ext);
+        try {
+            Files.copy(photo.content(), p, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.warn("[License-Photo] Speichern fehlgeschlagen für {}: {}", userId, e.getMessage());
+        }
+    }
+
+    private static void saveAusweisDocPhoto(UploadedFile photo, String userId) {
+        if (photo == null) return;
+        String ext = photoExt(photo);
+        Path p = DataStore.getPath("photos").resolve("ausweis-" + userId + ext);
+        try {
+            Files.copy(photo.content(), p, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log.warn("[Ausweis-DocPhoto] Speichern fehlgeschlagen für {}: {}", userId, e.getMessage());
+        }
+    }
+
+    private static void serveDocumentPhoto(Context ctx, String prefix) {
+        String userId = ctx.pathParam("userId");
+        for (String ext : List.of(".jpg", ".png")) {
+            Path p = DataStore.getPath("photos").resolve(prefix + "-" + userId + ext);
+            if (Files.exists(p)) {
+                try {
+                    ctx.contentType(ext.equals(".png") ? "image/png" : "image/jpeg")
+                       .result(Files.readAllBytes(p));
+                    return;
+                } catch (Exception e) {
+                    ctx.status(500).result("Fehler.");
+                    return;
+                }
+            }
+        }
+        ctx.status(404).result("Kein Foto.");
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  Form-HTML (dynamisch gebaut — gleicher Stil wie buildIdCard)
@@ -1908,14 +1965,18 @@ public class WebServer {
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
             "<title>🪪 Personalausweis erstellen — " + esc(displayName) + "</title>" +
-            "<style>" + CSS + "</style></head><body>" +
+            "<style>" + CSS +
+            ".photo-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;padding:14px;background:#06111f;border:2px dashed #c8a04866;border-radius:8px}" +
+            ".photo-field label{margin-bottom:2px}" +
+            ".photo-field input[type=file]{padding:8px;background:transparent;border:0;color:#a8c4e0}" +
+            "</style></head><body>" +
             "<div class='wrap'>" +
             "<div class='hdr'>" +
             "<div class='photo'>" + avatarHtml + "</div>" +
             "<div><span class='st'>CALIFORNIA</span><span class='ct'>CITY OF LOS ANGELES · PERSONALAUSWEIS</span></div>" +
             "</div>" +
             "<div class='meta'>Ausweis für <b>" + esc(displayName) + "</b> · User-ID <b>" + esc(userId) + "</b></div>" +
-            "<form id='f'>" +
+            "<form id='f' enctype='multipart/form-data'>" +
             "<input type='hidden' name='guildId' value='" + esc(guildId) + "'>" +
             "<input type='hidden' name='userId'  value='" + esc(userId)  + "'>" +
             "<input type='hidden' name='erstelltVon' value='" + esc(displayName) + "'>" +
@@ -1930,15 +1991,22 @@ public class WebServer {
             fieldHtml("wohnort",   "Wohnort",          true) +
             fieldHtml("ausweisNr", "Ausweis-Nummer",   true) +
             "</div>" +
+            "<div class='photo-field'>" +
+            "<label>📷 Passfoto (JPG/PNG) — wird als Foto im Ausweis angezeigt</label>" +
+            "<input type='file' name='photo' accept='image/png,image/jpeg' required>" +
+            "</div>" +
             "<button type='submit' class='submit' id='btn'>🪪 Ausweis speichern</button>" +
             "<div class='msg' id='m'></div></form>" +
-            "<div class='nav'>Formular wird automatisch gespeichert. Du kehrst danach zum Ausweis zurück.</div>" +
+            "<div class='nav'>Formular wird automatisch gespeichert — du wirst zum Ausweis weitergeleitet.</div>" +
             "</div>" +
             "<script>" +
             "document.getElementById('f').onsubmit=async e=>{" +
             "  e.preventDefault();" +
             "  const btn=document.getElementById('btn');btn.disabled=true;" +
             "  const fd=new FormData(e.target);" +
+            "  const file=fd.get('photo');" +
+            "  if(!file||!file.name){show('⚠️ Bitte lade ein Passfoto hoch.','err');btn.disabled=false;return;}" +
+            "  if(file.size>10*1024*1024){show('⚠️ Foto zu groß (max. 10 MB).','err');btn.disabled=false;return;}" +
             "  try{const r=await fetch('/api/save-ausweis',{method:'POST',body:fd});" +
             "    const d=await r.json();" +
             "    if(d.ok){show('✅ Ausweis gespeichert! Leite weiter …','ok');" +
@@ -1951,40 +2019,44 @@ public class WebServer {
     }
 
     private static String buildFuehrerscheinFormHtml(String guildId, String userId, String displayName, String avatar) {
+        // === ORANGE-Theme Form (LA Driver License) ===
         String CSS =
             "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;background:linear-gradient(135deg,#0a0a0a 0%,#1a0a05 100%);" +
-            "font-family:'Segoe UI',sans-serif;padding:16px;color:#e8e8e8}" +
-            "input,select{width:100%;padding:9px 12px;background:#1a0f05;border:1px solid #e8b80066;" +
-            "border-radius:6px;color:#e8e8e8;font-size:.92rem;outline:none;font-family:inherit}" +
-            "input:focus,select:focus{border-color:#e8b800;background:#241404}" +
-            "label{display:block;color:#c89a4a;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#1a0700 0%,#0a0300 100%);" +
+            "font-family:'Segoe UI',sans-serif;padding:16px;color:#ffe4d6}" +
+            "input,select{width:100%;padding:9px 12px;background:#2a0f00;border:1px solid #ff572266;" +
+            "border-radius:6px;color:#ffe4d6;font-size:.92rem;outline:none;font-family:inherit}" +
+            "input:focus,select:focus{border-color:#ff5722;background:#401500}" +
+            "label{display:block;color:#ffab84;font-size:.7rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}" +
             ".field{margin-bottom:10px}" +
-            ".wrap{max-width:680px;margin:0 auto;background:linear-gradient(135deg,#241400 0%,#1a0e00 100%);" +
-            "border:3px solid #e8b800;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(232,184,0,.25)}" +
-            ".hdr{background:linear-gradient(90deg,#241400,#3a2400);border-bottom:3px solid #e8b800;padding:14px 20px;display:flex;align-items:center;gap:16px}" +
-            ".hdr .st{color:#e8b800;font-size:1.3rem;font-weight:700;letter-spacing:4px}" +
-            ".hdr .ct{display:block;color:#c89a4a;font-size:.75rem;letter-spacing:2px;margin-top:2px}" +
-            ".photo{width:80px;height:80px;border-radius:50%;border:2px solid #e8b800}" +
+            ".wrap{max-width:680px;margin:0 auto;background:linear-gradient(135deg,#4a1f00 0%,#2a0f00 100%);" +
+            "border:3px solid #ff5722;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(255,87,34,.4)}" +
+            ".hdr{background:linear-gradient(90deg,#d84315,#bf360c);border-bottom:3px solid #ff5722;padding:14px 20px;display:flex;align-items:center;gap:16px}" +
+            ".hdr .st{color:#fff;font-size:1.3rem;font-weight:700;letter-spacing:4px;text-shadow:0 2px 4px rgba(0,0,0,.3)}" +
+            ".hdr .ct{display:block;color:#ffab84;font-size:.75rem;letter-spacing:2px;margin-top:2px}" +
+            ".photo{width:80px;height:80px;border-radius:50%;border:2px solid #ff5722}" +
             ".photo img{width:100%;height:100%;border-radius:50%;object-fit:cover}" +
-            ".meta{padding:14px 20px 0;font-size:.85rem;color:#c89a4a}" +
-            ".meta b{color:#e8b800}" +
+            ".meta{padding:14px 20px 0;font-size:.85rem;color:#ffab84}" +
+            ".meta b{color:#ff5722}" +
             "form{padding:18px 20px}" +
             ".row{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}" +
             "@media(max-width:480px){.row{grid-template-columns:1fr}}" +
+            ".photo-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;padding:14px;background:#2a0f00;border:2px dashed #ff572266;border-radius:8px}" +
+            ".photo-field label{margin-bottom:2px}" +
+            ".photo-field input[type=file]{padding:8px;background:transparent;border:0;color:#ffab84}" +
             ".kbox{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:4px}" +
-            ".kbox label{display:flex;align-items:center;justify-content:center;background:#1a0f05;border:1px solid #e8b80066;" +
-            "border-radius:6px;padding:8px 4px;cursor:pointer;font-weight:700;letter-spacing:1.5px;color:#e8b800;" +
+            ".kbox label{display:flex;align-items:center;justify-content:center;background:#2a0f00;border:1px solid #ff572266;" +
+            "border-radius:6px;padding:8px 4px;cursor:pointer;font-weight:700;letter-spacing:1.5px;color:#ff5722;" +
             "font-size:.85rem;transition:all .15s}" +
             ".kbox input{display:none}" +
-            ".kbox label:has(input:checked){background:#e8b800;color:#1a0f05}" +
-            ".submit{display:block;width:100%;margin-top:14px;padding:13px;background:linear-gradient(90deg,#e8b800,#ffd840);" +
-            "border:none;border-radius:8px;color:#1a0f05;font-size:.95rem;font-weight:700;letter-spacing:1px;cursor:pointer}" +
-            ".submit:hover{opacity:.9}.submit:disabled{opacity:.4;cursor:not-allowed}" +
+            ".kbox label:has(input:checked){background:#ff5722;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.3)}" +
+            ".submit{display:block;width:100%;margin-top:14px;padding:13px;background:linear-gradient(90deg,#ff5722,#ff6b35);" +
+            "border:none;border-radius:8px;color:#fff;font-size:.95rem;font-weight:700;letter-spacing:1px;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.25)}" +
+            ".submit:hover{filter:brightness(1.05)}.submit:disabled{opacity:.4;cursor:not-allowed}" +
             ".msg{margin-top:10px;padding:10px;border-radius:8px;font-size:.85rem;text-align:center;display:none}" +
             ".msg.ok{background:#1a3a0d;border:1px solid #4a9930;color:#7ddd55}" +
             ".msg.err{background:#3a0d0d;border:1px solid #993030;color:#dd5555}" +
-            ".nav{padding:0 20px 14px;text-align:center;font-size:.78rem;color:#c89a4a}";
+            ".nav{padding:0 20px 14px;text-align:center;font-size:.78rem;color:#ffab84}";
         String avatarHtml = avatar.isEmpty() ? "" : "<img src='" + esc(avatar) + "' alt='avatar'>";
         String klassen = "AM,A1,A2,A,B,B1,C,C1,CE,D,BE,M,L,T";
         StringBuilder kb = new StringBuilder("<div class='kbox'>");
@@ -1995,29 +2067,33 @@ public class WebServer {
         String avatarHtmlSafe = avatarHtml;
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
-            "<title>🚗 Führerschein erstellen — " + esc(displayName) + "</title>" +
+            "<title>🚗 California Driver License — " + esc(displayName) + "</title>" +
             "<style>" + CSS + "</style></head><body>" +
             "<div class='wrap'>" +
             "<div class='hdr'>" +
             "<div class='photo'>" + avatarHtmlSafe + "</div>" +
-            "<div><span class='st'>DRIVER LICENSE</span><span class='ct'>STATE OF CALIFORNIA · PCRP</span></div>" +
+            "<div><span class='st'>DRIVER LICENSE</span><span class='ct'>STATE OF CALIFORNIA · DMV · PCRP</span></div>" +
             "</div>" +
             "<div class='meta'>Führerschein für <b>" + esc(displayName) + "</b> · User-ID <b>" + esc(userId) + "</b></div>" +
-            "<form id='f'>" +
+            "<form id='f' enctype='multipart/form-data'>" +
             "<input type='hidden' name='guildId' value='" + esc(guildId) + "'>" +
             "<input type='hidden' name='userId'  value='" + esc(userId)  + "'>" +
             "<input type='hidden' name='erstelltVon' value='" + esc(displayName) + "'>" +
             "<div class='row'>" +
-            fieldHtml("vorname",      "Vorname",         true) +
-            fieldHtml("nachname",     "Nachname",        true) +
-            fieldHtml("geburtsdatum", "Geburtsdatum",    true, "date") +
-            fieldHtml("gueltigBis",   "Gültig bis (Unix-Sek)", false, "number") +
+            fieldHtml("vorname",      "LN",   true) +
+            fieldHtml("nachname",     "FN",   true) +
+            fieldHtml("geburtsdatum", "DOB",  true, "date") +
+            fieldHtml("gueltigBis",   "EXP (Unix-Sek)", false, "number") +
             "</div>" +
-            fieldHtml("adresse", "Adresse / Straße + Hausnummer", true) +
+            fieldHtml("adresse", "ADDRESS", true) +
             kb.toString() +
+            "<div class='photo-field'>" +
+            "<label>📷 Passfoto (JPG/PNG) — wird als Foto im Führerschein angezeigt</label>" +
+            "<input type='file' name='photo' accept='image/png,image/jpeg' required>" +
+            "</div>" +
             "<button type='submit' class='submit' id='btn'>🚗 Führerschein speichern</button>" +
             "<div class='msg' id='m'></div></form>" +
-            "<div class='nav'>Formular wird automatisch gespeichert. Du kehrst danach zum Führerschein zurück.</div>" +
+            "<div class='nav'>Formular wird automatisch gespeichert — du wirst zum Führerschein weitergeleitet.</div>" +
             "</div>" +
             "<script>" +
             "document.getElementById('f').onsubmit=async e=>{" +
@@ -2027,9 +2103,12 @@ public class WebServer {
             "  const klassen=Array.from(document.querySelectorAll('input[name=\\\"klassen\\\"]:checked')).map(c=>c.value);" +
             "  fd.delete('klassen');" +
             "  for(const k of klassen)fd.append('klassen',k);" +
+            "  const file=fd.get('photo');" +
+            "  if(!file||!file.name){show('⚠️ Bitte lade ein Passfoto hoch.','err');btn.disabled=false;return;}" +
+            "  if(file.size>10*1024*1024){show('⚠️ Foto zu groß (max. 10 MB).','err');btn.disabled=false;return;}" +
             "  try{const r=await fetch('/api/save-fuehrerschein',{method:'POST',body:fd});" +
             "    const d=await r.json();" +
-            "    if(d.ok){show('✅ Führerschein gespeichert! Leite weiter …','ok');" +
+            "    if(d.ok){show('✅ Führerschein gespeichert!','ok');" +
             "      setTimeout(()=>location.href=d.viewUrl,900);}" +
             "    else{show(d.error||'Fehler.','err');btn.disabled=false;}}" +
             "  catch(err){show('Verbindungsfehler.','err');btn.disabled=false;}};" +
@@ -2053,11 +2132,18 @@ public class WebServer {
     // ═══════════════════════════════════════════════════════════════════════════
 
     private static String buildDocumentAusweisPage(DocumentsManager.Ausweis a, Member m, String userId) {
-        String avatar = m != null ? m.getUser().getEffectiveAvatarUrl() : "";
         String vorname = esc(a.vorname), nachname = esc(a.nachname);
         String idNum = a.ausweisNr.isBlank()
             ? "LA-" + userId.substring(Math.max(0, userId.length() - 8)).toUpperCase()
             : esc(a.ausweisNr);
+        // Foto: bevorzugt das hochgeladene Passfoto (/api/ausweis-photo), Discord-Avatar als Fallback.
+        String photoSrc = "/api/ausweis-photo/" + esc(userId);
+        String photoFallback = (m != null)
+            ? m.getUser().getEffectiveAvatarUrl() + "?size=512"
+            : "";
+        String photoImg = "<img src='" + photoSrc + "'" +
+            (photoFallback.isEmpty() ? "" : " data-fb='" + esc(photoFallback) + "'") +
+            " onerror=\"if(this.dataset.fb){this.src=this.dataset.fb}else{this.outerHTML='<div style=color:#445>Kein Foto</div>'}\">";
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
             "<title>🪪 Ausweis — " + vorname + " " + nachname + "</title>" +
@@ -2093,9 +2179,7 @@ public class WebServer {
             "<div><span class='state'>CALIFORNIA</span>" +
             "<span class='city'>CITY OF LOS ANGELES · PARADISE CITY ROLEPLAY</span></div>" +
             "</div>" +
-            "<div class='body'><div class='photo-col'>" +
-            (avatar.isEmpty() ? "<div style='color:#445'>Kein Avatar</div>"
-                : "<img src='" + esc(avatar) + "' onerror=\"this.outerHTML='<div style=color:#445>Kein Foto</div>'\">") +
+            "<div class='body'><div class='photo-col'>" + photoImg +
             "</div><div class='data-col'><div class='id-num'>ID-NR: " + idNum + "</div>" +
             "<div class='fields-grid'>" +
             docField("Vorname", vorname) +
@@ -2109,66 +2193,79 @@ public class WebServer {
             "</div></div>" +
             "<div class='footer'><span class='seal'>STATE OF CALIFORNIA · OFFICIAL IDENTIFICATION</span>" +
             "</div></div></body></html>";
+
     }
 
     private static String buildDocumentFuehrerscheinPage(DocumentsManager.Fuehrerschein f, Member m, String userId) {
-        String avatar = m != null ? m.getUser().getEffectiveAvatarUrl() : "";
+        // === ECHTES California Driver License Layout ===
         String vorname = esc(f.vorname), nachname = esc(f.nachname);
-        String klassen = (f.klassen == null || f.klassen.isEmpty()) ? "—" : esc(String.join(", ", f.klassen));
+        String klassen  = (f.klassen == null || f.klassen.isEmpty()) ? "—" : esc(String.join("   ", f.klassen));
+        String dl       = "D" + userId.substring(Math.max(0, userId.length() - 8)).toUpperCase();
+        String expDate  = f.gueltigBis > 0
+            ? "<t:" + f.gueltigBis + ":d>"
+            : "—";
+        String expText  = (f.gueltigBis > 0) ? esc(java.time.Instant.ofEpochSecond(f.gueltigBis)
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()) : "—";
+        String dobText  = esc(f.geburtsdatum);
+        String addrText = esc(f.adresse);
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
-            "<title>🚗 Führerschein — " + vorname + " " + nachname + "</title>" +
+            "<title>California Driver License \u2014 " + vorname + " " + nachname + "</title>" +
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
-            "body{min-height:100vh;display:flex;align-items:center;justify-content:center;" +
-            "background:linear-gradient(135deg,#0a0a0a 0%,#1a0a05 100%);" +
-            "font-family:'Courier New',monospace;padding:16px;}" +
-            ".card{width:100%;max-width:680px;background:linear-gradient(135deg,#241400 0%,#1a0e00 100%);" +
-            "border:3px solid #e8b800;border-radius:14px;overflow:hidden;box-shadow:0 0 40px rgba(232,184,0,.3);}" +
-            ".header{background:linear-gradient(90deg,#241400,#3a2400);border-bottom:3px solid #e8b800;" +
-            "padding:14px 20px;}" +
-            ".header .state{display:block;color:#e8b800;font-size:1.3rem;font-weight:700;letter-spacing:4px;}" +
-            ".header .city{display:block;color:#c89a4a;font-size:.75rem;letter-spacing:2px;margin-top:2px;}" +
-            ".body{display:flex;flex-wrap:wrap;}" +
-            ".photo-col{width:180px;min-height:220px;background:#1a0f05;display:flex;" +
-            "align-items:center;justify-content:center;border-right:2px solid #e8b80040;padding:16px;flex-shrink:0;}" +
-            ".photo-col img{width:148px;height:185px;object-fit:cover;object-position:top center;" +
-            "border:2px solid #e8b800;border-radius:4px;display:block;}" +
-            ".data-col{flex:1;min-width:200px;padding:20px;}" +
-            ".id-num{color:#e8b800;font-size:.7rem;letter-spacing:2px;margin-bottom:14px;}" +
-            ".field{margin-bottom:12px;}.field label{display:block;color:#c89a4a;font-size:.6rem;" +
-            "letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}" +
-            ".field .val{color:#fff8e0;font-size:.95rem;font-weight:700;letter-spacing:1px;}" +
-            ".fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;}" +
-            ".footer{background:#1a0f05;border-top:2px solid #e8b80040;padding:10px 20px;" +
-            "display:flex;justify-content:center;align-items:center;}" +
-            ".footer .seal{color:#e8b80080;font-size:.65rem;letter-spacing:1px;text-align:center;}" +
-            ".klassen-big{color:#e8b800;font-size:1.4rem;font-weight:900;letter-spacing:4px;" +
-            "background:linear-gradient(90deg,transparent,#e8b80020,transparent);padding:8px 12px;" +
-            "border:1px dashed #e8b80066;border-radius:4px;display:inline-block;margin-top:8px;}" +
-            "@media(max-width:480px){.photo-col{width:100%;border-right:none;border-bottom:2px solid #e8b80040;min-height:auto;}" +
-            ".fields-grid{grid-template-columns:1fr;}}" +
+            "body{min-height:100vh;background:#e8d9bf;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Courier New',Consolas,monospace;}" +
+            ".dl{width:100%;max-width:640px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
+            ".dl-hdr{background:#1c4587;color:#fff;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #ffd641;}" +
+            ".dl-hdr .left{font-size:.66rem;letter-spacing:1.5px;line-height:1.35;}" +
+            ".dl-hdr .left b{font-size:.85rem;letter-spacing:3px;display:block;}" +
+            ".dl-hdr .star{color:#ffd641;font-size:1.8rem;line-height:1;font-family:serif;filter:drop-shadow(0 0 4px rgba(255,214,65,.6));}" +
+            ".dl-title{text-align:center;padding:5px 0;background:#fff8e0;border-bottom:1.5px solid #1c4587;}" +
+            ".dl-title h1{color:#8b1a1a;font-size:1.25rem;letter-spacing:6px;margin:0;font-weight:900;}" +
+            ".dl-title h2{color:#1c4587;font-size:.6rem;letter-spacing:3px;margin:2px 0 0 0;font-weight:700;}" +
+            ".dl-body{display:flex;flex-wrap:wrap;padding:10px 14px;}" +
+            ".dl-photo{width:160px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;}" +
+            ".dl-photo img{width:100%;height:200px;object-fit:cover;object-position:top center;display:block;}" +
+            ".dl-photo .dd{position:absolute;top:2px;right:2px;background:#8b1a1a;color:#fff;font-size:.5rem;letter-spacing:1px;padding:1px 4px;border-radius:0 0 0 2px;font-weight:700;}" +
+            ".dl-sig{margin-top:6px;border-top:1px solid #444;height:30px;position:relative;background:#fff8e0;}" +
+            ".dl-sig span{position:absolute;bottom:2px;left:6px;font-size:.65rem;font-style:italic;color:#1c4587;}" +
+            ".dl-data{flex:1;min-width:240px;padding-left:18px;}" +
+            ".dl-data .row{display:flex;gap:14px;margin-bottom:8px;}" +
+            ".dl-data .field{display:flex;flex-direction:column;flex:1;}" +
+            ".dl-data .label{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;}" +
+            ".dl-data .val{font-size:1rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;letter-spacing:.5px;}" +
+            ".dl-data .addr{font-size:.85rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;min-height:24px;}" +
+            ".dl-classes{background:rgba(28,69,135,.08);padding:6px 10px;margin-top:6px;border-left:4px solid #1c4587;}" +
+            ".dl-classes .lbl{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;margin-bottom:2px;}" +
+            ".dl-classes .val{font-size:1.4rem;font-weight:900;letter-spacing:5px;color:#1a1a1a;}" +
+            ".dl-foot{background:#1c4587;color:#fff;padding:6px 14px;text-align:center;font-size:.55rem;letter-spacing:1.5px;border-top:3px solid #ffd641;}" +
+            ".dl-foot .legal{opacity:.85;font-size:.5rem;margin-top:2px;letter-spacing:2px;}" +
+            "@media(max-width:560px){.dl-body{flex-direction:column;}.dl-data{padding-left:0;margin-top:14px;}}" +
             "</style></head><body>" +
-            "<div class='card'><div class='header'>" +
-            "<div><span class='state'>DRIVER LICENSE</span>" +
-            "<span class='city'>STATE OF CALIFORNIA · PCRP</span></div>" +
+            "<div class='dl'>" +
+            "<div class='dl-hdr'><div class='left'><b>STATE OF CALIFORNIA</b>DEPARTMENT OF MOTOR VEHICLES · DMV</div><div class='star' title='REAL ID'>\u2605</div></div>" +
+            "<div class='dl-title'><h1>DRIVER LICENSE</h1><h2>DL " + esc(dl) + " · CLASS " + esc(String.join("/", f.klassen != null ? f.klassen : List.of("C"))) + "</h2></div>" +
+            "<div class='dl-body'>" +
+            "<div><div class='dl-photo'>" +
+            "<img src='/api/license-photo/" + esc(userId) + "' onerror=\"this.outerHTML='<div style=&quot;height:200px;display:flex;align-items:center;justify-content:center;color:#888;font-size:.7rem&quot;>Kein Foto</div>'\">" +
+            "<div class='dd'>DD</div></div>" +
+            "<div class='dl-sig'><span>" + vorname + " " + nachname + "</span></div></div>" +
+            "<div class='dl-data'>" +
+            "<div class='row'>" +
+            "<div class='field'><div class='label'>LN · LAST NAME</div><div class='val'>" + nachname + "</div></div>" +
+            "<div class='field'><div class='label'>FN · FIRST NAME</div><div class='val'>" + vorname + "</div></div>" +
             "</div>" +
-            "<div class='body'><div class='photo-col'>" +
-            (avatar.isEmpty() ? "<div style='color:#445'>Kein Avatar</div>"
-                : "<img src='" + esc(avatar) + "' onerror=\"this.outerHTML='<div style=color:#445>Kein Foto</div>'\">") +
-            "</div><div class='data-col'>" +
-            "<div class='fields-grid'>" +
-            docField("Vorname", vorname) +
-            docField("Nachname", nachname) +
-            docField("Geburtsdatum", esc(f.geburtsdatum)) +
-            docField("Adresse", esc(f.adresse)) +
+            "<div class='row'>" +
+            "<div class='field'><div class='label'>DOB</div><div class='val'>" + dobText + "</div></div>" +
+            "<div class='field'><div class='label'>EXP " + expDate + "</div><div class='val'>" + expText + "</div></div>" +
             "</div>" +
-            "<div style='margin-top:14px'><div class='id-num'>KLASSEN</div>" +
-            "<div class='klassen-big'>" + klassen + "</div></div>" +
-            (f.erstelltVon.isBlank() ? "" :
-                "<div style='margin-top:14px;color:#888;font-size:.7rem'>Erstellt von: " + esc(f.erstelltVon) + "</div>") +
+            "<div class='field' style='margin-bottom:8px'><div class='label'>ADDRESS</div><div class='addr'>" + addrText + "</div></div>" +
+            "<div class='dl-classes'>" +
+            "<div class='lbl'>CLASS</div>" +
+            "<div class='val'>" + klassen + "</div>" +
+            "</div>" +
             "</div></div>" +
-            "<div class='footer'><span class='seal'>STATE OF CALIFORNIA · DRIVER LICENSE</span>" +
+            "<div class='dl-foot'>STATE OF CALIFORNIA · DRIVER LICENSE · REAL ID \u2605" +
+            (f.erstelltVon.isBlank() ? "" : "<div class='legal'>Issued by: " + esc(f.erstelltVon) + "</div>") +
             "</div></div></body></html>";
     }
 

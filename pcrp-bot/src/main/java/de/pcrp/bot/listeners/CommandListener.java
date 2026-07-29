@@ -581,77 +581,31 @@ public class CommandListener extends ListenerAdapter {
         }
     }
 
-    /** Liefert sofort das Ausweis-Embed. */
+    /** Zeigt nur den Browser-Link — keine Daten / Bilder im Discord (Datenschutz). */
     private void showAusweis(SlashCommandInteractionEvent event, User targetUser, String displayName) {
-        String guildId     = event.getGuild().getId();
-        String userId      = targetUser.getId();
-        Member targetMember = event.getGuild().getMemberById(userId);
+        String guildId = event.getGuild().getId();
+        String userId  = targetUser.getId();
 
-        Optional<DocumentsManager.Ausweis> opt = DocumentsManager.getAusweis(guildId, userId);
-        if (opt.isEmpty()) {
-            event.getHook().sendMessageEmbeds(EmbedFactory.build(
-                "Kein Ausweis hinterlegt",
-                "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Ausweis."))
+        if (DocumentsManager.getAusweis(guildId, userId).isEmpty()) {
+            event.getHook().sendMessage("ℹ️ **" + displayName + "** hat aktuell keinen im Bot gespeicherten Ausweis.")
                 .setEphemeral(true).queue();
             return;
         }
-        DocumentsManager.Ausweis a = opt.get();
-        String htmlName = a.vorname + " " + a.nachname;
-        String info =
-            "**" + htmlName + "**\n" +
-            "Geburtsdatum: " + (a.geburtsdatum.isBlank() ? "—" : a.geburtsdatum) + "\n" +
-            "Staatsangehörigkeit: " + (a.staatsang.isBlank() ? "—" : a.staatsang) + "\n" +
-            "Wohnort: " + (a.wohnort.isBlank() ? (a.adresse.isBlank() ? "—" : a.adresse) : a.wohnort) + "\n" +
-            "Ausweis-Nr.: " + (a.ausweisNr.isBlank() ? "—" : a.ausweisNr) + "\n" +
-            "Erstellt von: " + (a.erstelltVon.isBlank() ? "—" : a.erstelltVon);
-        var eb = EmbedFactory.create()
-            .setTitle("🪪 Personalausweis — " + displayName)
-            .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
-        if (targetMember != null) {
-            eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
-        }
-        event.getHook().sendMessageEmbeds(eb.build())
-            .addActionRow(Button.link(
-                DocumentsManager.ausweisViewUrl(userId),
-                "🪪 Ausweis im Browser öffnen"))
+        event.getHook().sendMessage("🪪 Ausweis: " + DocumentsManager.ausweisViewUrl(userId))
             .setEphemeral(true).queue();
     }
 
-    /** Liefert sofort das Führerschein-Embed. */
+    /** Zeigt nur den Browser-Link — keine Daten / Bilder im Discord (Datenschutz). */
     private void showFuehrerschein(SlashCommandInteractionEvent event, User targetUser, String displayName) {
-        String guildId  = event.getGuild().getId();
-        String userId   = targetUser.getId();
-        Member targetMember = event.getGuild().getMemberById(userId);
+        String guildId = event.getGuild().getId();
+        String userId  = targetUser.getId();
 
-        Optional<DocumentsManager.Fuehrerschein> opt =
-            DocumentsManager.getFuehrerschein(guildId, userId);
-        if (opt.isEmpty()) {
-            event.getHook().sendMessageEmbeds(EmbedFactory.build(
-                "Kein Führerschein hinterlegt",
-                "**" + displayName + "** hat aktuell **keinen** im Bot gespeicherten Führerschein."))
+        if (DocumentsManager.getFuehrerschein(guildId, userId).isEmpty()) {
+            event.getHook().sendMessage("ℹ️ **" + displayName + "** hat aktuell keinen im Bot gespeicherten Führerschein.")
                 .setEphemeral(true).queue();
             return;
         }
-        DocumentsManager.Fuehrerschein f = opt.get();
-        String klassen = (f.klassen == null || f.klassen.isEmpty())
-            ? "—"
-            : String.join(", ", f.klassen);
-        String info =
-            "**" + f.vorname + " " + f.nachname + "**\n" +
-            "Geburtsdatum: " + (f.geburtsdatum.isBlank() ? "—" : f.geburtsdatum) + "\n" +
-            "Klassen: " + klassen + "\n" +
-            "Gültig bis: <t:" + f.gueltigBis + ":d>\n" +
-            "Erstellt von: " + (f.erstelltVon.isBlank() ? "—" : f.erstelltVon);
-        var eb = EmbedFactory.create()
-            .setTitle("🚗 Führerschein — " + displayName)
-            .setDescription(info + "\n\nKlicke unten für die Vollansicht.");
-        if (targetMember != null) {
-            eb.setImage(targetMember.getUser().getEffectiveAvatarUrl() + "?size=512");
-        }
-        event.getHook().sendMessageEmbeds(eb.build())
-            .addActionRow(Button.link(
-                DocumentsManager.fuehrerscheinViewUrl(userId),
-                "🚗 Führerschein im Browser öffnen"))
+        event.getHook().sendMessage("🚗 Führerschein: " + DocumentsManager.fuehrerscheinViewUrl(userId))
             .setEphemeral(true).queue();
     }
 
