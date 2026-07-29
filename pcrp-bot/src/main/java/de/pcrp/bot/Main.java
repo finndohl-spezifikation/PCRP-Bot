@@ -660,8 +660,6 @@ public class Main {
                 Commands.slash("handy-reset", "Löscht alle Handy-Verträge und entfernt City Chat/Citygram Rollen")
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.ADMINISTRATOR)),
-                Commands.slash("web-zugang", "Schickt dir per DM direkte Login-Links für City Chat und Citygram")
-                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
 
 
                 Commands.slash("löschen", "Löscht 1–200 Nachrichten im aktuellen Kanal")
