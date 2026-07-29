@@ -177,6 +177,25 @@ public class WebServer {
         // Admin-Backup
         app.get("/admin/backup", WebServer::handleBackup);
 
+        // ── Premium Deluxe Motorsport (Autohaus-Webseite) ──────────────────
+        app.get ("/premium-motorsport",                            PremiumMotorsportHandler::serveSite);
+        app.get ("/premium-motorsport/admin",                      PremiumMotorsportHandler::serveAdmin);
+        app.post("/api/pd/auth/login",                             PremiumMotorsportHandler::handleAuthLogin);
+        app.get ("/api/pd/me",                                     PremiumMotorsportHandler::handleMe);
+        app.get ("/api/pd/vehicles",                               PremiumMotorsportHandler::handleListVehicles);
+        app.get ("/api/pd/vehicle/{id}",                           PremiumMotorsportHandler::handleGetVehicle);
+        app.post("/api/pd/vehicles",                               PremiumMotorsportHandler::handleCreateVehicle);
+        app.post("/api/pd/vehicles/{id}/delete",                   PremiumMotorsportHandler::handleDeleteVehicle);
+        app.post("/api/pd/vehicle/{id}/buy",                       PremiumMotorsportHandler::handleBuyVehicle);
+        app.get ("/api/pd/garage",                                 PremiumMotorsportHandler::handleGetGarage);
+        app.post("/api/pd/garage/transfer",                        PremiumMotorsportHandler::handleTransferGarage);
+        app.get ("/api/pd/info",                                   PremiumMotorsportHandler::handleListInfo);
+        app.post("/api/pd/info",                                   PremiumMotorsportHandler::handleAddInfo);
+        app.post("/api/pd/info/{id}/delete",                       PremiumMotorsportHandler::handleDeleteInfo);
+        app.get ("/api/pd/offers",                                 PremiumMotorsportHandler::handleListOffers);
+        app.post("/api/pd/offers",                                 PremiumMotorsportHandler::handleAddOffer);
+        app.post("/api/pd/offers/{id}/delete",                     PremiumMotorsportHandler::handleDeleteOffer);
+
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);
     }

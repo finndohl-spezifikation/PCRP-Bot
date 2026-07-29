@@ -113,6 +113,11 @@ public class Main {
             return "announce-penthouses-once-" + guildId;
         }
 
+        /** DataStore-Key für die einmalige Premium-Deluxe-Motorsport Ankündigung (pro Guild). */
+        private static String pdAnnounceKey(String guildId) {
+            return "announce-pd-once-" + guildId;
+        }
+
         @Override
         public void onReady(ReadyEvent event) {
             JDA jda = event.getJDA();
@@ -181,6 +186,7 @@ public class Main {
                 postCityChatPanel(guild);
                 postCitygramPanel(guild);
                 postPenthousesAnnouncement(guild);
+                postPremiumDeluxeAnnouncement(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -595,13 +601,53 @@ public class Main {
                     .build()
             ).addComponents(ActionRow.of(
                 Button.link(url, "🏙️ Residences öffnen")
-            )).queue(
+            )            ).queue(
                 msg -> {
                     DataStore.writeString(key, msg.getId());
                     log.info("[Penthouses] Einmalige Ankündigung in {} (msg={}) gesendet — URL={}",
                         ch.getName(), msg.getId(), url);
                 },
                 err -> log.error("[Penthouses] Ankündigung konnte nicht gesendet werden.", err)
+            );
+        }
+
+        /** Sendet genau EINE Ankündigung mit Link-Button zur /premium-motorsport-Seite — aber wirklich nur einmal pro Guild. */
+        private static void postPremiumDeluxeAnnouncement(Guild guild) {
+            String key = pdAnnounceKey(guild.getId());
+            String alreadySent = DataStore.readString(key);
+            if (alreadySent != null && !alreadySent.isBlank()) {
+                log.debug("[PD] Ankündigung bereits gesendet (msg={}), überspringe.", alreadySent);
+                return;
+            }
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.PD_EMBED_CHANNEL_ID);
+            if (ch == null) {
+                log.warn("[PD] Ankündigungs-Kanal {} nicht gefunden — überspringe.", LoggingConfig.PD_EMBED_CHANNEL_ID);
+                return;
+            }
+            String url = webUrl() + "/premium-motorsport";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🏎️ Premium Deluxe Motorsport ist live!")
+                    .setDescription(
+                        "Die neue Autohaus-Webseite ist ab sofort verfügbar.\n\n" +
+                        "🏎️ **16 Fahrzeugklassen** (Super, Sport, Muscle, Coupe, Sedan, SUV, Compact, Motorcycle, Off-Road, Industrial, Utility, Van, Bicycle, Helicopter, Plane, Boat)\n" +
+                        "📦 Live-Lagerbestand mit Stock-Anzeige\n" +
+                        "💰 Direkt-Kauf — Bargeld wird vom Discord-Konto abgebucht, das Fahrzeug wandert in deine Garage\n" +
+                        "🚘 Eigene Garage mit Übergeben-Funktion (Garage-zu-Garage, nicht ins Inventar)\n" +
+                        "🔐 Mitarbeiter-Dashboard für Info-Meldungen, Angebote und neue Fahrzeuge\n\n" +
+                        "**So öffnest du deine Garage:** Im Inventar-Embed ist ein neuer 🚘 Garage-Button — ein Klick, ephemerer Reply mit deinem persönlichen Link.\n\n" +
+                        "**Für Mitarbeiter:** Klicke oben rechts auf *🔐 Mitarbeiter Login* und gib deine Dienst-Handy-Nummer ein.")
+                    .setColor(0x9b1b30)
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "🏎️ Premium Deluxe öffnen")
+            )).queue(
+                msg -> {
+                    DataStore.writeString(key, msg.getId());
+                    log.info("[PD] Einmalige Ankündigung in {} (msg={}) gesendet — URL={}",
+                        ch.getName(), msg.getId(), url);
+                },
+                err -> log.error("[PD] Ankündigung konnte nicht gesendet werden.", err)
             );
         }
 

@@ -146,6 +146,12 @@ public final class LoggingConfig {
     public static final long SHOP_ANGLER_CHANNEL_ID       = 1529636615343837194L;
     public static final long SHOP_SCHWARZMARKT_CHANNEL_ID = 1529636616812105861L;
 
+    /** Premium Deluxe Motorsport (Autohaus-Webseite) — Mitarbeiter-Rolle. 0L = nur ADMIN-Permission berechtigt.
+     *  Standardmäßig 0L (kein dedizierter PD-Mitarbeiter-Rollen-ID geliefert) → sicher, bis User eine PD-spezifische Rolle-ID nachreicht. */
+    public static final long PD_EMPLOYEE_ROLE_ID       = 0L;
+    /** Premium Deluxe Motorsport — Kanal für den Embed mit Link zur Webseite (wird beim Start einmal gepostet). */
+    public static final long PD_EMBED_CHANNEL_ID        = 1529636646184685639L;
+
     /** Online-Banking Panel-Kanal. */
     public static final long BANK_CHANNEL_ID        = 1529636604162085025L;
 

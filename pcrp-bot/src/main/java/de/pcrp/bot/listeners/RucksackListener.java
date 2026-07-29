@@ -38,6 +38,7 @@ public class RucksackListener extends ListenerAdapter {
             case "rucksack-open"     -> handleOwnRucksack(event);
             case "rucksack-other"    -> handleOtherRucksackPrompt(event);
             case "rucksack-transfer" -> handleTransferUserPrompt(event);
+            case "rucksack-garage"   -> handleGarageOpen(event);
         }
     }
 
@@ -53,16 +54,55 @@ public class RucksackListener extends ListenerAdapter {
         var hiddenItems = InventoryManager.getHiddenItems(guildId, userId);
         ActionRow row;
         if (hiddenItems.isEmpty()) {
-            row = ActionRow.of(Button.primary("rucksack-transfer", "📦 Item Übergeben"));
+            row = ActionRow.of(
+                Button.primary("rucksack-transfer", "📦 Item Übergeben"),
+                Button.secondary("rucksack-garage", "🚘 Garage öffnen"));
         } else {
             row = ActionRow.of(
                 Button.primary("rucksack-transfer", "📦 Item Übergeben"),
+                Button.secondary("rucksack-garage", "🚘 Garage öffnen"),
                 Button.secondary("rucksack-unhide-prompt:" + userId,
                     "🗝️ Aus Versteck holen (" + hiddenItems.size() + ")"));
         }
 
         event.replyEmbeds(InventoryManager.buildEmbedWithHidden(guildId, userId, name))
             .addComponents(row)
+            .setEphemeral(true)
+            .queue();
+    }
+
+    /** 🚘 Garage öffnen — erzeugt eine Phone-Session für den User und liefert einen Login-Link zur PD-Web-Garage. */
+    private void handleGarageOpen(ButtonInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String guildId = event.getGuild().getId();
+        String userId  = event.getUser().getId();
+
+        var contract = PhoneManager.getContract(guildId, userId);
+        if (contract == null || contract.phoneNumber == null || contract.phoneNumber.isBlank()) {
+            event.replyEmbeds(EmbedFactory.build("🚘 Garage",
+                "Du brauchst einen aktiven Handy-Vertrag (City Chat / City Phone), um deine Garage zu öffnen.\n\n" +
+                "Erstelle dir zuerst ein Handy über `/handy-erstellen`."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String token = PhoneManager.createSession(guildId, contract.phoneNumber);
+        if (token == null || token.isBlank()) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler",
+                "Session konnte nicht erstellt werden — versuche es in einem Moment erneut."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String base = System.getenv().getOrDefault("WEB_URL", "");
+        if (base.isBlank()) base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", "");
+        if (!base.isBlank() && !base.startsWith("http")) base = "https://" + base;
+        String url = base + "/premium-motorsport?token=" + token;
+
+        event.replyEmbeds(EmbedFactory.build("🚘 Deine Garage",
+            "Klicke unten auf den Button, um deine Garage auf der **Premium Deluxe Motorsport** Webseite zu öffnen.\n\n" +
+            "Dort findest du alle Fahrzeuge, die du bei uns gekauft hast — und kannst sie an andere Spieler übergeben."))
+            .addActionRow(net.dv8tion.jda.api.interactions.components.buttons.Button.link(url, "🚘 Garage öffnen"))
             .setEphemeral(true)
             .queue();
     }
