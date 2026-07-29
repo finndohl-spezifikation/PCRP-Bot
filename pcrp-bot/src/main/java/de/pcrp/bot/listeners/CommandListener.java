@@ -14,12 +14,8 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
-import net.dv8tion.jda.api.interactions.components.text.TextInput;
-import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
-import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -205,6 +201,8 @@ public class CommandListener extends ListenerAdapter {
                     .collect(Collectors.toList());
                 event.replyChoices(choices2).queue(null, e -> {});
             }
+            // /verbrauchen item: autocomplete (eigene sichtbare Items als Vorschläge)
+            case "verbrauchen" -> handleVerbrauchenAutocomplete(event);
             case "vorschlag-annehmen", "vorschlag-ablehnen" -> {
                 if (!"vorschlag".equals(event.getFocusedOption().getName())) return;
                 String typed = event.getFocusedOption().getValue().toLowerCase();
@@ -793,7 +791,7 @@ public class CommandListener extends ListenerAdapter {
     }
 
     // ════════════════════════════════════════════════════════════
-    //  /verbrauchen  —  Item auswählen → Modal mit Menge → Info-Embed
+    //  /verbrauchen  —  item + menge direkt im Command (wie /lizenzen) → Info-Embed
     // ════════════════════════════════════════════════════════════
 
     private void handleVerbrauchen(SlashCommandInteractionEvent event) {
@@ -807,109 +805,49 @@ public class CommandListener extends ListenerAdapter {
         String guildId = event.getGuild().getId();
         String userId  = event.getUser().getId();
 
-        List<InventoryManager.Item> items = InventoryManager.getVisibleItems(guildId, userId);
-        if (items.isEmpty()) {
-            event.replyEmbeds(embed("Leeres Inventar",
-                "Du hast aktuell keine sichtbaren Items zum Verbrauchen."))
+        String itemName = event.getOption("item", "", OptionMapping::getAsString).trim();
+        long   qtyLong  = event.getOption("menge", 1L, OptionMapping::getAsLong);
+
+        if (itemName.isEmpty()) {
+            event.reply("❌ Du musst ein Item angeben (Tipp `item:` und such dir eines aus).")
                 .setEphemeral(true).queue();
             return;
         }
-
-        StringSelectMenu.Builder menu = StringSelectMenu.create("verbrauchen-item:" + userId)
-            .setPlaceholder("Welches Item möchtest du verbrauchen?")
-            .setMinValues(1).setMaxValues(1);
-        int n = 0;
-        for (InventoryManager.Item it : items) {
-            if (++n > 25) break;
-            menu.addOption(it.name + " × " + it.quantity, it.name);
-        }
-
-        event.replyEmbeds(EmbedFactory.build("🍽️ Item verbrauchen",
-            "Wähle unten das Item aus — danach wirst du nach der Menge gefragt."))
-            .addActionRow(menu.build())
-            .setEphemeral(true).queue();
-    }
-
-    /** Öffnet das Modal zur Mengen-Eingabe. */
-    private void openVerbrauchenQtyModal(StringSelectInteractionEvent event) {
-        String[] parts = event.getComponentId().split(":", 2);
-        if (parts.length < 2) return;
-        String userId = parts[1];
-        if (!userId.equals(event.getUser().getId())) {
-            event.replyEmbeds(embed("❌ Fehler",
-                "Du kannst nur deine eigenen Items verbrauchen."))
+        if (qtyLong <= 0) {
+            event.reply("❌ Die Menge muss größer als 0 sein.")
                 .setEphemeral(true).queue();
             return;
         }
-
-        String itemName = event.getValues().get(0);
-        String guildId  = event.getGuild().getId();
+        if (qtyLong > Integer.MAX_VALUE) {
+            event.reply("❌ Die Menge ist zu groß.")
+                .setEphemeral(true).queue();
+            return;
+        }
+        int qty = (int) qtyLong;
 
         int maxQty = InventoryManager.getVisibleItems(guildId, userId).stream()
             .filter(it -> InventoryManager.nameMatches(it.name, itemName))
             .mapToInt(it -> it.quantity).sum();
-
-        // Trenner `~~` statt `:` — verhindert Bruch, falls Item-Namen mal `:` enthalten
-        Modal modal = Modal.create(
-                "verbrauchen-qty~~" + userId + "~~" + itemName,
-                "Menge für " + itemName)
-            .addComponents(ActionRow.of(
-                TextInput.create("menge",
-                    "Menge (1 bis " + Math.max(maxQty, 1) + ")",
-                    TextInputStyle.SHORT)
-                    .setPlaceholder("z. B. 1")
-                    .setRequired(true)
-                    .setMaxLength(6)
-                    .build()))
-            .build();
-
-        event.replyModal(modal).queue();
-    }
-
-    /** Modal-Submit: führt das Verbrauchen aus + postet Info-Embed im Kanal. */
-    private void handleVerbrauchenQtySubmit(ModalInteractionEvent event) {
-        if (event.getGuild() == null) return;
-        // Trenner `~~` siehe openVerbrauchenQtyModal
-        String[] parts = event.getModalId().split("~~", 3);
-        if (parts.length < 3) return;
-        String userId   = parts[1];
-        String itemName = parts[2];
-
-        if (!userId.equals(event.getUser().getId())) {
-            event.replyEmbeds(embed("❌ Fehler",
-                "Nur deine eigenen Items können verbraucht werden."))
+        if (maxQty <= 0) {
+            event.reply("ℹ️ **" + itemName + "** ist nicht in deinem Inventar.")
+                .setEphemeral(true).queue();
+            return;
+        }
+        if (qty > maxQty) {
+            event.reply("❌ Du hast nur **" + maxQty + "× ** **" + itemName + "** — mehr geht nicht.")
                 .setEphemeral(true).queue();
             return;
         }
 
-        int qty;
-        try {
-            qty = Integer.parseInt(
-                event.getValue("menge").getAsString().trim());
-        } catch (NumberFormatException ex) {
-            event.replyEmbeds(embed("❌ Ungültig",
-                "Bitte eine gültige Zahl eingeben."))
-                .setEphemeral(true).queue();
-            return;
-        }
-        if (qty <= 0) {
-            event.replyEmbeds(embed("❌ Ungültig",
-                "Die Menge muss größer als 0 sein."))
-                .setEphemeral(true).queue();
-            return;
-        }
-
-        String guildId = event.getGuild().getId();
         boolean removed = InventoryManager.removeItem(guildId, userId, itemName, qty);
         if (!removed) {
-            event.replyEmbeds(embed("❌ Nicht genug",
-                "So viele **" + itemName + "** sind nicht im Inventar."))
+            event.reply("❌ Konnte **" + itemName + "** nicht abbuchen.")
                 .setEphemeral(true).queue();
             return;
         }
 
-        event.replyEmbeds(embed("✅ Verbraucht",
-            "Du hast **" + itemName + "** × " + qty + " verbraucht."))
+        // Ephemeral-Bestätigung an dich
+        event.reply("✅ Du hast **" + itemName + "** × " + qty + " verbraucht.")
             .setEphemeral(true).queue();
 
         // Öffentliches Info-Embed im Inventar-Aktionen-Kanal
@@ -924,9 +862,22 @@ public class CommandListener extends ListenerAdapter {
         }
     }
 
-    // ════════════════════════════════════════════════════════════
+    /** Autocomplete für `/verbrauchen item:` — filtert die sichtbaren Items des Nutzers. */
+    private void handleVerbrauchenAutocomplete(CommandAutoCompleteInteractionEvent event) {
+        if (!"item".equals(event.getFocusedOption().getName())) { event.replyChoices().queue(); return; }
+        if (event.getGuild() == null) { event.replyChoices().queue(); return; }
+        String guildId = event.getGuild().getId();
+        String userId  = event.getUser().getId();
+        String typed   = event.getFocusedOption().getValue().toLowerCase();
+
+        List<Command.Choice> choices = InventoryManager.getVisibleItems(guildId, userId).stream()
+            .filter(it -> typed.isBlank() || it.name.toLowerCase().contains(typed))
+            .limit(25)
+            .map(it -> new Command.Choice(it.name + " × " + it.quantity, it.name))
+            .collect(Collectors.toList());
+        event.replyChoices(choices).queue(null, e -> {});
+    }
     //  /verstecken — Item auswählen → setHidden(true) + Info-Embed
-    // ════════════════════════════════════════════════════════════
 
     private void handleVerstecken(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
@@ -1002,18 +953,13 @@ public class CommandListener extends ListenerAdapter {
     @Override
     public void onStringSelectInteraction(StringSelectInteractionEvent event) {
         String id = event.getComponentId();
-        // „lizenzen-pick:" gibt es nicht mehr — direkte Auswahl über das was-Argument im CommandData.
-        if (id.startsWith("verbrauchen-item:")) openVerbrauchenQtyModal(event);
-        else if (id.startsWith("verstecken-item:"))  handleVersteckenSelect(event);
+        if (id.startsWith("verstecken-item:"))  handleVersteckenSelect(event);
         // Weitere IDs (rucksack-unhide-…) werden vom RucksackListener behandelt
     }
 
     @Override
     public void onModalInteraction(ModalInteractionEvent event) {
-        String id = event.getModalId();
-        if (id.startsWith("verbrauchen-qty:")) {
-            handleVerbrauchenQtySubmit(event);
-        }
+        // Modal-IDs für /verbrauchen gibt es nicht mehr (Args direkt im Command).
         // Andere Modal-IDs (rucksack-transfer-items) werden vom RucksackListener behandelt
     }
 

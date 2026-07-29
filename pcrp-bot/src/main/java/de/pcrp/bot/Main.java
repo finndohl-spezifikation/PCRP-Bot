@@ -680,6 +680,10 @@ public class Main {
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
 
                 Commands.slash("verbrauchen", "Items aus deinem Inventar verbrauchen (nur im Inventar-Aktionen-Kanal)")
+                    .addOption(OptionType.STRING, "item",
+                        "Welches Item du verbrauchen möchtest (Vorschläge aus deinem Inventar)", true, true)
+                    .addOption(OptionType.INTEGER, "menge",
+                        "Wie viel du davon verbrauchen willst", true)
                     .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
 
                 Commands.slash("verstecken", "Items im Inventar verstecken (nur im Inventar-Aktionen-Kanal)")
