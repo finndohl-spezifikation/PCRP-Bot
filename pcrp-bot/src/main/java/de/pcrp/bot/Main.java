@@ -516,30 +516,30 @@ public class Main {
                     err -> log.error("[FrakList] Panel konnte nicht gesendet werden.", err));
         }
 
-        // ── City Chat Panel ───────────────────────────────────────────────────
+        // ── City Chat Panel (umbenannt: zeigt jetzt Citygram-Inhalt) ───────────
 
         private static void postCityChatPanel(Guild guild) {
-            String key = "panel-citychat-v1-" + guild.getId();
+            String key = "panel-citygram-v2-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.CITY_CHAT_CHANNEL_ID);
-            if (ch == null) { log.warn("[CityChat] Panel-Kanal nicht gefunden."); return; }
-            PanelHelper.post(ch, key, "💬 City Chat — Paradise City Roleplay",
+            if (ch == null) { log.warn("[Citygram] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "📸 Citygram — Paradise City Roleplay",
                 () -> sendCityChatPanel(ch, key));
         }
 
         private static void sendCityChatPanel(TextChannel ch, String key) {
-            String url = webUrl() + "/city-chat";
+            String url = webUrl() + "/citygram";
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
-                    .setTitle("💬 City Chat — Paradise City Roleplay")
+                    .setTitle("📸 Citygram — Paradise City Roleplay")
                     .setDescription(
-                        "Schreibe mit anderen Spielern über den **City Chat**.\n\n" +
-                        "Aktiviere den City Chat über **Handy-Zentrale → 📞 Handy Einstellungen**.")
+                        "Teile Fotos und Stories mit anderen Spielern im **Citygram**.\n\n" +
+                        "Aktiviere Citygram über **Handy-Zentrale → 📞 Handy Einstellungen**.")
                     .build()
             ).addComponents(ActionRow.of(
-                Button.link(url, "💬 City Chat öffnen")
+                Button.link(url, "📸 Citygram öffnen")
             )).queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
-                err -> { log.error("[CityChat] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+                err -> { log.error("[Citygram] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
             );
         }
 
