@@ -356,11 +356,14 @@ let allLoadedVehicles = [];
 
 function toast(msg, isErr){
   const wrap = document.getElementById("toasts");
-  const t = document.createElement("div");
-  t.className = "toast" + (isErr ? " err" : "");
-  t.textContent = msg;
-  wrap.appendChild(t);
-  setTimeout(()=>{ t.style.opacity="0"; t.style.transition=".3s"; setTimeout(()=>t.remove(),350); }, 3500);
+  if(!wrap) { if(console) console.warn("[PD] toast: #toasts nicht gefunden"); return; }
+  try {
+    const t = document.createElement("div");
+    t.className = "toast" + (isErr ? " err" : "");
+    t.textContent = msg;
+    wrap.appendChild(t);
+    setTimeout(()=>{ t.style.opacity="0"; t.style.transition=".3s"; setTimeout(()=>t.remove(),350); }, 3500);
+  } catch(e){ if(console) console.error("[PD] toast error:", e); }
 }
 function htmlEscape(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 function fmt$(n){ return n.toLocaleString("de-DE")+" $"; }
@@ -378,15 +381,19 @@ function imgOrFallback(url, category){ return url ? url : placeholderSVG(categor
 
 // NAV
 function go(name){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  const sec = document.getElementById("sec-"+name);
-  if(sec) sec.classList.add("active");
-  document.querySelectorAll("#topnav button").forEach(b=>b.classList.toggle("active", b.dataset.go===name));
-  window.scrollTo({top:0,behavior:"smooth"});
-  if(name==="home")     loadHome();
-  if(name==="info")     loadInfo();
-  if(name==="sortiment") loadSortiment();
-  if(name==="anfragen") loadMyAnfragen();
+  try {
+    document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+    const sec = document.getElementById("sec-"+name);
+    if(sec) sec.classList.add("active");
+    document.querySelectorAll("#topnav button").forEach(b=>b.classList.toggle("active", b.dataset.go===name));
+  } catch(e){ if(console) console.error("[PD] go("+name+") nav error:", e); }
+  try { window.scrollTo({top:0,behavior:"smooth"}); } catch(e){}
+  try {
+    if(name==="home")     loadHome();
+    if(name==="info")     loadInfo();
+    if(name==="sortiment") loadSortiment();
+    if(name==="anfragen") loadMyAnfragen();
+  } catch(e){ if(console) console.error("[PD] go("+name+") load error:", e); }
 }
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
 
@@ -436,12 +443,15 @@ function buildCategoryFilter(){
     sel.appendChild(o);
   });
 }
-document.getElementById("cat-filter").addEventListener("change", e => { activeCategory = e.target.value; renderSortiment(); });
-document.getElementById("sort-mode").addEventListener("change", e => { sortMode = e.target.value; renderSortiment(); });
-document.getElementById("filter-reset").addEventListener("click", ()=>{
+var _catEl = document.getElementById("cat-filter");
+if(_catEl) _catEl.addEventListener("change", function(e){ activeCategory = e.target.value; renderSortiment(); });
+var _sortEl = document.getElementById("sort-mode");
+if(_sortEl) _sortEl.addEventListener("change", function(e){ sortMode = e.target.value; renderSortiment(); });
+var _resetEl = document.getElementById("filter-reset");
+if(_resetEl) _resetEl.addEventListener("click", function(){
   activeCategory = ""; sortMode = "newest";
-  document.getElementById("cat-filter").value = "";
-  document.getElementById("sort-mode").value = "newest";
+  var cf = document.getElementById("cat-filter"); if(cf) cf.value = "";
+  var sf = document.getElementById("sort-mode"); if(sf) sf.value = "newest";
   renderSortiment();
 });
 
@@ -503,7 +513,8 @@ async function loadContactTopics(){
     sel.innerHTML = ["Allgemeine Frage","Probefahrt","Verkaufsanfrage","Werkstatt / Service","Garantie / Reklamation","Sonstiges"].map(t=>`<option>${t}</option>`).join("");
   }
 }
-document.getElementById("contact-form").addEventListener("submit", async e=>{
+var _cfEl = document.getElementById("contact-form");
+if(_cfEl) _cfEl.addEventListener("submit", async function(e){
   e.preventDefault();
   const topic   = document.getElementById("cf-topic").value.trim();
   const name    = document.getElementById("cf-name").value.trim();
@@ -577,13 +588,21 @@ function autoReply(){
   return "Vielen Dank, dass Sie uns kontaktiert haben. Ein Mitarbeiter wird sich zeitnah um Ihr Anliegen kümmern.";
 }
 
-// INIT
-async function initApp(){
-  buildCategoryFilter();
-  await loadContactTopics();
-  loadHome(); loadInfo();
+window.addEventListener('error', function(e) {
+  try { console.error("[PD] GLOBAL:", e.message, e.filename, e.lineno, e.colno, e.error); } catch(ex){}
+});
+
+// SAFE INIT
+function safeInit(){
+  try { buildCategoryFilter(); } catch(e){ if(console) console.error("[PD] buildCategoryFilter:", e); }
+  loadContactTopics().catch(function(e){ if(console) console.error("[PD] loadContactTopics:", e); })
+    .then(function(){
+      try { loadHome(); } catch(e){ if(console) console.error("[PD] loadHome:", e); }
+      try { loadInfo(); } catch(e){ if(console) console.error("[PD] loadInfo:", e); }
+    })
+    .catch(function(e){ if(console) console.error("[PD] safeInit chain:", e); });
 }
-initApp();
+safeInit();
 </script>
 </body>
 </html>
