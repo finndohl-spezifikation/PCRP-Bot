@@ -1193,8 +1193,8 @@ public class WebServer {
             "const rc=wr.getBoundingClientRect();" +
             "const W=Math.round(rc.width),H=Math.round(rc.height);" +
             "if(!W||!H)return;" +
-            "const dpr0=window.devicePixelRatio||1;cv.width=Math.round(W*dpr0);cv.height=Math.round(H*dpr0);ctx.scale(dpr0,dpr0);" +
-            "const ctx=cv.getContext('2d');" +
+            "const dpr0=window.devicePixelRatio||1;cv.width=Math.round(W*dpr0);cv.height=Math.round(H*dpr0);" +
+            "const ctx=cv.getContext('2d');ctx.scale(dpr0,dpr0);" +
             "const gd=ctx.createLinearGradient(0,0,W,H);" +
             "gd.addColorStop(0,'#ffe050');gd.addColorStop(.35,'#ffbe00');" +
             "gd.addColorStop(.7,'#e89400');gd.addColorStop(1,'#c07000');" +
@@ -1233,11 +1233,11 @@ public class WebServer {
             "cv.addEventListener('mouseleave',()=>drag=false);" +
             "cv.addEventListener('touchstart',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});" +
             "cv.addEventListener('touchmove',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});}" +
-            "function chkRev(ctx,i,W,H){if(rev[i])return;" +
-            "const d=ctx.getImageData(0,0,cv.width,cv.height).data;" +
+"function chkRev(ctx,i,W,H){if(rev[i])return;" +
+"const cv=document.getElementById('cc'+i);" +
+"const d=ctx.getImageData(0,0,cv.width,cv.height).data;" +
             "let tot=0,clr=0;for(let j=3;j<d.length;j+=4){tot++;if(d[j]<64)clr++;}" +
-            "if(clr/tot>.32){rev[i]=true;cv.classList.add('rev');updateProgress();" +
-            "const cv=document.getElementById('cc'+i);" +
+"if(clr/tot>.32){rev[i]=true;cv.classList.add('rev');updateProgress();" +
             "cv.style.transition='opacity .3s';cv.style.opacity='0';" +
             "setTimeout(()=>cv.style.display='none',320);checkAll();}}" +
             "function checkAll(){if(G&&rev.every(r=>r)&&!claimed){claimed=true;claimPrize();}}" +
@@ -1532,8 +1532,8 @@ public class WebServer {
             "const rc=wr.getBoundingClientRect();" +
             "const W=Math.round(rc.width),H=Math.round(rc.height);" +
             "if(!W||!H)return;" +
-            "const dpr0=window.devicePixelRatio||1;cv.width=Math.round(W*dpr0);cv.height=Math.round(H*dpr0);ctx.scale(dpr0,dpr0);" +
-            "const ctx=cv.getContext('2d');" +
+            "const dpr0=window.devicePixelRatio||1;cv.width=Math.round(W*dpr0);cv.height=Math.round(H*dpr0);" +
+            "const ctx=cv.getContext('2d');ctx.scale(dpr0,dpr0);" +
             // gold gradient
             "const gd=ctx.createLinearGradient(0,0,W,H);" +
             "gd.addColorStop(0,'#ffe050');gd.addColorStop(.35,'#ffbe00');" +
@@ -1580,11 +1580,11 @@ public class WebServer {
             "cv.addEventListener('mouseleave',()=>drag=false);" +
             "cv.addEventListener('touchstart',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});" +
             "cv.addEventListener('touchmove',e=>{e.preventDefault();sc(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});}" +
-            "function chkRev(ctx,i,W,H){if(rev[i])return;" +
-            "const d=ctx.getImageData(0,0,cv.width,cv.height).data;" +
+"function chkRev(ctx,i,W,H){if(rev[i])return;" +
+"const cv=document.getElementById('cc'+i);" +
+"const d=ctx.getImageData(0,0,cv.width,cv.height).data;" +
             "let tot=0,clr=0;for(let j=3;j<d.length;j+=4){tot++;if(d[j]<64)clr++;}" +
-            "if(clr/tot>.32){rev[i]=true;cv.classList.add('rev');updateProgress();" +
-            "const cv=document.getElementById('cc'+i);" +
+"if(clr/tot>.32){rev[i]=true;cv.classList.add('rev');updateProgress();" +
             "cv.style.transition='opacity .3s';cv.style.opacity='0';" +
             "setTimeout(()=>cv.style.display='none',320);" +
             "checkAll();}}" +
