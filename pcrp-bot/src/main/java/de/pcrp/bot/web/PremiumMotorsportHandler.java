@@ -423,23 +423,24 @@ public class PremiumMotorsportHandler {
         ctx.contentType("application/json").result(GSON.toJson(r));
     }
 
-    /** POST /api/pd/tickets — Body: {topic, message}. Erstellt ein Ticket für den eingeloggten User. */
+    /** POST /api/pd/tickets — Body: {topic, name, message}. Anonym — kein Login erforderlich. */
     public static void handleCreateTicket(Context ctx) {
-        PremiumMotorsportManager.AuthInfo info = auth(ctx);
-        if (info == null) return;
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { err(ctx, 503, "Guild nicht verfügbar."); return; }
         JsonObject body;
         try { body = JsonParser.parseString(ctx.body()).getAsJsonObject(); }
         catch (Exception e) { err(ctx, 400, "Ungültige JSON-Anfrage."); return; }
         String topic = safeTrim(body.has("topic") ? body.get("topic").getAsString() : "");
-        String msg = safeTrim(body.has("message") ? body.get("message").getAsString() : "");
-        if (topic.isEmpty() || msg.isEmpty()) {
-            err(ctx, 400, "Thema und Nachricht erforderlich.");
+        String name  = safeTrim(body.has("name")  ? body.get("name").getAsString()  : "");
+        String msg   = safeTrim(body.has("message") ? body.get("message").getAsString() : "");
+        if (topic.isEmpty() || name.isEmpty() || msg.isEmpty()) {
+            err(ctx, 400, "Thema, Name und Nachricht erforderlich.");
             return;
         }
         if (msg.length() > 2000) { err(ctx, 400, "Nachricht zu lang (max. 2000 Zeichen)."); return; }
 
         PremiumMotorsportManager.ContactTicket t = PremiumMotorsportManager.createTicket(
-            info.guildId, info.userId, info.displayName, topic, msg);
+            guild.getId(), "anonymous", name, topic, msg);
 
         JsonObject resp = new JsonObject();
         resp.addProperty("ok", true);
@@ -450,13 +451,14 @@ public class PremiumMotorsportHandler {
         ctx.contentType("application/json").result(GSON.toJson(resp));
     }
 
-    /** GET /api/pd/tickets/mine — eigene Tickets. */
+    /** GET /api/pd/tickets/mine — öffentlich (anonym). Liefert ALLE Tickets zur Transparenz. */
     public static void handleMyTickets(Context ctx) {
-        PremiumMotorsportManager.AuthInfo info = auth(ctx);
-        if (info == null) return;
+        Guild guild = BotContext.getGuild();
+        if (guild == null) { err(ctx, 503, "Guild nicht verfügbar."); return; }
         JsonArray arr = new JsonArray();
-        for (PremiumMotorsportManager.ContactTicket t : PremiumMotorsportManager.getMyTickets(info.guildId, info.userId))
-            arr.add(ticketToJson(t));
+        List<PremiumMotorsportManager.ContactTicket> all = PremiumMotorsportManager.getAllTickets(guild.getId());
+        all.sort((a, b) -> Long.compare(b.createdAt, a.createdAt));
+        for (PremiumMotorsportManager.ContactTicket t : all) arr.add(ticketToJson(t));
         JsonObject r = new JsonObject();
         r.addProperty("ok", true);
         r.add("tickets", arr);
