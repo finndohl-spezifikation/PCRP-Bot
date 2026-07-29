@@ -144,7 +144,7 @@ public final class LoggingConfig {
     public static final long SHOP_KWIKE_CHANNEL_ID  = 1529636612932374631L;
     public static final long SHOP_BAUMARKT_CHANNEL_ID     = 1529636614001659944L;
     public static final long SHOP_ANGLER_CHANNEL_ID       = 1529636615343837194L;
-    public static final long SHOP_SCHWARZMARKT_CHANNEL_ID = 0L; // TODO: User muss Kanal-ID noch nachliefern
+    public static final long SHOP_SCHWARZMARKT_CHANNEL_ID = 1529636616812105861L;
 
     /** Online-Banking Panel-Kanal. */
     public static final long BANK_CHANNEL_ID        = 1529636604162085025L;
