@@ -414,7 +414,10 @@ public class HandyCentraleListener extends ListenerAdapter {
             String ccToken = PhoneManager.createSession(guildId, cc.phoneNumber);
             String ccLink  = webUrl() + "/city-chat?token=" + ccToken;
             event.replyEmbeds(EmbedFactory.build("💬 City Chat",
-                "✅ **City Chat aktiviert!**"))
+                "✅ **Zugang erfolgreich aktiviert!**\n\n" +
+                "**Rufnummer:** `" + cc.phoneNumber + "`\n\n" +
+                "Dein persönlicher Link ist **7 Tage** gültig.\n" +
+                "⚠️ Teile diesen Link mit **niemandem**."))
                 .addComponents(ActionRow.of(Button.link(ccLink, "💬 City Chat öffnen")))
                 .setEphemeral(true).queue();
             return;
@@ -439,8 +442,14 @@ public class HandyCentraleListener extends ListenerAdapter {
                     err -> log.warn("[Citygram] Rolle Fehler: {}", err.getMessage())
                 );
             }
+            String cgToken = PhoneManager.createSession(guildId, cg.phoneNumber);
+            String cgLink  = webUrl() + "/citygram?token=" + cgToken;
             event.replyEmbeds(EmbedFactory.build("📸 Citygram",
-                "✅ **Citygram wurde aktiviert!**\n\nDu findest den Zugang im Citygram-Kanal."))
+                "✅ **Zugang erfolgreich aktiviert!**\n\n" +
+                "**Rufnummer:** `" + cg.phoneNumber + "`\n\n" +
+                "Dein persönlicher Link ist **7 Tage** gültig.\n" +
+                "⚠️ Teile diesen Link mit **niemandem**."))
+                .addComponents(ActionRow.of(Button.link(cgLink, "📸 Citygram öffnen")))
                 .setEphemeral(true).queue();
             return;
         }
