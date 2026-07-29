@@ -868,7 +868,10 @@ public class Main {
                     .addOption(OptionType.STRING,  "name",   "Artikelname",                      true)
                     .addOption(OptionType.INTEGER, "preis",  "Preis in $",                       true)
                     .addOptions(new OptionData(OptionType.STRING, "shop", "Shop", true)
-                        .addChoice("Kwik-E-Markt", "kwik-e-markt"))
+                        .addChoice("Kwik-E-Markt", "kwik-e-markt")
+                        .addChoice("Baumarkt",     "baumarkt")
+                        .addChoice("Angler-Shop",  "angler-shop")
+                        .addChoice("Schwarzmarkt", "schwarzmarkt"))
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("item-bearbeiten", "Bearbeitet einen bestehenden Artikel")
@@ -876,7 +879,10 @@ public class Main {
                     .addOption(OptionType.STRING,  "neuer-name",  "Neuer Artikelname (optional)",  false)
                     .addOption(OptionType.INTEGER, "neuer-preis", "Neuer Preis in $ (optional)",    false)
                     .addOptions(new OptionData(OptionType.STRING, "neuer-shop", "Neuer Shop (optional)", false)
-                        .addChoice("Kwik-E-Markt", "kwik-e-markt"))
+                        .addChoice("Kwik-E-Markt", "kwik-e-markt")
+                        .addChoice("Baumarkt",     "baumarkt")
+                        .addChoice("Angler-Shop",  "angler-shop")
+                        .addChoice("Schwarzmarkt", "schwarzmarkt"))
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("item-löschen", "Löscht einen Artikel aus einem Shop")

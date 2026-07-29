@@ -21,19 +21,73 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
- * Kwik-E-Markt Shop.
- * Flow: Shop Öffnen → Suchleiste (StringSelectMenu) → Menge wählen → Warenkorb → Kaufen
+ * Shop-System — unterstützt mehrere Shops (Kwik-E-Markt, Baumarkt, Angler-Shop, Schwarzmarkt).
+ * Flow pro Shop: Shop Öffnen → Suchleiste (StringSelectMenu) → Menge wählen → Warenkorb → Kaufen.
+ *
+ * Backward-Kompat:
+ *  - Button-ID "shop-open-kwike" wird intern als "shop-open-kwik-e-markt" behandelt.
+ *  - ShopItem.shopId entscheidet, welcher Shop-Cart betroffen ist (Warenkorb ist ein Misch-Cart
+ *    pro User, wird aber bei jedem "shop-open" zurückgesetzt — faktisch Ein-Shop-pro-Cart).
  */
 public class ShopListener extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(ShopListener.class);
 
-    public static final String SHOP_KWIKE = "kwik-e-markt";
+    // ─── Shop-Konfiguration (Enum zentralisiert alle Shop-Metadaten) ─────────
 
-    /** Warenkörbe (userId → CartEntry-Liste), flüchtig. */
+    public enum ShopType {
+        KWIKE("kwik-e-markt", "Kwik-E-Markt", "🏪",
+              LoggingConfig.SHOP_KWIKE_CHANNEL_ID,
+              "Willkommen im **Kwik-E-Markt**!\n\n" +
+              "Hier findest du alles für den täglichen Bedarf.\n" +
+              "Zahlung erfolgt ausschließlich mit **Bargeld** aus deinem Rucksack.\n\n" +
+              "Klicke auf **Shop Öffnen**, um den Shop zu betreten."),
+        BAUMARKT("baumarkt", "Baumarkt", "🛠️",
+                 LoggingConfig.SHOP_BAUMARKT_CHANNEL_ID,
+                 "Willkommen im **Baumarkt**!\n\n" +
+                 "Werkzeuge, Baumaterial und alles für den Heimwerker.\n" +
+                 "Zahlung erfolgt ausschließlich mit **Bargeld**.\n\n" +
+                 "Klicke auf **Shop Öffnen**, um den Shop zu betreten."),
+        ANGLER("angler-shop", "Angler-Shop", "🎣",
+               LoggingConfig.SHOP_ANGLER_CHANNEL_ID,
+               "Willkommen im **Angler-Shop**!\n\n" +
+               "Ruten, Köder und mehr für Angler.\n" +
+               "Zahlung erfolgt ausschließlich mit **Bargeld**.\n\n" +
+               "Klicke auf **Shop Öffnen**, um den Shop zu betreten."),
+        SCHWARZMARKT("schwarzmarkt", "Schwarzmarkt", "🥷",
+                     LoggingConfig.SHOP_SCHWARZMARKT_CHANNEL_ID,
+                     "Willkommen im **Schwarzmarkt**!\n\n" +
+                     "Du weißt nicht was du hier tust. Bargeld only.\n\n" +
+                     "Klicke auf **Shop Öffnen**, um den Shop zu betreten.");
+
+        public final String id;
+        public final String name;
+        public final String emoji;
+        public final long   channelId;
+        public final String description;
+
+        ShopType(String id, String name, String emoji, long channelId, String description) {
+            this.id = id; this.name = name; this.emoji = emoji; this.channelId = channelId; this.description = description;
+        }
+
+        public static ShopType byId(String shopId) {
+            if (shopId == null) return null;
+            for (ShopType s : values()) if (s.id.equalsIgnoreCase(shopId)) return s;
+            return null;
+        }
+    }
+
+    /** Backward-Compat-Konstante — zeigt weiterhin auf Kwik-E-Markt. */
+    public static final String SHOP_KWIKE = ShopType.KWIKE.id;
+
+    /** Warenkörbe (userId → CartEntry-Liste), flüchtig. Wird bei Shop-Open geleert. */
     private static final Map<String, List<CartEntry>> CARTS = new ConcurrentHashMap<>();
+
+    /** Aktuell offener Shop pro User — Kontext für Buttons ohne Shop-ID. */
+    private static final Map<String, String> CURRENT_SHOP = new ConcurrentHashMap<>();
 
     /** Hooks für laufende Mengen-Modals (userId → ShopMessage-Hook). */
     private static final Map<String, InteractionHook> QTY_HOOKS = new ConcurrentHashMap<>();
@@ -41,12 +95,18 @@ public class ShopListener extends ListenerAdapter {
     public static class CartEntry {
         public final String itemId;
         public final String name;
+        public final String shopId;   // NEU: jeder CartEntry kennt seinen Shop
         public final int    price;
         public       int    qty;
 
-        CartEntry(String itemId, String name, int price, int qty) {
-            this.itemId = itemId; this.name = name; this.price = price; this.qty = qty;
+        CartEntry(String itemId, String name, String shopId, int price, int qty) {
+            this.itemId = itemId; this.name = name; this.shopId = shopId; this.price = price; this.qty = qty;
         }
+    }
+
+    private static ShopType shopForUser(String userId) {
+        String sid = CURRENT_SHOP.get(userId);
+        return sid != null ? ShopType.byId(sid) : null;
     }
 
     // ── Button-Handler ────────────────────────────────────────────────────────
@@ -58,26 +118,41 @@ public class ShopListener extends ListenerAdapter {
         String userId  = event.getUser().getId();
         String guildId = event.getGuild().getId();
 
-        // ── Shop öffnen ──
-        if ("shop-open-kwike".equals(cid)) {
+        // ── Shop öffnen: "shop-open-{shopId}" (Legacy "shop-open-kwike" gemappt) ──
+        if (cid.startsWith("shop-open-")) {
+            String shopId = cid.substring("shop-open-".length());
+            if ("kwike".equals(shopId)) shopId = "kwik-e-markt";   // Legacy-Alias
+            ShopType shop = ShopType.byId(shopId);
+            if (shop == null) {
+                event.reply("❌ Unbekannter Shop.").setEphemeral(true).queue();
+                return;
+            }
+            if (shop.channelId == 0L) {
+                event.reply("❌ Dieser Shop ist noch nicht konfiguriert (TODO: Kanal-ID fehlt).")
+                     .setEphemeral(true).queue();
+                return;
+            }
             CARTS.remove(userId);
-            List<ShopManager.ShopItem> items = ShopManager.getItemsForShop(guildId, SHOP_KWIKE);
+            CURRENT_SHOP.put(userId, shop.id);
+            List<ShopManager.ShopItem> items = ShopManager.getItemsForShop(guildId, shop.id);
             if (items.isEmpty()) {
-                event.replyEmbeds(EmbedFactory.build("🏪 Kwik-E-Markt",
+                event.replyEmbeds(EmbedFactory.build(shop.emoji + " " + shop.name,
                     "Es sind aktuell keine Artikel verfügbar."))
                     .setEphemeral(true).queue();
                 return;
             }
-            event.replyEmbeds(buildShopEmbed(guildId, userId))
-                .addComponents(buildShopRows(guildId, userId))
+            event.replyEmbeds(buildShopEmbed(shop, guildId, userId))
+                .addComponents(buildShopRows(shop, guildId, userId))
                 .setEphemeral(true).queue();
             return;
         }
 
         // ── Zurück zur Shop-Übersicht (von Mengen-Auswahl) ──
         if ("shop-back".equals(cid)) {
-            event.editMessageEmbeds(buildShopEmbed(guildId, userId))
-                .setComponents(buildShopRows(guildId, userId)).queue();
+            ShopType shop = shopForUser(userId);
+            if (shop == null) { event.deferEdit().queue(); return; }
+            event.editMessageEmbeds(buildShopEmbed(shop, guildId, userId))
+                .setComponents(buildShopRows(shop, guildId, userId)).queue();
             return;
         }
 
@@ -86,9 +161,11 @@ public class ShopListener extends ListenerAdapter {
             String itemId = cid.substring("shop-qty-enter-".length());
             ShopManager.ShopItem item = ShopManager.getItemById(guildId, itemId);
             if (item == null) { event.deferEdit().queue(); return; }
+            ShopType shop = ShopType.byId(item.shopId);
+            if (shop == null) { event.deferEdit().queue(); return; }
+            CURRENT_SHOP.put(userId, shop.id);
             QTY_HOOKS.put(userId, event.getHook());
-            Modal modal = Modal.create("shop-qty-modal-" + itemId,
-                    "Menge — " + item.name)
+            Modal modal = Modal.create("shop-qty-modal-" + itemId, "Menge — " + item.name)
                 .addComponents(ActionRow.of(
                     TextInput.create("qty", "Anzahl", TextInputStyle.SHORT)
                         .setPlaceholder("z. B. 3")
@@ -101,9 +178,11 @@ public class ShopListener extends ListenerAdapter {
 
         // ── Warenkorb leeren ──
         if ("shop-clear".equals(cid)) {
+            ShopType shop = shopForUser(userId);
+            if (shop == null) { event.deferEdit().queue(); return; }
             CARTS.remove(userId);
-            event.editMessageEmbeds(buildShopEmbed(guildId, userId))
-                .setComponents(buildShopRows(guildId, userId)).queue();
+            event.editMessageEmbeds(buildShopEmbed(shop, guildId, userId))
+                .setComponents(buildShopRows(shop, guildId, userId)).queue();
             return;
         }
 
@@ -113,7 +192,7 @@ public class ShopListener extends ListenerAdapter {
         }
     }
 
-    // ── Modal-Handler (Mengen-Eingabe) ───────────────────────────────────────
+    // ── Modal-Handler (Mengen-Eingabe) ────────────────────────────────────────
 
     @Override
     public void onModalInteraction(ModalInteractionEvent event) {
@@ -127,7 +206,6 @@ public class ShopListener extends ListenerAdapter {
 
         InteractionHook shopHook = QTY_HOOKS.remove(userId);
 
-        // Anzahl parsen
         int qty;
         try { qty = Integer.parseInt(event.getValue("qty").getAsString().trim()); }
         catch (NumberFormatException e) {
@@ -146,17 +224,18 @@ public class ShopListener extends ListenerAdapter {
             return;
         }
 
-        // Warenkorb aktualisieren
+        ShopType shop = ShopType.byId(item.shopId);
+        if (shop != null) CURRENT_SHOP.put(userId, shop.id);
+
         List<CartEntry> cart = CARTS.computeIfAbsent(userId, k -> new ArrayList<>());
         CartEntry existing = cart.stream().filter(e -> e.itemId.equals(itemId)).findFirst().orElse(null);
         if (existing != null) existing.qty += qty;
-        else cart.add(new CartEntry(item.id, item.name, item.price, qty));
+        else cart.add(new CartEntry(item.id, item.name, item.shopId, item.price, qty));
 
-        // Modal bestätigen + Shop-Nachricht zurück editieren
         event.deferReply(true).queue(hook -> {
-            if (shopHook != null) {
-                shopHook.editOriginalEmbeds(buildShopEmbed(guildId, userId))
-                    .setComponents(buildShopRows(guildId, userId)).queue();
+            if (shopHook != null && shop != null) {
+                shopHook.editOriginalEmbeds(buildShopEmbed(shop, guildId, userId))
+                    .setComponents(buildShopRows(shop, guildId, userId)).queue();
             }
             hook.deleteOriginal().queue();
         });
@@ -176,6 +255,9 @@ public class ShopListener extends ListenerAdapter {
         ShopManager.ShopItem item = ShopManager.getItemById(guildId, itemId);
         if (item == null) { event.deferEdit().queue(); return; }
 
+        ShopType shop = ShopType.byId(item.shopId);
+        if (shop != null) CURRENT_SHOP.put(userId, shop.id);
+
         event.editMessageEmbeds(buildQtyEmbed(item))
             .setComponents(buildQtyRows(item)).queue();
     }
@@ -185,25 +267,31 @@ public class ShopListener extends ListenerAdapter {
     private void handleBuy(ButtonInteractionEvent event, String guildId, String userId) {
         List<CartEntry> cart = CARTS.getOrDefault(userId, Collections.emptyList());
         if (cart.isEmpty()) {
-            event.editMessageEmbeds(buildShopEmbed(guildId, userId))
-                .setComponents(buildShopRows(guildId, userId)).queue();
-            return;
-        }
-        long total = cartTotal(cart);
-        long cash  = getCash(guildId, userId);
-        if (cash < total) {
-            // Sollte durch deaktivierten Button nicht erreichbar sein, zur Sicherheit:
-            event.editMessageEmbeds(buildShopEmbed(guildId, userId))
-                .setComponents(buildShopRows(guildId, userId)).queue();
+            ShopType shop = shopForUser(userId);
+            if (shop != null) {
+                event.editMessageEmbeds(buildShopEmbed(shop, guildId, userId))
+                    .setComponents(buildShopRows(shop, guildId, userId)).queue();
+            }
             return;
         }
 
-        // Zahlung abbuchen + Artikel gutschreiben
+        // Shop aus erstem Cart-Item ableiten (oder CURRENT_SHOP als Fallback)
+        ShopType shop = ShopType.byId(cart.get(0).shopId);
+        if (shop == null) shop = shopForUser(userId);
+        if (shop == null) return;
+
+        long total = cartTotal(cart);
+        long cash  = getCash(guildId, userId);
+        if (cash < total) {
+            event.editMessageEmbeds(buildShopEmbed(shop, guildId, userId))
+                .setComponents(buildShopRows(shop, guildId, userId)).queue();
+            return;
+        }
+
         BargeldManager.remove(guildId, userId, total);
         for (CartEntry e : cart)
             InventoryManager.addItem(guildId, userId, e.name, e.qty);
 
-        // Quittung
         StringBuilder receipt = new StringBuilder();
         for (CartEntry e : cart)
             receipt.append("• **").append(e.name).append("** × ").append(e.qty)
@@ -217,11 +305,10 @@ public class ShopListener extends ListenerAdapter {
             .build())
             .setComponents(Collections.emptyList()).queue();
 
-        // Logs
         BotLogger.logMoney(event.getGuild(), "🛒 Shop-Kauf",
             "**Spieler:** " + event.getUser().getAsMention() + "\n" +
             "**Gesamt:** -" + ShopManager.formatPrice(total) + " (Bargeld)\n" +
-            "**Shop:** " + ShopManager.shopDisplayName(SHOP_KWIKE));
+            "**Shop:** " + ShopManager.shopDisplayName(shop.id));
         StringBuilder itemLog = new StringBuilder();
         for (CartEntry e : cart)
             itemLog.append("• ").append(e.name).append(" × ").append(e.qty).append("\n");
@@ -229,22 +316,25 @@ public class ShopListener extends ListenerAdapter {
             "**Spieler:** " + event.getUser().getAsMention() + "\n" +
             "**Artikel:**\n" + itemLog);
 
-        log.info("[Shop] {} kaufte Artikel für {}$.", event.getUser().getAsTag(), total);
+        log.info("[Shop] {} kaufte {} Artikel im {} für {}$.",
+            event.getUser().getAsTag(), cart.size(), shop.name, total);
     }
 
     // ── Embeds ────────────────────────────────────────────────────────────────
 
     /** Haupt-Shop-Embed: Artikelliste + Warenkorb + Bargeld (rot wenn zu wenig). */
-    public static MessageEmbed buildShopEmbed(String guildId, String userId) {
-        List<ShopManager.ShopItem> items = ShopManager.getItemsForShop(guildId, SHOP_KWIKE);
-        List<CartEntry>            cart  = CARTS.getOrDefault(userId, Collections.emptyList());
-        long cash        = getCash(guildId, userId);
-        long total       = cartTotal(cart);
-        boolean tooLow   = !cart.isEmpty() && cash < total;
+    public static MessageEmbed buildShopEmbed(ShopType shop, String guildId, String userId) {
+        List<ShopManager.ShopItem> items = ShopManager.getItemsForShop(guildId, shop.id);
+        List<CartEntry> cart       = CARTS.getOrDefault(userId, Collections.emptyList());
+        List<CartEntry> cartForShop = cart.stream()
+            .filter(e -> shop.id.equalsIgnoreCase(e.shopId))
+            .collect(Collectors.toList());
+        long cash         = getCash(guildId, userId);
+        long totalForShop = cartForShop.stream().mapToLong(e -> (long) e.price * e.qty).sum();
+        boolean tooLow    = !cartForShop.isEmpty() && cash < totalForShop;
 
-        EmbedBuilder eb = EmbedFactory.create().setTitle("🏪 Kwik-E-Markt");
+        EmbedBuilder eb = EmbedFactory.create().setTitle(shop.emoji + " " + shop.name);
 
-        // Artikelliste
         if (items.isEmpty()) {
             eb.setDescription("*Keine Artikel verfügbar.*");
         } else {
@@ -259,25 +349,24 @@ public class ShopListener extends ListenerAdapter {
             eb.setDescription(desc.toString());
         }
 
-        // Warenkorb
-        if (cart.isEmpty()) {
-            eb.addField("🛒 Warenkorb", "*Leer — füge Artikel über die Suchleiste hinzu.*", false);
+        if (cartForShop.isEmpty()) {
+            String note = cart.isEmpty()
+                ? "*Leer — füge Artikel über die Suchleiste hinzu.*"
+                : "*Warenkorb enthält nur Items aus anderen Shops.*";
+            eb.addField("🛒 Warenkorb", note, false);
         } else {
             StringBuilder cartStr = new StringBuilder();
-            for (CartEntry e : cart)
+            for (CartEntry e : cartForShop)
                 cartStr.append("• **").append(e.name).append("** × ").append(e.qty)
                     .append(" — ").append(ShopManager.formatPrice((long) e.price * e.qty)).append("\n");
-            cartStr.append("\n**Gesamt: ").append(ShopManager.formatPrice(total)).append("**");
+            cartStr.append("\n**Gesamt: ").append(ShopManager.formatPrice(totalForShop)).append("**");
             eb.addField("🛒 Warenkorb", cartStr.toString(), false);
         }
 
-        // Bargeld — rot hervorheben wenn nicht genug
         if (tooLow) {
-            long missing = total - cash;
-            eb.addField(
-                "❌ Dein Bargeld",
-                "~~" + ShopManager.formatPrice(cash) + "~~  *(fehlen: **" + ShopManager.formatPrice(missing) + "**)*",
-                true);
+            long missing = totalForShop - cash;
+            eb.addField("❌ Dein Bargeld",
+                "~~" + ShopManager.formatPrice(cash) + "~~  *(fehlen: **" + ShopManager.formatPrice(missing) + "**)*", true);
         } else {
             eb.addField("💵 Dein Bargeld", ShopManager.formatPrice(cash), true);
         }
@@ -298,17 +387,18 @@ public class ShopListener extends ListenerAdapter {
     // ── ActionRows ────────────────────────────────────────────────────────────
 
     /** Haupt-Shop-Rows: StringSelectMenu (Suchleiste) + Steuerbuttons. */
-    public static List<ActionRow> buildShopRows(String guildId, String userId) {
-        List<ShopManager.ShopItem> items = ShopManager.getItemsForShop(guildId, SHOP_KWIKE);
-        List<CartEntry>            cart  = CARTS.getOrDefault(userId, Collections.emptyList());
+    public static List<ActionRow> buildShopRows(ShopType shop, String guildId, String userId) {
+        List<ShopManager.ShopItem> items     = ShopManager.getItemsForShop(guildId, shop.id);
+        List<CartEntry>            cartForShop = CARTS.getOrDefault(userId, Collections.emptyList()).stream()
+            .filter(e -> shop.id.equalsIgnoreCase(e.shopId))
+            .collect(Collectors.toList());
         long cash      = getCash(guildId, userId);
-        long total     = cartTotal(cart);
-        boolean tooLow = !cart.isEmpty() && cash < total;
-        boolean hasCart = !cart.isEmpty();
+        long total     = cartForShop.stream().mapToLong(e -> (long) e.price * e.qty).sum();
+        boolean tooLow = !cartForShop.isEmpty() && cash < total;
+        boolean hasCart = !cartForShop.isEmpty();
 
         List<ActionRow> rows = new ArrayList<>();
 
-        // StringSelectMenu als Suchleiste
         if (!items.isEmpty()) {
             StringSelectMenu.Builder menu = StringSelectMenu
                 .create("shop-item-select")
@@ -322,7 +412,6 @@ public class ShopListener extends ListenerAdapter {
             rows.add(ActionRow.of(menu.build()));
         }
 
-        // Steuerbuttons
         rows.add(ActionRow.of(
             Button.danger( "shop-clear", "🗑️ Warenkorb leeren").withDisabled(!hasCart),
             Button.success("shop-buy",   "💳 Kaufen"          ).withDisabled(!hasCart || tooLow)
@@ -343,24 +432,30 @@ public class ShopListener extends ListenerAdapter {
 
     // ── Panel-Posting ─────────────────────────────────────────────────────────
 
-    public static void postPanelIfNeeded(Guild guild) {
-        String key = "panel-kwike-v1-" + guild.getId();
-        TextChannel ch = guild.getTextChannelById(LoggingConfig.SHOP_KWIKE_CHANNEL_ID);
-        if (ch == null) { log.warn("[Shop] Kwik-E-Markt Kanal nicht gefunden."); return; }
-        PanelHelper.post(ch, key, "🏪 Kwik-E-Markt", () -> sendPanel(ch, key));
+    /** Postet alle konfigurierten Shop-Panels (Überspringt channelId=0 = TODO). */
+    public static void postAllPanels(Guild guild) {
+        for (ShopType s : ShopType.values()) {
+            if (s.channelId == 0L) continue;   // TODO: Schwarzmarkt-Kanal-ID fehlt
+            String key = "panel-" + s.id + "-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(s.channelId);
+            if (ch == null) { log.warn("[Shop] Kanal für '{}' nicht gefunden.", s.name); continue; }
+            PanelHelper.post(ch, key, s.emoji + " " + s.name, () -> sendPanel(ch, key, s));
+        }
     }
 
-    private static void sendPanel(TextChannel ch, String key) {
+    /** Backward-Compat-Methode: Alle Panels posten (altes Verhalten: nur Kwik-E). */
+    public static void postPanelIfNeeded(Guild guild) {
+        postAllPanels(guild);
+    }
+
+    private static void sendPanel(TextChannel ch, String key, ShopType shop) {
         ch.sendMessageEmbeds(EmbedFactory.build(
-            "🏪 Kwik-E-Markt",
-            "Willkommen im **Kwik-E-Markt**!\n\n" +
-            "Hier findest du alles für den täglichen Bedarf.\n" +
-            "Zahlung erfolgt ausschließlich mit **Bargeld** aus deinem Rucksack.\n\n" +
-            "Klicke auf **Shop Öffnen**, um den Shop zu betreten."))
-            .addActionRow(Button.primary("shop-open-kwike", "🛒 Shop Öffnen"))
+            shop.emoji + " " + shop.name,
+            shop.description))
+            .addActionRow(Button.primary("shop-open-" + shop.id, "🛒 Shop Öffnen"))
             .queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
-                err -> { log.error("[Shop] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
+                err -> { log.error("[Shop] Panel '{}' konnte nicht gesendet werden.", key, err); PanelHelper.onFailed(key); });
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────

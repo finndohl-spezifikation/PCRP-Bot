@@ -126,6 +126,9 @@ public final class ShopManager {
     public static String shopDisplayName(String shopId) {
         return switch (shopId.toLowerCase()) {
             case "kwik-e-markt" -> "Kwik-E-Markt";
+            case "baumarkt"     -> "Baumarkt";
+            case "angler-shop"  -> "Angler-Shop";
+            case "schwarzmarkt" -> "Schwarzmarkt";
             default             -> shopId;
         };
     }
