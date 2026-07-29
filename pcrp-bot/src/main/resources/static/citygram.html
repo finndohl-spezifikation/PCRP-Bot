@@ -451,17 +451,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 
 <!-- Login -->
 <div id="login-screen">
-  <div class="login-logo">Citygram</div>
+  <div class="login-logo">📸 Citygram</div>
   <div class="login-sub">Paradise City Roleplay</div>
   <div class="login-form">
-    <p style="color:var(--text2);font-size:13px;text-align:center;line-height:1.6;margin:0 0 4px">
-      Bitte geben Sie Ihre Rufnummer und Ihre Safe-PIN für den 1. Login ein.<br>
-      <span style="opacity:.65">Rufnummer &amp; Safe-PIN finden Sie in den Einstellungen Ihres Handys.</span>
-    </p>
-    <input id="li-phone" type="tel" placeholder="Rufnummer z.B. (310) 234-5678" autocomplete="off">
-    <input id="li-pin" type="password" placeholder="Safe-PIN (4 Stellen)" autocomplete="off" maxlength="4">
-    <button id="li-btn" onclick="doLogin()">Einloggen</button>
-    <div id="login-err"></div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:6px;text-align:center">
+      <div style="font-size:15px;color:var(--accent);font-weight:700;margin-bottom:8px">🔐 Automatischer Login über Discord</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:10px">Die Anmeldung erfolgt nicht mehr hier. Tippe in Discord einfach</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:'Courier New',monospace;font-size:15px;color:var(--accent);font-weight:700;letter-spacing:1px;margin:6px 0 10px">/web-zugang</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">Du bekommst sofort einen klickbaren Link per DM.<br>Token ist 1 Jahr gültig — kein Login mehr nötig.<br><span style="opacity:.75">Aktiviere <b>Direktnachrichten</b> falls du keine DM bekommst.</span></div>
+    </div>
   </div>
 </div>
 

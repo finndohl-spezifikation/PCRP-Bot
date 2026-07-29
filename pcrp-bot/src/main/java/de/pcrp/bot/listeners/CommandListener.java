@@ -92,6 +92,7 @@ public class CommandListener extends ListenerAdapter {
             case "entbannen-dashboard"   -> handleEntbannenDashboard(event);
             case "bewohner-information"  -> handleBewohnerInformation(event);
             case "handy-reset"           -> handleHandyReset(event);
+            case "web-zugang"            -> handleWebZugang(event);
         }
     }
 
@@ -1172,6 +1173,75 @@ public class CommandListener extends ListenerAdapter {
             .setTitle("📋 Verwarnungsliste")
             .setDescription(description)
             .build();
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  /web-zugang  —  Discord-Identity Auto-Login: DM-Link an City Chat + Citygram
+    // ════════════════════════════════════════════════════════════
+
+    private static String portalBaseUrl() {
+        String base = System.getenv("WEB_URL");
+        if (base == null || base.isBlank()) {
+            base = System.getenv("RAILWAY_PUBLIC_DOMAIN");
+            if (base == null || base.isBlank()) base = "pcrp-bot-production-3ad1.up.railway.app";
+            if (!base.startsWith("http")) base = "https://" + base;
+        }
+        return base.replaceAll("/$", "");
+    }
+
+    private void handleWebZugang(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String guildId = event.getGuild().getId();
+        String userId  = event.getUser().getId();
+
+        // 1) Handy-Vertrag ermitteln (auto-erstellen falls keiner existiert)
+        PhoneManager.Contract contract = PhoneManager.getContract(guildId, userId);
+        if (contract == null) {
+            String name = event.getUser().getName();
+            int sp = name.indexOf(' ');
+            String first = sp > 0 ? name.substring(0, sp) : name;
+            String last  = sp > 0 ? name.substring(sp + 1).trim() : (name.endsWith("s") || name.endsWith("e") ? "—" : "—");
+            if (last.isBlank()) { first = name; last = "—"; }
+            contract = PhoneManager.createContract(guildId, userId, first, last);
+        }
+
+        // 2) HMAC Session-Token generieren (1 Jahr gültig, gilt für BEIDE Seiten)
+        String token = PhoneManager.createSession(guildId, contract.phoneNumber);
+
+        // 3) URLs zusammensetzen — Worker-Base aus ENV (WEB_URL → RAILWAY_PUBLIC_DOMAIN → Default)
+        String base   = portalBaseUrl();
+        String chatUrl = base + "/city-chat?token=" + token;
+        String gramUrl = base + "/citygram?token="   + token;
+
+        event.deferReply(true).queue();
+
+        final String phone       = contract.phoneNumber;
+        final String firstName   = contract.firstName;
+        final String displayName = event.getMember() != null
+            ? event.getMember().getEffectiveName()
+            : event.getUser().getName();
+
+        event.getUser().openPrivateChannel().queue(pc -> {
+            pc.sendMessageEmbeds(EmbedFactory.build(
+                "🌐 Web-Zugang — Paradise City Roleplay",
+                "Hallo **" + displayName + "**!\n\n" +
+                "Klicke unten auf einen Button — du bist **sofort eingeloggt**, ganz ohne Anmeldung.\n\n" +
+                "📞 **Deine zugewiesene Nummer:** `" + phone + "`" +
+                (firstName != null && !firstName.isBlank() ? " · " + firstName : "") + "\n" +
+                "🔑 **Dein Token ist 1 Jahr gültig** — du kannst die Seiten jederzeit ohne neue Anmeldung öffnen.\n\n" +
+                "_Teile den Link nicht — er ist an deinen Discord-Account gebunden._"))
+                .setActionRow(
+                    Button.link(chatUrl, "💬 City Chat öffnen"),
+                    Button.link(gramUrl, "📸 Citygram öffnen"))
+                .queue(ok -> event.getHook().sendMessageEmbeds(embed("✅ Zugang gesendet",
+                    "Schau in deine DMs — du hast **zwei klickbare Links** bekommen."))
+                    .setEphemeral(true).queue(),
+                    err -> event.getHook().sendMessageEmbeds(embed("❌ DM geschlossen",
+                        "Aktiviere **Direktnachrichten** in den Privatsphäre-Einstellungen und versuche es erneut."))
+                        .setEphemeral(true).queue());
+        }, err -> event.getHook().sendMessageEmbeds(embed("❌ Fehler",
+            "DM-Kanal konnte nicht geöffnet werden."))
+            .setEphemeral(true).queue());
     }
 
     // ════════════════════════════════════════════════════════════
