@@ -155,6 +155,8 @@ public class WebServer {
         app.delete("/api/city-chat/status",            ctx -> CityChatHandler.handleDeleteStatus(ctx));
         // Push-Benachrichtigungen
         app.get( "/sw.js",                              WebServer::serveServiceWorker);
+        app.get( "/pd-logo.webp",                       ctx -> serveStaticBinary(ctx, "/static/pd-logo.webp",      "image/webp"));
+        app.get( "/pd-standort.jpg",                    ctx -> serveStaticBinary(ctx, "/static/pd-standort.jpg",   "image/jpeg"));
         app.get( "/manifest.json",                      WebServer::serveManifest);
         app.get( "/icon-192.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-192.png",    "image/png"));
         app.get( "/icon-512.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-512.png",    "image/png"));
@@ -195,6 +197,11 @@ public class WebServer {
         app.get ("/api/pd/offers",                                 PremiumMotorsportHandler::handleListOffers);
         app.post("/api/pd/offers",                                 PremiumMotorsportHandler::handleAddOffer);
         app.post("/api/pd/offers/{id}/delete",                     PremiumMotorsportHandler::handleDeleteOffer);
+        app.get ("/api/pd/ticket-topics",                          PremiumMotorsportHandler::handleTicketTopics);
+        app.post("/api/pd/tickets",                                PremiumMotorsportHandler::handleCreateTicket);
+        app.get ("/api/pd/tickets/mine",                           PremiumMotorsportHandler::handleMyTickets);
+        app.get ("/api/pd/tickets/all",                            PremiumMotorsportHandler::handleAllTickets);
+        app.post("/api/pd/tickets/{id}/status",                    PremiumMotorsportHandler::handleSetTicketStatus);
 
         app.start(port);
         log.info("[WebServer] Einwohner-Meldeamt läuft auf Port {}.", port);

@@ -3,268 +3,320 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Premium Deluxe Motorsport — Autohaus</title>
+<title>Premium Deluxe Motorsport — Ihr Autohaus in Paradise City</title>
 <style>
   :root{
-    --bg:#0a0a0a;
-    --bg2:#121212;
-    --panel:#1a1a1a;
-    --panel2:#222;
+    --bg:#0c0c0e;
+    --bg-soft:#16161a;
+    --panel:#1c1c22;
+    --panel-2:#22222a;
+    --border:#2a2a32;
+    --text:#ececf1;
+    --text2:#a3a3b0;
+    --text3:#6f6f7e;
     --gold:#d4af37;
-    --gold2:#f6c453;
-    --red:#9b1b30;
-    --red2:#c81e3a;
-    --txt:#e9e9e9;
-    --txt2:#a8a8a8;
-    --border:#2a2a2a;
+    --gold-2:#e8c458;
+    --red:#c81e3a;
+    --red-2:#9b1b30;
+    --ok:#3fb950;
+    --warn:#d4a23a;
+    --close:#7a7a86;
+    --shadow:0 24px 50px -20px rgba(0,0,0,.6);
+    --radius:14px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',Roboto,Arial,sans-serif;line-height:1.5}
+  html,body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',Roboto,Arial,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
   a{color:var(--gold);text-decoration:none}
-  a:hover{color:var(--gold2)}
+  a:hover{color:var(--gold-2)}
   img{max-width:100%;display:block}
+  button{font-family:inherit;cursor:pointer}
+  input,textarea,select{font-family:inherit}
+  .container{max-width:1240px;margin:0 auto;padding:0 28px}
+  h1,h2,h3{font-family:'Inter','Segoe UI',sans-serif;letter-spacing:-.5px}
+  h1{font-size:64px;font-weight:900;line-height:1.05;color:#fff}
+  h2{font-size:34px;font-weight:800;color:#fff;letter-spacing:-.5px}
+  h3{font-size:18px;font-weight:700;color:#fff}
 
-  /* Top bar */
+  /* HEADER */
   .topbar{
     position:sticky;top:0;z-index:50;
-    background:linear-gradient(180deg,rgba(0,0,0,.95) 0%,rgba(10,10,10,.85) 100%);
+    background:rgba(12,12,14,.85);backdrop-filter:blur(14px);
     border-bottom:1px solid var(--border);
-    backdrop-filter:blur(8px);
   }
-  .topbar-inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:14px 24px}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.5px}
+  .topbar-inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:24px;padding:16px 28px}
+  .brand{display:flex;align-items:center;gap:12px}
   .brand-logo{
-    width:36px;height:36px;border-radius:8px;
-    background:linear-gradient(135deg,var(--red) 0%,var(--red2) 50%,var(--gold) 100%);
-    display:grid;place-items:center;font-size:18px;
-    box-shadow:0 0 14px rgba(212,175,55,.4);
+    display:flex;align-items:center;height:42px;
+    background:transparent !important;box-shadow:none;
+    cursor:pointer;
   }
-  .brand-text{font-size:18px;color:#fff}
-  .brand-text small{display:block;color:var(--gold);font-size:10px;font-weight:600;letter-spacing:2px}
-  .nav{display:flex;gap:4px;flex:1;justify-content:center;flex-wrap:wrap}
+  .brand-logo img{height:38px;width:auto;display:block}
+  .brand-text{display:none}
+  .nav{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:center}
   .nav button{
-    background:transparent;border:none;color:var(--txt2);font-size:14px;
-    padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;transition:.15s;
+    background:transparent;border:none;color:var(--text2);font-size:14px;
+    padding:9px 16px;border-radius:10px;font-weight:600;transition:.15s;
   }
-  .nav button:hover{color:#fff;background:rgba(255,255,255,.06)}
-  .nav button.active{color:var(--gold);background:rgba(212,175,55,.08)}
-  .topbar .login-btn{
-    background:linear-gradient(135deg,var(--red) 0%,var(--red2) 100%);
-    color:#fff;border:none;font-weight:700;font-size:13px;
-    padding:9px 16px;border-radius:8px;cursor:pointer;letter-spacing:.5px;
-    box-shadow:0 6px 14px -4px rgba(200,30,58,.5);transition:.15s;
+  .nav button:hover{color:#fff;background:rgba(255,255,255,.05)}
+  .nav button.active{color:var(--gold);background:rgba(212,175,55,.1)}
+  .login-btn{
+    background:transparent;border:1px solid var(--gold);color:var(--gold);
+    padding:9px 18px;border-radius:10px;font-weight:600;font-size:14px;transition:.15s;
   }
-  .topbar .login-btn:hover{transform:translateY(-1px)}
+  .login-btn:hover{background:var(--gold);color:#000}
 
-  /* Container */
-  .container{max-width:1240px;margin:0 auto;padding:0 24px}
-  section{display:none;padding:48px 0}
-  section.active{display:block}
-
-  /* Hero */
+  /* HERO (home) */
   .hero{
-    position:relative;
-    height:560px;
-    background:linear-gradient(135deg,#0a0a0a 0%,#1a0509 35%,#3b0a14 65%,#0a0a0a 100%);
-    overflow:hidden;
-  }
-  .hero::before{
-    content:"";position:absolute;inset:0;
-    background-image:
-      radial-gradient(circle at 20% 50%,rgba(212,175,55,.18) 0%,transparent 38%),
-      radial-gradient(circle at 80% 30%,rgba(155,27,48,.35) 0%,transparent 50%);
+    position:relative;overflow:hidden;padding:96px 0 64px;
+    background:
+      radial-gradient(900px 500px at 80% 30%,rgba(212,175,55,.18) 0%,transparent 60%),
+      radial-gradient(700px 500px at 10% 80%,rgba(155,27,48,.32) 0%,transparent 60%),
+      linear-gradient(180deg,#0c0c0e 0%,#100810 100%);
+    border-bottom:1px solid var(--border);
   }
   .hero::after{
     content:"";position:absolute;inset:0;
-    background:
-      repeating-linear-gradient(45deg,transparent 0 24px,rgba(255,255,255,.012) 24px 25px);
+    background-image:repeating-linear-gradient(45deg,transparent 0 60px,rgba(255,255,255,.012) 60px 61px);pointer-events:none;
   }
-  .hero-inner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0 64px;max-width:1240px;margin:0 auto}
-  .hero h1{
-    font-size:64px;line-height:1.05;font-weight:900;letter-spacing:-1px;color:#fff;
-    text-shadow:0 4px 18px rgba(0,0,0,.5);
-  }
-  .hero h1 span{color:var(--gold);display:block;font-size:34px;font-weight:700;letter-spacing:8px;margin-top:8px}
-  .hero p{margin-top:24px;max-width:560px;color:#d6d6d6;font-size:17px;line-height:1.6}
-  .hero-cta{display:flex;gap:12px;margin-top:32px}
-  .btn{
-    background:linear-gradient(135deg,var(--red) 0%,var(--red2) 100%);
-    color:#fff;border:none;font-weight:700;padding:14px 24px;border-radius:10px;cursor:pointer;
-    box-shadow:0 8px 20px -6px rgba(200,30,58,.55);transition:.15s;font-size:15px;
-  }
-  .btn:hover{transform:translateY(-2px);box-shadow:0 12px 28px -6px rgba(200,30,58,.7)}
-  .btn-ghost{background:transparent;color:var(--gold);border:2px solid var(--gold)}
-  .btn-ghost:hover{background:var(--gold);color:#000}
-  .btn-sm{padding:10px 16px;font-size:13px}
+  .hero-inner{position:relative;z-index:2;max-width:820px}
+  .hero h1 small{display:block;color:var(--gold);font-size:18px;font-weight:600;letter-spacing:8px;margin-bottom:18px;text-transform:uppercase}
+  .hero p{margin-top:24px;color:var(--text2);font-size:18px;line-height:1.6;max-width:580px}
+  .hero-meta{display:flex;gap:32px;margin-top:40px;color:var(--text2);font-size:14px;flex-wrap:wrap}
+  .hero-meta b{color:var(--gold);font-size:24px;display:block;font-weight:800}
 
-  /* Section header */
-  .sec-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:24px;gap:20px;flex-wrap:wrap}
-  .sec-head h2{font-size:32px;font-weight:800;color:#fff;letter-spacing:-.5px}
-  .sec-head h2 small{display:block;color:var(--gold);font-size:12px;font-weight:600;letter-spacing:3px;margin-top:4px}
-  .sec-head p{color:var(--txt2);max-width:520px}
+  /* SECTIONS */
+  section{display:none;padding:80px 0}
+  section.active{display:block}
 
-  /* Vehicle grid */
-  .cat-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
-  .cat-bar button{
-    background:var(--panel);border:1px solid var(--border);
-    color:var(--txt2);padding:9px 14px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;transition:.15s;
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:36px;flex-wrap:wrap}
+  .sec-head .eyebrow{display:block;color:var(--gold);font-size:12px;font-weight:700;letter-spacing:4px;margin-bottom:8px;text-transform:uppercase}
+  .sec-head .desc{color:var(--text2);font-size:15px;max-width:520px;margin-top:8px}
+
+  /* TOP-OFFERS BAR (home) */
+  .top-offers{padding:60px 0;border-bottom:1px solid var(--border)}
+  .top-offers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:36px}
+  .offer-card{
+    background:linear-gradient(180deg,#1a0509 0%,var(--panel) 100%);
+    border:1px solid var(--red);border-radius:var(--radius);padding:28px;position:relative;overflow:hidden;
   }
-  .cat-bar button:hover{color:#fff;border-color:var(--gold)}
-  .cat-bar button.active{background:var(--gold);color:#000;border-color:var(--gold)}
+  .offer-card::after{
+    content:"";position:absolute;top:-60px;right:-60px;width:160px;height:160px;
+    background:radial-gradient(circle,rgba(212,175,55,.22) 0%,transparent 70%);pointer-events:none;
+  }
+  .offer-disc{
+    background:var(--gold);color:#000;display:inline-block;padding:6px 14px;border-radius:999px;
+    font-size:24px;font-weight:900;letter-spacing:-1px;
+  }
+  .offer-ti{font-size:20px;color:#fff;font-weight:800;margin-top:14px}
+  .offer-de{color:var(--text2);font-size:13px;margin-top:8px}
+
+  /* KONTAKT CHAT (home unter Angebote) */
+  .chat-bubble{
+    display:inline-block;max-width:80%;
+    padding:14px 18px;border-radius:18px;font-size:14px;line-height:1.4;margin-bottom:8px;
+  }
+  .chat-left{background:var(--panel);border:1px solid var(--border);border-bottom-left-radius:4px;color:var(--text)}
+  .chat-right{background:var(--gold);color:#000;border-bottom-right-radius:4px;margin-left:auto;font-weight:500}
+  .chat-sys{background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.4);color:var(--gold);font-style:italic}
+
+  /* SORTIMENT */
+  .sort-layout{display:grid;grid-template-columns:280px 1fr;gap:32px;align-items:start}
+  .filter-panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:24px 22px;
+    position:sticky;top:96px;
+  }
+  .filter-panel h4{color:var(--text);font-size:13px;font-weight:700;letter-spacing:2px;margin-bottom:14px;text-transform:uppercase;color:var(--gold)}
+  .filter-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+  .filter-list label{display:flex;align-items:center;gap:10px;color:var(--text);font-size:14px;cursor:pointer;padding:8px 10px;border-radius:8px;transition:.15s}
+  .filter-list label:hover{background:var(--panel-2)}
+  .filter-list input{accent-color:var(--gold);width:16px;height:16px;cursor:pointer}
+  .filter-list label small{color:var(--text3);font-size:11px;margin-left:auto}
+  .sort-select{
+    width:100%;background:var(--bg-soft);color:var(--text);
+    border:1px solid var(--border);padding:10px 12px;border-radius:8px;font-size:14px;
+  }
+  .sort-select:focus{outline:none;border-color:var(--gold)}
+  .filter-reset{
+    margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--text2);
+    padding:9px;border-radius:8px;width:100%;font-weight:600;font-size:13px;transition:.15s;
+  }
+  .filter-reset:hover{border-color:var(--gold);color:var(--gold)}
 
   .veh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
   .veh-card{
-    background:linear-gradient(180deg,var(--panel) 0%,var(--panel2) 100%);
-    border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.2s;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:.2s;display:flex;flex-direction:column;
   }
-  .veh-card:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 18px 30px -10px rgba(0,0,0,.6)}
-  .veh-img{
-    aspect-ratio:16/10;background:#0d0d0d;display:grid;place-items:center;position:relative;overflow:hidden;
-  }
-  .veh-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
-  .veh-card:hover .veh-img img{transform:scale(1.04)}
+  .veh-card:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:var(--shadow)}
+  .veh-img{aspect-ratio:16/10;background:#0d0d0d;position:relative;overflow:hidden}
+  .veh-img img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
+  .veh-card:hover .veh-img img{transform:scale(1.05)}
   .veh-img .placeholder{
     width:100%;height:100%;
-    background:radial-gradient(circle at 50% 50%,rgba(212,175,55,.18) 0%,transparent 65%),
-      linear-gradient(135deg,#1a1a1a 0%,#2a1a1f 50%,#1a1a1a 100%);
-    display:grid;place-items:center;font-size:64px;color:rgba(255,255,255,.15);
+    background:radial-gradient(circle at 50% 50%,rgba(212,175,55,.15) 0%,transparent 60%),
+      linear-gradient(135deg,#1c1c22 0%,#2a1a1f 100%);
+    display:grid;place-items:center;font-size:64px;color:rgba(255,255,255,.18);
   }
-  .veh-badge{
-    position:absolute;top:10px;left:10px;
-    background:rgba(0,0,0,.7);color:var(--gold);font-size:11px;font-weight:700;
-    padding:4px 10px;border-radius:6px;letter-spacing:1px;backdrop-filter:blur(4px);
+  .veh-cat-badge{
+    position:absolute;top:14px;left:14px;
+    background:rgba(0,0,0,.65);color:var(--gold);font-size:11px;font-weight:700;
+    padding:5px 12px;border-radius:999px;letter-spacing:1.2px;backdrop-filter:blur(6px);
   }
-  .veh-stock{position:absolute;top:10px;right:10px;background:rgba(155,27,48,.85);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px}
-  .veh-stock.low{background:rgba(212,175,55,.85);color:#000}
-  .veh-stock.out{background:rgba(80,80,80,.85)}
-  .veh-body{padding:18px;flex:1;display:flex;flex-direction:column;gap:10px}
-  .veh-cat{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
-  .veh-name{font-size:18px;font-weight:800;color:#fff}
-  .veh-desc{font-size:13px;color:var(--txt2);flex:1;line-height:1.45;max-height:60px;overflow:hidden}
-  .veh-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
-  .veh-price{font-size:20px;font-weight:800;color:var(--gold)}
+  .veh-body{padding:22px;flex:1;display:flex;flex-direction:column;gap:10px}
+  .veh-cat{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .veh-name{font-size:18px;font-weight:800;color:#fff;line-height:1.3}
+  .veh-desc{font-size:13px;color:var(--text2);flex:1;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .veh-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:14px;border-top:1px solid var(--border)}
+  .veh-price{font-size:22px;font-weight:800;color:var(--gold);letter-spacing:-.5px}
   .veh-buy{
-    background:linear-gradient(135deg,var(--red) 0%,var(--red2) 100%);color:#fff;border:none;
-    padding:9px 16px;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;transition:.15s;
+    background:linear-gradient(135deg,var(--red-2) 0%,var(--red) 100%);color:#fff;border:none;
+    padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px;transition:.15s;
   }
-  .veh-buy:hover:not(:disabled){transform:translateY(-1px)}
-  .veh-buy:disabled{background:#444;cursor:not-allowed;opacity:.6}
+  .veh-buy:hover{transform:translateY(-1px);box-shadow:0 8px 18px -6px rgba(200,30,58,.5)}
+  .empty-state{padding:80px 20px;text-align:center;color:var(--text2);border:1px dashed var(--border);border-radius:var(--radius)}
 
-  /* Info board */
-  .info-list{display:flex;flex-direction:column;gap:14px}
+  /* INFO BOARD */
+  .info-list{display:flex;flex-direction:column;gap:18px;max-width:780px}
   .info-card{
-    background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 22px;
-    display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;
+    background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--gold);
+    border-radius:var(--radius);padding:24px 28px;
   }
-  .info-card::before{
-    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold) 0%,var(--red) 100%);
-  }
-  .info-title{color:var(--gold);font-size:16px;font-weight:700}
-  .info-text{color:var(--txt);font-size:14px;line-height:1.5}
-  .info-meta{color:var(--txt2);font-size:11px;margin-top:4px}
+  .info-title{color:var(--gold);font-size:18px;font-weight:800;margin-bottom:8px}
+  .info-text{color:var(--text);font-size:15px;line-height:1.6;margin-bottom:8px}
+  .info-meta{color:var(--text3);font-size:12px}
 
-  /* Offers */
-  .offers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
-  .offer-card{
-    background:linear-gradient(135deg,#1a0509 0%,var(--panel) 100%);
-    border:1px solid var(--red);border-radius:14px;padding:22px;position:relative;overflow:hidden;
+  /* STANDORT */
+  .loc-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:32px;align-items:stretch}
+  .loc-img{
+    background:
+      linear-gradient(135deg,rgba(155,27,48,.35) 0%,rgba(12,12,14,.85) 100%),
+      linear-gradient(180deg,#1c1c22 0%,#0c0c0e 100%);
+    border:1px solid var(--border);border-radius:var(--radius);
+    min-height:380px;display:grid;place-items:center;
+    position:relative;overflow:hidden;
   }
-  .offer-card::after{
-    content:"";position:absolute;top:-40px;right:-40px;width:120px;height:120px;
-    background:radial-gradient(circle,rgba(212,175,55,.18) 0%,transparent 70%);
-  }
-  .offer-discount{
-    background:var(--gold);color:#000;display:inline-block;padding:6px 14px;border-radius:999px;
-    font-size:28px;font-weight:900;letter-spacing:-1px;
-  }
-  .offer-title{font-size:18px;color:#fff;font-weight:800;margin-top:10px}
-  .offer-desc{color:var(--txt2);font-size:13px;margin-top:6px}
-
-  /* Klassen */
-  .klassen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
-  .klasse-card{
-    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px 16px;
-    cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
-  }
-  .klasse-card:hover{border-color:var(--gold);background:var(--panel2);transform:translateY(-2px)}
-  .klasse-icon{font-size:42px;line-height:1}
-  .klasse-name{color:#fff;font-weight:700;font-size:14px}
-  .klasse-count{color:var(--txt2);font-size:11px}
-
-  /* Karten / Standort */
-  .standort-wrap{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:stretch}
-  .map-card{
-    background:linear-gradient(135deg,#0a0008 0%,#1a0509 50%,#0a0008 100%);
-    border:1px solid var(--border);border-radius:14px;padding:0;position:relative;overflow:hidden;min-height:320px;
-  }
-  .map-card::before{
+  .loc-img::before{
     content:"";position:absolute;inset:0;
     background:
       repeating-linear-gradient(0deg,transparent 0 39px,rgba(212,175,55,.06) 39px 40px),
       repeating-linear-gradient(90deg,transparent 0 39px,rgba(212,175,55,.06) 39px 40px);
   }
-  .map-pin{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);
-    width:36px;height:48px;color:var(--red2);
-    filter:drop-shadow(0 6px 8px rgba(200,30,58,.6));
-  }
-  .map-label{
-    position:absolute;left:50%;top:calc(50% + 12px);transform:translateX(-50%);
-    color:#fff;background:rgba(0,0,0,.7);padding:8px 14px;border-radius:8px;
-    border:1px solid var(--gold);font-size:13px;font-weight:700;white-space:nowrap;
-  }
-  .info-cards{display:flex;flex-direction:column;gap:14px}
-  .info-pill{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px}
-  .info-pill .lbl{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
-  .info-pill .val{color:#fff;font-size:15px;font-weight:600;margin-top:4px}
+  .loc-img-content{position:relative;text-align:center;color:#fff}
+  .loc-img-content .ic{font-size:64px;margin-bottom:14px}
+  .loc-img-content .lb{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+  .loc-img-content .tx{margin-top:8px;font-size:18px;font-weight:700}
+  .loc-info{padding:28px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;justify-content:center}
+  .loc-info h3{font-size:22px;margin-bottom:18px}
+  .loc-info address{font-style:normal;color:var(--text);font-size:15px;line-height:1.7}
 
-  /* Kontakt */
-  .kontakt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
-  .kontakt-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px 18px;text-align:center}
-  .kontakt-card .ic{font-size:38px;line-height:1;margin-bottom:10px}
-  .kontakt-card .ti{color:#fff;font-weight:700;font-size:16px;margin-bottom:6px}
-  .kontakt-card .de{color:var(--txt2);font-size:13px}
+  /* KONTAKT FORM */
+  .contact-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:32px;align-items:start}
+  .contact-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px}
+  .contact-card h3{margin-bottom:6px}
+  .contact-card .desc{color:var(--text2);font-size:14px;margin-bottom:24px}
+  .form-field{margin-bottom:18px}
+  .form-field label{display:block;color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;margin-bottom:8px;text-transform:uppercase}
+  .form-field input,
+  .form-field select,
+  .form-field textarea{
+    width:100%;background:var(--bg-soft);border:1px solid var(--border);color:var(--text);
+    padding:13px 14px;border-radius:10px;font-size:14px;transition:.15s;
+  }
+  .form-field input:focus,
+  .form-field select:focus,
+  .form-field textarea:focus{outline:none;border-color:var(--gold);background:#1a1a20}
+  .form-field textarea{min-height:140px;resize:vertical}
+  .form-submit{
+    width:100%;background:linear-gradient(135deg,var(--red-2) 0%,var(--red) 100%);color:#fff;
+    border:none;padding:14px;border-radius:10px;font-weight:700;font-size:14px;letter-spacing:.5px;
+    transition:.15s;
+  }
+  .form-submit:hover{transform:translateY(-2px);box-shadow:0 12px 28px -6px rgba(200,30,58,.5)}
 
-  /* Login modal */
+  .contact-info{padding:32px;background:linear-gradient(180deg,#1c1c22 0%,#15151a 100%);border:1px solid var(--border);border-radius:var(--radius)}
+  .contact-info h3{margin-bottom:20px}
+  .contact-info ul{list-style:none}
+  .contact-info li{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+  .contact-info li:last-child{border-bottom:none}
+  .contact-info li .ic{width:36px;height:36px;border-radius:8px;background:rgba(212,175,55,.12);display:grid;place-items:center;color:var(--gold);font-size:18px;flex-shrink:0}
+  .contact-info li .ti{font-weight:700;color:#fff;font-size:14px}
+  .contact-info li .de{color:var(--text2);font-size:13px;margin-top:3px}
+
+  /* MEINE ANFRAGEN */
+  .my-tickets-layout{display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start}
+  .ticket-list{display:flex;flex-direction:column;gap:8px;max-height:720px;overflow-y:auto}
+  .ticket-row{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:.15s;
+  }
+  .ticket-row:hover,.ticket-row.active{border-color:var(--gold);background:var(--panel-2)}
+  .ticket-row .topic{font-weight:700;color:#fff;font-size:14px}
+  .ticket-row .meta{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text3)}
+  .ticket-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+  .ticket-pill.open{background:rgba(212,175,55,.15);color:var(--gold-2)}
+  .ticket-pill.resolved{background:rgba(63,185,80,.15);color:#5cd17f}
+  .ticket-pill.closed{background:rgba(122,122,134,.2);color:#a3a3b0}
+
+  .ticket-detail{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:28px;min-height:480px}
+  .ticket-detail h3{font-size:20px;margin-bottom:6px}
+  .ticket-thread{display:flex;flex-direction:column;gap:14px;margin-top:20px;padding-top:20px;border-top:1px solid var(--border)}
+  .thread-row{display:flex;flex-direction:column;max-width:78%}
+  .thread-row.user{align-self:flex-start}
+  .thread-row.help{align-self:flex-start;max-width:90%}
+  .thread-name{font-size:11px;color:var(--text3);margin-bottom:4px;letter-spacing:1px;text-transform:uppercase;font-weight:700}
+  .thread-name.user{color:var(--gold)}
+  .thread-name.help{color:var(--gold-2)}
+  .thread-bub{background:var(--panel-2);color:var(--text);padding:12px 16px;border-radius:14px;border-top-left-radius:4px;font-size:14px;line-height:1.5}
+  .thread-bub.user{background:var(--gold);color:#0c0c0e;border-top-left-radius:14px;border-bottom-left-radius:4px;font-weight:500}
+  .thread-bub.help{background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.4);color:var(--gold-2);font-style:italic}
+
+  /* GARAGE */
+  .garage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+  .gar-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:8px}
+  .gar-card .ic{font-size:42px;margin-bottom:6px}
+  .gar-card .na{color:#fff;font-weight:800;font-size:17px}
+  .gar-card .me{color:var(--text3);font-size:11px}
+
+  /* LOGIN MODAL */
   .modal-bg{
     position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.7);
-    display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);
   }
   .modal-bg.show{display:flex}
   .modal{
-    background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);
-    border:1px solid var(--border);border-radius:14px;padding:28px;max-width:380px;width:90%;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,.7);
+    background:linear-gradient(180deg,var(--panel) 0%,var(--bg) 100%);
+    border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:400px;width:90%;
+    box-shadow:var(--shadow);
   }
-  .modal h3{color:var(--gold);font-size:20px;font-weight:800;margin-bottom:6px}
-  .modal p{color:var(--txt2);font-size:13px;margin-bottom:18px}
+  .modal h3{color:var(--gold);font-size:20px;margin-bottom:6px}
+  .modal p{color:var(--text2);font-size:13px;margin-bottom:20px}
   .modal input{
-    width:100%;background:#0d0d0d;border:1px solid var(--border);color:#fff;
-    padding:12px 14px;border-radius:8px;font-size:14px;margin-bottom:14px;
+    width:100%;background:var(--bg-soft);border:1px solid var(--border);color:#fff;
+    padding:13px 14px;border-radius:10px;font-size:14px;margin-bottom:14px;
   }
   .modal input:focus{outline:none;border-color:var(--gold)}
   .modal-actions{display:flex;gap:10px}
-  .modal-actions .btn{flex:1}
+  .modal-actions button{flex:1;padding:12px;border-radius:10px;font-weight:700;border:none;cursor:pointer}
+  .modal-cancel{background:transparent;border:1px solid var(--border) !important;color:var(--text2)}
+  .modal-go{background:linear-gradient(135deg,var(--red-2) 0%,var(--red) 100%);color:#fff}
 
-  /* Toast */
-  .toast-wrap{position:fixed;top:80px;right:24px;z-index:200;display:flex;flex-direction:column;gap:10px}
-  .toast{background:var(--panel);border:1px solid var(--gold);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;max-width:340px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6);animation:slideIn .3s ease-out}
-  .toast.err{border-color:var(--red2)}
-  @keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+  /* TOAST */
+  .toast-wrap{position:fixed;top:88px;right:24px;z-index:200;display:flex;flex-direction:column;gap:10px}
+  .toast{background:var(--panel);border:1px solid var(--gold);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;max-width:340px;box-shadow:var(--shadow)}
+  .toast.err{border-color:var(--red)}
 
-  /* Footer */
-  footer{border-top:1px solid var(--border);padding:30px 24px;text-align:center;color:var(--txt2);font-size:13px;margin-top:60px}
+  /* FOOTER */
+  footer{border-top:1px solid var(--border);padding:48px 24px;text-align:center;color:var(--text3);font-size:13px;margin-top:80px}
   footer span{color:var(--gold)}
 
-  @media (max-width:780px){
-    .nav{gap:0}.nav button{padding:7px 9px;font-size:12px}
-    .hero h1{font-size:38px}.hero h1 span{font-size:20px}
-    .hero-inner{padding:0 24px}
-    .sec-head h2{font-size:24px}
-    .veh-grid{grid-template-columns:1fr}
-    .standort-wrap{grid-template-columns:1fr}
-    .topbar-inner{gap:10px;padding:12px 14px}
-    .brand-text{font-size:15px}
+  @media (max-width:900px){
+    .nav{gap:0;order:3;width:100%;justify-content:flex-start;margin-top:8px}
+    .nav button{padding:7px 10px;font-size:12px}
+    .sort-layout{grid-template-columns:1fr}
+    .filter-panel{position:static}
+    .contact-grid,.loc-grid,.my-tickets-layout{grid-template-columns:1fr}
+    .topbar-inner{flex-wrap:wrap}
+    h1{font-size:42px}
+    section{padding:48px 0}
+    .container{padding:0 18px}
   }
 </style>
 </head>
@@ -272,89 +324,108 @@
 
 <div class="topbar">
   <div class="topbar-inner">
-    <div class="brand">
-      <div class="brand-logo">🏎️</div>
-      <div class="brand-text">PREMIUM DELUXE<small>MOTORSPORT</small></div>
-    </div>
+    <a class="brand" href="/premium-motorsport" data-go="home" style="text-decoration:none;color:inherit" aria-label="Startseite">
+      <span class="brand-logo"><img src="/pd-logo.webp" alt="Premium Deluxe Motorsport"/></span>
+    </a>
     <nav class="nav" id="topnav">
-      <button data-go="home" class="active">Home</button>
+      <button data-go="home">Startseite</button>
       <button data-go="info">Info</button>
-      <button data-go="vehicles">Fahrzeuge</button>
-      <button data-go="klassen">Klassen</button>
-      <button data-go="angebote">Angebote</button>
+      <button data-go="sortiment">Sortiment</button>
       <button data-go="standort">Standort</button>
       <button data-go="kontakt">Kontakt</button>
-      <button data-go="garage" id="nav-garage">Garage</button>
+      <button data-go="anfragen">Meine Anfragen</button>
+      <button data-go="garage">Garage</button>
     </nav>
-    <button class="login-btn" id="btn-mitarbeiter-login">🔐 Mitarbeiter Login</button>
+    <button class="login-btn" id="btn-mitarbeiter-login">Mitarbeiter-Login</button>
   </div>
 </div>
 
-<!-- HERO -->
+<!-- HOME -->
 <section id="sec-home" class="active">
   <div class="hero">
-    <div class="hero-inner container">
-      <h1>Premium Deluxe<span>MOTORSPORT</span></h1>
-      <p>Die Adresse für erstklassige Fahrzeuge in Paradise City. Entdecke unser Sortiment — vom Sportwagen über Musclecars bis hin zu Helikoptern und Booten. Bestelle online oder besuche unseren Showroom.</p>
-      <div class="hero-cta">
-        <button class="btn" data-go="vehicles">🏎️ Fahrzeuge ansehen</button>
-        <button class="btn btn-ghost" data-go="klassen">📁 Klassen entdecken</button>
+    <div class="container">
+      <div class="hero-inner">
+        <h1><small>Willkommen</small>Ihr Autohaus<br>in Paradise City.</h1>
+        <p>Hochwertige Fahrzeuge, persönliche Beratung und ein Service, der keine Wünsche offen lässt. Seit Jahren die erste Adresse für automobile Träume in LS.</p>
+        <div class="hero-meta">
+          <div><b>12+</b>Klassen</div>
+          <div><b>24/7</b>erreichbar</div>
+          <div><b>100%</b>kundenorientiert</div>
+        </div>
       </div>
     </div>
   </div>
-  <div class="container" style="padding-top:60px">
-    <div class="sec-head"><h2>Aktuell im Angebot<small>FEATURED</small></h2><p>Ein Vorgeschmack auf unseren Bestand — wähle eine Kategorie oder stöbere durch alle Fahrzeuge.</p></div>
-    <div class="veh-grid" id="featured-grid"></div>
+
+  <div class="top-offers">
+    <div class="container">
+      <div class="sec-head">
+        <div><span class="eyebrow">AKTUELLE HIGHLIGHTS</span><h2>Top-Angebote dieser Woche</h2></div>
+        <p class="desc">Sparen Sie bei ausgewählten Modellen — limitiert und befristet.</p>
+      </div>
+      <div class="top-offers-grid" id="top-offers-grid"></div>
+    </div>
   </div>
+
+  <div style="border-bottom:1px solid var(--border)"></div>
 </section>
 
 <!-- INFO -->
 <section id="sec-info">
   <div class="container">
-    <div class="sec-head"><h2>Mitteilungen<small>INFO BOARD</small></h2><p>Offizielle Informationen direkt vom Premium-Team. Lieferzeiten, Aktionen, Hinweise.</p></div>
+    <div class="sec-head">
+      <div><span class="eyebrow">MITTEILUNGEN</span><h2>News &amp; Informationen</h2></div>
+      <p class="desc">Aktuelles rund um unser Autohaus — Lieferungen, Aktionen, Hinweise.</p>
+    </div>
     <div class="info-list" id="info-list"></div>
   </div>
 </section>
 
-<!-- VEHICLES -->
-<section id="sec-vehicles">
+<!-- SORTIMENT -->
+<section id="sec-sortiment">
   <div class="container">
-    <div class="sec-head"><h2>Fahrzeugbestand<small>UNSER LAGER</small></div>
-    <div class="cat-bar" id="cat-bar"></div>
-    <div class="veh-grid" id="veh-grid"></div>
-  </div>
-</section>
+    <div class="sec-head">
+      <div><span class="eyebrow">UNSER SORTIMENT</span><h2>Fahrzeuge</h2></div>
+      <p class="desc">Wählen Sie Kategorie und Sortierung — finden Sie Ihr Traumauto.</p>
+    </div>
+    <div class="sort-layout">
+      <aside class="filter-panel">
+        <h4>Kategorien</h4>
+        <div class="filter-list" id="cat-filter"></div>
 
-<!-- KLASSEN -->
-<section id="sec-klassen">
-  <div class="container">
-    <div class="sec-head"><h2>Fahrzeugklassen<small>ALLE GTA-ONLINE-KLASSEN</small></h2><p>Wähle eine Klasse — wir zeigen dir alle verfügbaren Modelle in dieser Kategorie.</p></div>
-    <div class="klassen-grid" id="klassen-grid"></div>
-  </div>
-</section>
+        <h4 style="margin-top:24px">Sortierung</h4>
+        <select id="sort-mode" class="sort-select">
+          <option value="newest">Neueste zuerst</option>
+          <option value="price-asc">Preis aufsteigend</option>
+          <option value="price-desc">Preis absteigend</option>
+          <option value="name-asc">Name A → Z</option>
+        </select>
 
-<!-- ANGEBOTE -->
-<section id="sec-angebote">
-  <div class="container">
-    <div class="sec-head"><h2>Aktuelle Angebote<small>HOT DEALS</small></h2><p>Limitiert und befristet — sichere dir Rabatte auf ausgewählte Modelle.</p></div>
-    <div class="offers-grid" id="offers-grid"></div>
+        <button class="filter-reset" id="filter-reset">Filter zurücksetzen</button>
+      </aside>
+      <div class="veh-grid" id="veh-grid"></div>
+    </div>
   </div>
 </section>
 
 <!-- STANDORT -->
 <section id="sec-standort">
   <div class="container">
-    <div class="sec-head"><h2>Unser Standort<small>SHOWROOM</small></h2><p>Komm vorbei — unser Showroom ist das Herzstück von Paradise City.</p></div>
-    <div class="standort-wrap">
-      <div class="map-card">
-        <svg class="map-pin" viewBox="0 0 24 32" fill="currentColor"><path d="M12 0a9 9 0 0 0-9 9c0 7 9 23 9 23s9-16 9-23a9 9 0 0 0-9-9zm0 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>
-        <div class="map-label">📍 Premium Deluxe Motorsport — Pillbox Hill</div>
+    <div class="sec-head">
+      <div><span class="eyebrow">BESUCHEN SIE UNS</span><h2>Unser Showroom</h2></div>
+      <p class="desc">Kommen Sie vorbei — unser Team berät Sie persönlich.</p>
+    </div>
+    <div class="loc-grid">
+      <div class="loc-img" style="padding:0;background:#0a0a0a">
+        <img src="/pd-standort.jpg" alt="Premium Deluxe Motorsport Showroom" style="width:100%;height:100%;min-height:380px;object-fit:cover;border-radius:var(--radius);display:block"/>
       </div>
-      <div class="info-cards">
-        <div class="info-pill"><div class="lbl">Adresse</div><div class="val">Las Lagunas Blvd, Pillbox Hill, Los Santos</div></div>
-        <div class="info-pill"><div class="lbl">Öffnungszeiten</div><div class="val">24/7 — Tag und Nacht für dich da</div></div>
-        <div class="info-pill"><div class="lbl">Lieferung</div><div class="val">Direkt in deine Garage auf der Webseite</div></div>
-        <div class="info-pill"><div class="lbl">Telefon</div><div class="val">Anfrage über unsere Hotline im Discord</div></div>
+      <div class="loc-info">
+        <h3>Adresse</h3>
+        <address>
+          <strong>Premium Deluxe Motorsport</strong><br><br>
+          Las Lagunas Blvd<br>
+          Pillbox Hill, Los Santos<br>
+          Paradise City
+        </address>
       </div>
     </div>
   </div>
@@ -363,12 +434,64 @@
 <!-- KONTAKT -->
 <section id="sec-kontakt">
   <div class="container">
-    <div class="sec-head"><h2>Kontakt<small>ERREICH UNS</small></h2><p>Du erreichst uns am schnellsten über Discord — alternativ über die unten angegebenen Wege.</p></div>
-    <div class="kontakt-grid">
-      <div class="kontakt-card"><div class="ic">💬</div><div class="ti">Discord</div><div class="de">#premium-deluxe-motorsport Kanal</div></div>
-      <div class="kontakt-card"><div class="ic">📞</div><div class="ti">Hotline</div><div class="de">City-Phone 555-PDM-2025</div></div>
-      <div class="kontakt-card"><div class="ic">📧</div><div class="ti">Support-Ticket</div><div class="de">Eröffne ein Ticket über /ticket</div></div>
-      <div class="kontakt-card"><div class="ic">🌐</div><div class="ti">Online-Shop</div><div class="de">Diese Seite — kaufen ohne Anfahrt</div></div>
+    <div class="sec-head">
+      <div><span class="eyebrow">SIE FRAGEN — WIR ANTWORTEN</span><h2>Kontakt aufnehmen</h2></div>
+      <p class="desc">Schreiben Sie uns — wir kümmern uns schnellstmöglich um Ihr Anliegen.</p>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <h3>Neue Anfrage</h3>
+        <p class="desc">Wählen Sie ein Thema und schildern Sie uns Ihr Anliegen.</p>
+        <form id="contact-form">
+          <div class="form-field"><label>Thema</label><select id="cf-topic" required></select></div>
+          <div class="form-field"><label>Name</label><input id="cf-name" type="text" placeholder="Ihr Name" required></div>
+          <div class="form-field"><label>Kontakt (Telefon oder Discord)</label><input id="cf-contact" type="text" placeholder="z.B. +49 123 456 oder @username" required></div>
+          <div class="form-field"><label>Ihre Nachricht</label><textarea id="cf-message" placeholder="Beschreiben Sie Ihr Anliegen…" required></textarea></div>
+          <button type="submit" class="form-submit">Anfrage absenden →</button>
+        </form>
+      </div>
+
+      <div class="contact-info">
+        <h3>Was passiert nach Ihrer Anfrage?</h3>
+        <ul>
+          <li>
+            <div class="ic">📨</div>
+            <div><div class="ti">Sofortige Bestätigung</div><div class="de">Sie erhalten direkt eine Bestätigung mit Ihrer Anfrage-Nummer.</div></div>
+          </li>
+          <li>
+            <div class="ic">🕐</div>
+            <div><div class="ti">Bearbeitung</div><div class="de">Ein Mitarbeiter nimmt sich Ihres Anliegens an.</div></div>
+          </li>
+          <li>
+            <div class="ic">💬</div>
+            <div><div class="ti">Rückmeldung</div><div class="de">Sie erhalten eine Antwort unter "Meine Anfragen".</div></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MEINE ANFRAGEN -->
+<section id="sec-anfragen">
+  <div class="container">
+    <div class="sec-head">
+      <div><span class="eyebrow">IHR KUNDENDOSSIER</span><h2>Meine Anfragen</h2></div>
+      <p class="desc">Verfolgen Sie den Status Ihrer offenen Anfragen — schreiben Sie uns weiter, wenn etwas unklar ist.</p>
+    </div>
+    <div id="anfragen-login-prompt" class="empty-state">
+      <div style="font-size:48px;margin-bottom:12px">🔐</div>
+      <h3 style="font-size:20px;margin-bottom:8px">Anmeldung erforderlich</h3>
+      <p>Loggen Sie sich oben rechts als Mitarbeiter ein oder geben Sie unten Ihre Daten ein, um Ihre Anfragen zu sehen.</p>
+      <button class="filter-reset" style="margin-top:18px;width:auto;padding:11px 22px;background:transparent;border:1px solid var(--gold);color:var(--gold);cursor:pointer" id="btn-anfragen-login">📱 Anmelden</button>
+    </div>
+    <div id="anfragen-content" style="display:none">
+      <div class="my-tickets-layout">
+        <div class="ticket-list" id="ticket-list"></div>
+        <div class="ticket-detail" id="ticket-detail">
+          <div class="empty-state">Wählen Sie links eine Anfrage, um Details zu sehen.</div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -376,32 +499,33 @@
 <!-- GARAGE -->
 <section id="sec-garage">
   <div class="container">
-    <div class="sec-head"><h2>Deine Garage<small>FAHRZEUGE</small></h2><p>Hier siehst du alle Fahrzeuge, die du über unser Autohaus erworben hast. Du kannst sie an andere Spieler übergeben.</p></div>
-    <div id="garage-area">
-      <div class="empty-state" style="text-align:center;padding:60px 24px;color:var(--txt2)">
-        <div style="font-size:64px;margin-bottom:16px">🔐</div>
-        <h3 style="color:#fff;font-size:20px;margin-bottom:8px">Anmeldung erforderlich</h3>
-        <p>Um deine Garage zu sehen, melde dich mit deiner Handy-Nummer an (die gleiche wie in City Chat).</p>
-        <button class="btn" id="btn-garage-login" style="margin-top:18px">📱 Mit Handy-Nummer anmelden</button>
-      </div>
-      <div id="garage-content" style="display:none"></div>
+    <div class="sec-head">
+      <div><span class="eyebrow">IHR Fuhrpark</span><h2>Ihre Garage</h2></div>
+      <p class="desc">Alle Fahrzeuge, die Sie bei uns erworben haben.</p>
     </div>
+    <div class="empty-state">
+      <div style="font-size:48px;margin-bottom:12px">🔐</div>
+      <h3 style="font-size:20px;margin-bottom:8px">Anmeldung erforderlich</h3>
+      <p>Öffnen Sie die Garage über Ihr Discord-Inventar (🚘 Garage-Button), oder melden Sie sich hier an.</p>
+      <button class="filter-reset" style="margin-top:18px;width:auto;padding:11px 22px;background:transparent;border:1px solid var(--gold);color:var(--gold);cursor:pointer" id="btn-garage-login">📱 Mit Handy-Nummer anmelden</button>
+    </div>
+    <div class="garage-grid" id="garage-grid" style="display:none"></div>
   </div>
 </section>
 
 <footer>
-  © <span>Premium Deluxe Motorsport</span> — Paradise City. Alle Rechte vorbehalten.
+  © <span>Premium Deluxe Motorsport</span> · Paradise City · Alle Rechte vorbehalten
 </footer>
 
 <!-- LOGIN MODAL -->
 <div class="modal-bg" id="login-modal">
   <div class="modal">
     <h3 id="modal-title">📱 Anmelden</h3>
-    <p id="modal-desc">Gib deine Handy-Nummer ein (die gleiche wie in City Chat / PCRP-Net).</p>
+    <p id="modal-desc">Geben Sie Ihre Handy-Nummer ein.</p>
     <input id="modal-phone-input" type="tel" placeholder="z.B. 555-1234" autocomplete="off"/>
     <div class="modal-actions">
-      <button class="btn btn-ghost" id="modal-cancel">Abbrechen</button>
-      <button class="btn" id="modal-submit">Anmelden</button>
+      <button class="modal-cancel" id="modal-cancel">Abbrechen</button>
+      <button class="modal-go" id="modal-submit">Anmelden</button>
     </div>
   </div>
 </div>
@@ -410,27 +534,26 @@
 
 <script>
 const API = "%%API_BASE%%";
-const CATEGORIES = ["Super","Sport","Muscle","Coupe","Sedan","SUV","Compact","Motorcycle","Off-Road","Industrial","Utility","Van","Bicycle","Helicopter","Plane","Boat"];
-const CAT_EMOJI  = {"Super":"🏎️","Sport":"🚗","Muscle":"💪","Coupe":"🚙","Sedan":"🚘","SUV":"🚙","Compact":"🚐","Motorcycle":"🏍️","Off-Road":"🛻","Industrial":"🚛","Utility":"🚚","Van":"🚐","Bicycle":"🚲","Helicopter":"🚁","Plane":"✈️","Boat":"🛥️"};
+const CATEGORIES = ["Super","Sport","Muscle","Coupe","Sedan","SUV","Compact","Motorcycle","Off-Road","Industrial","Utility","Van"];
+const CAT_EMOJI  = {"Super":"🏎️","Sport":"🚗","Muscle":"💪","Coupe":"🚙","Sedan":"🚘","SUV":"🚙","Compact":"🚐","Motorcycle":"🏍️","Off-Road":"🛻","Industrial":"🚛","Utility":"🚚","Van":"🚐"};
 
-// ── State ──────────────────────────────────────────────────────────────
-let token       = null;
-let me          = null;
-let currentCat  = "Alle";
-let garages     = [];
+let token = null, me = null;
+const selCats = new Set();
+let sortMode = "newest";
+let allLoadedVehicles = [];
 
-// ── Helpers ────────────────────────────────────────────────────────────
 function toast(msg, isErr){
   const wrap = document.getElementById("toasts");
   const t = document.createElement("div");
   t.className = "toast" + (isErr ? " err" : "");
   t.textContent = msg;
   wrap.appendChild(t);
-  setTimeout(()=>{ t.style.opacity="0"; t.style.transform="translateX(110%)"; t.style.transition=".3s"; setTimeout(()=>t.remove(),350); }, 3500);
+  setTimeout(()=>{ t.style.opacity="0"; t.style.transition=".3s"; setTimeout(()=>t.remove(),350); }, 3500);
 }
 async function api(path, opts={}){
-  const u = path.includes("?") ? "&token="+encodeURIComponent(token) : "?token="+encodeURIComponent(token || "");
-  const res = await fetch(API + path + u, Object.assign({headers:{"Content-Type":"application/json"}}, opts));
+  const sep = path.includes("?") ? "&" : "?";
+  const u = `${path}${sep}token=${encodeURIComponent(token || "")}`;
+  const res = await fetch(API + u, Object.assign({headers:{"Content-Type":"application/json"}}, opts));
   if(!res.ok){
     let err="Fehler "+res.status; try{ const j=await res.json(); err=j.error||err; }catch(_){}
     throw new Error(err);
@@ -438,65 +561,52 @@ async function api(path, opts={}){
   return res.json();
 }
 function fmt$(n){ return n.toLocaleString("de-DE")+" $"; }
-function ids(...x){ return x.join(""); }
-function placeholderSVG(label){
-  // Inline-Cars-Silhouette als SVG, themenbezogener Farbverlauf
-  const c1 = ["#1a0509","#0a0a1a","#1a1509","#091a05"][label.length % 4];
-  const c2 = ["#3b0a14","#0e1a3b","#3b2f0a","#0a3b18"][label.length % 4];
+function htmlEscape(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function placeholderSVG(category){
+  const c1 = ["#2a1a1f","#1a1a2a","#2a2010"][category.length % 3];
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 280 175'>
-    <defs>
-      <linearGradient id='g${label.length}' x1='0' x2='1' y1='0' y2='1'>
-        <stop offset='0%' stop-color='${c1}'/>
-        <stop offset='100%' stop-color='${c2}'/>
-      </linearGradient>
-    </defs>
-    <rect width='280' height='175' fill='url(#g${label.length})'/>
-    <text x='140' y='105' font-size='72' text-anchor='middle' fill='rgba(212,175,55,.45)'>${CAT_EMOJI[label]||"🚘"}</text>
-    <text x='140' y='150' font-size='14' text-anchor='middle' fill='rgba(255,255,255,.6)' font-family='sans-serif' font-weight='700'>${(label||"").toUpperCase()}</text>
+    <defs><linearGradient id='g' x1='0' x2='1' y1='0' y2='1'><stop offset='0%' stop-color='#1c1c22'/><stop offset='100%' stop-color='${c1}'/></linearGradient></defs>
+    <rect width='280' height='175' fill='url(#g)'/>
+    <text x='140' y='105' font-size='72' text-anchor='middle' fill='rgba(212,175,55,.45)'>${CAT_EMOJI[category]||"🚘"}</text>
+    <text x='140' y='150' font-size='13' text-anchor='middle' fill='rgba(255,255,255,.5)' font-family='sans-serif' font-weight='700'>${(category||"").toUpperCase()}</text>
   </svg>`;
   return "data:image/svg+xml;utf8,"+encodeURIComponent(svg);
 }
-function safeImg(url,alt){
-  if(!url) return placeholderSVG(alt);
-  return url;
-}
+function imgOrFallback(url, category){ return url ? url : placeholderSVG(category || "Super"); }
 
-// ── Auth (auto-login via phone number) ─────────────────────────────────
 async function loginWithPhone(number){
   const res = await fetch(API + "/api/pd/auth/login", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
+    method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify({phone:number})
   });
   if(!res.ok) throw new Error("Login fehlgeschlagen — Telefonnummer unbekannt?");
   return res.json();
 }
 
-// ── Navigation ─────────────────────────────────────────────────────────
+// NAV
 function go(name){
   document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
   const sec = document.getElementById("sec-"+name);
   if(sec) sec.classList.add("active");
   document.querySelectorAll("#topnav button").forEach(b=>b.classList.toggle("active", b.dataset.go===name));
   window.scrollTo({top:0,behavior:"smooth"});
-  if(name==="vehicles") loadVehicles();
-  if(name==="klassen") loadKlassen();
-  if(name==="angebote") loadOffers();
+  if(name==="home")     loadHome();
   if(name==="info")     loadInfo();
+  if(name==="sortiment") loadSortiment();
+  if(name==="anfragen") loadMyAnfragen();
   if(name==="garage")   loadGarage();
-  if(name==="home")     loadFeatured();
 }
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
-document.getElementById("nav-garage").addEventListener("click",()=>go("garage"));
 
-// ── Mitarbeiter Login ──────────────────────────────────────────────────
+// LOGIN MODAL
 const modal       = document.getElementById("login-modal");
 const modalTitle  = document.getElementById("modal-title");
 const modalDesc   = document.getElementById("modal-desc");
 const modalInput  = document.getElementById("modal-phone-input");
-const modalCancel = document.getElementById("modal-cancel");
 const modalSubmit = document.getElementById("modal-submit");
+const modalCancel = document.getElementById("modal-cancel");
 let modalMode = "user";
+let modalCallback = null;
 
 modalCancel.addEventListener("click", ()=>modal.classList.remove("show"));
 modalSubmit.addEventListener("click", async ()=>{
@@ -505,8 +615,7 @@ modalSubmit.addEventListener("click", async ()=>{
   modal.classList.remove("show");
   try{
     const res = await loginWithPhone(num);
-    token = res.token;
-    me    = res;
+    token = res.token; me = res;
     localStorage.setItem("pd_token", token);
     if(modalMode === "employee"){
       if(res.employee){
@@ -514,241 +623,294 @@ modalSubmit.addEventListener("click", async ()=>{
       } else {
         toast("Diese Nummer hat keine Mitarbeiter-Berechtigung.", true);
       }
+    } else if (modalCallback) {
+      modalCallback(res);
+      modalCallback = null;
     } else {
       toast("Willkommen "+(res.displayName||"")+"!");
-      if(currentSectionIsGarage()) loadGarage();
     }
   } catch(e){ toast(e.message, true); }
 });
 
 document.getElementById("btn-mitarbeiter-login").addEventListener("click", ()=>{
-  modalMode = "employee";
-  modalTitle.textContent = "🔐 Mitarbeiter Login";
-  modalDesc.textContent  = "Gib deine Handy-Nummer ein. Falls du Mitarbeiter bist, wirst du direkt zum Dashboard weitergeleitet.";
+  modalMode = "employee"; modalCallback = null;
+  modalTitle.textContent = "🔐 Mitarbeiter-Login";
+  modalDesc.textContent  = "Geben Sie Ihre Dienst-Handy-Nummer ein. Sie werden direkt zum Dashboard weitergeleitet.";
   modalInput.value = "";
-  modal.classList.add("show");
-  setTimeout(()=>modalInput.focus(),100);
+  modal.classList.add("show"); setTimeout(()=>modalInput.focus(),100);
 });
-document.getElementById("btn-garage-login").addEventListener("click", ()=>{
-  modalMode = "user";
+function openUserLogin(cb){
+  modalMode = "user"; modalCallback = cb;
   modalTitle.textContent = "📱 Anmelden";
-  modalDesc.textContent  = "Gib deine Handy-Nummer ein (die gleiche wie in City Chat / PCRP-Net).";
+  modalDesc.textContent  = "Geben Sie Ihre Handy-Nummer ein (die gleiche wie in City Chat / PCRP-Net).";
   modalInput.value = "";
-  modal.classList.add("show");
-  setTimeout(()=>modalInput.focus(),100);
-});
-function currentSectionIsGarage(){ return document.getElementById("sec-garage").classList.contains("active"); }
+  modal.classList.add("show"); setTimeout(()=>modalInput.focus(),100);
+}
+document.getElementById("btn-garage-login").addEventListener("click", ()=>openUserLogin(()=>go("garage")));
+document.getElementById("btn-anfragen-login").addEventListener("click", ()=>openUserLogin(()=>loadMyAnfragen()));
 
-// ── Featured (Home) ────────────────────────────────────────────────────
-async function loadFeatured(){
-  const grid = document.getElementById("featured-grid");
-  if (!token) {
-    grid.innerHTML = `<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:60px">
-      <div style="font-size:48px;margin-bottom:14px">🔐</div>
-      <h3 style="color:#fff;font-size:20px;margin-bottom:8px">Anmelden, um Fahrzeuge zu sehen</h3>
-      <p>Klicke oben rechts auf den Mitarbeiter-Login oder öffne die Garage, um dich mit deiner Handy-Nummer anzumelden.</p>
-      <button class="btn" onclick="document.getElementById('btn-garage-login').click()" style="margin-top:18px">📱 Mit Handy anmelden</button>
-    </div>`;
-    return;
-  }
-  try {
-    const data = await fetch(API + "/api/pd/vehicles?token=" + encodeURIComponent(token)).then(r => r.ok ? r.json() : Promise.reject("HTTP " + r.status));
-    const list = (data.vehicles || []);
-    const featured = list.filter(v => v.stock > 0).sort((a, b) => b.createdAt - a.createdAt).slice(0, 9);
-    if (!featured.length) {
-      grid.innerHTML = `<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:60px">Noch keine Fahrzeuge im Katalog — schau bald wieder vorbei!</div>`;
+// HOME → Top 3 Offers
+async function loadHome(){
+  const grid = document.getElementById("top-offers-grid");
+  try{
+    const data = await fetch(API + "/api/pd/offers?token="+encodeURIComponent(token || "")).then(r => r.ok ? r.json() : Promise.reject("HTTP "+r.status));
+    const list = (data.offers||[]).slice(0,3);
+    if(!list.length){
+      grid.innerHTML = `<div style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">Aktuell keine laufenden Angebote.</div>`;
       return;
     }
-    grid.innerHTML = featured.map(v => vehCardHtml(v)).join("");
-    grid.querySelectorAll("[data-buy]").forEach(b => b.addEventListener("click", () => buy(b.dataset.buy)));
-  } catch (e) {
-    grid.innerHTML = `<div style="color:var(--red2);grid-column:1/-1;text-align:center;padding:40px">Fehler beim Laden: ${e.message || e}</div>`;
-  }
-}
-
-// ── Fahrzeuge ──────────────────────────────────────────────────────────
-async function loadVehicles(){
-  const bar  = document.getElementById("cat-bar");
-  const grid = document.getElementById("veh-grid");
-  bar.innerHTML = "";
-  const cats = ["Alle", ...CATEGORIES];
-  cats.forEach(c=>{
-    const b = document.createElement("button");
-    b.textContent = c==="Alle" ? "🌟 Alle" : (CAT_EMOJI[c]||"")+" "+c;
-    if(c===currentCat) b.classList.add("active");
-    b.onclick = ()=>{ currentCat=c; loadVehicles(); };
-    bar.appendChild(b);
-  });
-  if(!token){ grid.innerHTML=`<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:40px">Anmeldung erforderlich, um Fahrzeuge zu sehen.</div>`; return; }
-  try{
-    const data = await api(currentCat==="Alle" ? "/api/pd/vehicles" : "/api/pd/vehicles?category="+encodeURIComponent(currentCat));
-    const list = data.vehicles||[];
-    if(list.length===0){ grid.innerHTML = `<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:60px">Keine Fahrzeuge in dieser Kategorie.</div>`; return; }
-    grid.innerHTML = list.map(v => vehCardHtml(v)).join("");
-    grid.querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>buy(b.dataset.buy)));
-  } catch(e){ grid.innerHTML = `<div style="color:var(--red2);grid-column:1/-1;text-align:center;padding:40px">Fehler: ${e.message}</div>`; }
-}
-function vehCardHtml(v){
-  const stock = v.stock;
-  const stockLbl = stock===0 ? "Ausverkauft" : (stock<=3 ? "Nur noch "+stock : "Auf Lager");
-  const stockCls = stock===0 ? "out" : (stock<=3 ? "low" : "");
-  return `<div class="veh-card">
-    <div class="veh-img">
-      <img src="${safeImg(v.imageUrl, v.category)}" alt="${v.name}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder',textContent:'${CAT_EMOJI[v.category]||"🚘"}'}))"/>
-      <div class="veh-badge">${v.category}</div>
-      <div class="veh-stock ${stockCls}">${stockLbl}</div>
-    </div>
-    <div class="veh-body">
-      <div class="veh-cat">${CAT_EMOJI[v.category]||""} ${v.category.toUpperCase()}</div>
-      <div class="veh-name">${v.name}</div>
-      <div class="veh-desc">${v.description||"—"}</div>
-      <div class="veh-foot">
-        <div class="veh-price">${v.priceFmt||fmt$(v.price)}</div>
-        ${token ? `<button class="veh-buy" data-buy="${v.id}" ${stock===0?'disabled':''}>🛒 Kaufen</button>` : `<button class="veh-buy" onclick="modalMode='user';document.getElementById('btn-garage-login').click()">🔐 Login</button>`}
-      </div>
-    </div>
-  </div>`;
-}
-
-async function buy(id){
-  try{
-    const r = await api("/api/pd/vehicle/"+id+"/buy", {method:"POST"});
-    toast("✅ Gekauft: "+r.message+" — Fahrzeug ist in deiner Garage.");
-    loadVehicles();
-  }catch(e){ toast(e.message, true); }
-}
-
-// ── Klassen (Grid) ─────────────────────────────────────────────────────
-async function loadKlassen(){
-  const grid = document.getElementById("klassen-grid");
-  grid.innerHTML = "";
-  if(!token){
-    for(const c of CATEGORIES){
-      grid.innerHTML += `<div class="klasse-card" data-cat="${c}">
-        <div class="klasse-icon">${CAT_EMOJI[c]}</div>
-        <div class="klasse-name">${c}</div>
-        <div class="klasse-count">Anmelden zum Ansehen</div>
-      </div>`;
-    }
-    return;
-  }
-  try{
-    const all = await api("/api/pd/vehicles");
-    const counts = {};
-    for(const c of CATEGORIES) counts[c]=0;
-    (all.vehicles||[]).forEach(v=>{ if(counts[v.category]!=null) counts[v.category]++; });
-    CATEGORIES.forEach(c=>{
-      const card = document.createElement("div");
-      card.className="klasse-card";
-      card.innerHTML = `<div class="klasse-icon">${CAT_EMOJI[c]}</div>
-        <div class="klasse-name">${c}</div>
-        <div class="klasse-count">${counts[c]} Fahrzeug${counts[c]===1?"":"e"}</div>`;
-      card.onclick = ()=>{ currentCat=c; go("vehicles"); };
-      grid.appendChild(card);
-    });
-  } catch(e){}
-}
-
-// ── Angebote ───────────────────────────────────────────────────────────
-async function loadOffers(){
-  const grid = document.getElementById("offers-grid");
-  if(!token){ grid.innerHTML=`<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:40px">Anmeldung erforderlich.</div>`; return; }
-  try{
-    const data = await api("/api/pd/offers");
-    const offers = data.offers||[];
-    if(!offers.length){ grid.innerHTML=`<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:60px">Aktuell keine Angebote.</div>`; return; }
-    grid.innerHTML = offers.map(o=>`<div class="offer-card">
-      <div class="offer-discount">-${o.discountPercent}%</div>
-      <div class="offer-title">${o.title}</div>
-      <div class="offer-desc">${o.description||""}</div>
+    grid.innerHTML = list.map(o=>`<div class="offer-card">
+      <div class="offer-disc">-${o.discountPercent}%</div>
+      <div class="offer-ti">${o.title}</div>
+      <div class="offer-de">${o.description||""}</div>
     </div>`).join("");
-  } catch(e){}
+  } catch(e){
+    // Public endpoint not gated by employee-role but by token? Falls 401 → leere Liste zeigen
+    try {
+      const data = await fetch(API + "/api/pd/offers").then(r=>r.json());
+      const list = (data.offers||[]).slice(0,3);
+      grid.innerHTML = list.length ? list.map(o=>`<div class="offer-card">
+        <div class="offer-disc">-${o.discountPercent}%</div>
+        <div class="offer-ti">${o.title}</div>
+        <div class="offer-de">${o.description||""}</div>
+      </div>`).join("") : `<div style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">Aktuell keine laufenden Angebote.</div>`;
+    } catch{
+      grid.innerHTML = `<div style="color:var(--text2);grid-column:1/-1;text-align:center;padding:40px">Aktuell keine laufenden Angebote.</div>`;
+    }
+  }
 }
 
-// ── Info ───────────────────────────────────────────────────────────────
+// INFO
 async function loadInfo(){
   const list = document.getElementById("info-list");
   try{
-    const data = await api("/api/pd/info");
+    const data = await fetch(API + "/api/pd/info").then(r=>r.ok ? r.json() : {messages:[]});
     const msgs = data.messages||[];
-    if(!msgs.length){ list.innerHTML=`<div style="color:var(--txt2);text-align:center;padding:40px">Keine Mitteilungen.</div>`; return; }
+    if(!msgs.length){ list.innerHTML = `<div class="empty-state" style="border:none;padding:60px 20px;color:var(--text3)">Derzeit keine neuen News.</div>`; return; }
     list.innerHTML = msgs.map(m=>`<div class="info-card">
-      <div class="info-title">📌 ${m.title}</div>
+      <div class="info-title">${m.title}</div>
       <div class="info-text">${m.text}</div>
       <div class="info-meta">von <b>${m.author}</b> · ${new Date(m.createdAt).toLocaleString("de-DE")}</div>
     </div>`).join("");
   } catch(e){
-    list.innerHTML=`<div style="color:var(--txt2);text-align:center;padding:40px">Anmeldung erforderlich, um Mitteilungen zu sehen.</div>`;
+    list.innerHTML = `<div class="empty-state" style="border:none;padding:60px 20px;color:var(--text3)">Derzeit keine neuen News.</div>`;
   }
 }
 
-// ── Garage ─────────────────────────────────────────────────────────────
-async function loadGarage(){
-  const empty = document.querySelector("#garage-area .empty-state");
-  const cont  = document.getElementById("garage-content");
-  if(!token){ empty.style.display=""; cont.style.display="none"; return; }
+// SORTIMENT
+function buildCategoryFilter(){
+  const root = document.getElementById("cat-filter");
+  root.innerHTML = "";
+  for(const c of CATEGORIES){
+    const lbl = document.createElement("label");
+    lbl.innerHTML = `<input type="checkbox" value="${c}" /> <span>${CAT_EMOJI[c]||""} ${c}</span>`;
+    const cb = lbl.querySelector("input");
+    cb.addEventListener("change", ()=>{
+      if(cb.checked) selCats.add(c); else selCats.delete(c);
+      renderSortiment();
+    });
+    root.appendChild(lbl);
+  }
+}
+document.getElementById("sort-mode").addEventListener("change", e => { sortMode = e.target.value; renderSortiment(); });
+document.getElementById("filter-reset").addEventListener("click", ()=>{
+  selCats.clear();
+  document.querySelectorAll("#cat-filter input").forEach(c=>c.checked=false);
+  sortMode = "newest"; document.getElementById("sort-mode").value="newest";
+  renderSortiment();
+});
+
+async function loadSortiment(){
+  const grid = document.getElementById("veh-grid");
+  grid.innerHTML = `<div style="color:var(--text2);grid-column:1/-1;text-align:center;padding:60px">Lade Fahrzeuge…</div>`;
   try{
-    const data = await api("/api/pd/garage");
-    garages = data.garage||[];
-    if(!garages.length){
-      empty.style.display="none";
-      cont.style.display="";
-      cont.innerHTML = `<div style="color:var(--txt2);text-align:center;padding:60px;border:1px dashed var(--border);border-radius:12px">Deine Garage ist leer — kauf dein erstes Fahrzeug im Showroom!</div>`;
+    const data = await fetch(API + "/api/pd/vehicles").then(r=>r.ok ? r.json() : {vehicles:[]});
+    allLoadedVehicles = data.vehicles || [];
+    renderSortiment();
+  } catch(e){
+    grid.innerHTML = `<div style="color:var(--red);grid-column:1/-1;text-align:center;padding:60px">Fehler beim Laden.</div>`;
+  }
+}
+function renderSortiment(){
+  const grid = document.getElementById("veh-grid");
+  let list = allLoadedVehicles.slice();
+  if(selCats.size>0) list = list.filter(v=>selCats.has(v.category));
+  if(sortMode === "price-asc")  list.sort((a,b)=>a.price-b.price);
+  if(sortMode === "price-desc") list.sort((a,b)=>b.price-a.price);
+  if(sortMode === "name-asc")   list.sort((a,b)=>a.name.localeCompare(b.name));
+  // newest bleibt = original Order (createdAt desc vom Server)
+  if(!list.length){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">Keine Fahrzeuge in dieser Auswahl.</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(v=>`<div class="veh-card">
+    <div class="veh-img">
+      <img src="${imgOrFallback(v.imageUrl, v.category)}" alt="${v.name}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'placeholder',textContent:'${CAT_EMOJI[v.category]||"🚘"}'}))"/>
+      <div class="veh-cat-badge">${CAT_EMOJI[v.category]||""} ${v.category}</div>
+    </div>
+    <div class="veh-body">
+      <div class="veh-cat">${v.category}</div>
+      <div class="veh-name">${v.name}</div>
+      <div class="veh-desc">${v.description||"—"}</div>
+      <div class="veh-foot">
+        <div class="veh-price">${v.priceFmt||fmt$(v.price)}</div>
+        ${token ? `<button class="veh-buy" data-buy="${v.id}">Kaufen</button>` : `<button class="veh-buy" onclick="openUserLogin(()=>renderSortiment())">Anmelden</button>`}
+      </div>
+    </div>
+  </div>`).join("");
+  grid.querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>buy(b.dataset.buy)));
+}
+async function buy(id){
+  try{
+    const r = await api("/api/pd/vehicle/"+id+"/buy", {method:"POST"});
+    toast("✅ Gekauft: "+r.message+" — Ihr Fahrzeug ist in der Garage.");
+    go("garage");
+  }catch(e){ toast(e.message, true); }
+}
+
+// KONTAKT
+async function loadContactTopics(){
+  const sel = document.getElementById("cf-topic");
+  try{
+    const r = await fetch(API + "/api/pd/ticket-topics").then(r=>r.json());
+    sel.innerHTML = (r.topics||[]).map(t=>`<option value="${t}">${t}</option>`).join("");
+  } catch(e){
+    sel.innerHTML = ["Allgemeine Frage","Probefahrt","Verkaufsanfrage","Werkstatt / Service","Garantie / Reklamation","Sonstiges"].map(t=>`<option>${t}</option>`).join("");
+  }
+}
+document.getElementById("contact-form").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const topic   = document.getElementById("cf-topic").value.trim();
+  const name    = document.getElementById("cf-name").value.trim();
+  const contact = document.getElementById("cf-contact").value.trim();
+  const message = document.getElementById("cf-message").value.trim();
+  if(!token){
+    openUserLogin(async ()=>{
+      document.getElementById("cf-name").value = name || me.displayName;
+      document.getElementById("contact-form").dispatchEvent(new Event("submit"));
+    });
+    return;
+  }
+  try{
+    const r = await api("/api/pd/tickets", {method:"POST", body:JSON.stringify({topic, message})});
+    toast("✅ Anfrage "+(r.id||"")+" eingereicht — ein Mitarbeiter meldet sich bald.");
+    document.getElementById("cf-message").value="";
+    go("anfragen");
+    setTimeout(()=>loadMyAnfragen(), 200);
+  } catch(e){ toast(e.message, true); }
+});
+
+// MEINE ANFRAGEN
+async function loadMyAnfragen(){
+  const promptEl = document.getElementById("anfragen-login-prompt");
+  const cont     = document.getElementById("anfragen-content");
+  if(!token){ promptEl.style.display=""; cont.style.display="none"; return; }
+  promptEl.style.display="none"; cont.style.display="";
+  const listEl    = document.getElementById("ticket-list");
+  const detailEl  = document.getElementById("ticket-detail");
+  listEl.innerHTML = `<div class="empty-state" style="padding:18px;color:var(--text3);font-size:13px">Lade…</div>`;
+  try{
+    const r = await api("/api/pd/tickets/mine");
+    const tickets = r.tickets || [];
+    if(!tickets.length){
+      listEl.innerHTML = `<div class="empty-state" style="padding:30px;color:var(--text3);font-size:13px">Keine Anfragen.</div>`;
+      detailEl.innerHTML = `<div class="empty-state">Sie haben noch keine Anfragen erstellt.<br><br>→ Gehen Sie zu <a href="#" onclick="go('kontakt');return false;">Kontakt</a>, um eine neue Anfrage zu stellen.</div>`;
+      return;
+    }
+    listEl.innerHTML = tickets.map(t=>`<div class="ticket-row" data-id="${t.id}">
+      <div class="topic">${t.topic}</div>
+      <div class="meta">
+        <span>${new Date(t.createdAt).toLocaleString("de-DE")}</span>
+        <span class="ticket-pill ${t.status}">${t.status==="resolved"?"Gelöst":t.status==="closed"?"Geschlossen":"Offen"}</span>
+      </div>
+    </div>`).join("");
+    listEl.querySelectorAll(".ticket-row").forEach(rw=>rw.addEventListener("click",()=>{
+      listEl.querySelectorAll(".ticket-row").forEach(x=>x.classList.remove("active"));
+      rw.classList.add("active");
+      showTicketDetail(tickets.find(x=>x.id===rw.dataset.id));
+    }));
+    showTicketDetail(tickets[0]);
+    listEl.firstChild.classList.add("active");
+  } catch(e){
+    listEl.innerHTML = `<div class="empty-state" style="padding:30px;color:var(--red);font-size:13px">Fehler: ${e.message}</div>`;
+  }
+}
+function showTicketDetail(t){
+  const el = document.getElementById("ticket-detail");
+  if(!t){ el.innerHTML = `<div class="empty-state">Wählen Sie links eine Anfrage.</div>`; return; }
+  el.innerHTML = `
+    <h3>${htmlEscape(t.topic)}</h3>
+    <div style="color:var(--text3);font-size:13px;margin-top:6px">#${t.id} · ${new Date(t.createdAt).toLocaleString("de-DE")} · <span class="ticket-pill ${t.status}">${t.status==="resolved"?"Gelöst":t.status==="closed"?"Geschlossen":"Offen"}</span></div>
+
+    <div class="ticket-thread">
+      <div class="thread-row user">
+        <div class="thread-name user">${htmlEscape(me?.displayName || t.displayName)}</div>
+        <div class="thread-bub user">${htmlEscape(t.message)}</div>
+      </div>
+      <div class="thread-row help">
+        <div class="thread-name help">Autohaus Helper</div>
+        <div class="thread-bub help">${autoReply(t.topic)}</div>
+      </div>
+    </div>
+
+    ${t.status!=="closed" ? `<button class="filter-reset" style="margin-top:24px;width:auto;padding:11px 20px;color:var(--text3)">Sobald ein Mitarbeiter antwortet, sehen Sie die Nachricht hier.</button>` : ""}
+  `;
+}
+function autoReply(topic){
+  return "Vielen Dank, dass Sie uns kontaktiert haben. Ein Mitarbeiter wird sich zeitnah um Ihr Anliegen kümmern.";
+}
+
+// GARAGE
+async function loadGarage(){
+  if(!token){ return; }
+  const grid = document.getElementById("garage-grid");
+  const empty = document.querySelector("#sec-garage .empty-state");
+  try{
+    const r = await api("/api/pd/garage");
+    const g = r.garage || [];
+    if(!g.length){
+      empty.style.display="";
+      grid.style.display="none";
       return;
     }
     empty.style.display="none";
-    cont.style.display="";
-    cont.innerHTML = `<div class="veh-grid">${garages.map(g=>`<div class="veh-card">
-      <div class="veh-img">
-        <div class="placeholder" style="font-size:90px">🚘</div>
-        <div class="veh-badge">${g.category}</div>
-      </div>
-      <div class="veh-body">
-        <div class="veh-cat">VIN ${g.vin}</div>
-        <div class="veh-name">${g.name}</div>
-        <div class="veh-desc">Gekauft am ${new Date(g.purchasedAt).toLocaleString("de-DE")}</div>
-        <div class="veh-foot">
-          <div class="veh-price">${fmt$(g.pricePaid)}</div>
-          <button class="veh-buy" data-transfer="${g.vin}">📤 Übergeben</button>
-        </div>
-      </div>
-    </div>`).join("")}</div>`;
-    cont.querySelectorAll("[data-transfer]").forEach(b=>b.addEventListener("click",()=>transfer(b.dataset.transfer)));
-  } catch(e){
-    empty.style.display=""; cont.style.display="none";
-  }
+    grid.style.display="";
+    grid.innerHTML = g.map(e=>`<div class="gar-card">
+      <div class="ic">🚘</div>
+      <div class="na">${e.name}</div>
+      <div class="me">${CAT_EMOJI[e.category]||""} ${e.category}</div>
+      <div class="me">VIN ${e.vin} · Gekauft ${new Date(e.purchasedAt).toLocaleString("de-DE")}</div>
+      <div class="me" style="color:var(--gold)">${fmt$(e.pricePaid)}</div>
+      <button class="veh-buy" data-transfer="${e.vin}" style="margin-top:8px">📤 Übergeben</button>
+    </div>`).join("");
+    grid.querySelectorAll("[data-transfer]").forEach(b=>b.addEventListener("click",()=>transferGarage(b.dataset.transfer)));
+  } catch(e){}
 }
-async function transfer(vin){
-  const to = prompt("An welchen Spieler willst du das Fahrzeug übergeben? (Discord-Username, exakt so wie im Server)");
+async function transferGarage(vin){
+  const to = prompt("An welchen Spieler wollen Sie das Fahrzeug übergeben? (Discord-Username, exakt)");
   if(!to) return;
   try{
     await api("/api/pd/garage/transfer", {method:"POST", body:JSON.stringify({vin, toUsername:to})});
-    toast("✅ Fahrzeug übergeben.");
-    loadGarage();
+    toast("✅ Fahrzeug übergeben."); loadGarage();
   } catch(e){ toast(e.message, true); }
 }
 
-// ── Initial Load ───────────────────────────────────────────────────────
-async function initHome() {
-  const grid = document.getElementById("featured-grid");
-  grid.innerHTML = `<div style="color:var(--txt2);grid-column:1/-1;text-align:center;padding:60px">Anmeldung erforderlich, um Fahrzeuge zu sehen…</div>`;
-
+// INIT
+async function initApp(){
+  buildCategoryFilter();
+  await loadContactTopics();
+  loadHome(); loadInfo();
   const stored = localStorage.getItem("pd_token");
-  if (stored) {
+  if(stored){
     token = stored;
-    try {
-      const r = await fetch(API + "/api/pd/me?token=" + encodeURIComponent(token));
-      if (r.ok) {
-        me = await r.json();
-        loadFeatured();
-        return;
-      }
-    } catch (_) {}
-    token = null;
-    localStorage.removeItem("pd_token");
+    try{
+      const r = await fetch(API + "/api/pd/me?token="+encodeURIComponent(token));
+      if(r.ok){ me = await r.json(); }
+      else { token = null; localStorage.removeItem("pd_token"); }
+    } catch(_){ token = null; localStorage.removeItem("pd_token"); }
   }
 }
-initHome();
+initApp();
 </script>
 </body>
 </html>
