@@ -2378,60 +2378,60 @@ public class WebServer {
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
             "body{min-height:100vh;background:#e8d9bf;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Courier New',Consolas,monospace;}" +
-            ".dl{width:100%;max-width:380px;background:repeating-linear-gradient(90deg,#f5e6c8 0,#f5e6c8 24px,#ecdcb3 24px,#ecdcb3 25px);border:2px solid #1c4587;border-radius:6px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.4);color:#1a1a1a;}" +
-            ".dl-hdr{background:#1c4587;color:#fff;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #ffd641;}" +
-            ".dl-hdr .left{font-size:.66rem;letter-spacing:1.5px;line-height:1.35;}" +
-            ".dl-hdr .left b{font-size:.85rem;letter-spacing:3px;display:block;}" +
-            ".dl-hdr .star{color:#ffd641;font-size:1.8rem;line-height:1;font-family:serif;filter:drop-shadow(0 0 4px rgba(255,214,65,.6));}" +
-            ".dl-title{text-align:center;padding:5px 0;background:#fff8e0;border-bottom:1.5px solid #1c4587;}" +
-            ".dl-title h1{color:#8b1a1a;font-size:1.25rem;letter-spacing:6px;margin:0;font-weight:900;}" +
-            ".dl-title h2{color:#1c4587;font-size:.6rem;letter-spacing:3px;margin:2px 0 0 0;font-weight:700;}" +
-            ".dl-body{display:flex;flex-direction:column;padding:10px 14px;}" +
-            ".dl-photo-wrap{display:flex;flex-direction:column;align-items:center;border-bottom:1px solid #1c4587;padding-bottom:8px;margin-bottom:10px;}" +
-            ".dl-photo{width:140px;flex-shrink:0;border:2px solid #1c4587;padding:3px;background:#fff;position:relative;margin:0 auto;}" +
-            ".dl-photo img{width:100%;height:175px;object-fit:cover;object-position:top center;display:block;}" +
-            ".dl-photo .dd{position:absolute;top:2px;right:2px;background:#8b1a1a;color:#fff;font-size:.5rem;letter-spacing:1px;padding:1px 4px;border-radius:0 0 0 2px;font-weight:700;}" +
-            ".dl-sig{margin-top:8px;border-top:1px solid #444;width:100%;max-width:240px;height:30px;position:relative;background:#fff8e0;}" +
-            ".dl-sig span{position:absolute;bottom:2px;left:6px;font-size:.65rem;font-style:italic;color:#1c4587;}" +
-            ".dl-data{width:100%;padding-left:0;}" +
-            ".dl-data .row{display:block;margin-bottom:8px;}" +
-            ".dl-data .field{display:flex;flex-direction:column;width:100%;margin-bottom:6px;}" +
-            ".dl-data .label{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;}" +
-            ".dl-data .val{font-size:1rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;letter-spacing:.5px;}" +
-            ".dl-data .addr{font-size:.85rem;color:#1a1a1a;font-weight:700;border-bottom:1px dotted #555;padding-bottom:2px;min-height:24px;}" +
-            ".dl-classes{background:rgba(28,69,135,.08);padding:6px 10px;margin-top:6px;border-left:4px solid #1c4587;}" +
-            ".dl-classes .lbl{font-size:.55rem;letter-spacing:1.5px;color:#1c4587;font-weight:700;text-transform:uppercase;margin-bottom:2px;}" +
-            ".dl-classes .val{font-size:1.4rem;font-weight:900;letter-spacing:5px;color:#1a1a1a;}" +
-            ".dl-foot{background:#1c4587;color:#fff;padding:6px 14px;text-align:center;font-size:.55rem;letter-spacing:1.5px;border-top:3px solid #ffd641;}" +
-            ".dl-foot .legal{opacity:.85;font-size:.5rem;margin-top:2px;letter-spacing:2px;}" +
-            "" +
+            ".dl{width:100%;max-width:380px;background:linear-gradient(135deg,#f5f2e6,#e7ddc3);border-radius:8px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,.4),inset 0 0 0 1px rgba(255,255,255,.6);color:#111;position:relative;}" +
+            ".dl::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:linear-gradient(45deg,transparent 40%,rgba(255,235,160,.3) 50%,transparent 60%);pointer-events:none;z-index:10;}" +
+            ".dl-hdr{background:linear-gradient(180deg,#1c4587,#0e2e5e);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 4px rgba(0,0,0,.15);}" +
+            ".dl-hdr-title{font-weight:900;font-size:1.15rem;letter-spacing:1px;}" +
+            ".dl-hdr-star{color:#f1c40f;font-size:1.4rem;text-shadow:0 0 4px rgba(241,196,15,.6);}" +
+            ".dl-body{display:flex;flex-direction:row;gap:12px;padding:14px;}" +
+            ".dl-photo-wrap{display:flex;flex-direction:column;width:35%;}" +
+            ".dl-photo{background:#fff;border:2px solid #1c4587;border-radius:4px;padding:2px;position:relative;box-shadow:0 2px 5px rgba(0,0,0,.15);margin-bottom:8px;}" +
+            ".dl-photo img{width:100%;display:block;border-radius:2px;aspect-ratio:3/4;object-fit:cover;object-position:top center;}" +
+            ".dd{position:absolute;top:-6px;left:-6px;background:#c0392b;color:#fff;font-size:.65rem;font-weight:900;padding:2px 5px;border-radius:3px;box-shadow:0 2px 4px rgba(0,0,0,.3);}" +
+            ".dl-sig{position:relative;border-bottom:1.5px solid rgba(17,17,17,.7);height:30px;width:100%;margin-top:2px;background:rgba(255,248,224,.5);}" +
+            ".dl-sig span{position:absolute;bottom:2px;left:4px;font-size:.55rem;font-style:italic;color:#1c4587;}" +
+            ".dl-data-col{display:flex;flex-direction:column;width:65%;gap:8px;}" +
+            ".dl-row{display:flex;gap:8px;width:100%;}" +
+            ".dl-field{display:flex;flex-direction:column;flex:1;min-width:0;}" +
+            ".dl-field.fw{flex:0 0 100%;}" +
+            ".lbl{font-size:.52rem;color:#c0392b;font-weight:900;text-transform:uppercase;margin-bottom:1px;letter-spacing:1px;}" +
+            ".val{font-size:.85rem;color:#1a1a1a;font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.5);overflow-wrap:anywhere;}" +
+            ".val.addr{font-size:.78rem;}" +
+            ".dl-class-box{background:rgba(28,69,135,.08);border-left:4px solid #1c4587;padding:5px 8px;border-radius:0 4px 4px 0;}" +
+            ".dl-ftr{background:linear-gradient(180deg,#1c4587,#0e2e5e);border-top:3px solid #f1c40f;padding:6px 14px;font-size:.6rem;font-weight:700;color:#fff;text-align:center;letter-spacing:2px;}" +
+            ".dl-ftr .legal{opacity:.85;font-size:.5rem;margin-top:2px;letter-spacing:2px;}" +
             "</style></head><body>" +
             "<div class='dl'>" +
-            "<div class='dl-hdr'><div class='left'><b>STATE OF CALIFORNIA</b>DEPARTMENT OF MOTOR VEHICLES · DMV</div><div class='star' title='REAL ID'>\u2605</div></div>" +
-            "<div class='dl-title'><h1>DRIVER LICENSE</h1><h2>DL " + esc(dl) + " · CLASS " + esc(String.join("/", f.klassen != null ? f.klassen : List.of("C"))) + "</h2></div>" +
+            "<div class='dl-hdr'><span class='dl-hdr-title'>CALIFORNIA</span><span class='dl-hdr-star' title='REAL ID'>\u2605</span></div>" +
             "<div class='dl-body'>" +
-            "<div class='dl-photo-wrap'><div class='dl-photo'>" +
-            "<img src='/api/license-photo/" + esc(userId) + "' onerror=\"this.outerHTML='<div style=&quot;height:175px;display:flex;align-items:center;justify-content:center;color:#888;font-size:.7rem&quot;>Kein Foto</div>'\">" +
-            "<div class='dd'>DD</div></div>" +
-            "<div class='dl-sig'><span>" + vorname + " " + nachname + "</span></div></div>" +
-            "<div class='dl-data'>" +
-            "<div class='row'>" +
-            "<div class='field'><div class='label'>LN · LAST NAME</div><div class='val'>" + nachname + "</div></div>" +
-            "<div class='field'><div class='label'>FN · FIRST NAME</div><div class='val'>" + vorname + "</div></div>" +
+            "<div class='dl-photo-wrap'>" +
+            "<div class='dl-photo'>" +
+            "<span class='dd'>DD</span>" +
+            "<img src='/api/license-photo/" + esc(userId) + "' onerror=\"this.outerHTML='<div style=&quot;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;color:#888;font-size:.6rem;background:#eee&quot;>Kein Foto</div>'\">" +
             "</div>" +
-            "<div class='row'>" +
-            "<div class='field'><div class='label'>DOB</div><div class='val'>" + dobText + "</div></div>" +
-            "<div class='field'><div class='label'>EXP " + expDate + "</div><div class='val'>" + expText + "</div></div>" +
+            "<div class='dl-sig'><span>" + vorname + " " + nachname + "</span></div>" +
             "</div>" +
-            "<div class='field' style='margin-bottom:8px'><div class='label'>ADDRESS</div><div class='addr'>" + addrText + "</div></div>" +
-            "<div class='dl-classes'>" +
-            "<div class='lbl'>CLASS</div>" +
-            "<div class='val'>" + klassen + "</div>" +
+            "<div class='dl-data-col'>" +
+            "<div class='dl-row'>" +
+            "<div class='dl-field'><span class='lbl'>LN</span><span class='val'>" + nachname + "</span></div>" +
+            "<div class='dl-field'><span class='lbl'>FN</span><span class='val'>" + vorname + "</span></div>" +
             "</div>" +
-            "</div></div>" +
-            "<div class='dl-foot'>STATE OF CALIFORNIA · DRIVER LICENSE · REAL ID \u2605" +
+            "<div class='dl-row'>" +
+            "<div class='dl-field'><span class='lbl'>DOB</span><span class='val'>" + dobText + "</span></div>" +
+            "<div class='dl-field'><span class='lbl'>EXP " + expDate + "</span><span class='val'>" + expText + "</span></div>" +
+            "</div>" +
+            "<div class='dl-row'>" +
+            "<div class='dl-field fw'><span class='lbl'>ADDRESS</span><span class='val addr'>" + addrText + "</span></div>" +
+            "</div>" +
+            "<div class='dl-row'>" +
+            "<div class='dl-field fw dl-class-box'><span class='lbl'>CLASS</span><span class='val'>" + klassen + "</span></div>" +
+            "</div>" +
+            "</div>" +
+            "</div>" +
+            "<div class='dl-ftr'>DRIVER LICENSE \u00b7 " + esc(dl) + " \u00b7 CLASS " + esc(String.join("/", f.klassen != null ? f.klassen : List.of("C"))) +
             (f.erstelltVon.isBlank() ? "" : "<div class='legal'>Issued by: " + esc(f.erstelltVon) + "</div>") +
-            "</div></div></body></html>";
+            "</div>" +
+            "</div></body></html>";
     }
 
     private static String docField(String label, String value) {

@@ -589,7 +589,8 @@ public class CommandListener extends ListenerAdapter {
                 .setEphemeral(true).queue();
             return;
         }
-        event.getHook().sendMessage("🪪 Ausweis: " + DocumentsManager.ausweisViewUrl(userId))
+        String url = DocumentsManager.ausweisViewUrl(userId);
+        event.getHook().sendMessage("🪪 Ausweis – [Lizenz hier Öffnen](" + url + ")")
             .setEphemeral(true).queue();
     }
 
@@ -603,7 +604,8 @@ public class CommandListener extends ListenerAdapter {
                 .setEphemeral(true).queue();
             return;
         }
-        event.getHook().sendMessage("🚗 Führerschein: " + DocumentsManager.fuehrerscheinViewUrl(userId))
+        String url = DocumentsManager.fuehrerscheinViewUrl(userId);
+        event.getHook().sendMessage("🚗 Führerschein – [Lizenz hier Öffnen](" + url + ")")
             .setEphemeral(true).queue();
     }
 
