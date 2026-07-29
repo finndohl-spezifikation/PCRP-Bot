@@ -96,6 +96,9 @@ public class WebServer {
         app.get("/info",          WebServer::serveInfo);
         app.get("/api/stats",     WebServer::handleStats);
 
+        // ── Penthouses (Marketing-Seite im R*-Diamond-Stil) ──────────────
+        app.get( "/penthouses",                                   WebServer::servePenthouses);
+
         // ── Citygram ──────────────────────────────────────────────────────────
         app.get( "/citygram",                                    WebServer::serveCitygram);
         app.get( "/api/citygram/health",                         ctx -> {
@@ -261,6 +264,19 @@ public class WebServer {
     }
 
     // ── citygram.html ──────────────────────────────────────────
+
+    // ── penthouses.html ─────────────────────────────────────────────
+
+    private static void servePenthouses(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/penthouses.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+            log.info("[Penthouses] Marketing-Seite ausgeliefert.");
+        } catch (Exception e) {
+            log.error("[Penthouses] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
 
     private static void serveCitygram(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/citygram.html")) {

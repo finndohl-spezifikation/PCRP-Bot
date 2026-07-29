@@ -105,6 +105,14 @@ public class Main {
 
         private static final Logger log = LoggerFactory.getLogger(StartupListener.class);
 
+        /** Kanal-ID für die einmalige Penthouses-Ankündigung (nach Bot-Neustart). */
+        private static final long PENTHOUSES_ANNOUNCE_CHANNEL_ID = 1529636644217684188L;
+
+        /** DataStore-Key für die Penthouses-Ankündigung (pro Guild, persistent — sendet NUR einmal über alle Restarts). */
+        private static String penthousesAnnounceKey(String guildId) {
+            return "announce-penthouses-once-" + guildId;
+        }
+
         @Override
         public void onReady(ReadyEvent event) {
             JDA jda = event.getJDA();
@@ -172,6 +180,7 @@ public class Main {
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);
                 postCitygramPanel(guild);
+                postPenthousesAnnouncement(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -554,6 +563,48 @@ public class Main {
                 err -> { log.error("[Citygram] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
             );
         }
+
+        // ── Penthouses (One-Shot-Ankündigung) ──────────────────────
+
+        /**
+         * Sendet EINE Ankündigung mit Link-Button zur /penthouses-Seite — aber wirklich nur einmal.
+         * Schutz via DataStore: nach erfolgreichem Senden wird eine messageId unter
+         * {@code announce-penthouses-once-<guildId>} persistiert. Beim nächsten Restart
+         * wird der Flag geprüft und der Send übersprungen.
+         */
+        private static void postPenthousesAnnouncement(Guild guild) {
+            String key = penthousesAnnounceKey(guild.getId());
+            String alreadySent = DataStore.readString(key);
+            if (alreadySent != null && !alreadySent.isBlank()) {
+                log.debug("[Penthouses] Ankündigung bereits gesendet (msg={}), überspringe.", alreadySent);
+                return;
+            }
+            TextChannel ch = guild.getTextChannelById(PENTHOUSES_ANNOUNCE_CHANNEL_ID);
+            if (ch == null) {
+                log.warn("[Penthouses] Ankündigungs-Kanal {} nicht gefunden — überspringe.", PENTHOUSES_ANNOUNCE_CHANNEL_ID);
+                return;
+            }
+            String url = webUrl() + "/penthouses";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🏙️ Paradise City Residences")
+                    .setDescription(
+                        "Die exklusivsten Wohnungen in Paradise City — eine Hommage an Luxus, schlechtes Gewissen und schlechte Entscheidungen.\n\n" +
+                        "**11 Räume** · Scroll-Reveal-Animationen · Master Suite, Wellness, Bar, Garage, Cinema & mehr.\n\n" +
+                        "Inspiriert vom Look der offiziellen Diamond-Casino-Penthouses-Seite — aber PCRP-eigen, von Grund auf handgecoded.")
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "🏙️ Residences öffnen")
+            )).queue(
+                msg -> {
+                    DataStore.writeString(key, msg.getId());
+                    log.info("[Penthouses] Einmalige Ankündigung in {} (msg={}) gesendet — URL={}",
+                        ch.getName(), msg.getId(), url);
+                },
+                err -> log.error("[Penthouses] Ankündigung konnte nicht gesendet werden.", err)
+            );
+        }
+
 
         /**
          * Zentrale URL-Auflösung für alle Cloudflare-Worker-Links.
