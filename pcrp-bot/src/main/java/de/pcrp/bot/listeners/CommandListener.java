@@ -2226,6 +2226,11 @@ public class CommandListener extends ListenerAdapter {
 
     private void handleTeamverwarnung(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
+        if (event.getChannel().getIdLong() != LoggingConfig.TEAM_WARN_CHANNEL_ID) {
+            event.reply("Dieser command funktioniert nur in <#" + LoggingConfig.TEAM_WARN_CHANNEL_ID + ">")
+                .setEphemeral(true).queue();
+            return;
+        }
 
         Member target     = event.getOption("mitglied", OptionMapping::getAsMember);
         String grund      = event.getOption("grund",      OptionMapping::getAsString);
@@ -2291,6 +2296,11 @@ public class CommandListener extends ListenerAdapter {
 
     private void handleTeamverwarnungEntfernen(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
+        if (event.getChannel().getIdLong() != LoggingConfig.TEAM_WARN_CHANNEL_ID) {
+            event.reply("Dieser command funktioniert nur in <#" + LoggingConfig.TEAM_WARN_CHANNEL_ID + ">")
+                .setEphemeral(true).queue();
+            return;
+        }
 
         Member target = event.getOption("mitglied", OptionMapping::getAsMember);
         String warnId = event.getOption("warn-id",   OptionMapping::getAsString);
@@ -2320,6 +2330,11 @@ public class CommandListener extends ListenerAdapter {
 
     private void handleTeamverwarnungListe(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
+        if (event.getChannel().getIdLong() != LoggingConfig.TEAM_WARN_CHANNEL_ID) {
+            event.reply("Dieser command funktioniert nur in <#" + LoggingConfig.TEAM_WARN_CHANNEL_ID + ">")
+                .setEphemeral(true).queue();
+            return;
+        }
 
         Member target = event.getOption("mitglied", OptionMapping::getAsMember);
         if (target == null) {
@@ -2361,6 +2376,11 @@ public class CommandListener extends ListenerAdapter {
     // ════════════════════════════════════════════════════════════
 
     private void handleTeamverwarnungEntfernenAutocomplete(CommandAutoCompleteInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        if (event.getChannel().getIdLong() != LoggingConfig.TEAM_WARN_CHANNEL_ID) {
+            event.replyChoices(List.of()).queue();   // Falscher Kanal → keine Vorschläge leaken
+            return;
+        }
         OptionMapping memberOpt = event.getOption("mitglied");
         if (memberOpt == null) { event.replyChoices().queue(null, e -> {}); return; }
 
