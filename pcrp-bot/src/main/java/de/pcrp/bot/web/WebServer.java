@@ -270,6 +270,9 @@ public class WebServer {
     private static void servePenthouses(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/penthouses.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
             ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
             log.info("[Penthouses] Marketing-Seite ausgeliefert.");
         } catch (Exception e) {
@@ -290,6 +293,9 @@ public class WebServer {
             log.info("[Citygram] served mit API_BASE = {}", base);
             String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
                 .replace("%%API_BASE%%", base);
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
             ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.error("[Citygram] Fehler beim Ausliefern.", e);
@@ -312,8 +318,13 @@ public class WebServer {
             base = base.replaceAll("/$", "");
             String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
                 .replace("%%API_BASE%%", base);
+            // Cache-Headers setzen, damit nach unseren UI-Fixes nichts gecacht wird
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
             ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
+            log.error("[CityChat] Fehler beim Ausliefern.", e);
             ctx.status(500).result("Interner Fehler");
         }
     }
