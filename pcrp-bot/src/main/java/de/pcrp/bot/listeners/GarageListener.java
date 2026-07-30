@@ -40,12 +40,10 @@ public class GarageListener extends ListenerAdapter {
             EmbedFactory.create()
                 .setTitle("🚘 Premium Deluxe Motorsport — Garage")
                 .setDescription(
-                    "Hier kannst du deine gekauften Fahrzeuge einsehen und verwalten.\\n\\n" +
-                    "Klicke auf **🚘 Garage öffnen**, um deine aktuellen Fahrzeuge anzuzeigen.\\n\\n" +
-                    "**Fahrzeuge übergeben:** Wähle ein Fahrzeug aus deiner Garage und gib es an einen anderen Spieler weiter.\\n\\n" +
-                    "---\\n" +
-                    "Fahrzeuge, die du über die Webseite kaufst, landen automatisch in deiner Garage – " +
-                    "hier auf Discord.")
+                    "Verwalte deine Garage von hier aus.\n\n" +
+                    "Klicke auf **🚘 Garage öffnen**, um deine Fahrzeuge zu sehen.\n" +
+                    "Dort kannst du sie auch direkt an andere Spieler übergeben — " +
+                    "ähnlich wie beim Item-Transfer im Inventar.")
                 .build()
         ).addActionRow(
             Button.primary("garage-open", "🚘 Garage öffnen")
