@@ -808,33 +808,35 @@ async function init(){
   const params=new URLSearchParams(location.search);
   const urlToken=params.get('token');
   const storedToken=localStorage.getItem('cc-token');
-  const candidates=[...new Set([urlToken,storedToken].filter(Boolean))];
-  for(const t of candidates){
-    token=t;
+
+  // Zuerst gespeicherten Token (von vorheriger Sitzung) via API prüfen
+  if(storedToken){
+    token=storedToken;
     try{
       me=await api('GET','/api/city-chat/me');
-      localStorage.setItem('cc-token',t);
-      if(urlToken) history.replaceState({},'',location.pathname);
+      localStorage.setItem('cc-token',storedToken);
       showApp(); return;
     }catch(e){
       token=null;
       if(e.message==='WEB_BANNED'){ window.location.href='/banned'; return; }
     }
   }
-  localStorage.removeItem('cc-token');
-  const params=new URLSearchParams(location.search);
-  if(params.get('token')){
-    // Token vorhanden aber ungültig → PIN eingeben (Token abgelaufen?)
+
+  // Token in URL → direkt PIN-Login anzeigen (kein API-Call vor PIN)
+  if(urlToken){
+    localStorage.removeItem('cc-token');
     showLogin();
-  } else {
-    // Kein Token → Hinweis anzeigen
-    document.getElementById('login-screen').classList.remove('hidden');
-    document.getElementById('app-screen').classList.add('hidden');
-    document.getElementById('login-screen').querySelector('.login-fields').innerHTML=
-      '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">🔐 Aktiviere zuerst in Discord.</p>'+
-      '<p style="color:rgba(255,255,255,.3);font-size:.75rem;text-align:center;line-height:1.5;margin:0">Gehe zu <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>und aktiviere City Chat. Du bekommst dann einen Link.</p>';
-    document.getElementById('login-screen').querySelector('.login-card p').textContent='Kein Zugang gefunden';
+    return;
   }
+
+  // Kein Token → Hinweis anzeigen
+  localStorage.removeItem('cc-token');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('login-screen').querySelector('.login-fields').innerHTML=
+    '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">🔐 Aktiviere zuerst in Discord.</p>'+
+    '<p style="color:rgba(255,255,255,.3);font-size:.75rem;text-align:center;line-height:1.5;margin:0">Gehe zu <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>und aktiviere City Chat. Du bekommst dann einen Link.</p>';
+  document.getElementById('login-screen').querySelector('.login-card p').textContent='Kein Zugang gefunden';
 }
 
 async function doLogin(){

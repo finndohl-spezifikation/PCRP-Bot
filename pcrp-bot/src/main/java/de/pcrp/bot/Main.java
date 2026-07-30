@@ -108,6 +108,9 @@ public class Main {
         /** Kanal-ID für die einmalige Penthouses-Ankündigung (nach Bot-Neustart). */
         private static final long PENTHOUSES_ANNOUNCE_CHANNEL_ID = 1529636644217684188L;
 
+        /** Kanal-ID für automatische Changelog-Einträge bei neuen Features / Bugfixes. */
+        private static final long CHANGELOG_CHANNEL_ID = 1529636498566283434L;
+
         /** DataStore-Key für die Penthouses-Ankündigung (pro Guild, persistent — sendet NUR einmal über alle Restarts). */
         private static String penthousesAnnounceKey(String guildId) {
             return "announce-penthouses-once-" + guildId;
@@ -187,6 +190,7 @@ public class Main {
                 postCitygramPanel(guild);
                 postPenthousesAnnouncement(guild);
                 postPremiumDeluxeAnnouncement(guild);
+                postChangelog(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -651,6 +655,55 @@ public class Main {
             );
         }
 
+
+        /**
+         * Postet einen Changelog-Eintrag in den Changelog-Kanal, sofern die aktuelle
+         * Changelog-Version noch nicht in DataStore dokumentiert wurde.
+         *
+         * Nach dem ersten Post wird {@code "changelog-version-<guildId>"} auf die
+         * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
+         * verglichen — nur bei neuerer Version wird erneut gepostet.
+         */
+        private static final String CHANGELOG_VERSION = "v1";
+
+        private static void postChangelog(Guild guild) {
+            String key = "changelog-version-" + guild.getId();
+            String posted = DataStore.readString(key);
+            if (CHANGELOG_VERSION.equals(posted)) {
+                log.debug("[Changelog] Version {} bereits gepostet, überspringe.", CHANGELOG_VERSION);
+                return;
+            }
+            TextChannel ch = guild.getTextChannelById(CHANGELOG_CHANNEL_ID);
+            if (ch == null) {
+                log.warn("[Changelog] Kanal {} nicht gefunden.", CHANGELOG_CHANNEL_ID);
+                return;
+            }
+
+            String changes =
+                "**📋 Changelog — PCRP Bot**\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Safe-PIN Login & Bugfixes**__\n\n" +
+                "📱 **Safe-PIN Login** — City Chat & Citygram: Kein Token-Link mehr nötig. " +
+                "Aktiviere in der Handy-Zentrale und logge dich auf der Webseite mit deiner Safe-PIN ein.\n\n" +
+                "🐛 **City Chat Bugfix** — Die Webseite lädt nicht mehr ewig. Der PIN-Login erscheint sofort.\n\n" +
+                "🐛 **Citygram Bugfix** — Verbesserte Lade-Stabilität beim ersten Öffnen.\n\n" +
+                "🔐 **Sicherheitshinweis** — In der Telefonnummer-Anzeige wird jetzt explizit darauf hingewiesen, " +
+                "die Safe-PIN niemals weiterzugeben.\n\n" +
+                "---\n" +
+                "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
+
+            ch.sendMessageEmbeds(EmbedFactory.create()
+                .setTitle("📋 PCRP Bot — Changelog")
+                .setDescription(changes)
+                .setColor(0xCC5500)
+                .build()
+            ).queue(
+                msg -> {
+                    DataStore.writeString(key, CHANGELOG_VERSION);
+                    log.info("[Changelog] Version {} in {} gepostet (msg={}).", CHANGELOG_VERSION, ch.getName(), msg.getId());
+                },
+                err -> log.error("[Changelog] Fehler beim Posten von Version {}.", CHANGELOG_VERSION, err)
+            );
+        }
 
         /**
          * Zentrale URL-Auflösung für alle Cloudflare-Worker-Links.
