@@ -9,10 +9,13 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
@@ -79,6 +82,78 @@ public class BankListener extends ListenerAdapter {
                         ActionRow.of(select),
                         ActionRow.of(Button.secondary("bank-open", "← Zurück")))
                     .queue();
+            }
+            case "bank-btn-bills" -> {
+                List<RechnungManager.Rechnung> offene = RechnungManager.getOffene(guildId, userId);
+                if (offene.isEmpty()) {
+                    event.replyEmbeds(EmbedFactory.build(
+                        "🧾 Offene Rechnungen",
+                        "Du hast aktuell **keine offenen Rechnungen**.\n\n" +
+                        "Bezahlte Rechnungen werden hier nicht mehr angezeigt."))
+                        .addComponents(ActionRow.of(Button.secondary("bank-open", "← Zurück")))
+                        .setEphemeral(true).queue();
+                    return;
+                }
+                StringBuilder sb = new StringBuilder();
+                long total = 0;
+                for (RechnungManager.Rechnung r : offene) {
+                    sb.append(RechnungManager.formatRechnung(r)).append("\n");
+                    total += r.amount;
+                }
+                SelectOption[] options = offene.stream()
+                    .limit(25)
+                    .map(r -> {
+                        String label = r.beschreibung + " — " + BankManager.formatAmount(r.amount);
+                        if (label.length() > 100) label = label.substring(0, 97) + "…";
+                        return SelectOption.of(label, r.id);
+                    })
+                    .toArray(SelectOption[]::new);
+
+                event.replyEmbeds(
+                    EmbedFactory.create()
+                        .setTitle("🧾 Offene Rechnungen")
+                        .setDescription(
+                            "Folgende Rechnungen sind noch offen:\n\n" +
+                            sb.toString() + "\n" +
+                            "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                            "**Gesamt: " + BankManager.formatAmount(total) + "**")
+                        .build()
+                ).addComponents(
+                    ActionRow.of(
+                        StringSelectMenu.create("bank-bill-select")
+                            .setPlaceholder("Rechnung einzeln bezahlen…")
+                            .setMinValues(1).setMaxValues(1)
+                            .addOptions(options)
+                            .build()
+                    ),
+                    ActionRow.of(
+                        Button.success("bank-bill-payall", "✅ Alle bezahlen (" + BankManager.formatAmount(total) + ")"),
+                        Button.secondary("bank-open", "← Zurück")
+                    )
+                ).setEphemeral(true).queue();
+            }
+            case "bank-bill-payall" -> {
+                String err = RechnungManager.payAll(guildId, userId);
+                if (err != null) {
+                    event.replyEmbeds(EmbedFactory.build("❌ Bezahlung fehlgeschlagen", err))
+                        .addComponents(ActionRow.of(Button.secondary("bank-open", "← Zum Banking")))
+                        .setEphemeral(true).queue();
+                    return;
+                }
+                long balance = BankManager.getBalance(guildId, userId);
+                event.replyEmbeds(
+                    EmbedFactory.create()
+                        .setTitle("✅ Alle Rechnungen bezahlt")
+                        .setDescription(
+                            "Alle offenen Rechnungen wurden beglichen.\n\n" +
+                            "**Neuer Kontostand:** " + BankManager.formatAmount(balance))
+                        .build()
+                ).addComponents(ActionRow.of(
+                    Button.primary("bank-btn-bills", "🧾 Offene Rechnungen"),
+                    Button.secondary("bank-open", "← Zum Banking")
+                )).setEphemeral(true).queue();
+                BotLogger.logMoney(event.getGuild(), "🧾 Alle Rechnungen bezahlt",
+                    "**Spieler:** " + event.getUser().getAsMention());
             }
         }
     }
@@ -273,11 +348,55 @@ public class BankListener extends ListenerAdapter {
         return eb.build();
     }
 
+    // ── Rechnungen: StringSelect (einzelne Rechnung bezahlen) ────────────────
+
+    @Override
+    public void onStringSelectInteraction(StringSelectInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        if (!"bank-bill-select".equals(event.getComponentId())) return;
+
+        String guildId = event.getGuild().getId();
+        String userId  = event.getUser().getId();
+        String billId  = event.getValues().get(0);
+
+        String err = RechnungManager.payRechnung(guildId, userId, billId);
+        if (err != null) {
+            event.editMessageEmbeds(EmbedFactory.build("❌ Bezahlung fehlgeschlagen", err))
+                .setComponents(ActionRow.of(Button.secondary("bank-open", "← Zum Banking")))
+                .queue();
+            return;
+        }
+
+        long balance = BankManager.getBalance(guildId, userId);
+        List<RechnungManager.Rechnung> remaining = RechnungManager.getOffene(guildId, userId);
+
+        String desc = "✅ **Rechnung wurde bezahlt!**\n\n" +
+            "**Neuer Kontostand:** " + BankManager.formatAmount(balance);
+
+        if (!remaining.isEmpty()) {
+            desc += "\n\nEs sind noch **" + remaining.size() + "** Rechnung(en) offen.";
+        }
+
+        event.editMessageEmbeds(EmbedFactory.build("✅ Rechnung bezahlt", desc))
+            .setComponents(ActionRow.of(
+                Button.primary("bank-btn-bills", "🧾 Offene Rechnungen"),
+                Button.secondary("bank-open", "← Zum Banking")
+            )).queue();
+
+        BotLogger.logMoney(event.getGuild(), "🧾 Rechnung bezahlt",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Betrag:** -" + BankManager.formatAmount(
+                RechnungManager.getAll(guildId, userId).stream()
+                    .filter(r -> r.id.equals(billId))
+                    .findFirst().map(r -> r.amount).orElse(0L)));
+    }
+
     private static ActionRow bankRow() {
         return ActionRow.of(
             Button.primary("bank-btn-deposit",  "💳 Einzahlen"),
             Button.primary("bank-btn-withdraw", "💵 Auszahlen"),
-            Button.primary("bank-btn-transfer", "📤 Überweisen")
+            Button.primary("bank-btn-transfer", "📤 Überweisen"),
+            Button.secondary("bank-btn-bills",  "🧾 Offene Rechnungen")
         );
     }
 

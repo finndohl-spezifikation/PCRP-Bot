@@ -160,13 +160,16 @@ public final class BankManager {
             case "HANDY_VERTRAG"        -> { icon = "📋"; label = "Handy-Vertrag (Erstgebühr)"; }
             case "HANDY_MONATSGEBÜHR"   -> { icon = "📱"; label = "Handy Monatsgebühr"; }
             case "HANDY_NUMMER_WECHSEL" -> { icon = "🔄"; label = "Rufnummer wechseln"; }
+            case "LOHN"                  -> { icon = "💰"; label = "Lohn (stündlich)"; }
+            case "RECHNUNG"               -> { icon = "🧾"; label = "Rechnung bezahlt"; }
             default                     -> { icon = "•";  label = tx.type; }
         }
         boolean isIn = tx.type.equals("EINZAHLUNG")
             || tx.type.equals("ÜBERWEISUNG_REIN")
             || tx.type.equals("ADMIN_GABE")
             || tx.type.equals("RUBBELLOS_GEWINN")
-            || tx.type.equals("LOTTO_GEWINN");
+            || tx.type.equals("LOTTO_GEWINN")
+            || tx.type.equals("LOHN");
         String sign = isIn ? "+" : "-";
         return icon + " **" + label + "** — " + sign + formatAmount(tx.amount)
             + " <t:" + tx.ts + ":d>";
