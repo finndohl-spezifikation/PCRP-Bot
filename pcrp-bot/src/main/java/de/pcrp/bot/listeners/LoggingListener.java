@@ -29,7 +29,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import java.awt.Color;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -43,6 +43,29 @@ import java.util.function.Consumer;
  *   Rollen-Logs       → Erstellt, Gelöscht, Geändert, Vergaben
  */
 public class LoggingListener extends ListenerAdapter {
+
+    // ── Embed-Lösch-Schutz ──────────────────────────────────────────────────
+    // Kanäle, in denen Embeds ohne automatische Neu-Erstellung gelöscht werden dürfen.
+    private static final Set<Long> ALLOWED_EMBED_DELETION_CHANNELS = Set.of(
+        1529636459827560558L, // TEAM_WARN_CHANNEL_ID
+        1529636498566283434L, // CHANGELOG_CHANNEL_ID (Main.java)
+        1529636503163113694L, // WARN_LOG_CHANNEL_ID
+        1529636520506425435L, // FRAK_WARN_CHANNEL_ID
+        1529636521592885388L, // FRAK_SPERRE_CHANNEL_ID
+        1529636545957597214L, // LOBBY_ABSTIMMUNG_CHANNEL_ID
+        1529636547169615872L, // LOBBY_OEFFNEN_CHANNEL_ID
+        1529636557038817361L  // INVENTORY_ACTIONS_CHANNEL_ID
+    );
+
+    /** Cache für Bot-eigene Nachrichten mit Embeds (messageId → Embeds). */
+    private static final Map<Long, List<MessageEmbed>> BOT_EMBED_CACHE = Collections.synchronizedMap(
+        new LinkedHashMap<>(512, 0.75f, false) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Long, List<MessageEmbed>> eldest) {
+                return size() > 500;
+            }
+        }
+    );
 
     // ════════════════════════════════════════════════════════════
     //  SPIELER-LOGS – Bot-Neustart
@@ -392,6 +415,19 @@ public class LoggingListener extends ListenerAdapter {
     //  NACHRICHTEN-LOGS
     // ════════════════════════════════════════════════════════════
 
+    /**
+     * Cached Bot-eigene Nachrichten, die Embeds enthalten,
+     * damit sie bei Löschung automatisch neu gesendet werden können.
+     */
+    @Override
+    public void onMessageReceived(MessageReceivedEvent event) {
+        if (!event.isFromGuild()) return;
+        Message message = event.getMessage();
+        if (!message.getAuthor().equals(event.getJDA().getSelfUser())) return;
+        if (message.getEmbeds().isEmpty()) return;
+        BOT_EMBED_CACHE.put(message.getIdLong(), message.getEmbeds());
+    }
+
     @Override
     public void onMessageDelete(MessageDeleteEvent e) {
         if (!e.isFromGuild()) return;
@@ -425,6 +461,19 @@ public class LoggingListener extends ListenerAdapter {
 
                 .build());
         });
+
+        // ── Embed-Schutz: Bot-Embeds in geschützten Kanälen sofort neu senden ──
+        long channelId = e.getChannel().getIdLong();
+        if (!ALLOWED_EMBED_DELETION_CHANNELS.contains(channelId)) {
+            List<MessageEmbed> embeds = BOT_EMBED_CACHE.get(e.getMessageIdLong());
+            if (embeds != null && !embeds.isEmpty()) {
+                TextChannel ch = guild.getTextChannelById(channelId);
+                if (ch != null) {
+                    ch.sendMessageEmbeds(embeds).queue(null, err -> {});
+                }
+            }
+        }
+        BOT_EMBED_CACHE.remove(e.getMessageIdLong());
 
         MessageCache.remove(e.getMessageIdLong());
     }
