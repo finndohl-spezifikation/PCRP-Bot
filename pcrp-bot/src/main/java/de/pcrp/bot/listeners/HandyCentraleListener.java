@@ -512,7 +512,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             String csLink = webUrl() + "/cityship";
             event.replyEmbeds(EmbedFactory.build("💕 CityShip",
                 "✅ **CityShip wurde aktiviert!**\n\n" +
-                "💕 **CityShip** — Die Partnerplattform für Paradise City.\n\n" +
+                "💕 **CityShip** — Die Partnerplattform für Los Angeles.\n\n" +
                 "„Diese Seite befindet sich noch im Aufbau.“"))
                 .addComponents(ActionRow.of(Button.link(csLink, "💕 CityShip öffnen")))
                 .setEphemeral(true).queue();

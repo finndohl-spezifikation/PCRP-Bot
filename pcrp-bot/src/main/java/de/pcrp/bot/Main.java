@@ -609,7 +609,7 @@ public class Main {
             String key = "panel-cityship-v1-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.CITY_SHIP_CHANNEL_ID);
             if (ch == null) { log.warn("[CityShip] Panel-Kanal nicht gefunden."); return; }
-            PanelHelper.post(ch, key, "💕 CityShip — Paradise City Roleplay",
+            PanelHelper.post(ch, key, "💕 CityShip — Los Angeles Roleplay",
                 () -> sendCityShipPanel(ch, key));
         }
 
@@ -617,7 +617,7 @@ public class Main {
             String url = webUrl() + "/cityship";
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
-                    .setTitle("💕 CityShip — Paradise City Roleplay")
+                    .setTitle("💕 CityShip — Los Angeles Roleplay")
                     .setDescription(
                         "Finde deinen Partner in Los Angeles mit **CityShip**.\n\n" +
                         "Aktiviere CityShip über **Handy-Zentrale → 📞 Handy Einstellungen**.")
