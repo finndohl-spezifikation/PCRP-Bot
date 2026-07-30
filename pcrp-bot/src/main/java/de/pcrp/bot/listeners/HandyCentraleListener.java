@@ -490,11 +490,6 @@ public class HandyCentraleListener extends ListenerAdapter {
             PhoneManager.Contract oldContract = PhoneManager.getContract(guildId, userId);
             String oldPhone = oldContract != null ? oldContract.phoneNumber : null;
 
-            // Citygram-Daten der alten Nummer dauerhaft löschen
-            if (oldPhone != null) {
-                de.pcrp.bot.web.CityCitygramHandler.deleteCitygramData(guildId, oldPhone);
-            }
-
             PhoneManager.Contract c = PhoneManager.regenerateNumber(guildId, userId);
             if (c == null) {
                 event.replyEmbeds(EmbedFactory.build("🔄 Neue Nummer",

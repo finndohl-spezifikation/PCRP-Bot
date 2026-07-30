@@ -99,41 +99,8 @@ public class WebServer {
         // ── Penthouses (Marketing-Seite im R*-Diamond-Stil) ──────────────
         app.get( "/penthouses",                                   WebServer::servePenthouses);
 
-        // ── Citygram ──────────────────────────────────────────────────────────
+        // ── Citygram (nur statische Seite — Backend pausiert) ────────────────
         app.get( "/citygram",                                    WebServer::serveCitygram);
-        app.get( "/api/citygram/health",                         ctx -> {
-            JsonObject r = new JsonObject();
-            r.addProperty("ok", true);
-            r.addProperty("service", "citygram");
-            ctx.contentType("application/json").result(WebServer.GSON.toJson(r));
-        });
-        app.post("/api/citygram/pin-verify",                     ctx -> CityCitygramHandler.handlePinVerify(ctx));
-        app.post("/api/citygram/auth",                           ctx -> CityCitygramHandler.handleAuth(ctx));
-        app.get( "/api/citygram/me",                             ctx -> CityCitygramHandler.handleGetMe(ctx));
-        app.put( "/api/citygram/profile",                        ctx -> CityCitygramHandler.handleUpdateProfile(ctx));
-        app.get( "/api/citygram/avatar/{phone}",                 ctx -> CityCitygramHandler.handleGetAvatar(ctx));
-        app.get( "/api/citygram/profile/{phone}",                ctx -> CityCitygramHandler.handleGetProfile(ctx));
-        app.get( "/api/citygram/feed",                           ctx -> CityCitygramHandler.handleFeed(ctx));
-        app.get( "/api/citygram/posts/{phone}",                  ctx -> CityCitygramHandler.handleGetUserPosts(ctx));
-        app.post("/api/citygram/post",                           ctx -> CityCitygramHandler.handleCreatePost(ctx));
-        app.delete("/api/citygram/post/{postId}",                ctx -> CityCitygramHandler.handleDeletePost(ctx));
-        app.get( "/api/citygram/img/{postId}",                   ctx -> CityCitygramHandler.handleGetPostImage(ctx));
-        app.post("/api/citygram/like/{postId}",                  ctx -> CityCitygramHandler.handleToggleLike(ctx));
-        app.get( "/api/citygram/comments/{postId}",              ctx -> CityCitygramHandler.handleGetComments(ctx));
-        app.post("/api/citygram/comment/{postId}",               ctx -> CityCitygramHandler.handleAddComment(ctx));
-        app.delete("/api/citygram/comment/{postId}/{commentId}", ctx -> CityCitygramHandler.handleDeleteComment(ctx));
-        app.post("/api/citygram/follow/{phone}",                 ctx -> CityCitygramHandler.handleToggleFollow(ctx));
-        app.get( "/api/citygram/followers/{phone}",              ctx -> CityCitygramHandler.handleGetFollowers(ctx));
-        app.get( "/api/citygram/following/{phone}",              ctx -> CityCitygramHandler.handleGetFollowing(ctx));
-        app.post("/api/citygram/block/{phone}",                  ctx -> CityCitygramHandler.handleToggleBlock(ctx));
-        app.get( "/api/citygram/blocked",                        ctx -> CityCitygramHandler.handleGetBlocked(ctx));
-        app.get( "/api/citygram/follow-requests",                ctx -> CityCitygramHandler.handleGetFollowRequests(ctx));
-        app.post("/api/citygram/follow-requests/{phone}/approve",ctx -> CityCitygramHandler.handleApproveFollowRequest(ctx));
-        app.delete("/api/citygram/follow-requests/{phone}",      ctx -> CityCitygramHandler.handleRejectFollowRequest(ctx));
-        app.get( "/api/citygram/search",                         ctx -> CityCitygramHandler.handleSearch(ctx));
-        app.get( "/api/citygram/stories",                        ctx -> CityCitygramHandler.handleGetStories(ctx));
-        app.post("/api/citygram/story",                          ctx -> CityCitygramHandler.handleCreateStory(ctx));
-        app.get( "/api/citygram/story-img/{storyId}",            ctx -> CityCitygramHandler.handleGetStoryImage(ctx));
 
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
@@ -312,19 +279,11 @@ public class WebServer {
     private static void serveCitygram(Context ctx) {
         try (InputStream is = WebServer.class.getResourceAsStream("/static/citygram.html")) {
             if (is == null) { ctx.status(404).result("Not found"); return; }
-            String base = System.getenv("WEB_URL");
-            if (base == null || base.isBlank()) {
-                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
-                if (!base.startsWith("http")) base = "https://" + base;
-            }
-            base = base.replaceAll("/$", "");
-            log.info("[Citygram] served mit API_BASE = {}", base);
-            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
-                .replace("%%API_BASE%%", base);
+            log.info("[Citygram] Baustellen-Seite ausgeliefert.");
             ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
             ctx.header("Pragma", "no-cache");
             ctx.header("Expires", "0");
-            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
         } catch (Exception e) {
             log.error("[Citygram] Fehler beim Ausliefern.", e);
             ctx.status(500).result("Interner Fehler");
