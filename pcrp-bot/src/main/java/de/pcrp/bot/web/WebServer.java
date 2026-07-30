@@ -99,8 +99,10 @@ public class WebServer {
         // ── Penthouses (Marketing-Seite im R*-Diamond-Stil) ──────────────
         app.get( "/penthouses",                                   WebServer::servePenthouses);
 
-        // ── Citygram (nur statische Seite — Backend pausiert) ────────────────
+        // ── Citygram / CityBuy / CityShip (statische Baustellen-Seiten) ───
         app.get( "/citygram",                                    WebServer::serveCitygram);
+        app.get( "/citybuy",                                     WebServer::serveCityBuy);
+        app.get( "/cityship",                                    WebServer::serveCityShip);
 
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
@@ -286,6 +288,34 @@ public class WebServer {
             ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
         } catch (Exception e) {
             log.error("[Citygram] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    private static void serveCityBuy(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/citybuy.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            log.info("[CityBuy] Baustellen-Seite ausgeliefert.");
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            log.error("[CityBuy] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    private static void serveCityShip(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/cityship.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            log.info("[CityShip] Baustellen-Seite ausgeliefert.");
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            log.error("[CityShip] Fehler beim Ausliefern.", e);
             ctx.status(500).result("Interner Fehler");
         }
     }

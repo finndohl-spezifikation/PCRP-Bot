@@ -164,9 +164,13 @@ public final class LoggingConfig {
     /** Zahlen-Counter-Kanal. */
     public static final long COUNTER_CHANNEL_ID      = 1529636539645034728L;
 
-    public static final long CITY_CHAT_CHANNEL_ID   = 1529636592824614933L;
+    public static final long CITY_CHAT_CHANNEL_ID      = 1529636592824614933L;
 
-    public static final long CITYGRAM_CHANNEL_ID    = 1529636589209387161L;
+    public static final long CITYGRAM_CHANNEL_ID       = 1529636589209387161L;
+
+    public static final long CITY_BUY_CHANNEL_ID       = 1529636590161362976L;
+
+    public static final long CITY_SHIP_CHANNEL_ID      = 1529636591750877306L;
 
     /**
      * Zahlen-Rang-Rolle (vergeben wenn jemand 100 zählt).

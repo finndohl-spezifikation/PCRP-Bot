@@ -196,9 +196,15 @@ public class HandyCentraleListener extends ListenerAdapter {
         boolean ccActive  = cityChatRole != null && member.getRoles().contains(cityChatRole);
         Role citygramRole = guild.getRoleById(CITYGRAM_ROLE_ID);
         boolean cgActive  = citygramRole != null && member.getRoles().contains(citygramRole);
+        Role cityBuyRole  = guild.getRoleById(CITY_BUY_ROLE_ID);
+        boolean cbActive  = cityBuyRole != null && member.getRoles().contains(cityBuyRole);
+        Role cityShipRole = guild.getRoleById(CITY_SHIP_ROLE_ID);
+        boolean csActive  = cityShipRole != null && member.getRoles().contains(cityShipRole);
 
         String ccLine = ccActive ? "✅ **City Chat:** aktiviert" : "❌ **City Chat:** nicht aktiviert";
         String cgLine = cgActive ? "✅ **Citygram:** aktiviert"  : "❌ **Citygram:** nicht aktiviert";
+        String cbLine = cbActive ? "✅ **CityBuy:** aktiviert"   : "❌ **CityBuy:** nicht aktiviert";
+        String csLine = csActive ? "✅ **CityShip:** aktiviert"  : "❌ **CityShip:** nicht aktiviert";
 
         java.util.List<net.dv8tion.jda.api.interactions.components.ActionRow> rows = new java.util.ArrayList<>();
         if (!ccActive) {
@@ -206,6 +212,12 @@ public class HandyCentraleListener extends ListenerAdapter {
         }
         if (!cgActive) {
             rows.add(ActionRow.of(Button.success("handy:citygram_activate", "📸 Citygram aktivieren")));
+        }
+        if (!cbActive) {
+            rows.add(ActionRow.of(Button.success("handy:citybuy_activate", "🏪 CityBuy aktivieren")));
+        }
+        if (!csActive) {
+            rows.add(ActionRow.of(Button.success("handy:cityship_activate", "💕 CityShip aktivieren")));
         }
         rows.add(ActionRow.of(Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")));
 
@@ -217,7 +229,9 @@ public class HandyCentraleListener extends ListenerAdapter {
                     "**Rufnummer:** `" + c.phoneNumber + "`\n" +                    "🔑 **Safe-PIN:** `" + c.safePin + "`\n" +
                     "⚠️ **Gebe deine Safe-PIN niemals weiter!**\n\n" +
                     ccLine + "\n" +
-                    cgLine + "\n\n" +
+                    cgLine + "\n" +
+                    cbLine + "\n" +
+                    csLine + "\n\n" +
                     "🔄 Neue Nummer kostet **500$** (Service-Gebühr)")
                     .build()
         ).addComponents(rows).setEphemeral(true).queue();
@@ -225,6 +239,8 @@ public class HandyCentraleListener extends ListenerAdapter {
 
     private static final long CITY_CHAT_ROLE_ID  = 1529636364201627660L;
     private static final long CITYGRAM_ROLE_ID   = 1529636363119624293L;
+    private static final long CITY_BUY_ROLE_ID   = 1529636361941028996L;
+    private static final long CITY_SHIP_ROLE_ID  = 1529636360883802122L;
 
     private static String webUrl() {
         String url = System.getenv("WEB_URL");
@@ -441,6 +457,64 @@ public class HandyCentraleListener extends ListenerAdapter {
                 "**Safe-PIN:** `" + cg.safePin + "`\n\n" +
                 "⚠️ **Gebe deine Safe-PIN niemals weiter!**"))
                 .addComponents(ActionRow.of(Button.link(cgLink, "📸 Citygram öffnen")))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        if ("handy:citybuy_activate".equals(cid)) {
+            Guild guild    = event.getGuild();
+            Member member  = event.getMember();
+            String userId  = event.getUser().getId();
+            String guildId = event.getGuild().getId();
+            PhoneManager.Contract cb = PhoneManager.getContract(guildId, userId);
+            if (cb == null) {
+                event.replyEmbeds(EmbedFactory.build("🏪 CityBuy",
+                    "❌ Du hast noch keine **Rufnummer**.\nSchließe zuerst einen Vertrag ab."))
+                    .setEphemeral(true).queue();
+                return;
+            }
+            Role cbRole = guild.getRoleById(CITY_BUY_ROLE_ID);
+            if (cbRole != null && member != null && !member.getRoles().contains(cbRole)) {
+                guild.addRoleToMember(member, cbRole).queue(
+                    ok  -> log.info("[CityBuy] Rolle an {} vergeben.", userId),
+                    err -> log.warn("[CityBuy] Rolle Fehler: {}", err.getMessage())
+                );
+            }
+            String cbLink = webUrl() + "/citybuy";
+            event.replyEmbeds(EmbedFactory.build("🏪 CityBuy",
+                "✅ **CityBuy wurde aktiviert!**\n\n" +
+                "🏪 **CityBuy** — Das Kauf- und Verkaufsportal für Paradise City.\n\n" +
+                "„Diese Seite befindet sich noch im Aufbau.“"))
+                .addComponents(ActionRow.of(Button.link(cbLink, "🏪 CityBuy öffnen")))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        if ("handy:cityship_activate".equals(cid)) {
+            Guild guild    = event.getGuild();
+            Member member  = event.getMember();
+            String userId  = event.getUser().getId();
+            String guildId = event.getGuild().getId();
+            PhoneManager.Contract cs = PhoneManager.getContract(guildId, userId);
+            if (cs == null) {
+                event.replyEmbeds(EmbedFactory.build("💕 CityShip",
+                    "❌ Du hast noch keine **Rufnummer**.\nSchließe zuerst einen Vertrag ab."))
+                    .setEphemeral(true).queue();
+                return;
+            }
+            Role csRole = guild.getRoleById(CITY_SHIP_ROLE_ID);
+            if (csRole != null && member != null && !member.getRoles().contains(csRole)) {
+                guild.addRoleToMember(member, csRole).queue(
+                    ok  -> log.info("[CityShip] Rolle an {} vergeben.", userId),
+                    err -> log.warn("[CityShip] Rolle Fehler: {}", err.getMessage())
+                );
+            }
+            String csLink = webUrl() + "/cityship";
+            event.replyEmbeds(EmbedFactory.build("💕 CityShip",
+                "✅ **CityShip wurde aktiviert!**\n\n" +
+                "💕 **CityShip** — Die Partnerplattform für Paradise City.\n\n" +
+                "„Diese Seite befindet sich noch im Aufbau.“"))
+                .addComponents(ActionRow.of(Button.link(csLink, "💕 CityShip öffnen")))
                 .setEphemeral(true).queue();
             return;
         }

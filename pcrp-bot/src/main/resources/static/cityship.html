@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e91e63">
+<title>CityShip — Im Aufbau</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
+  background:#0a0a0f;
+  color:#fff;
+}
+
+/* ── Hintergrund ─────────────────────────────────── */
+.bg-grid{
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,149,246,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,149,246,.04) 1px,transparent 1px);
+  background-size:60px 60px;
+  z-index:0;
+}
+
+/* ── Wrapper ─────────────────────────────────────── */
+.wrap{
+  position:relative;z-index:1;
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:2rem;text-align:center;
+  gap:.75rem;
+}
+
+/* ── Bauhelm-Icon (animiert) ─────────────────────── */
+.helmet{
+  font-size:5rem;
+  animation:helmBounce 2.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 30px rgba(0,149,246,.25));
+  user-select:none;
+}
+@keyframes helmBounce{
+  0%,100%{transform:translateY(0) rotate(-3deg)}
+  50%{transform:translateY(-18px) rotate(3deg)}
+}
+
+/* ── Loader-Ring ─────────────────────────────────── */
+.ring{margin:.5rem 0 1rem}
+.ring svg{width:60px;height:60px;animation:spin 1.8s linear infinite}
+.ring circle{
+  fill:none;stroke:#0095f6;stroke-width:3;
+  stroke-dasharray:160;stroke-dashoffset:160;
+  animation:dash 1.8s ease-in-out infinite;
+  transform-origin:50% 50%;
+  stroke-linecap:round;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes dash{
+  0%{stroke-dashoffset:160}
+  50%{stroke-dashoffset:40;transform:rotate(90deg)}
+  100%{stroke-dashoffset:160;transform:rotate(360deg)}
+}
+
+/* ── Text ────────────────────────────────────────── */
+h1{
+  font-size:2rem;font-weight:800;
+  background:linear-gradient(135deg,#e91e63,#ff6090,#e91e63);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:-.5px;
+  animation:gradientShift 3s ease-in-out infinite;
+  background-size:200% 200%;
+}
+@keyframes gradientShift{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+
+p{
+  color:rgba(255,255,255,.5);
+  font-size:.95rem;line-height:1.6;
+  max-width:400px;
+  margin:.25rem 0;
+}
+p strong{color:rgba(255,255,255,.7)}
+
+/* ── Status-Badge ────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,149,246,.1);
+  border:1px solid rgba(0,149,246,.2);
+  border-radius:20px;
+  padding:6px 16px 6px 10px;
+  font-size:.8rem;color:rgba(255,255,255,.6);
+  margin-top:.25rem;
+}
+.badge .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#00c853;
+  animation:pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;box-shadow:0 0 4px #00c853}
+  50%{opacity:.4;box-shadow:0 0 0 #00c853}
+}
+
+/* ── Pulsierende Ringe (Deko) ────────────────────── */
+.orbits{position:relative;width:120px;height:120px;margin:0 auto}
+.orbits .o{
+  position:absolute;top:50%;left:50%;border-radius:50%;
+  border:1px solid rgba(0,149,246,.08);
+  animation:orbitPulse 3s ease-in-out infinite;
+}
+.orbits .o:nth-child(1){width:80px;height:80px;margin:-40px 0 0 -40px;animation-delay:0s}
+.orbits .o:nth-child(2){width:110px;height:110px;margin:-55px 0 0 -55px;animation-delay:.4s}
+.orbits .o:nth-child(3){width:140px;height:140px;margin:-70px 0 0 -70px;animation-delay:.8s}
+@keyframes orbitPulse{
+  0%,100%{transform:scale(.92);opacity:.3}
+  50%{transform:scale(1.08);opacity:.7}
+}
+
+/* ── Footer ──────────────────────────────────────── */
+.footer{
+  position:fixed;bottom:2rem;
+  font-size:.75rem;color:rgba(255,255,255,.2);
+  letter-spacing:.5px;z-index:1;
+}
+
+/* ── Responsive ──────────────────────────────────── */
+@media(max-width:480px){
+  .helmet{font-size:3.8rem}
+  h1{font-size:1.5rem}
+  p{font-size:.85rem}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<div class="wrap">
+  <div class="orbits">
+    <div class="o"></div>
+    <div class="o"></div>
+    <div class="o"></div>
+    <div class="helmet">💕</div>
+  </div>
+
+  <h1>CityShip</h1>
+
+  <div class="ring">
+    <svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="26"/></svg>
+  </div>
+
+  <div class="badge">
+    <span class="dot"></span>
+    Im Aufbau
+  </div>
+
+  <p>
+    <strong>CityShip ist noch im Aufbau.</strong><br>
+    Unsere Partnerplattform wird bald<br>
+    für dich bereit sein.
+  </p>
+
+  <p style="font-size:.82rem;color:rgba(255,255,255,.35);max-width:320px">
+    Sobald es soweit ist, erfährst du es rechtzeitig<br>
+    über die offiziellen Kanäle.
+  </p>
+</div>
+
+<div class="footer">Paradise City Roleplay</div>
+
+</body>
+</html>

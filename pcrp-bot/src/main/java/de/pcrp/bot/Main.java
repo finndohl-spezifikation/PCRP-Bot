@@ -188,6 +188,8 @@ public class Main {
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);
                 postCitygramPanel(guild);
+                postCityBuyPanel(guild);
+                postCityShipPanel(guild);
                 postPenthousesAnnouncement(guild);
                 postPremiumDeluxeAnnouncement(guild);
                 postChangelog(guild);
@@ -571,6 +573,60 @@ public class Main {
             )).queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
                 err -> { log.error("[Citygram] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+            );
+        }
+
+        // ── CityBuy Panel ──────────────────────────────────────────────────────
+
+        private static void postCityBuyPanel(Guild guild) {
+            String key = "panel-citybuy-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.CITY_BUY_CHANNEL_ID);
+            if (ch == null) { log.warn("[CityBuy] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "🏪 CityBuy — Paradise City Roleplay",
+                () -> sendCityBuyPanel(ch, key));
+        }
+
+        private static void sendCityBuyPanel(TextChannel ch, String key) {
+            String url = webUrl() + "/citybuy";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🏪 CityBuy — Paradise City Roleplay")
+                    .setDescription(
+                        "Kaufe und verkaufe mit der ganzen Stadt im **CityBuy**.\n\n" +
+                        "Aktiviere CityBuy über **Handy-Zentrale → 📞 Handy Einstellungen**.")
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "🏪 CityBuy öffnen")
+            )).queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[CityBuy] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+            );
+        }
+
+        // ── CityShip Panel ──────────────────────────────────────────────────────
+
+        private static void postCityShipPanel(Guild guild) {
+            String key = "panel-cityship-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.CITY_SHIP_CHANNEL_ID);
+            if (ch == null) { log.warn("[CityShip] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "💕 CityShip — Paradise City Roleplay",
+                () -> sendCityShipPanel(ch, key));
+        }
+
+        private static void sendCityShipPanel(TextChannel ch, String key) {
+            String url = webUrl() + "/cityship";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("💕 CityShip — Paradise City Roleplay")
+                    .setDescription(
+                        "Finde deinen Partner in Paradise City mit **CityShip**.\n\n" +
+                        "Aktiviere CityShip über **Handy-Zentrale → 📞 Handy Einstellungen**.")
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "💕 CityShip öffnen")
+            )).queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[CityShip] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
             );
         }
 
