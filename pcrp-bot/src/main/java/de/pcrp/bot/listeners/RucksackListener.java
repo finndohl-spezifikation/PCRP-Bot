@@ -17,6 +17,7 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class RucksackListener extends ListenerAdapter {
@@ -29,6 +30,18 @@ public class RucksackListener extends ListenerAdapter {
     public void onButtonInteraction(ButtonInteractionEvent event) {
         String id = event.getComponentId();
 
+        // Paginierung: rucksack-own-page:<userId>:<page>
+        if (id.startsWith("rucksack-own-page:")) {
+            handleOwnRucksackPage(event);
+            return;
+        }
+
+        // Paginierung für fremde Rucksäcke: rucksack-other-page:<userId>:<page>
+        if (id.startsWith("rucksack-other-page:")) {
+            handleOtherRucksackPage(event);
+            return;
+        }
+
         if (id.startsWith("rucksack-unhide-prompt:")) {
             handleUnhidePrompt(event);
             return;
@@ -38,11 +51,10 @@ public class RucksackListener extends ListenerAdapter {
             case "rucksack-open"     -> handleOwnRucksack(event);
             case "rucksack-other"    -> handleOtherRucksackPrompt(event);
             case "rucksack-transfer" -> handleTransferUserPrompt(event);
-            case "rucksack-garage"   -> handleGarageOpen(event);
         }
     }
 
-    /** Eigenen Rucksack — ephemeral mit "Item Übergeben"-Button und optional "Aus Versteck holen". */
+    /** Eigenen Rucksack — Seite 1, ephemeral, mit "Item Übergeben"-Button und optional "Aus Versteck holen". */
     private void handleOwnRucksack(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
         String guildId = event.getGuild().getId();
@@ -51,60 +63,77 @@ public class RucksackListener extends ListenerAdapter {
             ? event.getMember().getEffectiveName()
             : event.getUser().getName();
 
-        var hiddenItems = InventoryManager.getHiddenItems(guildId, userId);
-        ActionRow row;
-        if (hiddenItems.isEmpty()) {
-            row = ActionRow.of(
-                Button.primary("rucksack-transfer", "📦 Item Übergeben"),
-                Button.secondary("rucksack-garage", "🚘 Garage öffnen"));
-        } else {
-            row = ActionRow.of(
-                Button.primary("rucksack-transfer", "📦 Item Übergeben"),
-                Button.secondary("rucksack-garage", "🚘 Garage öffnen"),
-                Button.secondary("rucksack-unhide-prompt:" + userId,
-                    "🗝️ Aus Versteck holen (" + hiddenItems.size() + ")"));
-        }
-
-        event.replyEmbeds(InventoryManager.buildEmbedWithHidden(guildId, userId, name))
-            .addComponents(row)
-            .setEphemeral(true)
-            .queue();
+        sendOwnRucksackPage(event, guildId, userId, name, 1, false);
     }
 
-    /** 🚘 Garage öffnen — erzeugt eine Phone-Session für den User und liefert einen Login-Link zur PD-Web-Garage. */
-    private void handleGarageOpen(ButtonInteractionEvent event) {
+    /** Seite eines eigenen Rucksacks anzeigen (über Paginierungs-Button). */
+    private void handleOwnRucksackPage(ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
+        String[] parts = event.getComponentId().split(":");
+        if (parts.length < 3) return;
+        String userId  = parts[1];
+        int page       = Integer.parseInt(parts[2]);
         String guildId = event.getGuild().getId();
-        String userId  = event.getUser().getId();
+        String name    = event.getMember() != null
+            ? event.getMember().getEffectiveName()
+            : event.getUser().getName();
 
-        var contract = PhoneManager.getContract(guildId, userId);
-        if (contract == null || contract.phoneNumber == null || contract.phoneNumber.isBlank()) {
-            event.replyEmbeds(EmbedFactory.build("🚘 Garage",
-                "Du brauchst einen aktiven Handy-Vertrag (City Chat / City Phone), um deine Garage zu öffnen.\n\n" +
-                "Erstelle dir zuerst ein Handy über `/handy-erstellen`."))
+        // Prüfen ob der Button dem richtigen User gehört
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Diese Seite gehört nicht dir."))
                 .setEphemeral(true).queue();
             return;
         }
 
-        String token = PhoneManager.createSession(guildId, contract.phoneNumber);
-        if (token == null || token.isBlank()) {
-            event.replyEmbeds(EmbedFactory.build("❌ Fehler",
-                "Session konnte nicht erstellt werden — versuche es in einem Moment erneut."))
-                .setEphemeral(true).queue();
-            return;
+        sendOwnRucksackPage(event, guildId, userId, name, page, true);
+    }
+
+    /** Hilfsmethode: Eigenen Rucksack mit Page-Buttons senden. */
+    private void sendOwnRucksackPage(ButtonInteractionEvent event, String guildId, String userId,
+                                      String name, int page, boolean edit) {
+        var result = InventoryManager.buildEmbedWithHiddenPaged(guildId, userId, name, page);
+
+        var hiddenItems = InventoryManager.getHiddenItems(guildId, userId);
+        boolean hasHidden = !hiddenItems.isEmpty();
+
+        // ActionRow 1: Aktionen
+        List<Button> actionButtons = new ArrayList<>();
+        actionButtons.add(Button.primary("rucksack-transfer", "📦 Item Übergeben"));
+        if (hasHidden) {
+            actionButtons.add(Button.secondary("rucksack-unhide-prompt:" + userId,
+                "🗝️ Aus Versteck holen (" + hiddenItems.size() + ")"));
         }
+        ActionRow actionRow = ActionRow.of(actionButtons);
 
-        String base = System.getenv().getOrDefault("WEB_URL", "");
-        if (base.isBlank()) base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", "");
-        if (!base.isBlank() && !base.startsWith("http")) base = "https://" + base;
-        String url = base + "/premium-motorsport?token=" + token;
+        // ActionRow 2: Paginierung (nur bei mehreren Seiten)
+        ActionRow pageRow = buildPageRow("rucksack-own-page", userId, result.totalPages(), result.currentPage());
 
-        event.replyEmbeds(EmbedFactory.build("🚘 Deine Garage",
-            "Klicke unten auf den Button, um deine Garage auf der **Premium Deluxe Motorsport** Webseite zu öffnen.\n\n" +
-            "Dort findest du alle Fahrzeuge, die du bei uns gekauft hast — und kannst sie an andere Spieler übergeben."))
-            .addActionRow(net.dv8tion.jda.api.interactions.components.buttons.Button.link(url, "🚘 Garage öffnen"))
-            .setEphemeral(true)
-            .queue();
+        if (edit) {
+            // Bestehende Nachricht bearbeiten
+            event.editMessageEmbeds(result.embed())
+                .setComponents(pageRow != null ? List.of(actionRow, pageRow) : List.of(actionRow))
+                .queue();
+        } else {
+            // Neue Nachricht
+            event.replyEmbeds(result.embed())
+                .addComponents(pageRow != null ? List.of(actionRow, pageRow) : List.of(actionRow))
+                .setEphemeral(true)
+                .queue();
+        }
+    }
+
+    /** Baut die Paginierungs-Buttons (← / Seite / →). */
+    private ActionRow buildPageRow(String prefix, String userId, int totalPages, int currentPage) {
+        if (totalPages <= 1) return null;
+        List<Button> pageBtns = new ArrayList<>();
+        if (currentPage > 1) {
+            pageBtns.add(Button.primary(prefix + ":" + userId + ":" + (currentPage - 1), "◀ Zurück"));
+        }
+        pageBtns.add(Button.secondary(prefix + ":" + userId + ":current", "📄 " + currentPage + "/" + totalPages).asDisabled());
+        if (currentPage < totalPages) {
+            pageBtns.add(Button.primary(prefix + ":" + userId + ":" + (currentPage + 1), "Weiter ▶"));
+        }
+        return ActionRow.of(pageBtns);
     }
 
     /** "Aus Versteck holen" — öffnet eine Auswahl mit den aktuell versteckten Items. */
@@ -194,7 +223,7 @@ public class RucksackListener extends ListenerAdapter {
         if (id.startsWith("rucksack-unhide-select:")) {
             handleUnhideExecute(event);
         }
-        // IDs der CommandListener-Hierachie (lizenzen/verbrauchen/verstecken) laufen separat
+        // IDs der CommandListener-Hierarchie (lizenzen/verbrauchen/verstecken) laufen separat
     }
 
     /** Auswahl-Ende: setze hidden=false für die gewählten Items, KEIN Info-Embed im Kanal. */
@@ -215,16 +244,16 @@ public class RucksackListener extends ListenerAdapter {
         StringBuilder sb = new StringBuilder();
         for (String name : picked) {
             InventoryManager.setHidden(guildId, userId, name, false);
-            sb.append("• **").append(name).append("**\n");
+            sb.append("• **").append(name).append("**\\n");
         }
 
         event.replyEmbeds(EmbedFactory.build(
             "🗝️ Wieder im Inventar",
-            "Folgende Items sind wieder normal sichtbar:\n\n" + sb))
+            "Folgende Items sind wieder normal sichtbar:\\n\\n" + sb))
             .setEphemeral(true).queue();
     }
 
-    /** Nach Spieler-Auswahl: Fremden Rucksack anzeigen. */
+    /** Nach Spieler-Auswahl: Fremden Rucksack anzeigen (Seite 1, ohne Verstecktes). */
     private void handleOtherRucksackView(EntitySelectInteractionEvent event) {
         if (event.getGuild() == null) return;
         List<Member> members = event.getMentions().getMembers();
@@ -235,9 +264,45 @@ public class RucksackListener extends ListenerAdapter {
         }
         Member target = members.get(0);
         String guildId = event.getGuild().getId();
-        event.replyEmbeds(InventoryManager.buildEmbed(guildId, target.getId(), target.getEffectiveName()))
-            .setEphemeral(true)
-            .queue();
+
+        var result = InventoryManager.buildEmbedPaged(guildId, target.getId(), target.getEffectiveName(), 1);
+
+        if (result.totalPages() > 1) {
+            ActionRow pageRow = buildPageRow("rucksack-other-page", target.getId(),
+                result.totalPages(), result.currentPage());
+            event.replyEmbeds(result.embed())
+                .addComponents(pageRow)
+                .setEphemeral(true)
+                .queue();
+        } else {
+            event.replyEmbeds(result.embed())
+                .setEphemeral(true)
+                .queue();
+        }
+    }
+
+    /** Paginierung für fremde Rucksäcke. */
+    private void handleOtherRucksackPage(ButtonInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String[] parts = event.getComponentId().split(":");
+        if (parts.length < 3) return;
+        String targetId = parts[1];
+        int page        = Integer.parseInt(parts[2]);
+        String guildId  = event.getGuild().getId();
+
+        // Ziel-Member holen
+        event.getGuild().retrieveMemberById(targetId).queue(target -> {
+            var result = InventoryManager.buildEmbedPaged(guildId, target.getId(), target.getEffectiveName(), page);
+            ActionRow pageRow = buildPageRow("rucksack-other-page", target.getId(),
+                result.totalPages(), result.currentPage());
+
+            event.editMessageEmbeds(result.embed())
+                .setComponents(pageRow != null ? List.of(pageRow) : List.of())
+                .queue();
+        }, err -> {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler", "Spieler nicht mehr auf dem Server."))
+                .setEphemeral(true).queue();
+        });
     }
 
     /** Nach Empfänger-Auswahl: Modal mit Items-Feld öffnen. */
@@ -262,7 +327,7 @@ public class RucksackListener extends ListenerAdapter {
         Modal modal = Modal.create("rucksack-transfer-items:" + target.getId(), "Items übergeben an " + target.getEffectiveName())
             .addComponents(ActionRow.of(
                 TextInput.create("items", "Items (Format: ItemName: Menge)", TextInputStyle.PARAGRAPH)
-                    .setPlaceholder("Bargeld: 500\nWaffe: 1\nDrogen: 10")
+                    .setPlaceholder("Bargeld: 500\\nWaffe: 1\\nDrogen: 10")
                     .setRequired(true)
                     .build()
             )).build();
@@ -285,7 +350,7 @@ public class RucksackListener extends ListenerAdapter {
         String guildId = event.getGuild().getId();
         String fromId  = event.getUser().getId();
         String itemsRaw = event.getValue("items") == null ? ""
-            : event.getValue("items").getAsString().trim().replace("\n", ",");
+            : event.getValue("items").getAsString().trim().replace("\\n", ",");
 
         List<InventoryManager.Item> transfers;
         try { transfers = InventoryManager.parseTransferInput(itemsRaw); }
@@ -308,16 +373,16 @@ public class RucksackListener extends ListenerAdapter {
 
             StringBuilder sb = new StringBuilder();
             for (InventoryManager.Item t : finalTransfers)
-                sb.append("• **").append(t.name).append("** × ").append(t.quantity).append("\n");
+                sb.append("• **").append(t.name).append("** × ").append(t.quantity).append("\\n");
 
             event.replyEmbeds(EmbedFactory.build("✅ Items übergeben",
-                "Du hast folgende Items an **" + toMember.getEffectiveName() + "** übergeben:\n\n" + sb))
+                "Du hast folgende Items an **" + toMember.getEffectiveName() + "** übergeben:\\n\\n" + sb))
                 .setEphemeral(true).queue();
 
             BotLogger.tryDm(toMember.getUser(), EmbedFactory.build(
                 "📦 Items erhalten",
                 "**" + (event.getMember() != null ? event.getMember().getEffectiveName() : event.getUser().getName()) +
-                "** hat dir folgende Items übergeben:\n\n" + sb));
+                "** hat dir folgende Items übergeben:\\n\\n" + sb));
 
         }, err -> event.replyEmbeds(EmbedFactory.build("❌ Nicht gefunden",
             "Der ausgewählte Spieler ist nicht mehr auf dem Server."))

@@ -176,11 +176,21 @@ public final class InventoryManager {
      * mit Hinweis „⬇ Item Versteckt". Der bestehende {@link #buildEmbed} bleibt unverändert.
      */
     public static MessageEmbed buildEmbedWithHidden(String guildId, String userId, String displayName) {
+        return buildEmbedWithHiddenPaged(guildId, userId, displayName, 1).embed();
+    }
+
+    /** Ergebnis einer paginierten Embed-Erstellung. */
+    public static record PagedResult(MessageEmbed embed, int totalPages, int currentPage) {}
+
+    private static final int ITEMS_PER_PAGE = 10;
+
+    /**
+     * Erweiterte Embed-Variante mit Paginierung: max 10 Items pro Seite.
+     * Gibt das Embed + Seitenzahlen zurück.
+     */
+    public static PagedResult buildEmbedWithHiddenPaged(String guildId, String userId, String displayName, int page) {
         List<Item> inv = getInventory(guildId, userId);
         inv.removeIf(it -> nameMatches(it.name, "Bargeld"));
-
-        EmbedBuilder eb = EmbedFactory.create()
-            .setTitle("🎒 Rucksack — " + displayName);
 
         List<Item> visible = new ArrayList<>();
         List<Item> hidden  = new ArrayList<>();
@@ -188,32 +198,112 @@ public final class InventoryManager {
             (it.hidden ? hidden : visible).add(it);
         }
 
+        EmbedBuilder eb = EmbedFactory.create()
+            .setTitle("🎒 Rucksack — " + displayName);
+
         if (visible.isEmpty() && hidden.isEmpty()) {
             eb.setDescription("Dein Rucksack ist leer.");
-            return eb.build();
+            return new PagedResult(eb.build(), 0, 0);
         }
 
+        int totalVisible = visible.size();
+        int totalHidden  = hidden.size();
+        int totalItems   = totalVisible + totalHidden;
+        int totalPages   = Math.max(1, (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE));
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+
+        // Sichtbare und versteckte Items zu einer Liste zusammenführen
+        List<ItemLine> allLines = new ArrayList<>();
+        for (Item it : visible) {
+            allLines.add(new ItemLine(it.name, it.quantity, false));
+        }
+        for (Item it : hidden) {
+            allLines.add(new ItemLine(it.name, it.quantity, true));
+        }
+
+        int start = (page - 1) * ITEMS_PER_PAGE;
+        int end = Math.min(start + ITEMS_PER_PAGE, allLines.size());
+        List<ItemLine> pageLines = allLines.subList(start, end);
+
         StringBuilder sb = new StringBuilder();
-        if (visible.isEmpty()) {
-            sb.append("_Keine sichtbaren Items._\n");
-        } else {
-            sb.append("**Sichtbar:**\n");
-            for (Item it : visible) {
-                sb.append("• **").append(it.name).append("** × ").append(it.quantity).append("\n");
+        boolean hasVisibleOnPage = false;
+        boolean hasHiddenOnPage = false;
+        for (ItemLine line : pageLines) {
+            if (line.hidden) hasHiddenOnPage = true;
+            else hasVisibleOnPage = true;
+        }
+
+        if (hasVisibleOnPage) {
+            if (page == 1 || (start < totalVisible)) {
+                sb.append("**Sichtbar:**\n");
+            }
+            for (ItemLine line : pageLines) {
+                if (!line.hidden) {
+                    sb.append("• **").append(line.name).append("** × ").append(line.quantity).append("\n");
+                }
             }
         }
 
-        if (!hidden.isEmpty()) {
+        if (hasHiddenOnPage) {
             sb.append("\n**Versteckt:**\n");
-            for (Item it : hidden) {
-                sb.append("• ~~").append(it.name).append("~~ × ").append(it.quantity).append("\n");
-                sb.append("  ⬇ Item Versteckt\n");
+            for (ItemLine line : pageLines) {
+                if (line.hidden) {
+                    sb.append("• ~~").append(line.name).append("~~ × ").append(line.quantity).append("\n");
+                    sb.append("  ⬇ Item Versteckt\n");
+                }
             }
         }
 
         eb.setDescription(sb.toString());
-        return eb.build();
+        if (totalPages > 1) {
+            eb.setFooter("Seite " + page + " von " + totalPages + " · " + totalItems + " Items");
+        }
+        return new PagedResult(eb.build(), totalPages, page);
     }
+
+    /**
+     * Paginierte Version von {@link #buildEmbed}. Zeigt sichtbare Items (ohne Versteckt-Kategorie).
+     */
+    public static PagedResult buildEmbedPaged(String guildId, String userId, String displayName, int page) {
+        List<Item> inv = getInventory(guildId, userId);
+        inv.removeIf(it -> nameMatches(it.name, "Bargeld"));
+
+        EmbedBuilder eb = EmbedFactory.create()
+            .setTitle("🎒 Rucksack — " + displayName);
+
+        List<Item> visible = new ArrayList<>();
+        for (Item it : inv) {
+            if (!it.hidden) visible.add(it);
+        }
+
+        if (visible.isEmpty()) {
+            eb.setDescription("Der Rucksack ist leer.");
+            return new PagedResult(eb.build(), 0, 0);
+        }
+
+        int totalItems = visible.size();
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE));
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+
+        int start = (page - 1) * ITEMS_PER_PAGE;
+        int end = Math.min(start + ITEMS_PER_PAGE, visible.size());
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            Item it = visible.get(i);
+            sb.append("• **").append(it.name).append("** × ").append(it.quantity).append("\n");
+        }
+
+        eb.setDescription(sb.toString());
+        if (totalPages > 1) {
+            eb.setFooter("Seite " + page + " von " + totalPages + " · " + totalItems + " Items");
+        }
+        return new PagedResult(eb.build(), totalPages, page);
+    }
+
+    private static record ItemLine(String name, int quantity, boolean hidden) {}
 
     /**
      * Liefert nur die aktuell versteckten Items eines Spielers (mit quantity > 0).
