@@ -415,8 +415,11 @@ public class BankListener extends ListenerAdapter {
             "💳 **Einzahlen** — Bargeld auf das Konto einzahlen\n" +
             "💵 **Auszahlen** — Geld abheben und als Bargeld erhalten\n" +
             "📤 **Überweisen** — Geld an andere Spieler senden\n\n" +
-            "Klicke auf **Online Banking**, um dein Konto zu öffnen."))
-            .addActionRow(Button.primary("bank-open", "🏦 Online Banking"))
+            "Klicke auf **Online Banking**, um dein Konto zu öffnen.\n" +
+            "Oder prüfe deine **offenen Rechnungen** direkt."))
+            .addActionRow(
+                Button.primary("bank-open", "🏦 Online Banking"),
+                Button.secondary("bank-btn-bills", "🧾 Offene Rechnungen"))
             .queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
                 err -> { log.error("[Bank] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
