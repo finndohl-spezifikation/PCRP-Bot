@@ -347,83 +347,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty-msg{text-align:center;color:var(--text3);padding:60px 20px;font-size:14px}
 
-/* ── Desktop Sidebar (nur auf Desktop sichtbar) ── */
-.desktop-only{display:none}
-#desktop-nav{position:fixed;top:0;left:0;bottom:0;width:220px;
-  background:var(--surface);border-right:1px solid var(--border);
-  display:none;flex-direction:column;z-index:50;padding:12px 10px 20px}
-.dn-logo{font-size:22px;font-weight:700;padding:16px 12px 24px;
-  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text}
-.dn-items{flex:1;display:flex;flex-direction:column;gap:4px}
-.dn-items button{display:flex;align-items:center;gap:14px;padding:10px 12px;
-  border-radius:8px;border:none;background:none;color:var(--text);
-  font-size:15px;cursor:pointer;transition:background .15s;text-align:left}
-.dn-items button:hover{background:rgba(255,255,255,.08)}
-.dn-items button.active{font-weight:700}
-.dn-items button svg{width:24px;height:24px;flex-shrink:0;
-  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.dn-items button.active svg{stroke:var(--text)}
-.dn-label{font-size:15px}
-.dn-bottom{border-top:1px solid var(--border);padding-top:12px}
-.dn-user{display:flex;align-items:center;gap:10px;padding:8px 10px;
-  border-radius:8px;cursor:pointer;transition:background .15s}
-.dn-user:hover{background:rgba(255,255,255,.08)}
-.dn-user-av{width:32px;height:32px;border-radius:50%;background:var(--accent);
-  display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:13px;color:#fff;flex-shrink:0;overflow:hidden}
-.dn-user-av img{width:100%;height:100%;object-fit:cover}
-.dn-user-info{flex:1;min-width:0}
-.dn-user-name{font-size:13px;font-weight:600;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
-.dn-user-phone{font-size:11px;color:var(--text3);overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
-
-/* ── Desktop responsive ── */
+/* ── Desktop: gleiches Layout wie Mobile, nur ohne Safe-Area ── */
 @media(min-width:768px){
   body{background:#121212}
-  
-  /* App: Vollbild (ohne !important → JS steuert display per Inline-Style) */
-  #app{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100dvh;display:flex}
-  
-  /* Bottom Nav ausblenden */
-  #nav{display:none!important}
-  
-  /* Desktop Sidebar einblenden */
-  .desktop-only{display:flex!important}
-  #desktop-nav{display:flex!important}
-  
-  /* Pages: mit Links-Margin für Sidebar, scrollbar, kein Mobile-Padding */
-  .page{position:absolute;left:220px;top:0;right:0;bottom:0;
-    overflow-y:auto;overflow-x:hidden;width:auto;height:auto;
-    padding-bottom:0;-webkit-overflow-scrolling:touch}
-  .page .hdr{display:none} /* Mobile Header ausblenden */
-  
-  /* Feed-Posts zentriert */
-  #feed{max-width:470px;margin:0 auto;padding-top:16px}
-  .stories-wrap{max-width:470px;margin:0 auto;margin-top:8px;
-    border:1px solid var(--border);border-radius:8px;padding:12px 16px;
-    background:var(--surface)}
-  
-  /* Profile-Page zentriert */
+  /* App und Pages: identisch zu Mobile */
+  #app{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100dvh}
+  /* Feed und Inhalt zentriert für große Bildschirme */
+  #feed{max-width:468px;margin:0 auto;padding-top:16px}
+  .stories-wrap{max-width:468px;margin:8px auto 0}
   #profile-content{max-width:600px;margin:0 auto;padding-top:16px}
-  
-  /* Search-Page zentriert */
-  #page-search .search-hdr{max-width:470px;margin:0 auto;margin-top:20px}
-  #search-results{max-width:470px;margin:0 auto}
-  
-  /* Login-Screen: Vollbild zentriert */
-  #login-screen{position:fixed;inset:0;width:100%;max-width:100%;
-    margin:0;left:0;transform:none}
-  
-  /* Modals: Halbtransparenter Overlay über Vollbild */
-  #story-viewer,#comments-modal,#post-options,
-  #edit-profile-modal,#new-story-modal,#user-list-modal,#settings-modal{
-    position:fixed;inset:0;width:100%;max-width:100%;
-    margin:0;left:0;transform:none}
-  
-  /* Toast zentriert */
-  #toast{left:calc(220px + 50%);transform:translateX(-50%);max-width:400px}
+  #page-search .search-hdr{max-width:468px;margin:20px auto 0}
+  #search-results{max-width:468px;margin:0 auto}
 }
 
 /* ── User list modal (followers/following/blocked) ── */
@@ -918,13 +852,11 @@ function storyImgUrl(id){ return `${API}/api/citygram/story-img/${id}?token=${TO
 
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('#nav button,#desktop-nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
   const page = document.getElementById('page-'+name);
   const btn  = document.getElementById('nav-'+name);
-  const dn   = document.getElementById('dn-'+name);
   if (page) page.classList.add('active');
   if (btn)  btn.classList.add('active');
-  if (dn)   dn.classList.add('active');
   if (name==='new') setupNewPost();
   if (name==='search') document.getElementById('search-q').focus();
 }
@@ -935,19 +867,7 @@ function updateNavAvatar() {
   if (ME.hasAvatar) {
     btn.innerHTML=`<img src="${avUrl(ME.phone)}" style="width:24px;height:24px;border-radius:50%;object-fit:cover">`;
   }
-  // Desktop Sidebar Avatar
-  const dnAv = document.getElementById('dn-user-av');
-  const dnName = document.getElementById('dn-user-name');
-  const dnPhone = document.getElementById('dn-user-phone');
-  if (ME && dnAv && dnName && dnPhone) {
-    if (ME.hasAvatar) {
-      dnAv.innerHTML=`<img src="${avUrl(ME.phone)}">`;
-    } else {
-      dnAv.textContent=ME.username.charAt(0).toUpperCase();
-    }
-    dnName.textContent=ME.username;
-    dnPhone.textContent=ME.phone;
-  }
+
 }
 
 // ── Feed ──────────────────────────────────────────────────────────────────────
