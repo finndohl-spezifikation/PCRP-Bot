@@ -234,7 +234,7 @@ public class Main {
         }
 
         private static void postTicketPanel(Guild guild) {
-            String key = "panel-ticket-" + guild.getId();
+            String key = "panel-ticket-v2-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.TICKET_PANEL_CHANNEL_ID);
             if (ch == null) { log.warn("[Ticket] Panel-Kanal nicht gefunden."); return; }
             PanelHelper.post(ch, key, "🎫 Ticket System — Paradise City Roleplay",

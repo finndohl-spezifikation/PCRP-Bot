@@ -305,8 +305,9 @@ public class CommandListener extends ListenerAdapter {
 
     private void doDelete(TextChannel channel, List<Message> all, int requested, SlashCommandInteractionEvent event) {
         OffsetDateTime cutoff = OffsetDateTime.now().minusDays(14);
+        boolean allowEmbeds = LoggingListener.ALLOWED_EMBED_DELETION_CHANNELS.contains(channel.getIdLong());
         List<Message> toDelete = all.stream()
-            .filter(m -> m.getEmbeds().isEmpty())              // Embeds werden nie gelöscht
+            .filter(m -> allowEmbeds || m.getEmbeds().isEmpty())  // Embeds nur löschbar in erlaubten Kanälen
             .filter(m -> m.getTimeCreated().isAfter(cutoff))
             .limit(requested)
             .toList();

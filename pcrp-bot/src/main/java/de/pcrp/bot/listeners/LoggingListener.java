@@ -47,7 +47,7 @@ public class LoggingListener extends ListenerAdapter {
 
     // ── Embed-Lösch-Schutz ──────────────────────────────────────────────────
     // Kanäle, in denen Embeds ohne automatische Neu-Erstellung gelöscht werden dürfen.
-    private static final Set<Long> ALLOWED_EMBED_DELETION_CHANNELS = Set.of(
+    public static final Set<Long> ALLOWED_EMBED_DELETION_CHANNELS = Set.of(
         1529636459827560558L, // TEAM_WARN_CHANNEL_ID
         1529636498566283434L, // CHANGELOG_CHANNEL_ID (Main.java)
         1529636503163113694L, // WARN_LOG_CHANNEL_ID
