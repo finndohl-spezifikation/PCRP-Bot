@@ -453,11 +453,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 <div id="login-screen" style="display:flex">
   <div class="login-logo">Citygram</div>
   <div class="login-sub">Paradise City Roleplay</div>
-  <div class="login-form">
-    <div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Gib deine Safe-PIN ein.</div>
-    <input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
-    <button id="li-btn" onclick="doLogin()" style="padding:12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">Anmelden</button>
-    <div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>
+  <div class="login-form" id="login-form">
+    <!-- Dynamisch via renderLoginForm() befüllt -->
   </div>
 </div>
 <!-- No-JS fallback (also shown if script fails) -->
@@ -676,6 +673,26 @@ let _currentProfilePhone = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+function renderLoginForm(hasToken){
+  const container=document.getElementById('login-form');
+  if(!container) return;
+  if(hasToken){
+    container.innerHTML=
+      '<div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Gib deine Safe-PIN ein.</div>'+
+      '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">'+
+      '<button id="li-btn" onclick="doLogin()" style="padding:12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">Anmelden</button>'+
+      '<div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>';
+  } else {
+    container.innerHTML=
+      '<div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Melde dich mit Rufnummer und Safe-PIN an.</div>'+
+      '<input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">'+
+      '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">'+
+      '<button id="li-btn" onclick="doLogin()" style="padding:12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">Anmelden</button>'+
+      '<div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>'+
+      '<div style="color:var(--text3);font-size:11px;text-align:center;margin-top:2px">Du kannst auch über <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>einen Direkt-Link anfordern.</div>';
+  }
+}
+
 async function safeInit(){
   const L=document.getElementById('login-screen');
   const A=document.getElementById('app');
@@ -685,21 +702,17 @@ async function safeInit(){
     if (!TOKEN) {
       const params=new URLSearchParams(location.search);
       if(params.get('token')){
-        // Token in URL aber nicht in localStorage → PIN eingeben
+        // Token in URL aber nicht in localStorage → PIN-Login
         if (S) S.style.display='none';
+        document.getElementById('login-sub').textContent='Paradise City Roleplay';
+        renderLoginForm(true);
         if (L) L.style.display='flex';
         if (A) A.style.display='none';
       } else {
-        // Kein Token → Hinweis anzeigen
+        // Kein Token → Rufnummer + Safe-PIN als Fallback
         if (S) S.style.display='none';
-        document.getElementById('login-screen').innerHTML=
-          '<div class="login-logo">Citygram</div>'+
-          '<div class="login-sub">Paradise City Roleplay</div>'+
-          '<div class="login-form" style="text-align:center">'+
-          '<div style="background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:20px 16px;margin-top:6px">'+
-          '<div style="font-size:16px;color:var(--text2);margin-bottom:12px">🔐 Kein Zugang gefunden</div>'+
-          '<div style="font-size:13px;color:var(--text3);line-height:1.6">Gehe zu <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>und aktiviere Citygram. Du bekommst dann einen Link.</div>'+
-          '</div></div>';
+        document.getElementById('login-sub').textContent='Paradise City Roleplay';
+        renderLoginForm(false);
         if (L) L.style.display='flex';
         if (A) A.style.display='none';
       }
@@ -717,6 +730,7 @@ async function safeInit(){
     console.error('[Citygram] init failed:',e);
     try{localStorage.removeItem('cg_token');}catch(_){}
     if (S) S.style.display='none';
+    renderLoginForm(false);
     if (L) L.style.display='flex';
     if (A) A.style.display='none';
   }
@@ -732,29 +746,55 @@ async function doLogin() {
   const err   = document.getElementById('login-err');
   const btn   = document.getElementById('li-btn');
   if (!pin) { err.textContent='Safe-PIN eingeben'; err.style.display='block'; return; }
+  btn.disabled = true; err.style.display = 'none';
   const params=new URLSearchParams(location.search);
   const loginToken=params.get('token')||localStorage.getItem('cg_token');
-  if(!loginToken){err.textContent='Kein Zugangstoken — aktiviere zuerst in Discord';err.style.display='block';return;}
-  btn.disabled = true; err.style.display = 'none';
-  try {
-    const res = await fetch(API+'/api/citygram/pin-verify',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({token: loginToken, safePin: pin})
-    });
-    if (!res.ok) throw new Error('Falsche Safe-PIN');
-    const data = await res.json();
-    TOKEN = data.token;
-    localStorage.setItem('cg_token', TOKEN);
-    if(params.get('token')) history.replaceState({},'',location.pathname);
-    ME = await apiFetch('GET','/api/citygram/me');
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    await loadFeed();
-    loadStories();
-    updateNavAvatar();
-  } catch(e) {
-    err.textContent = e.message || 'Anmeldung fehlgeschlagen';
-    err.style.display = 'block';
+
+  if(loginToken){
+    // PIN-Only Login (Token vorhanden)
+    try {
+      const res = await fetch(API+'/api/citygram/pin-verify',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({token: loginToken, safePin: pin})
+      });
+      if (!res.ok) throw new Error('Falsche Safe-PIN');
+      const data = await res.json();
+      TOKEN = data.token;
+      localStorage.setItem('cg_token', TOKEN);
+      if(params.get('token')) history.replaceState({},'',location.pathname);
+      ME = await apiFetch('GET','/api/citygram/me');
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      await loadFeed();
+      loadStories();
+      updateNavAvatar();
+    } catch(e) {
+      err.textContent = e.message || 'Anmeldung fehlgeschlagen';
+      err.style.display = 'block';
+    }
+  } else {
+    // Fallback: Rufnummer + Safe-PIN
+    const phone=document.getElementById('li-phone').value.trim();
+    if(!phone){err.textContent='Rufnummer eingeben';err.style.display='block';btn.disabled=false;return;}
+    try {
+      const res = await fetch(API+'/api/citygram/auth',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({phoneNumber: phone, safePin: pin})
+      });
+      if (!res.ok) throw new Error((await res.json()).error||'Falsche Rufnummer oder Safe-PIN');
+      const data = await res.json();
+      TOKEN = data.token;
+      localStorage.setItem('cg_token', TOKEN);
+      ME = await apiFetch('GET','/api/citygram/me');
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      await loadFeed();
+      loadStories();
+      updateNavAvatar();
+    } catch(e) {
+      err.textContent = e.message || 'Anmeldung fehlgeschlagen';
+      err.style.display = 'block';
+    }
   }
   btn.disabled = false;
 }

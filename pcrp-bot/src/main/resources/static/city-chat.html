@@ -411,11 +411,8 @@ html.light .sb-footer{color:rgba(0,0,0,.3)}
     </div>
     <h1>City Chat</h1>
     <p>Paradise City Roleplay</p>
-    <div class="login-fields">
-      <p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">Gib deine Safe-PIN ein, um dich zu verbinden.</p>
-      <input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off">
-      <button class="login-btn" id="li-btn" onclick="doLogin()">Anmelden</button>
-      <div class="login-err" id="login-err" style="display:none"></div>
+    <div class="login-fields" id="login-fields">
+      <!-- Dynamisch via JS befüllt -->
     </div>
   </div>
 </div>
@@ -803,6 +800,26 @@ async function safeInit(){
   } finally { if (S) S.style.display="none"; }
 }
 
+function renderLoginForm(hasToken){
+  const fields=document.getElementById('login-fields');
+  if(hasToken){
+    fields.innerHTML=
+      '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">Gib deine Safe-PIN ein, um dich zu verbinden.</p>'+
+      '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off">'+
+      '<button class="login-btn" id="li-btn" onclick="doLogin()">Anmelden</button>'+
+      '<div class="login-err" id="login-err" style="display:none"></div>';
+  } else {
+    // Kein Token → Rufnummer + Safe-PIN als Fallback
+    fields.innerHTML=
+      '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">Melde dich mit deiner Rufnummer und Safe-PIN an.</p>'+
+      '<input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off">'+
+      '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off">'+
+      '<button class="login-btn" id="li-btn" onclick="doLogin()">Anmelden</button>'+
+      '<div class="login-err" id="login-err" style="display:none"></div>'+
+      '<p style="color:rgba(255,255,255,.25);font-size:.72rem;text-align:center;margin:0">Du kannst auch über <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>einen Direkt-Link anfordern.</p>';
+  }
+}
+
 async function init(){
   applyTheme();
   const params=new URLSearchParams(location.search);
@@ -822,21 +839,18 @@ async function init(){
     }
   }
 
-  // Token in URL → direkt PIN-Login anzeigen (kein API-Call vor PIN)
+  // Token in URL → PIN-Login (schnell)
   if(urlToken){
     localStorage.removeItem('cc-token');
+    renderLoginForm(true);
     showLogin();
     return;
   }
 
-  // Kein Token → Hinweis anzeigen
+  // Kein Token → Rufnummer + Safe-PIN als Fallback
   localStorage.removeItem('cc-token');
-  document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('app-screen').classList.add('hidden');
-  document.getElementById('login-screen').querySelector('.login-fields').innerHTML=
-    '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">🔐 Aktiviere zuerst in Discord.</p>'+
-    '<p style="color:rgba(255,255,255,.3);font-size:.75rem;text-align:center;line-height:1.5;margin:0">Gehe zu <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>und aktiviere City Chat. Du bekommst dann einen Link.</p>';
-  document.getElementById('login-screen').querySelector('.login-card p').textContent='Kein Zugang gefunden';
+  renderLoginForm(false);
+  showLogin();
 }
 
 async function doLogin(){
@@ -845,25 +859,46 @@ async function doLogin(){
   const btn=document.getElementById('li-btn');
   if(!pin){err.textContent='Safe-PIN eingeben';err.style.display='block';return;}
   btn.disabled=true;err.style.display='none';
-  // Token aus URL oder localStorage
   const params=new URLSearchParams(location.search);
   const loginToken=params.get('token')||localStorage.getItem('cc-token');
-  if(!loginToken){err.textContent='Kein Zugangstoken gefunden — aktiviere zuerst in Discord';err.style.display='block';btn.disabled=false;return;}
-  try{
-    const res=await fetch((window.API_BASE||'')+'/api/city-chat/pin-verify',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({token:loginToken,safePin:pin})
-    });
-    if(!res.ok) throw new Error((await res.json()).error||'Falsche Safe-PIN');
-    const data=await res.json();
-    token=data.token;
-    localStorage.setItem('cc-token',token);
-    if(params.get('token')) history.replaceState({},'',location.pathname);
-    me=await api('GET','/api/city-chat/me');
-    showApp();
-  }catch(e){
-    err.textContent=e.message||'Anmeldung fehlgeschlagen';
-    err.style.display='block';
+
+  if(loginToken){
+    // PIN-Only Login (Token vorhanden)
+    try{
+      const res=await fetch((window.API_BASE||'')+'/api/city-chat/pin-verify',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({token:loginToken,safePin:pin})
+      });
+      if(!res.ok) throw new Error((await res.json()).error||'Falsche Safe-PIN');
+      const data=await res.json();
+      token=data.token;
+      localStorage.setItem('cc-token',token);
+      if(params.get('token')) history.replaceState({},'',location.pathname);
+      me=await api('GET','/api/city-chat/me');
+      showApp();
+    }catch(e){
+      err.textContent=e.message||'Anmeldung fehlgeschlagen';
+      err.style.display='block';
+    }
+  } else {
+    // Fallback: Rufnummer + Safe-PIN
+    const phone=document.getElementById('li-phone').value.trim();
+    if(!phone){err.textContent='Rufnummer eingeben';err.style.display='block';btn.disabled=false;return;}
+    try{
+      const res=await fetch((window.API_BASE||'')+'/api/city-chat/auth',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({phoneNumber:phone,safePin:pin})
+      });
+      if(!res.ok) throw new Error((await res.json()).error||'Falsche Rufnummer oder Safe-PIN');
+      const data=await res.json();
+      token=data.token;
+      localStorage.setItem('cc-token',token);
+      me=await api('GET','/api/city-chat/me');
+      showApp();
+    }catch(e){
+      err.textContent=e.message||'Anmeldung fehlgeschlagen';
+      err.style.display='block';
+    }
   }
   btn.disabled=false;
 }
