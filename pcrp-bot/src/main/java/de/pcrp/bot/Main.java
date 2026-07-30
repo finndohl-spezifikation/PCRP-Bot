@@ -619,7 +619,7 @@ public class Main {
                 EmbedFactory.create()
                     .setTitle("💕 CityShip — Paradise City Roleplay")
                     .setDescription(
-                        "Finde deinen Partner in Paradise City mit **CityShip**.\n\n" +
+                        "Finde deinen Partner in Los Angeles mit **CityShip**.\n\n" +
                         "Aktiviere CityShip über **Handy-Zentrale → 📞 Handy Einstellungen**.")
                     .build()
             ).addComponents(ActionRow.of(
