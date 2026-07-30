@@ -94,7 +94,8 @@ public class Main {
                 new BankListener(),
                 new BargeldListener(),
                 new HandyCentraleListener(),
-                new FirmaLinkListener()
+                new FirmaLinkListener(),
+                new GarageListener()
             )
             .build();
     }
@@ -193,6 +194,8 @@ public class Main {
                 postPenthousesAnnouncement(guild);
                 postPremiumDeluxeAnnouncement(guild);
                 postChangelog(guild);
+                postLohnPanel(guild);
+                GarageListener.postPanel(guild);
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -778,6 +781,53 @@ public class Main {
                     : "https://dashboards.paradisecity-roleplay-85a.workers.dev";
             }
             return url.replaceAll("/$", "");
+        }
+
+        // ── Lohn-Liste Panel ───────────────────────────────────────────────────
+
+        private static void postLohnPanel(Guild guild) {
+            String guildId = guild.getId();
+            String key = "panel-lohn-v1-" + guildId;
+            TextChannel ch = guild.getTextChannelById(LohnManager.LOHN_CHANNEL_ID);
+            if (ch == null) { log.warn("[Lohn] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "💰 Lohnklassen — Paradise City Roleplay", () -> {
+                String role1 = "<@&1529636350268149963>";
+                String role2 = "<@&1529636351321051279>";
+                String role3 = "<@&1529636352432275616>";
+                String role4 = "<@&1529636353204031609>";
+
+                String desc =
+                    role1 + "\n" +
+                    "**1.000 $** Stündlich\n" +
+                    "Diese Lohnklasse ist für alle arbeitslosen Spieler/in die keinen Privaten oder Staatlichen Beruf ausüben.\n\n" +
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                    role2 + "\n" +
+                    "**3.000 $** Stündlich\n" +
+                    "Diese Lohnklasse ist für alle Normal Angestellten von Staatlichen Unternehmen.\n\n" +
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                    role3 + "\n" +
+                    "**3.600 $** Stündlich\n" +
+                    "Diese Lohnklasse ist für alle Angestellten mit einem Befehlsposten in Staatlichen Unternehmen.\n\n" +
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                    role4 + "\n" +
+                    "**4.000 $** Stündlich\n" +
+                    "Diese Lohnklasse ist für alle die einen Posten in einer Leitungsebene haben in Staatlichen Unternehmen.\n\n" +
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                    "**💰 Lohn Info**\n\n" +
+                    "Spieler/in die einen Privaten Beruf ausüben müssen vom Unternehmenschef Privat bezahlt werden. Der Anspruch auf Staatlichen Lohn oder Arbeitslosengeld fällt hier weg.\n\n" +
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n" +
+                    "Der Lohn wird **automatisch jede Stunde** auf dein Konto überwiesen, solange die Lobby geöffnet ist.";
+
+                ch.sendMessageEmbeds(
+                    EmbedFactory.create()
+                        .setTitle("💰 Lohnklassen — Paradise City Roleplay")
+                        .setDescription(desc)
+                        .build()
+                ).queue(
+                    msg -> PanelHelper.onSent(key, msg.getId()),
+                    err -> { log.error("[Lohn] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+                );
+            });
         }
 
         // ── Shop-Items Einmal-Initialisierung ──────────────────────────────────

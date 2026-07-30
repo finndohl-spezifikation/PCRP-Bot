@@ -176,7 +176,13 @@ public final class LoggingConfig {
      * Zahlen-Rang-Rolle (vergeben wenn jemand 100 zählt).
      * 0L = deaktiviert, Rolle-ID hier eintragen wenn gewünscht.
      */
+    /** Lohn-Liste Panel-Kanal (/lohn). */
+    public static final long LOHN_CHANNEL_ID        = 1529636602349879366L;
+
     public static final long COUNTER_RANK_ROLE_ID    = 0L;
+
+    /** Garage-Panel-Kanal (/garage). */
+    public static final long GARAGE_CHANNEL_ID      = 1532496933544005663L;
 
     private LoggingConfig() {}
 }

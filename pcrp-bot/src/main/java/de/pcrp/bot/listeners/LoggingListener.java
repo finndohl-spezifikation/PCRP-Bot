@@ -624,6 +624,12 @@ public class LoggingListener extends ListenerAdapter {
     public void onGuildMemberRoleAdd(net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent e) {
         Member member = e.getMember();
         List<Role> added = e.getRoles();
+
+        // Lohn-Sofort-Auszahlung: Wenn eine Lohn-Rolle vergeben wurde, ersten Lohn auszahlen
+        boolean hasWageRole = added.stream().anyMatch(r -> LohnManager.isWageRole(r.getIdLong()));
+        if (hasWageRole && LohnManager.isLobbyOpen()) {
+            LohnManager.payImmediate(e.getGuild(), member);
+        }
         withAudit(e.getGuild(), ActionType.MEMBER_ROLE_UPDATE, entry ->
             log(e.getGuild(), LoggingConfig.ROLE_LOG_CHANNEL_ID, EmbedFactory.create()
                 .setTitle("🏷️ Rollen vergeben")
