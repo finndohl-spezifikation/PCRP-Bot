@@ -3,6 +3,7 @@ package de.pcrp.bot.listeners;
 import de.pcrp.bot.common.*;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.audit.ActionType;
@@ -57,11 +58,12 @@ public class LoggingListener extends ListenerAdapter {
         1529636557038817361L  // INVENTORY_ACTIONS_CHANNEL_ID
     );
 
-    /** Cache für Bot-eigene Nachrichten mit Embeds (messageId → Embeds). */
-    private static final Map<Long, List<MessageEmbed>> BOT_EMBED_CACHE = Collections.synchronizedMap(
+    /** Cache für Bot-eigene Nachrichten (messageId → Embeds + ActionRows). */
+    private record CachedBotMsg(List<MessageEmbed> embeds, List<ActionRow> actionRows) {}
+    private static final Map<Long, CachedBotMsg> BOT_EMBED_CACHE = Collections.synchronizedMap(
         new LinkedHashMap<>(512, 0.75f, false) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<Long, List<MessageEmbed>> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Long, CachedBotMsg> eldest) {
                 return size() > 500;
             }
         }
@@ -425,7 +427,8 @@ public class LoggingListener extends ListenerAdapter {
         Message message = event.getMessage();
         if (!message.getAuthor().equals(event.getJDA().getSelfUser())) return;
         if (message.getEmbeds().isEmpty()) return;
-        BOT_EMBED_CACHE.put(message.getIdLong(), message.getEmbeds());
+        BOT_EMBED_CACHE.put(message.getIdLong(),
+            new CachedBotMsg(message.getEmbeds(), message.getActionRows()));
     }
 
     @Override
@@ -462,14 +465,18 @@ public class LoggingListener extends ListenerAdapter {
                 .build());
         });
 
-        // ── Embed-Schutz: Bot-Embeds in geschützten Kanälen sofort neu senden ──
+        // ── Embed-Schutz: Bot-Embeds + Buttons in geschützten Kanälen sofort neu senden ──
         long channelId = e.getChannel().getIdLong();
         if (!ALLOWED_EMBED_DELETION_CHANNELS.contains(channelId)) {
-            List<MessageEmbed> embeds = BOT_EMBED_CACHE.get(e.getMessageIdLong());
-            if (embeds != null && !embeds.isEmpty()) {
+            CachedBotMsg cachedMsg = BOT_EMBED_CACHE.get(e.getMessageIdLong());
+            if (cachedMsg != null && !cachedMsg.embeds().isEmpty()) {
                 TextChannel ch = guild.getTextChannelById(channelId);
                 if (ch != null) {
-                    ch.sendMessageEmbeds(embeds).queue(null, err -> {});
+                    var msg = ch.sendMessageEmbeds(cachedMsg.embeds());
+                    if (!cachedMsg.actionRows().isEmpty()) {
+                        msg.setComponents(cachedMsg.actionRows());
+                    }
+                    msg.queue(null, err -> {});
                 }
             }
         }
