@@ -673,10 +673,10 @@ let _currentProfilePhone = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
-function renderLoginForm(hasToken){
+function renderLoginForm(pinOnly){
   const container=document.getElementById('login-form');
   if(!container) return;
-  if(hasToken){
+  if(pinOnly){
     container.innerHTML=
       '<div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Gib deine Safe-PIN ein.</div>'+
       '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">'+
@@ -684,12 +684,11 @@ function renderLoginForm(hasToken){
       '<div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>';
   } else {
     container.innerHTML=
-      '<div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Melde dich mit Rufnummer und Safe-PIN an.</div>'+
+      '<div style="color:var(--text2);font-size:14px;margin-bottom:6px;text-align:center">Rufnummer und Safe-PIN eingeben.<br><span style="font-size:11px;color:var(--text3)">Dies ist nur einmal nötig — danach reicht die Safe-PIN.</span></div>'+
       '<input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">'+
       '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;box-sizing:border-box">'+
       '<button id="li-btn" onclick="doLogin()" style="padding:12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;width:100%">Anmelden</button>'+
-      '<div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>'+
-      '<div style="color:var(--text3);font-size:11px;text-align:center;margin-top:2px">Du kannst auch über <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>einen Direkt-Link anfordern.</div>';
+      '<div id="login-err" style="color:#f47;font-size:13px;text-align:center;display:none"></div>';
   }
 }
 
@@ -701,6 +700,7 @@ async function safeInit(){
   try {
     if (!TOKEN) {
       const params=new URLSearchParams(location.search);
+      const storedPhone=localStorage.getItem('cg-phone');
       if(params.get('token')){
         // Token in URL aber nicht in localStorage → PIN-Login
         if (S) S.style.display='none';
@@ -708,8 +708,15 @@ async function safeInit(){
         renderLoginForm(true);
         if (L) L.style.display='flex';
         if (A) A.style.display='none';
+      } else if(storedPhone){
+        // Gespeicherte Rufnummer → nur PIN-Login
+        if (S) S.style.display='none';
+        document.getElementById('login-sub').textContent='Paradise City Roleplay';
+        renderLoginForm(true);
+        if (L) L.style.display='flex';
+        if (A) A.style.display='none';
       } else {
-        // Kein Token → Rufnummer + Safe-PIN als Fallback
+        // Weder Token noch gespeicherte Rufnummer → Rufnummer + PIN (nur EINMAL)
         if (S) S.style.display='none';
         document.getElementById('login-sub').textContent='Paradise City Roleplay';
         renderLoginForm(false);
@@ -730,7 +737,8 @@ async function safeInit(){
     console.error('[Citygram] init failed:',e);
     try{localStorage.removeItem('cg_token');}catch(_){}
     if (S) S.style.display='none';
-    renderLoginForm(false);
+    const storedPhone=localStorage.getItem('cg-phone');
+    renderLoginForm(!!storedPhone);
     if (L) L.style.display='flex';
     if (A) A.style.display='none';
   }
@@ -749,9 +757,10 @@ async function doLogin() {
   btn.disabled = true; err.style.display = 'none';
   const params=new URLSearchParams(location.search);
   const loginToken=params.get('token')||localStorage.getItem('cg_token');
+  const storedPhone=localStorage.getItem('cg-phone');
 
   if(loginToken){
-    // PIN-Only Login (Token vorhanden)
+    // PIN-Only Login per Token (vom Discord-Link)
     try {
       const res = await fetch(API+'/api/citygram/pin-verify',{
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -772,8 +781,29 @@ async function doLogin() {
       err.textContent = e.message || 'Anmeldung fehlgeschlagen';
       err.style.display = 'block';
     }
+  } else if(storedPhone){
+    // PIN-Only Login per gespeicherter Rufnummer
+    try {
+      const res = await fetch(API+'/api/citygram/auth',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({phoneNumber: storedPhone, safePin: pin})
+      });
+      if (!res.ok) throw new Error('Falsche Safe-PIN');
+      const data = await res.json();
+      TOKEN = data.token;
+      localStorage.setItem('cg_token', TOKEN);
+      ME = await apiFetch('GET','/api/citygram/me');
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      await loadFeed();
+      loadStories();
+      updateNavAvatar();
+    } catch(e) {
+      err.textContent = e.message || 'Anmeldung fehlgeschlagen';
+      err.style.display = 'block';
+    }
   } else {
-    // Fallback: Rufnummer + Safe-PIN
+    // Erstanmeldung: Rufnummer + Safe-PIN (speichert Rufnummer für zukünftige Logins)
     const phone=document.getElementById('li-phone').value.trim();
     if(!phone){err.textContent='Rufnummer eingeben';err.style.display='block';btn.disabled=false;return;}
     try {
@@ -785,6 +815,7 @@ async function doLogin() {
       const data = await res.json();
       TOKEN = data.token;
       localStorage.setItem('cg_token', TOKEN);
+      localStorage.setItem('cg-phone', phone);
       ME = await apiFetch('GET','/api/citygram/me');
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'block';

@@ -800,23 +800,22 @@ async function safeInit(){
   } finally { if (S) S.style.display="none"; }
 }
 
-function renderLoginForm(hasToken){
+function renderLoginForm(pinOnly){
   const fields=document.getElementById('login-fields');
-  if(hasToken){
+  if(pinOnly){
     fields.innerHTML=
       '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">Gib deine Safe-PIN ein, um dich zu verbinden.</p>'+
       '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off">'+
       '<button class="login-btn" id="li-btn" onclick="doLogin()">Anmelden</button>'+
       '<div class="login-err" id="login-err" style="display:none"></div>';
   } else {
-    // Kein Token → Rufnummer + Safe-PIN als Fallback
+    // Erstanmeldung: Rufnummer + Safe-PIN (wird nur EINMAL benötigt)
     fields.innerHTML=
-      '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">Melde dich mit deiner Rufnummer und Safe-PIN an.</p>'+
+      '<p style="color:rgba(255,255,255,.45);font-size:.82rem;text-align:center;line-height:1.5;margin:.25rem 0">Gib deine Rufnummer und Safe-PIN ein.<br><span style="font-size:.75rem;color:rgba(255,255,255,.3)">Dies ist nur einmal nötig — danach reicht die Safe-PIN.</span></p>'+
       '<input id="li-phone" type="text" placeholder="Rufnummer" inputmode="tel" autocomplete="off">'+
       '<input id="li-pin" type="password" placeholder="Safe-PIN" inputmode="numeric" autocomplete="off">'+
       '<button class="login-btn" id="li-btn" onclick="doLogin()">Anmelden</button>'+
-      '<div class="login-err" id="login-err" style="display:none"></div>'+
-      '<p style="color:rgba(255,255,255,.25);font-size:.72rem;text-align:center;margin:0">Du kannst auch über <b>Handy-Zentrale → 📞 Handy Einstellungen</b><br>einen Direkt-Link anfordern.</p>';
+      '<div class="login-err" id="login-err" style="display:none"></div>';
   }
 }
 
@@ -825,6 +824,7 @@ async function init(){
   const params=new URLSearchParams(location.search);
   const urlToken=params.get('token');
   const storedToken=localStorage.getItem('cc-token');
+  const storedPhone=localStorage.getItem('cc-phone');
 
   // Zuerst gespeicherten Token (von vorheriger Sitzung) via API prüfen
   if(storedToken){
@@ -839,7 +839,7 @@ async function init(){
     }
   }
 
-  // Token in URL → PIN-Login (schnell)
+  // Token in URL → PIN-Login
   if(urlToken){
     localStorage.removeItem('cc-token');
     renderLoginForm(true);
@@ -847,7 +847,14 @@ async function init(){
     return;
   }
 
-  // Kein Token → Rufnummer + Safe-PIN als Fallback
+  // Gespeicherte Rufnummer → nur PIN-Login (keine erneute Eingabe der Rufnummer)
+  if(storedPhone){
+    renderLoginForm(true);
+    showLogin();
+    return;
+  }
+
+  // Weder Token noch gespeicherte Rufnummer → Rufnummer + PIN (nur EINMAL nötig)
   localStorage.removeItem('cc-token');
   renderLoginForm(false);
   showLogin();
@@ -861,9 +868,10 @@ async function doLogin(){
   btn.disabled=true;err.style.display='none';
   const params=new URLSearchParams(location.search);
   const loginToken=params.get('token')||localStorage.getItem('cc-token');
+  const storedPhone=localStorage.getItem('cc-phone');
 
   if(loginToken){
-    // PIN-Only Login (Token vorhanden)
+    // PIN-Only Login per Token (vom Discord-Link)
     try{
       const res=await fetch((window.API_BASE||'')+'/api/city-chat/pin-verify',{
         method:'POST',headers:{'Content-Type':'application/json'},
@@ -880,8 +888,25 @@ async function doLogin(){
       err.textContent=e.message||'Anmeldung fehlgeschlagen';
       err.style.display='block';
     }
+  } else if(storedPhone){
+    // PIN-Only Login per gespeicherter Rufnummer (keine erneute Rufnummer-Eingabe)
+    try{
+      const res=await fetch((window.API_BASE||'')+'/api/city-chat/auth',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({phoneNumber:storedPhone,safePin:pin})
+      });
+      if(!res.ok) throw new Error((await res.json()).error||'Falsche Safe-PIN');
+      const data=await res.json();
+      token=data.token;
+      localStorage.setItem('cc-token',token);
+      me=await api('GET','/api/city-chat/me');
+      showApp();
+    }catch(e){
+      err.textContent=e.message||'Anmeldung fehlgeschlagen';
+      err.style.display='block';
+    }
   } else {
-    // Fallback: Rufnummer + Safe-PIN
+    // Erstanmeldung: Rufnummer + Safe-PIN (speichert Rufnummer für zukünftige Logins)
     const phone=document.getElementById('li-phone').value.trim();
     if(!phone){err.textContent='Rufnummer eingeben';err.style.display='block';btn.disabled=false;return;}
     try{
@@ -893,6 +918,7 @@ async function doLogin(){
       const data=await res.json();
       token=data.token;
       localStorage.setItem('cc-token',token);
+      localStorage.setItem('cc-phone',phone); // Rufnummer speichern – nie wieder eingeben!
       me=await api('GET','/api/city-chat/me');
       showApp();
     }catch(e){
