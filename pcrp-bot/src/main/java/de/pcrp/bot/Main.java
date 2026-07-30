@@ -249,7 +249,7 @@ public class Main {
                         "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
                         "**📋 Verfügbare Kategorien**\n\n" +
                         "- **Support** — Allgemeine Fragen & Hilfe\n" +
-                        "- **Beschwerde** — Meldung von Regelverstößen\n" +
+                        "- **Beschwerde** — Reiche hier Beschwerden ein\n" +
                         "- **Highteam** — Anliegen an das Highteam\n" +
                         "- **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
                         "- **Team Bewerbung** — Demnächst verfügbar")
@@ -258,7 +258,7 @@ public class Main {
                 StringSelectMenu.create(TicketListener.SELECT_ID)
                     .setPlaceholder("Ticket-Kategorie auswählen…")
                     .addOption("Support",              "support",        "Allgemeine Fragen & Hilfe",       net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔵"))
-                    .addOption("Beschwerde",           "beschwerde",     "Meldung von Regelverstößen",      net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔴"))
+                    .addOption("Beschwerde",           "beschwerde",     "Reiche hier Beschwerden ein",      net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔴"))
                     .addOption("Highteam",             "highteam",       "Anliegen an das Highteam",        net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🟣"))
                     .addOption("Fraktions Bewerbung",  "fraktion",       "Bewerbung für eine Fraktion",     net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🟠"))
                     .addOption("Team Bewerbung",       "team-bewerbung", "Demnächst verfügbar",             net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("⚫"))
