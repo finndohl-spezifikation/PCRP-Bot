@@ -43,6 +43,13 @@ public final class CityChatHandler {
 
         String guildId = guildId();
         PhoneManager.Contract c = PhoneManager.getContractByNumber(guildId, phone);
+        if (c == null) {
+            // Normalisierte Suche als Fallback (Leerzeichen, Sonderzeichen ignorieren)
+            String normP = phone.replaceAll("[^0-9]", "");
+            for (PhoneManager.Contract ct : PhoneManager.getAllContracts(guildId)) {
+                if (normP.equals(ct.phoneNumber.replaceAll("[^0-9]", ""))) { c = ct; break; }
+            }
+        }
         if (c == null || !c.safePin.equals(pin)) {
             ctx.status(401).json(err("Ungültige Zugangsdaten"));
             return;
@@ -55,7 +62,7 @@ public final class CityChatHandler {
             return;
         }
 
-        String token = PhoneManager.createSession(guildId, phone);
+        String token = PhoneManager.createSession(guildId, c.phoneNumber);
         JsonObject res = new JsonObject();
         res.addProperty("token",       token);
         res.addProperty("phoneNumber", c.phoneNumber);
