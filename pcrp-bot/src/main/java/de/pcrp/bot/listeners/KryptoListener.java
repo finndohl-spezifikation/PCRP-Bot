@@ -38,6 +38,9 @@ public class KryptoListener extends ListenerAdapter {
     /** Wallet-Panel-Beschreibung – als Konstante, damit Duplikat-Check und Sendetext nie auseinanderdriften. */
     private static final String WALLET_PANEL_DESC = "Öffne hier dein PC Coin Krypto wallet";
 
+    /** Kurs-Panel-Beschreibung – als Konstante, damit Duplikat-Check und Sendetext nie auseinanderdriften. */
+    private static final String RATES_PANEL_DESC = "Hier kannst du alle Kurse von PC Coin per Echtzeit Verfolgen";
+
     // ── Button-Handler ────────────────────────────────────────────────────────
 
     @Override
@@ -284,10 +287,15 @@ public class KryptoListener extends ListenerAdapter {
 
     /** Postet das KURS-Panel (nur Kurse + Webseiten-Link) in den Kurs-Kanal. */
     public static void postRatesPanelIfNeeded(Guild guild) {
-        String key = "panel-krypto-rates-v1-" + guild.getId();
+        String key = "panel-krypto-rates-v2-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_RATES_CHANNEL_ID);
         if (ch == null) { log.warn("[Krypto] Kurs-Kanal nicht gefunden."); return; }
-        PanelHelper.post(ch, key, "📈 PC Coins — Kurse", () -> sendRatesPanel(ch, key));
+        // Beschreibung mitgeben: Der Duplikat-Schutz erkennt nur ein Embed mit gleichem
+        // Titel UND gleichem Text als "schon vorhanden" – sonst blockt das alte v1-Embed
+        // (gleicher Titel, anderer Text) das neue Kurs-Panel dauerhaft.
+        PanelHelper.post(ch, key, "📈 PC Coins — Kurse",
+            RATES_PANEL_DESC,
+            () -> sendRatesPanel(ch, key));
     }
 
     private static String kryptoUrl() {
@@ -313,12 +321,9 @@ public class KryptoListener extends ListenerAdapter {
     }
 
     private static void sendRatesPanel(TextChannel ch, String key) {
-        String guildId = ch.getGuild().getId();
         ch.sendMessageEmbeds(EmbedFactory.build(
             "📈 PC Coins — Kurse",
-            "Aktueller Kurs: **" + KryptoManager.formatRate(KryptoManager.getRate(guildId)) + "**\\n" +
-            "Im Umlauf: **" + KryptoManager.formatCoins(KryptoManager.getSupply(guildId)) + "**\\n\\n" +
-            "Auf der Webseite siehst du den Kursverlauf der letzten **7 Tage**."))
+            RATES_PANEL_DESC))
             .addActionRow(
                 Button.link(kryptoUrl(), "📈 Kurse ansehen"))
             .queue(
