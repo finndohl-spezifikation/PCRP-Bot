@@ -53,7 +53,6 @@ public class CommandListener extends ListenerAdapter {
             case "bannen"           -> handleBannen(event);
             case "entbannen"        -> handleEntbannen(event);
             case "timeout"          -> handleTimeout(event);
-            case "lizenzen"               -> handleLizenzen(event);
             case "ausweis-erstellen"      -> handleAusweisErstellen(event);
             case "ausweis-löschen"        -> handleAusweisLoeschen(event);
             case "führerschein-erstellen" -> handleFuehrerscheinErstellen(event);
@@ -541,78 +540,6 @@ public class CommandListener extends ListenerAdapter {
                     "Timeout fehlgeschlagen. Prüfe Rollen-Hierarchie und Bot-Berechtigungen."))
                     .setEphemeral(true).queue();
             });
-    }
-
-    // ════════════════════════════════════════════════════════════
-    //  /lizenzen  —  direkte Auswahl (was: Ausweis|Führerschein) + optional wer
-    // ════════════════════════════════════════════════════════════
-
-    private void handleLizenzen(SlashCommandInteractionEvent event) {
-        if (event.getGuild() == null) return;
-
-        // Channel-Restriction: nur im Ausweis-Kanal — als PLAIN-Nachricht (kein Embed)
-        if (event.getChannel().getIdLong() != RoleConfig.AUSWEIS_CHANNEL_ID) {
-            event.reply("Dieser command funktioniert nur in <#" + RoleConfig.AUSWEIS_CHANNEL_ID + ">")
-                .setEphemeral(true).queue();
-            return;
-        }
-
-        String was = event.getOption("was", "", OptionMapping::getAsString).toLowerCase();
-
-        // Ziel bestimmen (Executor oder @wer)
-        User targetUser;
-        Member targetMember = event.getOption("wer", OptionMapping::getAsMember);
-        if (targetMember != null) {
-            targetUser = targetMember.getUser();
-        } else {
-            targetUser = event.getUser();
-        }
-
-        String displayName = targetMember != null
-            ? targetMember.getEffectiveName()
-            : targetUser.getName();
-
-        event.deferReply(true).queue();
-
-        switch (was) {
-            case "ausweis"        -> showAusweis(event, targetUser, displayName);
-            case "fuehrerschein"  -> showFuehrerschein(event, targetUser, displayName);
-            default -> {
-                event.getHook().sendMessage(
-                    "Unbekannte Auswahl `" + was + "`. Erwartet: `ausweis` oder `fuehrerschein`.")
-                    .setEphemeral(true).queue();
-            }
-        }
-    }
-
-    /** Zeigt nur den Browser-Link — keine Daten / Bilder im Discord (Datenschutz). */
-    private void showAusweis(SlashCommandInteractionEvent event, User targetUser, String displayName) {
-        String guildId = event.getGuild().getId();
-        String userId  = targetUser.getId();
-
-        if (DocumentsManager.getAusweis(guildId, userId).isEmpty()) {
-            event.getHook().sendMessage("ℹ️ **" + displayName + "** hat aktuell keinen im Bot gespeicherten Ausweis.")
-                .setEphemeral(true).queue();
-            return;
-        }
-        String url = DocumentsManager.ausweisViewUrl(userId);
-        event.getHook().sendMessage("🪪 Ausweis – [Lizenz hier Öffnen](" + url + ")")
-            .setEphemeral(true).queue();
-    }
-
-    /** Zeigt nur den Browser-Link — keine Daten / Bilder im Discord (Datenschutz). */
-    private void showFuehrerschein(SlashCommandInteractionEvent event, User targetUser, String displayName) {
-        String guildId = event.getGuild().getId();
-        String userId  = targetUser.getId();
-
-        if (DocumentsManager.getFuehrerschein(guildId, userId).isEmpty()) {
-            event.getHook().sendMessage("ℹ️ **" + displayName + "** hat aktuell keinen im Bot gespeicherten Führerschein.")
-                .setEphemeral(true).queue();
-            return;
-        }
-        String url = DocumentsManager.fuehrerscheinViewUrl(userId);
-        event.getHook().sendMessage("🚗 Führerschein – [Lizenz hier Öffnen](" + url + ")")
-            .setEphemeral(true).queue();
     }
 
     // ════════════════════════════════════════════════════════════

@@ -94,6 +94,7 @@ public class Main {
                 new BankListener(),
                 new KryptoListener(),
                 new AktienListener(),
+                new LizenzenListener(),
                 new BargeldListener(),
                 new HandyCentraleListener(),
                 new FirmaLinkListener(),
@@ -193,6 +194,7 @@ public class Main {
                 KryptoManager.init(guild);  // Kurs-Snapshot-Scheduler starten
                 AktienListener.postAllPanels(guild);
                 AktienManager.init(guild);  // Aktien-Kurs-Snapshot-Scheduler starten
+                LizenzenListener.postPanel(guild);
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);
                 postCitygramPanel(guild);
@@ -911,15 +913,6 @@ public class Main {
                     .addOption(OptionType.STRING, "grund", "Grund für den Timeout", false)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
-
-                Commands.slash("lizenzen", "Zeigt eine Lizenz (Ausweis / Führerschein). Nur im Ausweis-Kanal.")
-                    .addOptions(new OptionData(OptionType.STRING, "was",
-                        "Welche Lizenz angezeigt werden soll", true)
-                        .addChoice("🪪 Ausweis",       "ausweis")
-                        .addChoice("🚗 Führerschein",  "fuehrerschein"))
-                    .addOption(OptionType.USER, "wer",
-                        "Spieler (zeigt deine Lizenzen wenn leer)", false)
-                    .setDefaultPermissions(DefaultMemberPermissions.ENABLED),
 
                 Commands.slash("ausweis-erstellen", "Erstellt einen Personalausweis für einen Bewohner")
                     .addOption(OptionType.USER, "wer",
