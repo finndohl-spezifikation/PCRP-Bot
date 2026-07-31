@@ -46,13 +46,36 @@ public final class LohnManager {
             return t;
         });
 
+    private static final String LOBBY_KEY_PREFIX = "lobby-status-";
+
     private LohnManager() {}
+
+    // ── Bot-Start: Lobby-Status aus DataStore wiederherstellen ────────────────
+
+    /**
+     * Wird nach dem Bot-Start aufgerufen. Prüft ob die Lobby vor dem Restart
+     * noch offen war und startet den Lohn-Scheduler dann neu.
+     */
+    public static void init(Guild guild) {
+        String stored = DataStore.readString(LOBBY_KEY_PREFIX + guild.getId());
+        if ("true".equals(stored)) {
+            log.info("[Lohn] Lobby war beim letzten Bot-Stopp noch offen – starte Lohn-Scheduler neu.");
+            lobbyOpen = true;
+            if (wageTask == null || wageTask.isCancelled()) {
+                wageTask = scheduler.scheduleAtFixedRate(
+                    LohnManager::payAllWages,
+                    1, 1, TimeUnit.HOURS);
+                log.info("[Lohn] Lohn-Scheduler nach Bot-Neustart gestartet (stündlich).");
+            }
+        }
+    }
 
     // ── Lobby-Steuerung ───────────────────────────────────────────────────────
 
     /** Wird aufgerufen wenn die Lobby geöffnet wird. Startet den Stunden-Lohn. */
-    public static void onLobbyOpen() {
+    public static void onLobbyOpen(Guild guild) {
         lobbyOpen = true;
+        DataStore.writeString(LOBBY_KEY_PREFIX + guild.getId(), "true");
         // Stündliche Auszahlung starten
         if (wageTask == null || wageTask.isCancelled()) {
             wageTask = scheduler.scheduleAtFixedRate(
@@ -63,8 +86,9 @@ public final class LohnManager {
     }
 
     /** Wird aufgerufen wenn die Lobby geschlossen wird. Stoppt den Lohn. */
-    public static void onLobbyClose() {
+    public static void onLobbyClose(Guild guild) {
         lobbyOpen = false;
+        DataStore.writeString(LOBBY_KEY_PREFIX + guild.getId(), "false");
         if (wageTask != null && !wageTask.isCancelled()) {
             wageTask.cancel(false);
             log.info("[Lohn] Lobby geschlossen – Lohn-Scheduler gestoppt.");

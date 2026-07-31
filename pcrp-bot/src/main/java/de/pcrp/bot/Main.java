@@ -195,6 +195,7 @@ public class Main {
                 postPremiumDeluxeAnnouncement(guild);
                 postChangelog(guild);
                 postLohnPanel(guild);
+                LohnManager.init(guild);  // Lobby-Status nach Restart wiederherstellen
                 GarageListener.postPanel(guild);
                 initShopItems(guild);
 

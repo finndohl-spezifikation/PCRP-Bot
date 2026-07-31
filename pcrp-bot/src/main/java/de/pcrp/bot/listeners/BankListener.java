@@ -395,8 +395,7 @@ public class BankListener extends ListenerAdapter {
         return ActionRow.of(
             Button.primary("bank-btn-deposit",  "💳 Einzahlen"),
             Button.primary("bank-btn-withdraw", "💵 Auszahlen"),
-            Button.primary("bank-btn-transfer", "📤 Überweisen"),
-            Button.secondary("bank-btn-bills",  "🧾 Offene Rechnungen")
+            Button.primary("bank-btn-transfer", "📤 Überweisen")
         );
     }
 

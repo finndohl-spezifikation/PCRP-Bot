@@ -1853,7 +1853,7 @@ public class CommandListener extends ListenerAdapter {
             .build();
 
         event.deferReply(true).queue();
-        LohnManager.onLobbyOpen();
+        LohnManager.onLobbyOpen(event.getGuild());
         ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
             .setEmbeds(lobbyEmbed)
             .queue(msg -> event.getHook().sendMessageEmbeds(
@@ -1887,7 +1887,7 @@ public class CommandListener extends ListenerAdapter {
             .build();
 
         event.deferReply(true).queue();
-        LohnManager.onLobbyClose();
+        LohnManager.onLobbyClose(event.getGuild());
         ch.sendMessage("<@&" + LoggingConfig.LOBBY_ABSTIMMUNG_ROLE_ID + ">")
             .setEmbeds(lobbyEmbed)
             .queue(msg -> event.getHook().sendMessageEmbeds(
