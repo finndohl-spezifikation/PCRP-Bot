@@ -306,18 +306,14 @@ public class KryptoListener extends ListenerAdapter {
     }
 
     private static void sendWalletPanel(TextChannel ch, String key) {
-        String guildId = ch.getGuild().getId();
         ch.sendMessageEmbeds(EmbedFactory.build(
             "🪙 PC Coins — Wallet",
             "Öffne dein Wallet und kaufe oder verkaufe **PC Coins**.\\n\\n" +
             "💹 **Einzahlen** — Bankgeld in PC Coins umwandeln\\n" +
             "💱 **Auszahlen** — PC Coins zurück in Bankgeld\\n" +
-            "📤 **Überweisen** — PC Coins an andere Spieler senden\\n\\n" +
-            "📈 **Aktueller Kurs:** " + KryptoManager.formatRate(KryptoManager.getRate(guildId)) + "\\n" +
-            "🌐 **Im Umlauf:** " + KryptoManager.formatCoins(KryptoManager.getSupply(guildId))))
+            "📤 **Überweisen** — PC Coins an andere Spieler senden"))
             .addActionRow(
-                Button.primary("krypto-wallet", "🪙 Wallet öffnen"),
-                Button.link(kryptoUrl(), "📈 Kurse ansehen"))
+                Button.primary("krypto-wallet", "🪙 Wallet öffnen"))
             .queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
                 err -> { log.error("[Krypto] Wallet-Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
