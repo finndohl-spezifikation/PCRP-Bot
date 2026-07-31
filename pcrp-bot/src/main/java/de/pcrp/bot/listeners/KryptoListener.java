@@ -268,7 +268,7 @@ public class KryptoListener extends ListenerAdapter {
 
     /** Postet das WALLET-Panel (mit Wallet-öffnen-Button) in den Wallet-Kanal. */
     public static void postWalletPanelIfNeeded(Guild guild) {
-        String key = "panel-krypto-wallet-v2-" + guild.getId();
+        String key = "panel-krypto-wallet-v3-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_CHANNEL_ID);
         if (ch == null) { log.warn("[Krypto] Wallet-Kanal nicht gefunden."); return; }
         PanelHelper.post(ch, key, "🪙 PC Coins — Wallet", () -> sendWalletPanel(ch, key));
@@ -296,10 +296,7 @@ public class KryptoListener extends ListenerAdapter {
     private static void sendWalletPanel(TextChannel ch, String key) {
         ch.sendMessageEmbeds(EmbedFactory.build(
             "🪙 PC Coins — Wallet",
-            "Öffne dein Wallet und kaufe oder verkaufe **PC Coins**.\\n\\n" +
-            "💹 **Einzahlen** — Bankgeld in PC Coins umwandeln\\n" +
-            "💱 **Auszahlen** — PC Coins zurück in Bankgeld\\n" +
-            "📤 **Überweisen** — PC Coins an andere Spieler senden"))
+            "Öffne hier dein PC Coin Krypto wallet"))
             .addActionRow(
                 Button.primary("krypto-wallet", "🪙 Wallet öffnen"))
             .queue(
