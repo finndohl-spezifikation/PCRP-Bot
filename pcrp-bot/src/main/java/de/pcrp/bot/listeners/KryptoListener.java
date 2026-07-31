@@ -236,35 +236,23 @@ public class KryptoListener extends ListenerAdapter {
 
     public static MessageEmbed buildWalletEmbed(String guildId, String userId) {
         long coins = KryptoManager.getBalance(guildId, userId);
-        double rate = KryptoManager.getRate(guildId);
-        long value = Math.round(coins * rate);
 
         EmbedBuilder eb = EmbedFactory.create()
             .setTitle("🪙 PC Coins Wallet")
             .setDescription("💰 Dein Krypto-Konto");
 
         eb.addField("🪙 Bestand", "**" + KryptoManager.formatCoins(coins) + "**", false);
-        eb.addField("📈 Aktueller Kurs", "**" + KryptoManager.formatRate(rate) + "** pro PC Coin", false);
-        eb.addField("💵 Geschätzter Wert", "**" + BankManager.formatAmount(value) + "**", false);
-        eb.addField("🌐 Im Umlauf", "**" + KryptoManager.formatCoins(KryptoManager.getSupply(guildId))
-            + "** auf dem gesamten Server", false);
-
-        eb.setFooter("Der Kurs steigt mit jedem gekauften Coin — und fällt, wenn verkauft wird.");
         return eb.build();
     }
 
     private static MessageEmbed buildResultEmbed(String title, String desc,
                                                   String guildId, String userId) {
         long coins = KryptoManager.getBalance(guildId, userId);
-        double rate = KryptoManager.getRate(guildId);
-        long value = Math.round(coins * rate);
 
         EmbedBuilder eb = EmbedFactory.create()
             .setTitle(title)
             .setDescription(desc + "\n\n" +
-                "**Neuer Bestand:** " + KryptoManager.formatCoins(coins) + "\n" +
-                "**Aktueller Kurs:** " + KryptoManager.formatRate(rate) + "\n" +
-                "**Wert:** " + BankManager.formatAmount(value));
+                "**Neuer Bestand:** " + KryptoManager.formatCoins(coins));
         return eb.build();
     }
 
