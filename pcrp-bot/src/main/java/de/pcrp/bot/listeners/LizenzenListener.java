@@ -33,19 +33,24 @@ public class LizenzenListener extends ListenerAdapter {
     private static final String MODAL_FUEHRERSCHEIN = "liz-modal-fuehrerschein";
     private static final String INPUT_NAME        = "liz-name";
 
+    /** Panel-Beschreibung — als Konstante, damit Duplikat-Check und Sendetext nie auseinanderdriften. */
+    private static final String PANEL_DESC =
+        "Wähle unten aus, welche Lizenz du vorzeigen möchtest.\n" +
+        "Anschließend öffnet sich eine Suchleiste — gib den Charakternamen ein und du erhältst den Anzeige-Link.";
+
     /** Postet das Panel-Embed einmalig nach Bot-Start (Duplikat-Schutz via DataStore). */
     public static void postPanel(Guild guild) {
-        String key = "panel-lizenzen-v1-" + guild.getId();
+        String key = "panel-lizenzen-v2-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(RoleConfig.AUSWEIS_CHANNEL_ID);
         if (ch == null) { log.warn("[Lizenzen] Ausweis-Kanal nicht gefunden."); return; }
-        PanelHelper.post(ch, key, "🪪 Lizenzen anzeigen", () -> sendPanel(ch, key));
+        // Beschreibung mitgeben: Der Duplikat-Check erkennt nur ein Embed mit gleichem
+        // Titel UND gleichem Text als "schon vorhanden" — das alte v1-Embed (gleicher
+        // Titel, alter Text) blockt das frische Panel also nicht.
+        PanelHelper.post(ch, key, "🪪 Lizenzen anzeigen", PANEL_DESC, () -> sendPanel(ch, key));
     }
 
     private static void sendPanel(TextChannel ch, String key) {
-        ch.sendMessageEmbeds(EmbedFactory.build(
-            "🪪 Lizenzen anzeigen",
-            "Wähle unten aus, welche Lizenz du vorzeigen möchtest.\n" +
-            "Anschließend gibst du den Namen der Person ein und erhältst den Anzeige-Link."))
+        ch.sendMessageEmbeds(EmbedFactory.build("🪪 Lizenzen anzeigen", PANEL_DESC))
             .addActionRow(
                 Button.primary(BTN_AUSWEIS,       "🪪 Ausweis Anzeigen"),
                 Button.primary(BTN_FUEHRERSCHEIN, "🚗 Führerschein Anzeigen"))
