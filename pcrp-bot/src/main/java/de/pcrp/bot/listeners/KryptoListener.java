@@ -280,7 +280,7 @@ public class KryptoListener extends ListenerAdapter {
 
     /** Postet das WALLET-Panel (mit Wallet-öffnen-Button) in den Wallet-Kanal. */
     public static void postWalletPanelIfNeeded(Guild guild) {
-        String key = "panel-krypto-wallet-v1-" + guild.getId();
+        String key = "panel-krypto-wallet-v2-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_CHANNEL_ID);
         if (ch == null) { log.warn("[Krypto] Wallet-Kanal nicht gefunden."); return; }
         PanelHelper.post(ch, key, "🪙 PC Coins — Wallet", () -> sendWalletPanel(ch, key));
