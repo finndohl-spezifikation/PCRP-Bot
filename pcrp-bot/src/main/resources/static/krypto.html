@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Coins — Kursübersicht | Paradise City Roleplay</title>
+<style>
+  :root{
+    --bg:#0b0e14; --card:#141926; --card2:#1b2233; --line:#232c41;
+    --text:#e8ecf5; --muted:#8b94a8; --accent:#f0b90b; --accent2:#13c273;
+    --red:#e04a4a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    background-image:radial-gradient(circle at 20% -10%,rgba(240,185,11,.08),transparent 40%),
+                     radial-gradient(circle at 90% 110%,rgba(19,194,115,.06),transparent 40%);
+  }
+  .wrap{width:100%;max-width:860px;padding:24px 16px 60px}
+  header{display:flex;align-items:center;gap:12px;padding:18px 0 28px}
+  .logo{font-size:30px}
+  h1{font-size:22px;font-weight:700}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .ticker{
+    display:flex;gap:14px;flex-wrap:wrap;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;
+    justify-content:space-between;align-items:center;
+  }
+  .ticker .price{font-size:34px;font-weight:800;color:var(--accent)}
+  .ticker .price small{font-size:15px;color:var(--muted);font-weight:400}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .stat .val{font-size:20px;font-weight:700;margin-top:4px}
+  .up{color:var(--accent2)} .down{color:var(--red)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h2{font-size:15px;margin-bottom:14px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+  canvas{width:100%;height:300px;display:block}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;color:var(--muted);font-size:12.5px}
+  .legend b{color:var(--text)}
+  .note{color:var(--muted);font-size:12.5px;line-height:1.6;margin-top:18px}
+  .badge{display:inline-block;background:rgba(240,185,11,.12);color:var(--accent);
+    border:1px solid rgba(240,185,11,.3);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+  footer{margin-top:28px;color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🪙</div>
+    <div>
+      <h1>PC Coins Kurs</h1>
+      <div class="sub">Paradise City Roleplay · <span class="badge">Krypto</span></div>
+    </div>
+  </header>
+
+  <div class="ticker">
+    <div>
+      <div class="sub">Aktueller Kurs</div>
+      <div class="price" id="rate">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="sub" id="rangeLabel">Letzte 24 Stunden</div>
+      <div id="rangeChange" style="font-size:15px;margin-top:4px">—</div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="lbl">Im Umlauf</div><div class="val" id="supply">—</div></div>
+    <div class="stat"><div class="lbl">Tages-Hoch</div><div class="val up" id="high">—</div></div>
+    <div class="stat"><div class="lbl">Tages-Tief</div><div class="val down" id="low">—</div></div>
+    <div class="stat"><div class="lbl">7-Tage Start</div><div class="val" id="weekStart">—</div></div>
+  </div>
+
+  <div class="card">
+    <h2>📈 Kursverlauf — letzte 7 Tage</h2>
+    <canvas id="chart"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <p class="note">
+    🪙 PC Coins können im Discord über <b>Online Banking → PC Coins Wallet</b> gekauft und verkauft werden.
+    Der Kurs ist <b>angebotsabhängig</b>: Je mehr Coins im Umlauf sind, desto höher der Kurs — je weniger, desto niedriger.
+    Dieser Verlauf zeigt die letzten 7 Tage.
+  </p>
+
+  <footer>Paradise City Roleplay · PC Coins Kursübersicht</footer>
+</div>
+
+<script>
+(function(){
+  var API = (function(){
+    // Basis-URL ableiten: gleiche Herkunft (Railway oder Cloudflare-Worker-Proxy)
+    return location.origin + '/api/krypto/rates';
+  })();
+
+  var fmt = function(n){ return n.toLocaleString('de-DE',{maximumFractionDigits:0}) + '$'; };
+  var fmtRate = function(r){ return r.toLocaleString('de-DE',{minimumFractionDigits:4, maximumFractionDigits:4}) + '$'; };
+
+  fetch(API)
+    .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); })
+    .then(function(data){
+      render(data);
+    })
+    .catch(function(err){
+      console.error('Krypto API Fehler:', err);
+      document.getElementById('rate').textContent = '—';
+    });
+
+  function render(data){
+    var rate = data.rate || 0;
+    var supply = data.supply || 0;
+    var history = (data.history || []).filter(function(p){ return p && typeof p.rate === 'number'; });
+
+    document.getElementById('rate').textContent = fmtRate(rate);
+    document.getElementById('supply').textContent = supply.toLocaleString('de-DE') + ' PC';
+
+    if(history.length){
+      var now = Math.floor(Date.now()/1000);
+      var dayAgo = now - 86400;
+      var day = history.filter(function(p){ return p.ts >= dayAgo; });
+      var weekStart = history[0].rate;
+      document.getElementById('weekStart').textContent = fmtRate(weekStart);
+
+      if(day.length){
+        var highs = day.map(function(p){ return p.rate; });
+        var high = Math.max.apply(null, highs);
+        var low  = Math.min.apply(null, highs);
+        document.getElementById('high').textContent = fmtRate(high);
+        document.getElementById('low').textContent  = fmtRate(low);
+
+        var first = day[0].rate, last = day[day.length-1].rate;
+        var diff = last - first;
+        var cls = diff >= 0 ? 'up' : 'down';
+        var arrow = diff >= 0 ? '▲' : '▼';
+        document.getElementById('rangeChange').innerHTML =
+          '<span class="'+cls+'">'+arrow+' '+Math.abs(diff).toLocaleString('de-DE',{minimumFractionDigits:4, maximumFractionDigits:4})+'$</span>';
+      }
+    }
+
+    drawChart(history);
+    var legend = document.getElementById('legend');
+    if(history.length >= 2){
+      var first = history[0].rate, last = history[history.length-1].rate;
+      var pct = ((last-first)/first*100).toLocaleString('de-DE',{maximumFractionDigits:2});
+      legend.innerHTML =
+        '<span>Hoch: <b>'+fmtRate(Math.max.apply(null, history.map(function(p){return p.rate;}))) +'</b></span>'+
+        '<span>Tief: <b>'+fmtRate(Math.min.apply(null, history.map(function(p){return p.rate;}))) +'</b></span>'+
+        '<span>Gesamt: <b>'+ (last>=first?'+':'') + pct + '%</b></span>';
+    }
+  }
+
+  function drawChart(history){
+    var canvas = document.getElementById('chart');
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var W = canvas.clientWidth, H = canvas.clientHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0,0,W,H);
+
+    if(history.length < 2){
+      ctx.fillStyle = '#8b94a8';
+      ctx.font = '14px Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Noch nicht genug Daten — sammle Kurs-Punkte…', W/2, H/2);
+      return;
+    }
+
+    var padL = 10, padR = 10, padT = 14, padB = 26;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var rates = history.map(function(p){ return p.rate; });
+    var min = Math.min.apply(null, rates), max = Math.max.apply(null, rates);
+    var span = (max-min) || 1;
+    min -= span*0.08; max += span*0.08;
+
+    function x(i){ return padL + (history.length === 1 ? iw/2 : i/(history.length-1)*iw); }
+    function y(r){ return padT + (1 - (r-min)/(max-min))*ih; }
+
+    // Grid
+    ctx.strokeStyle = '#232c41'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    for(var g=0; g<=4; g++){
+      var gy = padT + g/4*ih;
+      ctx.beginPath(); ctx.moveTo(padL, gy); ctx.lineTo(W-padR, gy); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Area
+    var grad = ctx.createLinearGradient(0, padT, 0, H-padB);
+    grad.addColorStop(0, 'rgba(240,185,11,.28)');
+    grad.addColorStop(1, 'rgba(240,185,11,0)');
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(rates[0]));
+    for(var i=1; i<history.length; i++) ctx.lineTo(x(i), y(rates[i]));
+    ctx.lineTo(x(history.length-1), H-padB);
+    ctx.lineTo(x(0), H-padB);
+    ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(x(0), y(rates[0]));
+    for(var j=1; j<history.length; j++) ctx.lineTo(x(j), y(rates[j]));
+    ctx.strokeStyle = '#f0b90b'; ctx.lineWidth = 2.5; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.stroke();
+
+    // Punkte (max. 60 anzeigen)
+    var step = Math.max(1, Math.ceil(history.length/60));
+    ctx.fillStyle = '#f0b90b';
+    for(var k=0; k<history.length; k+=step){
+      ctx.beginPath(); ctx.arc(x(k), y(rates[k]), 3, 0, Math.PI*2); ctx.fill();
+    }
+
+    // X-Achsen-Labels (Zeiten)
+    ctx.fillStyle = '#8b94a8'; ctx.font = '11px Segoe UI, sans-serif'; ctx.textAlign='center';
+    var labels = [0, Math.floor(history.length/2), history.length-1];
+    for(var l=0; l<labels.length; l++){
+      var idx = labels[l];
+      var d = new Date(history[idx].ts*1000);
+      var lbl = d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}) + ' ' +
+                d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      ctx.fillText(lbl, x(idx), H-8);
+    }
+  }
+
+  var lastHistory = [];
+  window.addEventListener('resize', function(){
+    if(lastHistory.length) drawChart(lastHistory);
+  });
+  // drawChart merkt sich die Daten für Resize-Re-Render
+  var _origDraw = drawChart;
+  drawChart = function(h){ lastHistory = h; _origDraw(h); };
+})();
+</script>
+</body>
+</html>

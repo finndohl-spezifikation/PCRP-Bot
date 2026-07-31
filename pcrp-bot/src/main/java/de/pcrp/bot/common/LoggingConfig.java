@@ -155,6 +155,9 @@ public final class LoggingConfig {
     /** Online-Banking Panel-Kanal. */
     public static final long BANK_CHANNEL_ID        = 1529636604162085025L;
 
+    /** Krypto (PC Coins) Panel-Kanal. */
+    public static final long KRYPTO_CHANNEL_ID      = 1529636610726166549L;
+
     /** Item-Log-Kanal (alle item-bezogenen Aktionen). */
     public static final long ITEM_LOG_CHANNEL_ID    = 1529636412628930723L;
 

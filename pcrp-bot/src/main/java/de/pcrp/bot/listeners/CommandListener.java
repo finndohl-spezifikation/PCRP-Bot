@@ -1743,7 +1743,25 @@ public class CommandListener extends ListenerAdapter {
                 .setEphemeral(true).queue(); return;
         }
         String guildId = event.getGuild().getId();
-        boolean isBank = "kontogeld".equalsIgnoreCase(typ);
+        boolean isBank   = "kontogeld".equalsIgnoreCase(typ);
+        boolean isCrypto = "pc-coins".equalsIgnoreCase(typ);
+
+        if (isCrypto) {
+            KryptoManager.adminGive(guildId, target.getId(), betrag);
+            event.replyEmbeds(embed("✅ PC Coins gegeben",
+                "**+" + KryptoManager.formatCoins(betrag) + "** wurden **" + target.getEffectiveName()
+                + "** gutgeschrieben."))
+                .setEphemeral(true).queue();
+            BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+                "🪙 PC Coins erhalten",
+                "Du hast **+" + KryptoManager.formatCoins(betrag) + "** von einem Admin erhalten."));
+            BotLogger.logMoney(event.getGuild(), "🪙 PC Coins gegeben",
+                "**Admin:** " + event.getUser().getAsMention() + "\n" +
+                "**Spieler:** " + target.getAsMention() + " (" + target.getEffectiveName() + ")\n" +
+                "**Menge:** +" + KryptoManager.formatCoins(betrag));
+            return;
+        }
+
         BankManager.adminAdd(guildId, target.getId(), betrag, isBank);
         String typLabel = isBank ? "Kontogeld" : "Bargeld";
         event.replyEmbeds(embed("✅ Geld gegeben",
@@ -1773,7 +1791,27 @@ public class CommandListener extends ListenerAdapter {
                 .setEphemeral(true).queue(); return;
         }
         String guildId = event.getGuild().getId();
-        boolean isBank = "kontogeld".equalsIgnoreCase(typ);
+        boolean isBank   = "kontogeld".equalsIgnoreCase(typ);
+        boolean isCrypto = "pc-coins".equalsIgnoreCase(typ);
+
+        if (isCrypto) {
+            String errCrypto = KryptoManager.adminRemove(guildId, target.getId(), betrag);
+            if (errCrypto != null) {
+                event.replyEmbeds(embed("❌ Fehler", errCrypto)).setEphemeral(true).queue(); return;
+            }
+            event.replyEmbeds(embed("✅ PC Coins entfernt",
+                "**-" + KryptoManager.formatCoins(betrag) + "** wurden von **" + target.getEffectiveName() + "** abgezogen."))
+                .setEphemeral(true).queue();
+            BotLogger.tryDm(target.getUser(), EmbedFactory.build(
+                "🪙 PC Coins abgezogen",
+                "**-" + KryptoManager.formatCoins(betrag) + "** wurden von einem Admin abgezogen."));
+            BotLogger.logMoney(event.getGuild(), "🪙 PC Coins entfernt",
+                "**Admin:** " + event.getUser().getAsMention() + "\n" +
+                "**Spieler:** " + target.getAsMention() + " (" + target.getEffectiveName() + ")\n" +
+                "**Menge:** -" + KryptoManager.formatCoins(betrag));
+            return;
+        }
+
         String err = BankManager.adminRemove(guildId, target.getId(), betrag, isBank);
         if (err != null) {
             event.replyEmbeds(embed("❌ Fehler", err)).setEphemeral(true).queue(); return;

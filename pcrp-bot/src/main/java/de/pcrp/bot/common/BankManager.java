@@ -162,6 +162,8 @@ public final class BankManager {
             case "HANDY_NUMMER_WECHSEL" -> { icon = "🔄"; label = "Rufnummer wechseln"; }
             case "LOHN"                  -> { icon = "💰"; label = "Lohn (stündlich)"; }
             case "RECHNUNG"               -> { icon = "🧾"; label = "Rechnung bezahlt"; }
+            case "KRYPTO_KAUF"            -> { icon = "💹"; label = "PC Coins gekauft"; }
+            case "KRYPTO_VERKAUF"         -> { icon = "💱"; label = "PC Coins verkauft"; }
             default                     -> { icon = "•";  label = tx.type; }
         }
         boolean isIn = tx.type.equals("EINZAHLUNG")
@@ -169,7 +171,8 @@ public final class BankManager {
             || tx.type.equals("ADMIN_GABE")
             || tx.type.equals("RUBBELLOS_GEWINN")
             || tx.type.equals("LOTTO_GEWINN")
-            || tx.type.equals("LOHN");
+            || tx.type.equals("LOHN")
+            || tx.type.equals("KRYPTO_VERKAUF");
         String sign = isIn ? "+" : "-";
         return icon + " **" + label + "** — " + sign + formatAmount(tx.amount)
             + " <t:" + tx.ts + ":d>";

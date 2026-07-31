@@ -104,6 +104,10 @@ public class WebServer {
         app.get( "/citybuy",                                     WebServer::serveCityBuy);
         app.get( "/cityship",                                    WebServer::serveCityShip);
 
+        // ── Krypto (PC Coins Kursseite) ────────────────────────────────────
+        app.get( "/krypto",                                      WebServer::serveKrypto);
+        app.get( "/api/krypto/rates",                            WebServer::handleKryptoRates);
+
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
         app.post("/api/city-chat/pin-verify",           ctx -> CityChatHandler.handlePinVerify(ctx));
@@ -318,6 +322,48 @@ public class WebServer {
             log.error("[CityShip] Fehler beim Ausliefern.", e);
             ctx.status(500).result("Interner Fehler");
         }
+    }
+
+    // ── krypto.html (PC Coins Kursseite) ───────────────────────
+
+    private static void serveKrypto(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/krypto.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            log.info("[Krypto] Kursseite ausgeliefert.");
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            log.error("[Krypto] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    /** GET /api/krypto/rates – aktueller Kurs, Umlauf und 7-Tage-Historie. */
+    private static void handleKryptoRates(Context ctx) {
+        JsonObject out = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            out.addProperty("ok", false);
+            out.addProperty("error", "Server nicht bereit.");
+            ctx.contentType("application/json").result(GSON.toJson(out));
+            return;
+        }
+        String guildId = guild.getId();
+        out.addProperty("ok", true);
+        out.addProperty("rate", KryptoManager.getRate(guildId));
+        out.addProperty("supply", KryptoManager.getSupply(guildId));
+
+        JsonArray hist = new JsonArray();
+        for (KryptoManager.RatePoint p : KryptoManager.readHistory(guildId)) {
+            JsonObject o = new JsonObject();
+            o.addProperty("ts", p.ts);
+            o.addProperty("rate", p.rate);
+            hist.add(o);
+        }
+        out.add("history", hist);
+        ctx.contentType("application/json").result(GSON.toJson(out));
     }
 
     // ── city-chat.html ─────────────────────────────────────────

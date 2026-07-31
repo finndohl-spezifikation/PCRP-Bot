@@ -92,6 +92,7 @@ public class Main {
                 new RubbellosListener(),
                 new ShopListener(),
                 new BankListener(),
+                new KryptoListener(),
                 new BargeldListener(),
                 new HandyCentraleListener(),
                 new FirmaLinkListener(),
@@ -186,6 +187,8 @@ public class Main {
                 postRubbellosPanel(guild);
                 ShopListener.postPanelIfNeeded(guild);
                 BankListener.postPanelIfNeeded(guild);
+                KryptoListener.postPanelIfNeeded(guild);
+                KryptoManager.init(guild);  // Kurs-Snapshot-Scheduler starten
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);
                 postCitygramPanel(guild);
@@ -1102,20 +1105,22 @@ public class Main {
                     .addOption(OptionType.INTEGER, "menge",   "Menge",                            true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
-                Commands.slash("geld-geben", "Gibt einem Spieler Bargeld oder Kontogeld")
+                Commands.slash("geld-geben", "Gibt einem Spieler Bargeld, Kontogeld oder PC Coins")
                     .addOption(OptionType.USER,    "mitglied", "Das Mitglied", true)
                     .addOptions(new OptionData(OptionType.STRING, "typ", "Geldart", true)
                         .addChoice("Bargeld",   "bargeld")
-                        .addChoice("Kontogeld", "kontogeld"))
-                    .addOption(OptionType.INTEGER, "betrag", "Betrag in $",    true)
+                        .addChoice("Kontogeld", "kontogeld")
+                        .addChoice("PC Coins",  "pc-coins"))
+                    .addOption(OptionType.INTEGER, "betrag", "Betrag in $ bzw. Anzahl PC Coins", true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
-                Commands.slash("geld-entfernen", "Entfernt Bargeld oder Kontogeld von einem Spieler")
+                Commands.slash("geld-entfernen", "Entfernt Bargeld, Kontogeld oder PC Coins von einem Spieler")
                     .addOption(OptionType.USER,    "mitglied", "Das Mitglied", true)
                     .addOptions(new OptionData(OptionType.STRING, "typ", "Geldart", true)
                         .addChoice("Bargeld",   "bargeld")
-                        .addChoice("Kontogeld", "kontogeld"))
-                    .addOption(OptionType.INTEGER, "betrag", "Betrag in $",    true)
+                        .addChoice("Kontogeld", "kontogeld")
+                        .addChoice("PC Coins",  "pc-coins"))
+                    .addOption(OptionType.INTEGER, "betrag", "Betrag in $ bzw. Anzahl PC Coins", true)
                     .setDefaultPermissions(DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
                 Commands.slash("bargeld", "Barbestand anzeigen")

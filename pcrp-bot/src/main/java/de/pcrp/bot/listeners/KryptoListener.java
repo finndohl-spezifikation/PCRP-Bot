@@ -1,0 +1,324 @@
+package de.pcrp.bot.listeners;
+
+import de.pcrp.bot.common.*;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * PC-Coins Krypto-Wallet: Einzahlen (Bank → Coins), Auszahlen (Coins → Bank),
+ * Überweisen (Coins → anderes Krypto-Konto). Panel im Krypto-Kanal mit
+ * Link-Button zur Kurs-Webseite (/krypto).
+ */
+public class KryptoListener extends ListenerAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(KryptoListener.class);
+
+    /** Zwischenspeicher: userId → receiverId (zwischen EntitySelect und Modal-Submit). */
+    private static final Map<String, String> PENDING_TRANSFER = new ConcurrentHashMap<>();
+
+    // ── Button-Handler ────────────────────────────────────────────────────────
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String cid     = event.getComponentId();
+        String userId  = event.getUser().getId();
+        String guildId = event.getGuild().getId();
+
+        switch (cid) {
+            case "krypto-wallet" -> {
+                event.replyEmbeds(buildWalletEmbed(guildId, userId))
+                    .addComponents(walletRow())
+                    .setEphemeral(true).queue();
+            }
+            case "krypto-deposit" -> {
+                Modal modal = Modal.create("krypto-modal-deposit", "💹 PC Coins kaufen")
+                    .addComponents(ActionRow.of(
+                        TextInput.create("betrag", "Betrag in $ (vom Bankkonto)", TextInputStyle.SHORT)
+                            .setPlaceholder("z. B. 5000")
+                            .setMinLength(1).setMaxLength(12)
+                            .setRequired(true).build()))
+                    .build();
+                event.replyModal(modal).queue();
+            }
+            case "krypto-withdraw" -> {
+                Modal modal = Modal.create("krypto-modal-withdraw", "💱 PC Coins verkaufen")
+                    .addComponents(ActionRow.of(
+                        TextInput.create("menge", "Anzahl PC Coins", TextInputStyle.SHORT)
+                            .setPlaceholder("z. B. 100")
+                            .setMinLength(1).setMaxLength(12)
+                            .setRequired(true).build()))
+                    .build();
+                event.replyModal(modal).queue();
+            }
+            case "krypto-transfer" -> {
+                EntitySelectMenu select = EntitySelectMenu
+                    .create("krypto-transfer-select", EntitySelectMenu.SelectTarget.USER)
+                    .setPlaceholder("Spieler suchen und auswählen…")
+                    .setMinValues(1).setMaxValues(1)
+                    .build();
+                event.editMessageEmbeds(EmbedFactory.build(
+                    "📤 PC Coins überweisen — Empfänger wählen",
+                    "Wähle den Spieler aus, an den du PC Coins überweisen möchtest."))
+                    .setComponents(
+                        ActionRow.of(select),
+                        ActionRow.of(Button.secondary("krypto-wallet", "← Zurück")))
+                    .queue();
+            }
+        }
+    }
+
+    // ── Modal-Handler ─────────────────────────────────────────────────────────
+
+    @Override
+    public void onModalInteraction(ModalInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String mid     = event.getModalId();
+        String userId  = event.getUser().getId();
+        String guildId = event.getGuild().getId();
+
+        switch (mid) {
+            case "krypto-modal-deposit"         -> handleDeposit(event, guildId, userId);
+            case "krypto-modal-withdraw"        -> handleWithdraw(event, guildId, userId);
+            case "krypto-modal-transfer-amount" -> handleTransferAmount(event, guildId, userId);
+        }
+    }
+
+    // ── Einzahlen (Bank → Coins) ──────────────────────────────────────────────
+
+    private void handleDeposit(ModalInteractionEvent event, String guildId, String userId) {
+        long amount = parseLong(event.getValue("betrag").getAsString());
+        if (amount <= 0) {
+            event.replyEmbeds(EmbedFactory.build("❌ Ungültiger Betrag",
+                "Bitte gib einen gültigen Betrag ein (z. B. `5000`)."))
+                .setEphemeral(true).queue(); return;
+        }
+        String err = KryptoManager.buy(guildId, userId, amount);
+        if (err != null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Kauf fehlgeschlagen", err))
+                .setEphemeral(true).queue(); return;
+        }
+        long coins = KryptoManager.getBalance(guildId, userId);
+        event.replyEmbeds(buildResultEmbed("✅ PC Coins gekauft",
+            "**" + BankManager.formatAmount(amount) + "** wurden in PC Coins umgewandelt.",
+            guildId, userId))
+            .addComponents(walletRow()).setEphemeral(true).queue();
+        BotLogger.logMoney(event.getGuild(), "💹 PC Coins gekauft",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Betrag:** -" + BankManager.formatAmount(amount) + "\n" +
+            "**Neuer Bestand:** " + KryptoManager.formatCoins(coins));
+        log.info("[Krypto] Kauf {} : {}$ → {} PC", event.getUser().getAsTag(), amount, coins);
+    }
+
+    // ── Auszahlen (Coins → Bank) ──────────────────────────────────────────────
+
+    private void handleWithdraw(ModalInteractionEvent event, String guildId, String userId) {
+        long coins = parseLong(event.getValue("menge").getAsString());
+        if (coins <= 0) {
+            event.replyEmbeds(EmbedFactory.build("❌ Ungültige Menge",
+                "Bitte gib eine gültige Anzahl PC Coins ein (z. B. `100`)."))
+                .setEphemeral(true).queue(); return;
+        }
+        String err = KryptoManager.sell(guildId, userId, coins);
+        if (err != null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Verkauf fehlgeschlagen", err))
+                .setEphemeral(true).queue(); return;
+        }
+        event.replyEmbeds(buildResultEmbed("✅ PC Coins verkauft",
+            "**" + KryptoManager.formatCoins(coins) + "** wurden in Kontogeld umgewandelt.",
+            guildId, userId))
+            .addComponents(walletRow()).setEphemeral(true).queue();
+        BotLogger.logMoney(event.getGuild(), "💱 PC Coins verkauft",
+            "**Spieler:** " + event.getUser().getAsMention() + "\n" +
+            "**Menge:** -" + KryptoManager.formatCoins(coins));
+        log.info("[Krypto] Verkauf {} : {} PC → Konto", event.getUser().getAsTag(), coins);
+    }
+
+    // ── Überweisen: Empfänger-Auswahl per Discord-Suchleiste ─────────────────
+
+    @Override
+    public void onEntitySelectInteraction(EntitySelectInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        if (!"krypto-transfer-select".equals(event.getComponentId())) return;
+
+        List<Member> selected = event.getMentions().getMembers();
+        if (selected.isEmpty()) { event.deferEdit().queue(); return; }
+
+        Member receiver = selected.get(0);
+        String userId   = event.getUser().getId();
+
+        if (receiver.getId().equals(userId)) {
+            event.editMessageEmbeds(EmbedFactory.build(
+                "❌ Nicht erlaubt", "Du kannst nicht an dich selbst überweisen."))
+                .setComponents(ActionRow.of(Button.secondary("krypto-wallet", "← Zurück")))
+                .queue();
+            return;
+        }
+
+        PENDING_TRANSFER.put(userId, receiver.getId());
+
+        Modal modal = Modal.create("krypto-modal-transfer-amount",
+                "📤 PC Coins an " + receiver.getEffectiveName())
+            .addComponents(ActionRow.of(
+                TextInput.create("menge", "Anzahl PC Coins", TextInputStyle.SHORT)
+                    .setPlaceholder("z. B. 50")
+                    .setMinLength(1).setMaxLength(12)
+                    .setRequired(true).build()))
+            .build();
+        event.replyModal(modal).queue();
+    }
+
+    // ── Überweisen: Menge-Modal verarbeiten ───────────────────────────────────
+
+    private void handleTransferAmount(ModalInteractionEvent event, String guildId, String userId) {
+        String receiverId = PENDING_TRANSFER.remove(userId);
+        if (receiverId == null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Fehler",
+                "Kein Empfänger ausgewählt. Bitte erneut auf **Überweisen** klicken."))
+                .setEphemeral(true).queue(); return;
+        }
+        Member receiver = event.getGuild().getMemberById(receiverId);
+        if (receiver == null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Empfänger nicht gefunden",
+                "Der ausgewählte Spieler ist nicht mehr auf dem Server."))
+                .setEphemeral(true).queue(); return;
+        }
+        long coins = parseLong(event.getValue("menge").getAsString());
+        if (coins <= 0) {
+            event.replyEmbeds(EmbedFactory.build("❌ Ungültige Menge",
+                "Bitte gib eine gültige Anzahl PC Coins ein (z. B. `50`)."))
+                .setEphemeral(true).queue(); return;
+        }
+        String err = KryptoManager.transfer(guildId, userId, receiverId, coins);
+        if (err != null) {
+            event.replyEmbeds(EmbedFactory.build("❌ Überweisung fehlgeschlagen", err))
+                .setEphemeral(true).queue(); return;
+        }
+        String senderName = event.getMember() != null
+            ? event.getMember().getEffectiveName() : event.getUser().getName();
+        event.replyEmbeds(buildResultEmbed("✅ Überweisung erfolgreich",
+            "**" + KryptoManager.formatCoins(coins) + "** wurden an **"
+                + receiver.getEffectiveName() + "** überwiesen.",
+            guildId, userId))
+            .addComponents(walletRow()).setEphemeral(true).queue();
+        BotLogger.tryDm(receiver.getUser(), EmbedFactory.build(
+            "📥 PC Coins erhalten",
+            "**" + senderName + "** hat dir **" + KryptoManager.formatCoins(coins)
+                + "** überwiesen."));
+        BotLogger.logMoney(event.getGuild(), "📤 PC Coins überwiesen",
+            "**Von:** " + event.getUser().getAsMention() + "\n" +
+            "**An:** " + receiver.getAsMention() + " (" + receiver.getEffectiveName() + ")\n" +
+            "**Menge:** " + KryptoManager.formatCoins(coins));
+        log.info("[Krypto] Überweisung {} → {} : {} PC",
+            event.getUser().getAsTag(), receiver.getUser().getAsTag(), coins);
+    }
+
+    // ── Embeds ────────────────────────────────────────────────────────────────
+
+    public static MessageEmbed buildWalletEmbed(String guildId, String userId) {
+        long coins = KryptoManager.getBalance(guildId, userId);
+        double rate = KryptoManager.getRate(guildId);
+        long value = Math.round(coins * rate);
+
+        EmbedBuilder eb = EmbedFactory.create()
+            .setTitle("🪙 PC Coins Wallet")
+            .setDescription("💰 Dein Krypto-Konto");
+
+        eb.addField("🪙 Bestand", "**" + KryptoManager.formatCoins(coins) + "**", false);
+        eb.addField("📈 Aktueller Kurs", "**" + KryptoManager.formatRate(rate) + "** pro PC Coin", false);
+        eb.addField("💵 Geschätzter Wert", "**" + BankManager.formatAmount(value) + "**", false);
+        eb.addField("🌐 Im Umlauf", "**" + KryptoManager.formatCoins(KryptoManager.getSupply(guildId))
+            + "** auf dem gesamten Server", false);
+
+        eb.setFooter("Der Kurs steigt mit jedem gekauften Coin — und fällt, wenn verkauft wird.");
+        return eb.build();
+    }
+
+    private static MessageEmbed buildResultEmbed(String title, String desc,
+                                                  String guildId, String userId) {
+        long coins = KryptoManager.getBalance(guildId, userId);
+        double rate = KryptoManager.getRate(guildId);
+        long value = Math.round(coins * rate);
+
+        EmbedBuilder eb = EmbedFactory.create()
+            .setTitle(title)
+            .setDescription(desc + "\n\n" +
+                "**Neuer Bestand:** " + KryptoManager.formatCoins(coins) + "\n" +
+                "**Aktueller Kurs:** " + KryptoManager.formatRate(rate) + "\n" +
+                "**Wert:** " + BankManager.formatAmount(value));
+        return eb.build();
+    }
+
+    private static ActionRow walletRow() {
+        return ActionRow.of(
+            Button.primary("krypto-deposit",   "💹 Einzahlen"),
+            Button.primary("krypto-withdraw",  "💱 Auszahlen"),
+            Button.primary("krypto-transfer",  "📤 Überweisen")
+        );
+    }
+
+    // ── Panel Posting ──────────────────────────────────────────────────────────
+
+    public static void postPanelIfNeeded(Guild guild) {
+        String key = "panel-krypto-v1-" + guild.getId();
+        TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_CHANNEL_ID);
+        if (ch == null) { log.warn("[Krypto] Krypto-Kanal nicht gefunden."); return; }
+        PanelHelper.post(ch, key, "🪙 PC Coins — Krypto System", () -> sendPanel(ch, key));
+    }
+
+    private static void sendPanel(TextChannel ch, String key) {
+        String guildId = ch.getGuild().getId();
+        String webUrl = System.getenv("WEB_URL");
+        if (webUrl == null || webUrl.isBlank()) {
+            String domain = System.getenv("RAILWAY_PUBLIC_DOMAIN");
+            webUrl = (domain != null && !domain.isBlank())
+                ? (domain.startsWith("http") ? domain : "https://" + domain)
+                : "https://dashboards.paradisecity-roleplay-85a.workers.dev";
+        }
+        String base = webUrl.replaceAll("/$", "");
+        String url = base + "/krypto";
+
+        ch.sendMessageEmbeds(EmbedFactory.build(
+            "🪙 PC Coins — Krypto System",
+            "Öffne dein Wallet und kaufe oder verkaufe **PC Coins**.\\n\\n" +
+            "💹 **Einzahlen** — Bankgeld in PC Coins umwandeln\\n" +
+            "💱 **Auszahlen** — PC Coins zurück in Bankgeld\\n" +
+            "📤 **Überweisen** — PC Coins an andere Spieler senden\\n\\n" +
+            "📈 **Aktueller Kurs:** " + KryptoManager.formatRate(KryptoManager.getRate(guildId)) + "\\n" +
+            "🌐 **Im Umlauf:** " + KryptoManager.formatCoins(KryptoManager.getSupply(guildId)) + "\\n\\n" +
+            "Auf der Webseite siehst du den Kursverlauf der letzten **7 Tage**."))
+            .addActionRow(
+                Button.primary("krypto-wallet", "🪙 Wallet öffnen"),
+                Button.link(url, "📈 Kurse ansehen"))
+            .queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Krypto] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
+    }
+
+    // ── Utils ──────────────────────────────────────────────────────────────────
+
+    private static long parseLong(String s) {
+        if (s == null) return -1;
+        try { return Long.parseLong(s.trim().replace(".", "").replace(",", "").replace("$", "")); }
+        catch (NumberFormatException e) { return -1; }
+    }
+}
