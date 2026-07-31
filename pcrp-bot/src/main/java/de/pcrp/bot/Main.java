@@ -187,7 +187,8 @@ public class Main {
                 postRubbellosPanel(guild);
                 ShopListener.postPanelIfNeeded(guild);
                 BankListener.postPanelIfNeeded(guild);
-                KryptoListener.postPanelIfNeeded(guild);
+                KryptoListener.postWalletPanelIfNeeded(guild);
+                KryptoListener.postRatesPanelIfNeeded(guild);
                 KryptoManager.init(guild);  // Kurs-Snapshot-Scheduler starten
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);

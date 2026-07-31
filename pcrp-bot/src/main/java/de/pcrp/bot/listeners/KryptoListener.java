@@ -278,15 +278,23 @@ public class KryptoListener extends ListenerAdapter {
 
     // ── Panel Posting ──────────────────────────────────────────────────────────
 
-    public static void postPanelIfNeeded(Guild guild) {
-        String key = "panel-krypto-v1-" + guild.getId();
+    /** Postet das WALLET-Panel (mit Wallet-öffnen-Button) in den Wallet-Kanal. */
+    public static void postWalletPanelIfNeeded(Guild guild) {
+        String key = "panel-krypto-wallet-v1-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_CHANNEL_ID);
-        if (ch == null) { log.warn("[Krypto] Krypto-Kanal nicht gefunden."); return; }
-        PanelHelper.post(ch, key, "🪙 PC Coins — Krypto System", () -> sendPanel(ch, key));
+        if (ch == null) { log.warn("[Krypto] Wallet-Kanal nicht gefunden."); return; }
+        PanelHelper.post(ch, key, "🪙 PC Coins — Wallet", () -> sendWalletPanel(ch, key));
     }
 
-    private static void sendPanel(TextChannel ch, String key) {
-        String guildId = ch.getGuild().getId();
+    /** Postet das KURS-Panel (nur Kurse + Webseiten-Link) in den Kurs-Kanal. */
+    public static void postRatesPanelIfNeeded(Guild guild) {
+        String key = "panel-krypto-rates-v1-" + guild.getId();
+        TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_RATES_CHANNEL_ID);
+        if (ch == null) { log.warn("[Krypto] Kurs-Kanal nicht gefunden."); return; }
+        PanelHelper.post(ch, key, "📈 PC Coins — Kurse", () -> sendRatesPanel(ch, key));
+    }
+
+    private static String kryptoUrl() {
         String webUrl = System.getenv("WEB_URL");
         if (webUrl == null || webUrl.isBlank()) {
             String domain = System.getenv("RAILWAY_PUBLIC_DOMAIN");
@@ -294,24 +302,39 @@ public class KryptoListener extends ListenerAdapter {
                 ? (domain.startsWith("http") ? domain : "https://" + domain)
                 : "https://dashboards.paradisecity-roleplay-85a.workers.dev";
         }
-        String base = webUrl.replaceAll("/$", "");
-        String url = base + "/krypto";
+        return webUrl.replaceAll("/$", "") + "/krypto";
+    }
 
+    private static void sendWalletPanel(TextChannel ch, String key) {
+        String guildId = ch.getGuild().getId();
         ch.sendMessageEmbeds(EmbedFactory.build(
-            "🪙 PC Coins — Krypto System",
+            "🪙 PC Coins — Wallet",
             "Öffne dein Wallet und kaufe oder verkaufe **PC Coins**.\\n\\n" +
             "💹 **Einzahlen** — Bankgeld in PC Coins umwandeln\\n" +
             "💱 **Auszahlen** — PC Coins zurück in Bankgeld\\n" +
             "📤 **Überweisen** — PC Coins an andere Spieler senden\\n\\n" +
             "📈 **Aktueller Kurs:** " + KryptoManager.formatRate(KryptoManager.getRate(guildId)) + "\\n" +
-            "🌐 **Im Umlauf:** " + KryptoManager.formatCoins(KryptoManager.getSupply(guildId)) + "\\n\\n" +
-            "Auf der Webseite siehst du den Kursverlauf der letzten **7 Tage**."))
+            "🌐 **Im Umlauf:** " + KryptoManager.formatCoins(KryptoManager.getSupply(guildId))))
             .addActionRow(
                 Button.primary("krypto-wallet", "🪙 Wallet öffnen"),
-                Button.link(url, "📈 Kurse ansehen"))
+                Button.link(kryptoUrl(), "📈 Kurse ansehen"))
             .queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
-                err -> { log.error("[Krypto] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
+                err -> { log.error("[Krypto] Wallet-Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
+    }
+
+    private static void sendRatesPanel(TextChannel ch, String key) {
+        String guildId = ch.getGuild().getId();
+        ch.sendMessageEmbeds(EmbedFactory.build(
+            "📈 PC Coins — Kurse",
+            "Aktueller Kurs: **" + KryptoManager.formatRate(KryptoManager.getRate(guildId)) + "**\\n" +
+            "Im Umlauf: **" + KryptoManager.formatCoins(KryptoManager.getSupply(guildId)) + "**\\n\\n" +
+            "Auf der Webseite siehst du den Kursverlauf der letzten **7 Tage**."))
+            .addActionRow(
+                Button.link(kryptoUrl(), "📈 Kurse ansehen"))
+            .queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Krypto] Kurs-Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); });
     }
 
     // ── Utils ──────────────────────────────────────────────────────────────────
