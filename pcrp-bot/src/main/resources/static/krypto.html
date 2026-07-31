@@ -43,6 +43,10 @@
   .note{color:var(--muted);font-size:12.5px;line-height:1.6;margin-top:18px}
   .badge{display:inline-block;background:rgba(240,185,11,.12);color:var(--accent);
     border:1px solid rgba(240,185,11,.3);border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+  .card h2{display:flex;align-items:center;gap:10px}
+  .live{display:inline-flex;align-items:center;gap:6px;color:var(--accent2);font-size:11px;font-weight:700;letter-spacing:.5px}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2);animation:blink 1.6s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
   footer{margin-top:28px;color:var(--muted);font-size:12px;text-align:center}
 </style>
 </head>
@@ -75,7 +79,7 @@
   </div>
 
   <div class="card">
-    <h2>📈 Kursverlauf — letzte 7 Tage</h2>
+    <h2>📈 Kursverlauf — letzte 7 Tage <span class="live"><span class="dot"></span>LIVE</span></h2>
     <canvas id="chart"></canvas>
     <div class="legend" id="legend"></div>
   </div>
@@ -91,37 +95,42 @@
 
 <script>
 (function(){
-  var API = (function(){
-    // Basis-URL ableiten: gleiche Herkunft (Railway oder Cloudflare-Worker-Proxy)
-    return location.origin + '/api/krypto/rates';
-  })();
+  var API = location.origin + '/api/krypto/rates';
 
   var fmt = function(n){ return n.toLocaleString('de-DE',{maximumFractionDigits:0}) + '$'; };
   var fmtRate = function(r){ return r.toLocaleString('de-DE',{minimumFractionDigits:4, maximumFractionDigits:4}) + '$'; };
 
-  fetch(API)
-    .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); })
-    .then(function(data){
-      render(data);
-    })
-    .catch(function(err){
-      console.error('Krypto API Fehler:', err);
-      document.getElementById('rate').textContent = '—';
-    });
+  var canvas = document.getElementById('chart');
+  var ctx = canvas.getContext('2d');
+  var cw = 0, ch = 0;
+  var lastHistory = [];
+  var rate = 0, supply = 0;
 
-  function render(data){
-    var rate = data.rate || 0;
-    var supply = data.supply || 0;
-    var history = (data.history || []).filter(function(p){ return p && typeof p.rate === 'number'; });
+  // ── LIVE-Daten laden (alle 15s) ──────────────────────────────
+  function load(){
+    fetch(API)
+      .then(function(res){ if(!res.ok) throw new Error('HTTP '+res.status); return res.json(); })
+      .then(function(data){
+        rate = data.rate || 0;
+        supply = data.supply || 0;
+        lastHistory = (data.history || []).filter(function(p){ return p && typeof p.rate === 'number'; });
+        renderStats();
+      })
+      .catch(function(err){
+        console.error('Krypto API Fehler:', err);
+        document.getElementById('rate').textContent = '—';
+      });
+  }
 
+  function renderStats(){
     document.getElementById('rate').textContent = fmtRate(rate);
     document.getElementById('supply').textContent = supply.toLocaleString('de-DE') + ' PC';
 
-    if(history.length){
+    if(lastHistory.length){
       var now = Math.floor(Date.now()/1000);
       var dayAgo = now - 86400;
-      var day = history.filter(function(p){ return p.ts >= dayAgo; });
-      var weekStart = history[0].rate;
+      var day = lastHistory.filter(function(p){ return p.ts >= dayAgo; });
+      var weekStart = lastHistory[0].rate;
       document.getElementById('weekStart').textContent = fmtRate(weekStart);
 
       if(day.length){
@@ -140,28 +149,35 @@
       }
     }
 
-    drawChart(history);
     var legend = document.getElementById('legend');
-    if(history.length >= 2){
-      var first = history[0].rate, last = history[history.length-1].rate;
-      var pct = ((last-first)/first*100).toLocaleString('de-DE',{maximumFractionDigits:2});
+    if(lastHistory.length >= 2){
+      var f = lastHistory[0].rate, l = lastHistory[lastHistory.length-1].rate;
+      var pct = ((l-f)/f*100).toLocaleString('de-DE',{maximumFractionDigits:2});
       legend.innerHTML =
-        '<span>Hoch: <b>'+fmtRate(Math.max.apply(null, history.map(function(p){return p.rate;}))) +'</b></span>'+
-        '<span>Tief: <b>'+fmtRate(Math.min.apply(null, history.map(function(p){return p.rate;}))) +'</b></span>'+
-        '<span>Gesamt: <b>'+ (last>=first?'+':'') + pct + '%</b></span>';
+        '<span>Hoch: <b>'+fmtRate(Math.max.apply(null, lastHistory.map(function(p){return p.rate;}))) +'</b></span>'+
+        '<span>Tief: <b>'+fmtRate(Math.min.apply(null, lastHistory.map(function(p){return p.rate;}))) +'</b></span>'+
+        '<span>Gesamt: <b>'+ (l>=f?'+':'') + pct + '%</b></span>';
     }
   }
 
-  function drawChart(history){
-    var canvas = document.getElementById('chart');
-    var ctx = canvas.getContext('2d');
-    var dpr = window.devicePixelRatio || 1;
+  function ensureSize(){
     var W = canvas.clientWidth, H = canvas.clientHeight;
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0,0,W,H);
+    var dpr = window.devicePixelRatio || 1;
+    if(W !== cw || H !== ch){
+      cw = W; ch = H;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+  }
 
-    if(history.length < 2){
+  // ── Chart mit Animation (progress 0..1 fürs Einzeichnen, pulse 0..1 für Live-Punkt)
+  function drawChart(progress, pulse){
+    ensureSize();
+    var W = cw, H = ch;
+    ctx.clearRect(0,0,W,H);
+    if(W === 0 || H === 0) return;
+
+    if(lastHistory.length < 2){
       ctx.fillStyle = '#8b94a8';
       ctx.font = '14px Segoe UI, sans-serif';
       ctx.textAlign = 'center';
@@ -171,13 +187,16 @@
 
     var padL = 10, padR = 10, padT = 14, padB = 26;
     var iw = W - padL - padR, ih = H - padT - padB;
-    var rates = history.map(function(p){ return p.rate; });
+    var n = lastHistory.length;
+    var rates = lastHistory.map(function(p){ return p.rate; });
     var min = Math.min.apply(null, rates), max = Math.max.apply(null, rates);
     var span = (max-min) || 1;
     min -= span*0.08; max += span*0.08;
 
-    function x(i){ return padL + (history.length === 1 ? iw/2 : i/(history.length-1)*iw); }
+    function x(i){ return padL + (n === 1 ? iw/2 : i/(n-1)*iw); }
     function y(r){ return padT + (1 - (r-min)/(max-min))*ih; }
+
+    var drawN = Math.max(2, Math.ceil((n-1) * progress) + 1);
 
     // Grid
     ctx.strokeStyle = '#232c41'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
@@ -187,51 +206,93 @@
     }
     ctx.setLineDash([]);
 
-    // Area
+    // Area (zeichnet sich mit ein)
     var grad = ctx.createLinearGradient(0, padT, 0, H-padB);
     grad.addColorStop(0, 'rgba(240,185,11,.28)');
     grad.addColorStop(1, 'rgba(240,185,11,0)');
     ctx.beginPath();
     ctx.moveTo(x(0), y(rates[0]));
-    for(var i=1; i<history.length; i++) ctx.lineTo(x(i), y(rates[i]));
-    ctx.lineTo(x(history.length-1), H-padB);
+    for(var i=1; i<drawN; i++) ctx.lineTo(x(i), y(rates[i]));
+    ctx.lineTo(x(drawN-1), H-padB);
     ctx.lineTo(x(0), H-padB);
     ctx.closePath();
     ctx.fillStyle = grad; ctx.fill();
 
-    // Line
+    // Linie mit Glow
     ctx.beginPath();
     ctx.moveTo(x(0), y(rates[0]));
-    for(var j=1; j<history.length; j++) ctx.lineTo(x(j), y(rates[j]));
+    for(var j=1; j<drawN; j++) ctx.lineTo(x(j), y(rates[j]));
     ctx.strokeStyle = '#f0b90b'; ctx.lineWidth = 2.5; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.shadowColor = 'rgba(240,185,11,.5)'; ctx.shadowBlur = 8;
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    // Punkte (max. 60 anzeigen)
-    var step = Math.max(1, Math.ceil(history.length/60));
+    // Punkte
+    var step = Math.max(1, Math.ceil(n/60));
     ctx.fillStyle = '#f0b90b';
-    for(var k=0; k<history.length; k+=step){
+    for(var k=0; k<drawN; k+=step){
       ctx.beginPath(); ctx.arc(x(k), y(rates[k]), 3, 0, Math.PI*2); ctx.fill();
     }
 
-    // X-Achsen-Labels (Zeiten)
+    // Bewegter Live-Punkt + Ring am aktuellen Ende
+    if(drawN >= 2){
+      var pt = pointOnPath(x, y, rates, drawN, pulse);
+      var glow = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 16);
+      glow.addColorStop(0, 'rgba(240,185,11,.6)');
+      glow.addColorStop(1, 'rgba(240,185,11,0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffd84d';
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI*2); ctx.fill();
+
+      ctx.strokeStyle = 'rgba(240,185,11,.9)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x(drawN-1), y(rates[drawN-1]), 6, 0, Math.PI*2); ctx.stroke();
+    }
+
+    // X-Achsen-Labels
     ctx.fillStyle = '#8b94a8'; ctx.font = '11px Segoe UI, sans-serif'; ctx.textAlign='center';
-    var labels = [0, Math.floor(history.length/2), history.length-1];
+    var labels = [0, Math.floor(n/2), n-1];
     for(var l=0; l<labels.length; l++){
       var idx = labels[l];
-      var d = new Date(history[idx].ts*1000);
+      var d = new Date(lastHistory[idx].ts*1000);
       var lbl = d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'}) + ' ' +
                 d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       ctx.fillText(lbl, x(idx), H-8);
     }
   }
 
-  var lastHistory = [];
-  window.addEventListener('resize', function(){
-    if(lastHistory.length) drawChart(lastHistory);
-  });
-  // drawChart merkt sich die Daten für Resize-Re-Render
-  var _origDraw = drawChart;
-  drawChart = function(h){ lastHistory = h; _origDraw(h); };
+  // Punkt auf dem Linienpfad an Position frac (0..1) — gleichmäßig über Bogenlänge
+  function pointOnPath(x, y, rates, n, frac){
+    var segs = [], total = 0;
+    for(var i=1; i<n; i++){
+      var dx = x(i)-x(i-1), dy = y(rates[i])-y(rates[i-1]);
+      var len = Math.sqrt(dx*dx + dy*dy) || 0.0001;
+      segs.push(len); total += len;
+    }
+    var target = frac * total, acc = 0;
+    for(var s=0; s<segs.length; s++){
+      if(acc + segs[s] >= target){
+        var t = (target - acc) / segs[s];
+        return { x: x(s) + (x(s+1)-x(s))*t, y: y(rates[s]) + (y(rates[s+1])-y(rates[s]))*t };
+      }
+      acc += segs[s];
+    }
+    return { x: x(n-1), y: y(rates[n-1]) };
+  }
+
+  // ── Start ─────────────────────────────────────────────────────
+  load();
+  setInterval(load, 15000); // LIVE-Refresh alle 15s
+
+  var animStart = performance.now();
+  function frame(now){
+    var t = (now - animStart) / 1600;      // 1,6s Einzeichnen beim Laden
+    var progress = Math.min(1, t);
+    var pulse = (now % 2600) / 2600;       // Live-Punkt wandert die Linie entlang
+    drawChart(progress, pulse);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
