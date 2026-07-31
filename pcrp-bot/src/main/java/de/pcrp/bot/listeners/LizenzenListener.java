@@ -15,6 +15,8 @@ import net.dv8tion.jda.api.interactions.modals.Modal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * Lizenzen vorzeigen: Festes Panel-Embed im Ausweis-Kanal mit zwei Buttons
  * (🪪 Ausweis anzeigen / 🚗 Führerschein anzeigen). Ein Button öffnet eine
@@ -62,7 +64,7 @@ public class LizenzenListener extends ListenerAdapter {
                 Modal modal = Modal.create(MODAL_AUSWEIS, "🪪 Ausweis anzeigen")
                     .addComponents(ActionRow.of(
                         TextInput.create(INPUT_NAME, "Name der Person", TextInputStyle.SHORT)
-                            .setPlaceholder("Discord-Name, z. B. Max Mustermann")
+                            .setPlaceholder("Charaktername, z. B. Max Mustermann")
                             .setMinLength(1).setMaxLength(64)
                             .setRequired(true).build()))
                     .build();
@@ -72,7 +74,7 @@ public class LizenzenListener extends ListenerAdapter {
                 Modal modal = Modal.create(MODAL_FUEHRERSCHEIN, "🚗 Führerschein anzeigen")
                     .addComponents(ActionRow.of(
                         TextInput.create(INPUT_NAME, "Name der Person", TextInputStyle.SHORT)
-                            .setPlaceholder("Discord-Name, z. B. Max Mustermann")
+                            .setPlaceholder("Charaktername, z. B. Max Mustermann")
                             .setMinLength(1).setMaxLength(64)
                             .setRequired(true).build()))
                     .build();
@@ -99,9 +101,12 @@ public class LizenzenListener extends ListenerAdapter {
             return;
         }
 
+        // deferReply: Die Namenssuche liest pro Mitglied Dokumente — mehr Zeitfenster als 3s
+        event.deferReply(true).queue();
+
         Member target = resolveMember(event.getGuild(), name);
         if (target == null) {
-            event.replyEmbeds(EmbedFactory.build("❌ Nicht gefunden",
+            event.getHook().sendMessageEmbeds(EmbedFactory.build("❌ Nicht gefunden",
                 "Es wurde kein Spieler mit dem Namen **" + name + "** gefunden."))
                 .setEphemeral(true).queue();
             return;
@@ -113,39 +118,67 @@ public class LizenzenListener extends ListenerAdapter {
 
         if (ausweis) {
             if (DocumentsManager.getAusweis(guildId, userId).isEmpty()) {
-                event.replyEmbeds(EmbedFactory.build("ℹ️ Kein Ausweis",
+                event.getHook().sendMessageEmbeds(EmbedFactory.build("ℹ️ Kein Ausweis",
                     "**" + displayName + "** hat aktuell keinen im Bot gespeicherten Ausweis."))
                     .setEphemeral(true).queue();
                 return;
             }
             String url = DocumentsManager.ausweisViewUrl(userId);
-            event.reply("🪪 Ausweis – [Lizenz hier Öffnen](" + url + ")").setEphemeral(true).queue();
+            event.getHook().sendMessage("🪪 Ausweis – [Lizenz hier Öffnen](" + url + ")").setEphemeral(true).queue();
         } else {
             if (DocumentsManager.getFuehrerschein(guildId, userId).isEmpty()) {
-                event.replyEmbeds(EmbedFactory.build("ℹ️ Kein Führerschein",
+                event.getHook().sendMessageEmbeds(EmbedFactory.build("ℹ️ Kein Führerschein",
                     "**" + displayName + "** hat aktuell keinen im Bot gespeicherten Führerschein."))
                     .setEphemeral(true).queue();
                 return;
             }
             String url = DocumentsManager.fuehrerscheinViewUrl(userId);
-            event.reply("🚗 Führerschein – [Lizenz hier Öffnen](" + url + ")").setEphemeral(true).queue();
+            event.getHook().sendMessage("🚗 Führerschein – [Lizenz hier Öffnen](" + url + ")").setEphemeral(true).queue();
         }
     }
 
     /**
-     * Sucht zuerst exakt (Name, Name#0000 oder Nickname) über den vorhandenen
-     * Helfer, danach per Teil-Treffer (Name oder Nickname enthält die Eingabe) —
-     * Suchleisten-Verhalten.
+     * Sucht einen Spieler über seinen CHARAKTERNAMEN (Vorname + Nachname aus
+     * Ausweis/Führerschein) — keine Discord-Namen. Exakt oder Teil-Treffer
+     * (Suchleisten-Verhalten). Spieler ohne gespeichertes Dokument haben
+     * keinen Charakternamen und werden nicht gefunden.
      */
     private static Member resolveMember(Guild guild, String name) {
-        Member exact = BotContext.findMemberByUsername(name);
-        if (exact != null) return exact;
+        String q = norm(name);
+        if (q.isEmpty()) return null;
+        for (Member m : guild.getMembers()) {
+            if (m.getUser().isBot()) continue;
+            String userId = m.getId();
 
-        String q = name.toLowerCase().trim();
-        return guild.getMembers().stream()
-            .filter(m -> !m.getUser().isBot())
-            .filter(m -> m.getUser().getName().toLowerCase().contains(q)
-                      || m.getEffectiveName().toLowerCase().contains(q))
-            .findFirst().orElse(null);
+            String first = null, last = null;
+            Optional<DocumentsManager.Ausweis> a =
+                DocumentsManager.getAusweis(guild.getId(), userId);
+            if (a.isPresent()) {
+                first = norm(a.get().vorname);
+                last  = norm(a.get().nachname);
+            } else {
+                Optional<DocumentsManager.Fuehrerschein> f =
+                    DocumentsManager.getFuehrerschein(guild.getId(), userId);
+                if (f.isPresent()) {
+                    first = norm(f.get().vorname);
+                    last  = norm(f.get().nachname);
+                }
+            }
+            if (first == null) continue;
+
+            String full = (first + " " + last).trim();
+            if (full.equals(q)) return m;                       // exakt
+            if (full.startsWith(q) || full.contains(q)) return m; // Teil-Treffer
+            if (first.startsWith(q) || last.startsWith(q)) return m;
+            String[] parts = q.split("\\s+");
+            if (parts.length >= 2
+                    && first.startsWith(parts[0])
+                    && last.startsWith(parts[parts.length - 1])) return m; // "Max Must"
+        }
+        return null;
+    }
+
+    private static String norm(String s) {
+        return s == null ? "" : s.toLowerCase().trim();
     }
 }
