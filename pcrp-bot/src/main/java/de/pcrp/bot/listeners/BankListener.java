@@ -90,7 +90,6 @@ public class BankListener extends ListenerAdapter {
                         "🧾 Offene Rechnungen",
                         "Du hast aktuell **keine offenen Rechnungen**.\n\n" +
                         "Bezahlte Rechnungen werden hier nicht mehr angezeigt."))
-                        .addComponents(ActionRow.of(Button.secondary("bank-open", "← Zurück")))
                         .setEphemeral(true).queue();
                     return;
                 }
@@ -127,8 +126,7 @@ public class BankListener extends ListenerAdapter {
                             .build()
                     ),
                     ActionRow.of(
-                        Button.success("bank-bill-payall", "✅ Alle bezahlen (" + BankManager.formatAmount(total) + ")"),
-                        Button.secondary("bank-open", "← Zurück")
+                        Button.success("bank-bill-payall", "✅ Alle bezahlen (" + BankManager.formatAmount(total) + ")")
                     )
                 ).setEphemeral(true).queue();
             }
@@ -136,7 +134,6 @@ public class BankListener extends ListenerAdapter {
                 String err = RechnungManager.payAll(guildId, userId);
                 if (err != null) {
                     event.replyEmbeds(EmbedFactory.build("❌ Bezahlung fehlgeschlagen", err))
-                        .addComponents(ActionRow.of(Button.secondary("bank-open", "← Zum Banking")))
                         .setEphemeral(true).queue();
                     return;
                 }
@@ -149,8 +146,7 @@ public class BankListener extends ListenerAdapter {
                             "**Neuer Kontostand:** " + BankManager.formatAmount(balance))
                         .build()
                 ).addComponents(ActionRow.of(
-                    Button.primary("bank-btn-bills", "🧾 Offene Rechnungen"),
-                    Button.secondary("bank-open", "← Zum Banking")
+                    Button.primary("bank-btn-bills", "🧾 Offene Rechnungen")
                 )).setEphemeral(true).queue();
                 BotLogger.logMoney(event.getGuild(), "🧾 Alle Rechnungen bezahlt",
                     "**Spieler:** " + event.getUser().getAsMention());
@@ -362,7 +358,6 @@ public class BankListener extends ListenerAdapter {
         String err = RechnungManager.payRechnung(guildId, userId, billId);
         if (err != null) {
             event.editMessageEmbeds(EmbedFactory.build("❌ Bezahlung fehlgeschlagen", err))
-                .setComponents(ActionRow.of(Button.secondary("bank-open", "← Zum Banking")))
                 .queue();
             return;
         }
@@ -379,8 +374,7 @@ public class BankListener extends ListenerAdapter {
 
         event.editMessageEmbeds(EmbedFactory.build("✅ Rechnung bezahlt", desc))
             .setComponents(ActionRow.of(
-                Button.primary("bank-btn-bills", "🧾 Offene Rechnungen"),
-                Button.secondary("bank-open", "← Zum Banking")
+                Button.primary("bank-btn-bills", "🧾 Offene Rechnungen")
             )).queue();
 
         BotLogger.logMoney(event.getGuild(), "🧾 Rechnung bezahlt",
