@@ -161,6 +161,12 @@ public final class LoggingConfig {
     /** Krypto (PC Coins) Kurs-Übersicht-Kanal (nur Kurse + Webseiten-Link). */
     public static final long KRYPTO_RATES_CHANNEL_ID = 1529636610726166549L;
 
+    /** Aktien-Kanäle (eine Aktie pro Kanal, je mit Embed + Link-Button zur Webseite). */
+    public static final long AKTIE_MAZE_CHANNEL_ID       = 1529636595899043921L;
+    public static final long AKTIE_BENEFACTOR_CHANNEL_ID = 1529636597220249701L;
+    public static final long AKTIE_GOLDWAND_CHANNEL_ID   = 1529636598583529733L;
+    public static final long AKTIE_DIAMOND_CHANNEL_ID    = 1529636599673917643L;
+
     /** Item-Log-Kanal (alle item-bezogenen Aktionen). */
     public static final long ITEM_LOG_CHANNEL_ID    = 1529636412628930723L;
 

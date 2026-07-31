@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📈 Aktienhandel — Los Angeles</title>
+<style>
+  :root{
+    --bg:#0d0600; --panel:#16100a; --panel2:#1c150e;
+    --line:#CC550044; --line2:#CC5500;
+    --accent:#CC5500; --accent2:#FF8800; --accent3:#FF6600;
+    --text:#f0e6da; --dim:#a08e7a; --muted:#6e5f4f;
+    --green:#43d17c; --red:#ff5b5b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;background:radial-gradient(1200px 600px at 70% -10%,#2a1404 0%,transparent 60%),radial-gradient(900px 500px at 10% 110%,#1c0d02 0%,transparent 55%),var(--bg);
+    color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+
+  /* ── Header ── */
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;
+    background:linear-gradient(90deg,rgba(204,85,0,.14),rgba(255,136,0,.05));border:1px solid var(--line);
+    border-radius:14px;margin-bottom:18px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));font-size:22px;
+    box-shadow:0 0 18px rgba(255,136,0,.35)}
+  .brand h1{font-size:1.15rem;letter-spacing:.5px}
+  .brand small{color:var(--dim);font-size:.72rem;letter-spacing:1px;text-transform:uppercase}
+  .user-box{display:flex;align-items:center;gap:10px}
+  .user-name{color:var(--accent2);font-weight:600;font-size:.9rem}
+  .logout{background:none;border:1px solid var(--line);color:var(--dim);padding:7px 14px;border-radius:8px;
+    cursor:pointer;font-size:.78rem;transition:.2s}
+  .logout:hover{border-color:var(--accent2);color:var(--accent2)}
+
+  /* ── Stats ── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:12px;padding:14px 16px}
+  .stat .lbl{color:var(--muted);font-size:.68rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+  .stat .val{font-size:1.25rem;font-weight:700}
+  .stat .val.green{color:var(--green)} .stat .val.red{color:var(--red)}
+  .stat .val.gold{color:var(--accent2)}
+
+  /* ── Stock Cards ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-bottom:18px}
+  .card{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;transition:.25s;position:relative}
+  .card:hover{border-color:var(--line2);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .card-top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer}
+  .card-name{display:flex;align-items:center;gap:10px;font-weight:600}
+  .card-emoji{font-size:22px}
+  .card-rate{text-align:right}
+  .card-rate .r{font-size:1.05rem;font-weight:700;color:var(--accent2)}
+  .card-rate .c{font-size:.72rem;color:var(--muted)}
+  .spark{height:60px;padding:0 8px 6px}
+  .card-own{padding:10px 16px;background:rgba(0,0,0,.22);border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;font-size:.8rem;color:var(--dim);flex-wrap:wrap;gap:6px}
+  .card-own b{color:var(--text)}
+  .pgl{font-weight:700}
+  .pgl.pos{color:var(--green)} .pgl.neg{color:var(--red)}
+  .card-actions{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+  .btn{flex:1;padding:10px;border:none;border-radius:9px;font-weight:700;font-size:.85rem;cursor:pointer;transition:.2s}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-buy{background:linear-gradient(90deg,#1f7a45,#2a9d58);color:#eafff2}
+  .btn-buy:hover:not(:disabled){filter:brightness(1.15)}
+  .btn-sell{background:linear-gradient(90deg,#7a2a1f,#9d3b2a);color:#ffeaea}
+  .btn-sell:hover:not(:disabled){filter:brightness(1.15)}
+
+  /* ── Chart ── */
+  .chart-box{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:14px;padding:16px}
+  .chart-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+  .chart-hd h2{font-size:1rem}
+  .chart-hd .live{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;color:var(--green);
+    letter-spacing:1px;text-transform:uppercase}
+  .chart-hd .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.4s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+  .chart-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{background:none;border:1px solid var(--line);color:var(--dim);padding:6px 12px;border-radius:8px;
+    cursor:pointer;font-size:.78rem;transition:.2s}
+  .tab.active{background:var(--accent);border-color:var(--accent2);color:#fff}
+  .tab:hover{border-color:var(--accent2);color:var(--accent2)}
+  canvas#chart{width:100%;height:280px;display:block}
+
+  /* ── Login ── */
+  .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{width:100%;max-width:420px;background:linear-gradient(160deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:16px;padding:32px;box-shadow:0 0 50px rgba(204,85,0,.18)}
+  .login-card .logo{width:58px;height:58px;font-size:30px;margin:0 auto 16px;border-radius:14px}
+  .login-card h1{text-align:center;font-size:1.35rem;margin-bottom:4px}
+  .login-card p{text-align:center;color:var(--dim);font-size:.82rem;margin-bottom:22px}
+  input.pin{width:100%;padding:13px;background:#0d0600;border:1px solid var(--line);border-radius:9px;
+    color:#fff;font-size:1.2rem;letter-spacing:8px;text-align:center;outline:none}
+  input.pin:focus{border-color:var(--accent2)}
+  .login-btn{width:100%;margin-top:14px;padding:13px;border:none;border-radius:9px;
+    background:linear-gradient(90deg,var(--accent),var(--accent3));color:#fff;font-weight:700;
+    font-size:.95rem;cursor:pointer;transition:.2s}
+  .login-btn:hover{filter:brightness(1.1)}
+  .login-btn:disabled{opacity:.5;cursor:not-allowed}
+  .msg{margin-top:12px;padding:10px;border-radius:8px;font-size:.82rem;text-align:center;display:none}
+  .msg.err{background:#3a0d0d;border:1px solid #993030;color:var(--red)}
+  .msg.ok{background:#0d3a1c;border:1px solid #2a9d58;color:var(--green)}
+
+  /* ── Modal ── */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal-bg.show{display:flex}
+  .modal{width:100%;max-width:380px;background:linear-gradient(160deg,var(--panel2),var(--panel));
+    border:1px solid var(--line2);border-radius:14px;padding:24px}
+  .modal h3{margin-bottom:6px}
+  .modal .sub{color:var(--dim);font-size:.8rem;margin-bottom:14px}
+  .modal input{width:100%;padding:12px;background:#0d0600;border:1px solid var(--line);border-radius:9px;
+    color:#fff;font-size:1rem;outline:none;margin-bottom:12px}
+  .modal input:focus{border-color:var(--accent2)}
+  .modal-actions{display:flex;gap:8px}
+  .modal-actions .btn{flex:1}
+  .btn-cancel{background:#2a2a2a;color:#ccc}
+  .hint{color:var(--muted);font-size:.72rem;margin-top:-6px;margin-bottom:10px}
+  .foot{text-align:center;color:var(--muted);font-size:.7rem;margin-top:22px}
+</style>
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="logo">📈</div>
+    <h1>Aktienhandel</h1>
+    <p>Los Angeles · Kaufe Aktien mit deinen PC Coins</p>
+    <input class="pin" id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+    <button class="login-btn" id="loginBtn">🔐 Einloggen</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div class="wrap" id="app" style="display:none">
+  <header>
+    <div class="brand">
+      <div class="logo">📈</div>
+      <div>
+        <h1>Aktienhandel</h1>
+        <small>Los Angeles</small>
+      </div>
+    </div>
+    <div class="user-box">
+      <span class="user-name" id="userName"></span>
+      <button class="logout" onclick="logout()">🚪 Abmelden</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="lbl">PC Coin Wallet</div><div class="val gold" id="statWallet">—</div></div>
+    <div class="stat"><div class="lbl">Portfolio-Wert</div><div class="val" id="statValue">—</div></div>
+    <div class="stat"><div class="lbl">Eingesetzt</div><div class="val" id="statInvested">—</div></div>
+    <div class="stat"><div class="lbl">Gewinn / Verlust</div><div class="val" id="statProfit">—</div></div>
+  </div>
+
+  <div class="grid" id="stockGrid"></div>
+
+  <div class="chart-box">
+    <div class="chart-hd">
+      <div>
+        <h2 id="chartTitle">—</h2>
+        <span class="live"><span class="dot"></span>Live</span>
+      </div>
+      <div class="chart-tabs" id="chartTabs"></div>
+    </div>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="foot">Kurse in PC Coins · Echtzeit · 7-Tage-Verlauf · Kauf/Verkauf direkt über dein PC Coin Krypto-Wallet</div>
+</div>
+
+<!-- ── Trade-Modal ── -->
+<div class="modal-bg" id="tradeModal">
+  <div class="modal">
+    <h3 id="modalTitle">—</h3>
+    <div class="sub" id="modalSub">—</div>
+    <input id="modalAmount" type="text" inputmode="numeric" placeholder="Betrag eingeben…" autocomplete="off">
+    <div class="hint" id="modalHint"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Abbrechen</button>
+      <button class="btn" id="modalConfirm" onclick="confirmTrade()">Bestätigen</button>
+    </div>
+    <div class="msg" id="modalMsg"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var API = '%%API_BASE%%';
+  var TOKEN_KEY = 'pcrp_aktien_token';
+  var token = localStorage.getItem(TOKEN_KEY) || '';
+  var stocks = [];
+  var selectedStock = null;
+  var tradeAction = 'buy';
+  var tradeStock = null;
+
+  // Chart state
+  var canvas, ctx, dpr, W, H, lastHistory = [], chartKey = '';
+  var animStart = 0;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function fmt(n){ return Number(n||0).toLocaleString('de-DE'); }
+  function fmtRate(n){ return Number(n||0).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:4}); }
+  function parseAmt(s){ return parseInt(String(s||'').replace(/[.\s$€]/g,'').replace(',',''),10) || 0; }
+
+  // ── Login ──
+  function showMsg(id,t,c){ var m=$(id); m.textContent=t; m.className='msg '+c; m.style.display='block'; }
+  function hideMsg(id){ var m=$(id); m.style.display='none'; }
+
+  $('loginBtn').onclick = async function(){
+    var pin = $('pinInput').value.trim();
+    if(pin.length !== 4){ showMsg('loginMsg','Bitte gib deine 4-stellige Safe-PIN ein.','err'); return; }
+    var btn=$('loginBtn'); btn.disabled=true; hideMsg('loginMsg');
+    try{
+      var r=await fetch(API+'/api/aktien/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({safePin:pin})});
+      var d=await r.json();
+      if(d.ok){ token=d.token; localStorage.setItem(TOKEN_KEY,token); enterApp(d.name); }
+      else showMsg('loginMsg',d.error||'Ungültige Safe-PIN.','err');
+    }catch(e){ showMsg('loginMsg','Verbindungsfehler.','err'); }
+    btn.disabled=false;
+  };
+  $('pinInput').addEventListener('keydown',function(e){ if(e.key==='Enter') $('loginBtn').click(); });
+
+  function logout(){ token=''; localStorage.removeItem(TOKEN_KEY); $('app').style.display='none'; $('loginScreen').style.display='flex'; $('pinInput').value=''; }
+
+  function enterApp(name){
+    $('loginScreen').style.display='none';
+    $('app').style.display='block';
+    $('userName').textContent=name||'';
+    initChart();
+    refresh();
+    setInterval(refresh,15000);
+  }
+
+  // ── Data ──
+  async function api(path,body){
+    var opts={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+    var r=await fetch(API+path,opts);
+    return r.json();
+  }
+
+  async function refresh(){
+    try{
+      var [rates,port] = await Promise.all([
+        fetch(API+'/api/aktien/rates').then(function(r){return r.json();}),
+        token ? api('/api/aktien/portfolio',{token:token}) : Promise.resolve({ok:false})
+      ]);
+      if(rates.ok && rates.stocks){
+        stocks = rates.stocks;
+        if(!selectedStock || !stocks.some(function(s){return s.id===selectedStock;})) selectedStock = stocks[0].id;
+        renderCards(port);
+        renderTabs();
+      }
+      if(!port.ok){ /* token abgelaufen → im Portfolio-Feld anzeigen, aber Seite bleibt nutzbar */ }
+    }catch(e){}
+  }
+
+  // ── Cards ──
+  function renderCards(port){
+    var grid=$('stockGrid'); grid.innerHTML='';
+    stocks.forEach(function(s){
+      var p=null;
+      if(port && port.ok && port.portfolio){
+        port.portfolio.forEach(function(x){ if(x.id===s.id) p=x; });
+      }
+      var card=document.createElement('div'); card.className='card';
+      var shares=p?p.shares:0, invested=p?p.invested:0;
+      var value=p?p.value:0;
+      var profit=value-invested;
+      var hist=s.history||[];
+      card.innerHTML=
+        '<div class="card-top" onclick="selectStock(\''+s.id+'\')">'+
+          '<div class="card-name"><span class="card-emoji">'+esc(s.emoji)+'</span>'+esc(s.name)+'</div>'+
+          '<div class="card-rate"><div class="r">'+fmtRate(s.rate)+' PC</div><div class="c">'+fmt(s.supply)+' im Umlauf</div></div>'+
+        '</div>'+
+        '<canvas class="spark" id="spark-'+s.id+'" width="300" height="60"></canvas>'+
+        '<div class="card-own">'+
+          '<span>Besitz: <b>'+fmt(shares)+'</b></span>'+
+          '<span>Wert: <b>'+fmt(value)+' PC</b></span>'+
+          '<span class="pgl '+(profit>=0?'pos':'neg')+'">'+(profit>=0?'+':'−')+fmt(Math.abs(profit))+' PC</span>'+
+        '</div>'+
+        '<div class="card-actions">'+
+          '<button class="btn btn-buy" onclick="openTrade(\''+s.id+'\',\'buy\')">💹 Kaufen</button>'+
+          '<button class="btn btn-sell" onclick="openTrade(\''+s.id+'\',\'sell\')">💱 Verkaufen</button>'+
+        '</div>';
+      grid.appendChild(card);
+      drawSpark(s.id,hist);
+    });
+
+    // Header-Statistiken
+    if(port && port.ok){
+      $('statWallet').textContent = fmt(port.wallet)+' PC';
+      $('statValue').textContent = fmt(port.totalValue)+' PC';
+      $('statInvested').textContent = fmt(port.totalInvested)+' PC';
+      var tp = port.totalProfit;
+      var el=$('statProfit');
+      el.textContent = (tp>=0?'+':'−')+fmt(Math.abs(tp))+' PC';
+      el.className='val '+(tp>=0?'green':'red');
+    }
+  }
+
+  function drawSpark(id,hist){
+    var c=document.getElementById('spark-'+id); if(!c) return;
+    var g=c.getContext('2d');
+    var w=c.width,h=c.height;
+    g.clearRect(0,0,w,h);
+    if(!hist || hist.length<2) return;
+    var min=Infinity,max=-Infinity;
+    hist.forEach(function(p){ if(p.rate<min)min=p.rate; if(p.rate>max)max=p.rate; });
+    var span=(max-min)||1;
+    g.strokeStyle='#FF8800'; g.lineWidth=2;
+    g.beginPath();
+    hist.forEach(function(p,i){
+      var x=i/(hist.length-1)*w;
+      var y=h-6-((p.rate-min)/span)*(h-12);
+      if(i===0)g.moveTo(x,y); else g.lineTo(x,y);
+    });
+    g.stroke();
+  }
+
+  // ── Tabs ──
+  function renderTabs(){
+    var tabs=$('chartTabs'); tabs.innerHTML='';
+    stocks.forEach(function(s){
+      var b=document.createElement('button');
+      b.className='tab'+(s.id===selectedStock?' active':'');
+      b.textContent=s.emoji+' '+s.name;
+      b.onclick=function(){ selectStock(s.id); };
+      tabs.appendChild(b);
+    });
+    var st=null; stocks.forEach(function(s){ if(s.id===selectedStock) st=s; });
+    if(st) $('chartTitle').textContent=st.emoji+' '+st.name+' — Kursverlauf (7 Tage)';
+  }
+
+  function selectStock(id){
+    selectedStock=id;
+    renderTabs();
+    refresh();
+  }
+
+  // ── Chart (Canvas, animiert) ──
+  function initChart(){
+    canvas=$('chart'); ctx=canvas.getContext('2d');
+    dpr=window.devicePixelRatio||1;
+    requestAnimationFrame(loop);
+  }
+  function ensureSize(){
+    var cw=canvas.clientWidth, ch=canvas.clientHeight;
+    var W2=Math.round(cw*dpr), H2=Math.round(ch*dpr);
+    if(W2!==W || H2!==H){
+      W=W2; H=H2;
+      canvas.width=W; canvas.height=H;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+  }
+  function getHistory(){
+    var st=null; stocks.forEach(function(s){ if(s.id===selectedStock) st=s; });
+    return st?st.history:[];
+  }
+  function drawChart(){
+    var hist=getHistory();
+    if(hist!==lastHistory){ lastHistory=hist; animStart=performance.now(); }
+    if(W===0||H===0) return;
+    ctx.clearRect(0,0,W/dpr,H/dpr);
+    if(!hist||hist.length<2) return;
+    var cw=W/dpr, ch=H/dpr;
+    var min=Infinity,max=-Infinity;
+    hist.forEach(function(p){ if(p.rate<min)min=p.rate; if(p.rate>max)max=p.rate; });
+    var span=(max-min)||1;
+    var padT=14,padB=22,padL=8,padR=8;
+    var iw=cw-padL-padR, ih=ch-padT-padB;
+    function x(i){ return padL+(i/(hist.length-1))*iw; }
+    function y(v){ return padT+(1-(v-min)/span)*ih; }
+    // Grid
+    ctx.strokeStyle='#CC550022'; ctx.lineWidth=1;
+    for(var g=0;g<=4;g++){
+      var gy=padT+(g/4)*ih;
+      ctx.beginPath(); ctx.moveTo(padL,gy); ctx.lineTo(cw-padR,gy); ctx.stroke();
+    }
+    // Einzeichnen-Animation
+    var progress=Math.min(1,(performance.now()-animStart)/1400);
+    var n=Math.max(2,Math.ceil((hist.length-1)*progress)+1);
+    // Glow-Linie
+    ctx.save();
+    ctx.shadowColor='#FF8800'; ctx.shadowBlur=10;
+    ctx.strokeStyle='#FF8800'; ctx.lineWidth=2.2;
+    ctx.lineJoin='round';
+    ctx.beginPath();
+    for(var i=0;i<n;i++){
+      var px=x(i),py=y(hist[i].rate);
+      if(i===0)ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    ctx.restore();
+    // Letzter Punkt (Ring)
+    var lx=x(n-1),ly=y(hist[n-1].rate);
+    ctx.beginPath(); ctx.arc(lx,ly,5,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(lx,ly,9,0,Math.PI*2);
+    ctx.strokeStyle='#FF8800'; ctx.lineWidth=2; ctx.stroke();
+    // Wandernder Live-Punkt
+    if(n>=2){
+      var t=(performance.now()%2600)/2600;
+      var seg=(n-2)*t;
+      var i0=Math.floor(seg), frac=seg-i0;
+      var ax=x(i0),ay=y(hist[i0].rate);
+      var bx=x(i0+1),by=y(hist[i0+1].rate);
+      var px=ax+(bx-ax)*frac, py=ay+(by-ay)*frac;
+      ctx.beginPath(); ctx.arc(px,py,4,0,Math.PI*2);
+      ctx.fillStyle='#43d17c'; ctx.fill();
+    }
+  }
+  function loop(){ requestAnimationFrame(loop); ensureSize(); drawChart(); }
+
+  // ── Trade-Modal ──
+  function openTrade(stockId,action){
+    tradeStock=null; stocks.forEach(function(s){ if(s.id===stockId) tradeStock=s; });
+    if(!tradeStock) return;
+    tradeAction=action;
+    var buy=action==='buy';
+    $('modalTitle').textContent=(buy?'💹':'💱')+' '+tradeStock.emoji+' '+tradeStock.name+' '+(buy?'kaufen':'verkaufen');
+    $('modalSub').textContent='Aktueller Kurs: '+fmtRate(tradeStock.rate)+' PC';
+    $('modalHint').textContent=buy?'Betrag in PC Coins (wird vom Krypto-Wallet abgezogen).':'Anzahl der Aktien, die du verkaufen möchtest.';
+    $('modalAmount').value='';
+    $('modalConfirm').textContent=buy?'Kaufen':'Verkaufen';
+    $('modalConfirm').style.background=buy?'linear-gradient(90deg,#1f7a45,#2a9d58)':'linear-gradient(90deg,#7a2a1f,#9d3b2a)';
+    hideMsg('modalMsg');
+    $('tradeModal').classList.add('show');
+    $('modalAmount').focus();
+  }
+  function closeModal(){ $('tradeModal').classList.remove('show'); }
+  $('modalAmount').addEventListener('keydown',function(e){ if(e.key==='Enter') confirmTrade(); });
+
+  async function confirmTrade(){
+    var amt=parseAmt($('modalAmount').value);
+    if(amt<=0){ showMsg('modalMsg','Bitte gib einen gültigen Betrag ein.','err'); return; }
+    var btn=$('modalConfirm'); btn.disabled=true; hideMsg('modalMsg');
+    try{
+      var d=await api('/api/aktien/trade',{token:token,stockId:tradeStock.id,action:tradeAction,amount:amt});
+      if(d.ok){
+        showMsg('modalMsg','✅ '+(tradeAction==='buy'?'Gekauft':'Verkauft')+'!','ok');
+        setTimeout(closeModal,900);
+        refresh();
+      } else {
+        showMsg('modalMsg',d.error||'Transaktion fehlgeschlagen.','err');
+      }
+    }catch(e){ showMsg('modalMsg','Verbindungsfehler.','err'); }
+    btn.disabled=false;
+  }
+
+  // ── Boot ──
+  (function boot(){
+    if(token){
+      fetch(API+'/api/aktien/rates').then(function(r){return r.json();}).then(function(rates){
+        if(rates.ok){ stocks=rates.stocks; selectedStock=stocks[0].id; }
+      }).catch(function(){});
+      api('/api/aktien/portfolio',{token:token}).then(function(d){
+        if(d.ok) enterApp(d.name);
+        else { token=''; localStorage.removeItem(TOKEN_KEY); }
+      }).catch(function(){});
+    }
+  })();
+
+  window.selectStock=selectStock;
+  window.openTrade=openTrade;
+  window.logout=logout;
+})();
+</script>
+</body>
+</html>

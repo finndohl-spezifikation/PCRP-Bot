@@ -108,6 +108,13 @@ public class WebServer {
         app.get( "/krypto",                                      WebServer::serveKrypto);
         app.get( "/api/krypto/rates",                            WebServer::handleKryptoRates);
 
+        // ── Aktien (Aktienhandel mit PC Coins) ───────────────────────────
+        app.get( "/aktien",                                      WebServer::serveAktien);
+        app.post("/api/aktien/auth",                              WebServer::handleAktienAuth);
+        app.get( "/api/aktien/rates",                            WebServer::handleAktienRates);
+        app.post("/api/aktien/portfolio",                         WebServer::handleAktienPortfolio);
+        app.post("/api/aktien/trade",                             WebServer::handleAktienTrade);
+
         // ── City Chat ──────────────────────────────────────────────────────
         app.get( "/city-chat",                         WebServer::serveCityChat);
         app.post("/api/city-chat/pin-verify",           ctx -> CityChatHandler.handlePinVerify(ctx));
@@ -364,6 +371,213 @@ public class WebServer {
         }
         out.add("history", hist);
         ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    // ── aktien.html (Aktienhandel) ─────────────────────────────
+
+    private static void serveAktien(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/aktien.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            String base = System.getenv("WEB_URL");
+            if (base == null || base.isBlank()) {
+                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
+                if (!base.startsWith("http")) base = "https://" + base;
+            }
+            base = base.replaceAll("/$", "");
+            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
+                .replace("%%API_BASE%%", base);
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
+            log.info("[Aktien] Aktien-Seite ausgeliefert.");
+        } catch (Exception e) {
+            log.error("[Aktien] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    /** POST /api/aktien/auth – Safe-PIN einloggen, Session-Token ausstellen. */
+    private static void handleAktienAuth(Context ctx) {
+        JsonObject out = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Server nicht bereit.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) {
+            out.addProperty("ok", false); out.addProperty("error", "Ungültige Anfrage.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        String pin = body != null && body.has("safePin") ? body.get("safePin").getAsString().trim() : "";
+        if (pin.isEmpty()) {
+            out.addProperty("ok", false); out.addProperty("error", "Bitte gib deine Safe-PIN ein.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        PhoneManager.Contract c = PhoneManager.getContractByPin(guild.getId(), pin);
+        if (c == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Ungültige Safe-PIN.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        String token = PhoneManager.createSession(guild.getId(), c.phoneNumber);
+        out.addProperty("ok", true);
+        out.addProperty("token", token);
+        out.addProperty("name", c.displayName());
+        ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    /** GET /api/aktien/rates – alle Aktien: Kurs, Umlauf, 7-Tage-Historie. */
+    private static void handleAktienRates(Context ctx) {
+        JsonObject out = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Server nicht bereit.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        String guildId = guild.getId();
+        JsonArray stocks = new JsonArray();
+        for (AktienManager.Aktie a : AktienManager.STOCKS) {
+            JsonObject o = new JsonObject();
+            o.addProperty("id", a.id());
+            o.addProperty("name", a.name());
+            o.addProperty("emoji", a.emoji());
+            o.addProperty("rate", AktienManager.getRate(a, guildId));
+            o.addProperty("supply", AktienManager.getSupply(a.id(), guildId));
+            JsonArray hist = new JsonArray();
+            for (AktienManager.RatePoint p : AktienManager.readHistory(a.id(), guildId)) {
+                JsonObject h = new JsonObject();
+                h.addProperty("ts", p.ts);
+                h.addProperty("rate", p.rate);
+                hist.add(h);
+            }
+            o.add("history", hist);
+            stocks.add(o);
+        }
+        out.addProperty("ok", true);
+        out.add("stocks", stocks);
+        ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    /** POST /api/aktien/portfolio – eigene Aktien, Gewinn/Verlust. */
+    private static void handleAktienPortfolio(Context ctx) {
+        JsonObject out = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Server nicht bereit.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) {
+            out.addProperty("ok", false); out.addProperty("error", "Ungültige Anfrage.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        String token = body != null && body.has("token") ? body.get("token").getAsString() : "";
+        PhoneManager.Contract c = PhoneManager.validateSession(token);
+        if (c == null || c.userId == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Ungültige Sitzung.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        String guildId = guild.getId();
+        String userId  = c.userId;
+
+        long totalValue = 0, totalInvested = 0;
+        JsonArray portfolio = new JsonArray();
+        for (AktienManager.Aktie a : AktienManager.STOCKS) {
+            long shares = AktienManager.getShares(a.id(), guildId, userId);
+            long invested = AktienManager.getInvested(a.id(), guildId, userId);
+            long value = Math.round(shares * AktienManager.getRate(a, guildId));
+            totalValue += value;
+            totalInvested += invested;
+            JsonObject o = new JsonObject();
+            o.addProperty("id", a.id());
+            o.addProperty("shares", shares);
+            o.addProperty("invested", invested);
+            o.addProperty("value", value);
+            portfolio.add(o);
+        }
+        out.addProperty("ok", true);
+        out.addProperty("name", c.displayName());
+        out.addProperty("wallet", KryptoManager.getBalance(guildId, userId));
+        out.addProperty("totalValue", totalValue);
+        out.addProperty("totalInvested", totalInvested);
+        out.addProperty("totalProfit", totalValue - totalInvested);
+        out.add("portfolio", portfolio);
+        ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    /** POST /api/aktien/trade – Aktien kaufen/verkaufen mit PC Coins. */
+    private static void handleAktienTrade(Context ctx) {
+        JsonObject out = new JsonObject();
+        Guild guild = BotContext.getGuild();
+        if (guild == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Server nicht bereit.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        JsonObject body;
+        try { body = GSON.fromJson(ctx.body(), JsonObject.class); }
+        catch (Exception e) {
+            out.addProperty("ok", false); out.addProperty("error", "Ungültige Anfrage.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        String token   = body != null && body.has("token")   ? body.get("token").getAsString()   : "";
+        String stockId = body != null && body.has("stockId") ? body.get("stockId").getAsString() : "";
+        String action  = body != null && body.has("action")  ? body.get("action").getAsString()  : "";
+        long amount    = body != null && body.has("amount")  ? body.get("amount").getAsLong()    : 0;
+
+        PhoneManager.Contract c = PhoneManager.validateSession(token);
+        if (c == null || c.userId == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Ungültige Sitzung.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        AktienManager.Aktie stock = AktienManager.findStock(stockId);
+        if (stock == null) {
+            out.addProperty("ok", false); out.addProperty("error", "Unbekannte Aktie.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+
+        String guildId = guild.getId();
+        String userId  = c.userId;
+        String error   = null;
+        if ("buy".equals(action)) {
+            error = AktienManager.buy(guildId, userId, stockId, amount);
+            if (error == null) {
+                logTrade(guild, c, stock, "gekauft", amount + " PC", AktienManager.getShares(stockId, guildId, userId));
+            }
+        } else if ("sell".equals(action)) {
+            error = AktienManager.sell(guildId, userId, stockId, amount);
+            if (error == null) {
+                logTrade(guild, c, stock, "verkauft", amount + " Aktien", AktienManager.getShares(stockId, guildId, userId));
+            }
+        } else {
+            error = "Ungültige Aktion.";
+        }
+
+        if (error != null) {
+            out.addProperty("ok", false); out.addProperty("error", error);
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+        out.addProperty("ok", true);
+        out.addProperty("wallet", KryptoManager.getBalance(guildId, userId));
+        ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    /** Loggt Aktien-Kauf/-Verkauf in den Geld-Log-Kanal (wie Konto/Bargeld/Krypto). */
+    private static void logTrade(Guild guild, PhoneManager.Contract c,
+                                 AktienManager.Aktie stock, String verb,
+                                 String menge, long newShares) {
+        try {
+            net.dv8tion.jda.api.entities.Member m = guild.getMemberById(c.userId);
+            String who = m != null ? m.getAsMention() : "<@" + c.userId + ">";
+            BotLogger.logMoney(guild, stock.emoji() + " " + stock.name() + " — Aktie " + verb,
+                "**Spieler:** " + who + "\n" +
+                "**Menge:** " + menge + "\n" +
+                "**Neuer Bestand:** " + AktienManager.formatShares(newShares));
+        } catch (Exception e) {
+            log.error("[Aktien] Log fehlgeschlagen.", e);
+        }
     }
 
     // ── city-chat.html ─────────────────────────────────────────

@@ -93,6 +93,7 @@ public class Main {
                 new ShopListener(),
                 new BankListener(),
                 new KryptoListener(),
+                new AktienListener(),
                 new BargeldListener(),
                 new HandyCentraleListener(),
                 new FirmaLinkListener(),
@@ -190,6 +191,8 @@ public class Main {
                 KryptoListener.postWalletPanelIfNeeded(guild);
                 KryptoListener.postRatesPanelIfNeeded(guild);
                 KryptoManager.init(guild);  // Kurs-Snapshot-Scheduler starten
+                AktienListener.postAllPanels(guild);
+                AktienManager.init(guild);  // Aktien-Kurs-Snapshot-Scheduler starten
                 HandyCentraleListener.postPanel(guild);
                 postCityChatPanel(guild);
                 postCitygramPanel(guild);

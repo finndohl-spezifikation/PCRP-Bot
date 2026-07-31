@@ -71,6 +71,16 @@ public final class PhoneManager {
         return null;
     }
 
+    /** Findet den Vertrag über die Safe-PIN (Login für Webseiten wie Aktienhandel). */
+    public static Contract getContractByPin(String guildId, String safePin) {
+        if (safePin == null || safePin.isBlank()) return null;
+        for (String uid : getUserIds(guildId)) {
+            Contract c = getContract(guildId, uid);
+            if (c != null && safePin.equals(c.safePin)) return c;
+        }
+        return null;
+    }
+
     public static List<Contract> getAllContracts(String guildId) {
         List<Contract> list = new ArrayList<>();
         for (String uid : getUserIds(guildId)) {
