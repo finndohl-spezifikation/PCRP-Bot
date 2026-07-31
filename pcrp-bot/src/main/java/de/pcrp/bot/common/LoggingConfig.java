@@ -196,5 +196,8 @@ public final class LoggingConfig {
     /** Garage-Panel-Kanal (/garage). */
     public static final long GARAGE_CHANNEL_ID      = 1532496933544005663L;
 
+    /** Firmen-Auslastung Panel-Kanal. */
+    public static final long FIRMEN_AUSLASTUNG_CHANNEL_ID = 1529636620310020096L;
+
     private LoggingConfig() {}
 }

@@ -206,6 +206,7 @@ public class Main {
                 postLohnPanel(guild);
                 LohnManager.init(guild);  // Lobby-Status nach Restart wiederherstellen
                 GarageListener.postPanel(guild);
+                FirmenAuslastungManager.init(guild);  // Firmen-Auslastung-Panel (Balken) + Auto-Refresh
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -733,7 +734,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v1";
+        private static final String CHANGELOG_VERSION = "v2";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -750,13 +751,10 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Safe-PIN Login & Bugfixes**__\n\n" +
-                "📱 **Safe-PIN Login** — City Chat & Citygram: Kein Token-Link mehr nötig. " +
-                "Aktiviere in der Handy-Zentrale und logge dich auf der Webseite mit deiner Safe-PIN ein.\n\n" +
-                "🐛 **City Chat Bugfix** — Die Webseite lädt nicht mehr ewig. Der PIN-Login erscheint sofort.\n\n" +
-                "🐛 **Citygram Bugfix** — Verbesserte Lade-Stabilität beim ersten Öffnen.\n\n" +
-                "🔐 **Sicherheitshinweis** — In der Telefonnummer-Anzeige wird jetzt explizit darauf hingewiesen, " +
-                "die Safe-PIN niemals weiterzugeben.\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Firmen-Auslastung & Bugfixes**__\n\n" +
+                "🏢 **Firmen-Auslastung** — Neues Panel im Firmen-Kanal: Zeigt mit Balken an, " +
+                "wie viele Mitglieder in jeder Firma angestellt sind (alle 30 Min. aktualisiert).\n\n" +
+                "🐛 **Lizenzen-Fix** — Die Suchleiste öffnet sich wieder direkt im Kanal.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 
