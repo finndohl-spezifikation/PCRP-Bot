@@ -7,7 +7,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.EntitySelectInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.EntitySelectMenu;
 import org.slf4j.Logger;
@@ -68,20 +67,20 @@ public class LizenzenListener extends ListenerAdapter {
                 event.replyEmbeds(EmbedFactory.build(
                     "🪪 Ausweis anzeigen",
                     "Suche den Spieler unten über die Suchleiste und wähle ihn aus."))
-                    .addActionRow(ActionRow.of(
+                    .addActionRow(
                         EntitySelectMenu.create(SELECT_AUSWEIS, EntitySelectMenu.SelectTarget.USER)
                             .setPlaceholder("Spieler suchen und auswählen…")
-                            .setMinValues(1).setMaxValues(1).build()))
+                            .setMinValues(1).setMaxValues(1).build())
                     .setEphemeral(true).queue();
             }
             case BTN_FUEHRERSCHEIN -> {
                 event.replyEmbeds(EmbedFactory.build(
                     "🚗 Führerschein anzeigen",
                     "Suche den Spieler unten über die Suchleiste und wähle ihn aus."))
-                    .addActionRow(ActionRow.of(
+                    .addActionRow(
                         EntitySelectMenu.create(SELECT_FUEHRERSCHEIN, EntitySelectMenu.SelectTarget.USER)
                             .setPlaceholder("Spieler suchen und auswählen…")
-                            .setMinValues(1).setMaxValues(1).build()))
+                            .setMinValues(1).setMaxValues(1).build())
                     .setEphemeral(true).queue();
             }
         }
