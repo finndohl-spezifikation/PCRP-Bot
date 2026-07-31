@@ -35,6 +35,9 @@ public class KryptoListener extends ListenerAdapter {
     /** Zwischenspeicher: userId → receiverId (zwischen EntitySelect und Modal-Submit). */
     private static final Map<String, String> PENDING_TRANSFER = new ConcurrentHashMap<>();
 
+    /** Wallet-Panel-Beschreibung – als Konstante, damit Duplikat-Check und Sendetext nie auseinanderdriften. */
+    private static final String WALLET_PANEL_DESC = "Öffne hier dein PC Coin Krypto wallet";
+
     // ── Button-Handler ────────────────────────────────────────────────────────
 
     @Override
@@ -268,10 +271,15 @@ public class KryptoListener extends ListenerAdapter {
 
     /** Postet das WALLET-Panel (mit Wallet-öffnen-Button) in den Wallet-Kanal. */
     public static void postWalletPanelIfNeeded(Guild guild) {
-        String key = "panel-krypto-wallet-v3-" + guild.getId();
+        String key = "panel-krypto-wallet-v4-" + guild.getId();
         TextChannel ch = guild.getTextChannelById(LoggingConfig.KRYPTO_CHANNEL_ID);
         if (ch == null) { log.warn("[Krypto] Wallet-Kanal nicht gefunden."); return; }
-        PanelHelper.post(ch, key, "🪙 PC Coins — Wallet", () -> sendWalletPanel(ch, key));
+        // Beschreibung mitgeben: Der Duplikat-Schutz erkennt nur ein Embed mit gleichem
+        // Titel UND gleichem Text als "schon vorhanden" – sonst blockt das alte v2-Embed
+        // (gleicher Titel, anderer Text) das neue Panel dauerhaft.
+        PanelHelper.post(ch, key, "🪙 PC Coins — Wallet",
+            WALLET_PANEL_DESC,
+            () -> sendWalletPanel(ch, key));
     }
 
     /** Postet das KURS-Panel (nur Kurse + Webseiten-Link) in den Kurs-Kanal. */
@@ -296,7 +304,7 @@ public class KryptoListener extends ListenerAdapter {
     private static void sendWalletPanel(TextChannel ch, String key) {
         ch.sendMessageEmbeds(EmbedFactory.build(
             "🪙 PC Coins — Wallet",
-            "Öffne hier dein PC Coin Krypto wallet"))
+            WALLET_PANEL_DESC))
             .addActionRow(
                 Button.primary("krypto-wallet", "🪙 Wallet öffnen"))
             .queue(

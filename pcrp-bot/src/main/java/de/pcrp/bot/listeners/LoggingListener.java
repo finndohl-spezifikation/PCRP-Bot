@@ -468,10 +468,13 @@ public class LoggingListener extends ListenerAdapter {
         // ── Embed-Schutz: Bot-Embeds + Buttons in geschützten Kanälen sofort neu senden ──
         long channelId = e.getChannel().getIdLong();
         if (!ALLOWED_EMBED_DELETION_CHANNELS.contains(channelId)) {
-            CachedBotMsg cachedMsg = BOT_EMBED_CACHE.get(e.getMessageIdLong());
-            if (cachedMsg != null && !cachedMsg.embeds().isEmpty()) {
-                TextChannel ch = guild.getTextChannelById(channelId);
-                if (ch != null) {
+            TextChannel ch = guild.getTextChannelById(channelId);
+            // 1) Panel-Registry (DataStore-basiert → überlebt Bot-Neustarts)
+            boolean restored = ch != null && PanelHelper.restoreDeleted(ch, e.getMessageIdLong());
+            // 2) Fallback: In-Memory-Cache für sonstige Bot-Embeds
+            if (!restored) {
+                CachedBotMsg cachedMsg = BOT_EMBED_CACHE.get(e.getMessageIdLong());
+                if (cachedMsg != null && !cachedMsg.embeds().isEmpty() && ch != null) {
                     var msg = ch.sendMessageEmbeds(cachedMsg.embeds());
                     if (!cachedMsg.actionRows().isEmpty()) {
                         msg.setComponents(cachedMsg.actionRows());
