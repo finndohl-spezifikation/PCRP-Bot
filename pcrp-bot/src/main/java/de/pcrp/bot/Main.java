@@ -752,7 +752,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v7";
+        private static final String CHANGELOG_VERSION = "v8";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -784,6 +784,8 @@ public class Main {
                 "🎙️ **Voice-Auslagerung** — Die Wartemusik und die deutschen Ansagen im Warteraum laufen jetzt über den " +
                 "separaten Bot „PCRP Voice-Chat” (eigenes Repo), da Railway kein UDP erlaubt. Embed, Ping und „Fall " +
                 "Übernehmen” laufen weiterhin im Haupt-Bot.\n\n" +
+                "🗑️ **Embed-Löschung im Support-Alert-Kanal** — Im Kanal der Support-Alerts können Embeds jetzt manuell " +
+                "und per /löschen entfernt werden, ohne dass der Bot sie automatisch neu sendet.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 
