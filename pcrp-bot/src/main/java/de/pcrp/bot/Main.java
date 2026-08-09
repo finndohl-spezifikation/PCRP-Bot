@@ -264,14 +264,14 @@ public class Main {
         private static final String TICKET_DESC =
             "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
             "**📋 Verfügbare Kategorien**\n\n" +
-            "🟢 **Support** — Allgemeine Fragen & Hilfe\n" +
-            "🟠 **Beschwerde** — Reiche hier Beschwerden ein\n" +
-            "🔴 **Highteam** — Anliegen an das Highteam\n" +
-            "🔵 **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
-            "🟣 **Team Bewerbung** — Demnächst verfügbar";
+            "• **Support** — Allgemeine Fragen & Hilfe\n" +
+            "• **Beschwerde** — Reiche hier Beschwerden ein\n" +
+            "• **Highteam** — Anliegen an das Highteam\n" +
+            "• **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
+            "• **Team Bewerbung** — Demnächst verfügbar";
 
         private static void postTicketPanel(Guild guild) {
-            String key = "panel-ticket-v4-" + guild.getId();
+            String key = "panel-ticket-v5-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.TICKET_PANEL_CHANNEL_ID);
             if (ch == null) { log.warn("[Ticket] Panel-Kanal nicht gefunden."); return; }
             PanelHelper.post(ch, key, "🎫 Ticket System — Paradise City Roleplay", TICKET_DESC,
@@ -753,7 +753,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v9";
+        private static final String CHANGELOG_VERSION = "v10";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -789,7 +789,7 @@ public class Main {
                 "und per /löschen entfernt werden, ohne dass der Bot sie automatisch neu sendet.\n\n" +
                 "🏢 **Firmen-Auslastung** — Aktualisiert sich jetzt sofort bei Rollen-Änderungen (kein 30-Minuten-Timer " +
                 "mehr), der Hinweistext unten wurde entfernt.\n\n" +
-                "🎫 **Ticket-Panel** — Die Kategorien im Embed werden wieder mit farbigen Punkten angezeigt; die " +
+                "🎫 **Ticket-Panel** — Die Kategorien im Embed werden jetzt mit normalen grauen Punkten angezeigt; die " +
                 "🎟️-Emojis stehen nur noch im Auswahlmenü.\n\n" +
                 "✍️ **/embed-schreiben** — Neuer Befehl: eigenes Embed mit Farbe, Kanal, Titel und Text senden. " +
                 "Diese Embeds sind frei löschbar – manuell oder per /löschen.\n\n" +
