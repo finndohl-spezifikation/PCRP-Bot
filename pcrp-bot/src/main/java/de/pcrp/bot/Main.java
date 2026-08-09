@@ -114,7 +114,8 @@ public class Main {
             new BargeldListener(),
             new HandyCentraleListener(),
             new FirmaLinkListener(),
-            new GarageListener()
+            new GarageListener(),
+            new SupportListener()
         };
     }
 
@@ -259,11 +260,20 @@ public class Main {
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
         }
 
+        private static final String TICKET_DESC =
+            "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
+            "**📋 Verfügbare Kategorien**\n\n" +
+            "🎟️ **Support** — Allgemeine Fragen & Hilfe\n" +
+            "🎟️ **Beschwerde** — Reiche hier Beschwerden ein\n" +
+            "🎟️ **Highteam** — Anliegen an das Highteam\n" +
+            "🎟️ **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
+            "🎟️ **Team Bewerbung** — Demnächst verfügbar";
+
         private static void postTicketPanel(Guild guild) {
-            String key = "panel-ticket-v2-" + guild.getId();
+            String key = "panel-ticket-v3-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.TICKET_PANEL_CHANNEL_ID);
             if (ch == null) { log.warn("[Ticket] Panel-Kanal nicht gefunden."); return; }
-            PanelHelper.post(ch, key, "🎫 Ticket System — Paradise City Roleplay",
+            PanelHelper.post(ch, key, "🎫 Ticket System — Paradise City Roleplay", TICKET_DESC,
                 () -> sendTicketPanel(ch, key));
         }
 
@@ -271,23 +281,16 @@ public class Main {
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
                     .setTitle("🎫 Ticket System — Paradise City Roleplay")
-                    .setDescription(
-                        "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
-                        "**📋 Verfügbare Kategorien**\n\n" +
-                        "- **Support** — Allgemeine Fragen & Hilfe\n" +
-                        "- **Beschwerde** — Reiche hier Beschwerden ein\n" +
-                        "- **Highteam** — Anliegen an das Highteam\n" +
-                        "- **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
-                        "- **Team Bewerbung** — Demnächst verfügbar")
+                    .setDescription(TICKET_DESC)
                     .build()
             ).addActionRow(
                 StringSelectMenu.create(TicketListener.SELECT_ID)
                     .setPlaceholder("Ticket-Kategorie auswählen…")
-                    .addOption("Support",              "support",        "Allgemeine Fragen & Hilfe",       net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔵"))
-                    .addOption("Beschwerde",           "beschwerde",     "Reiche hier Beschwerden ein",      net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🔴"))
-                    .addOption("Highteam",             "highteam",       "Anliegen an das Highteam",        net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🟣"))
-                    .addOption("Fraktions Bewerbung",  "fraktion",       "Bewerbung für eine Fraktion",     net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🟠"))
-                    .addOption("Team Bewerbung",       "team-bewerbung", "Demnächst verfügbar",             net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("⚫"))
+                    .addOption("Support",              "support",        "Allgemeine Fragen & Hilfe",       net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🎟️"))
+                    .addOption("Beschwerde",           "beschwerde",     "Reiche hier Beschwerden ein",      net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🎟️"))
+                    .addOption("Highteam",             "highteam",       "Anliegen an das Highteam",        net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🎟️"))
+                    .addOption("Fraktions Bewerbung",  "fraktion",       "Bewerbung für eine Fraktion",     net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🎟️"))
+                    .addOption("Team Bewerbung",       "team-bewerbung", "Demnächst verfügbar",             net.dv8tion.jda.api.entities.emoji.Emoji.fromUnicode("🎟️"))
                     .build()
             ).queue(
                 msg -> PanelHelper.onSent(key, msg.getId()),
@@ -749,7 +752,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v3";
+        private static final String CHANGELOG_VERSION = "v4";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -766,11 +769,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Neuer Bot & frisch gesendete Panels**__\n\n" +
-                "🤖 **Bot-Wechsel** — Der Bot wurde durch einen neuen Bot-Account ersetzt. " +
-                "Alle Panels (Lizenzen, Rucksack, Banking, Krypto, Aktien, Shops, Garage u. v. m.) " +
-                "wurden frisch in die Kanäle gesendet.\n\n" +
-                "🔓 **Lockdown beendet** — Alle Slash-Commands, Buttons und Webseiten funktionieren wieder normal.\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Support-Warteraum & Lizenzen-Verbesserungen**__\n\n" +
+                "🎧 **Support-Warteraum** — Betritt ein Spieler den Warteraum, wird automatisch ein Embed mit " +
+                "Ping an Support & Highteam gesendet. Teammitglieder können den Fall mit dem Button „Fall Übernehmen” " +
+                "übernehmen — der Spieler wird automatisch in den Sprachkanal des Teamlers bewegt. " +
+                "Der Bot spielt Wartemusik und sagt in deutscher Sprache die Ansagen.\n\n" +
+                "🎟️ **Ticket-Panel** — Die Kategorien im Ticket-Auswahlmenü werden jetzt mit pinken Ticket-Emojis angezeigt.\n\n" +
+                "⚠️ **/spieler-info** — Spieler ohne gültigen Ausweis werden als „Illegal Eingereist” geführt.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 

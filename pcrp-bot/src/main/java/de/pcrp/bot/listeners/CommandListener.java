@@ -2387,7 +2387,7 @@ public class CommandListener extends ListenerAdapter {
         StringBuilder charLines = new StringBuilder();
         JsonObject charData = CharacterStore.get(guildId, userId);
         if (charData == null) {
-            charLines.append("— Kein Charakter angelegt —");
+            charLines.append("**⚠️ Illegal Eingereist** — Kein gültiger Ausweis vorhanden");
         } else {
             String typeRaw = CharacterStore.str(charData, "type");
             String typePretty = "legal".equalsIgnoreCase(typeRaw)   ? "📗 Legal"

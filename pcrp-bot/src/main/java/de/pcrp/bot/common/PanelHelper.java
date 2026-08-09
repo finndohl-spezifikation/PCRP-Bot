@@ -33,7 +33,7 @@ public final class PanelHelper {
      * DataStore-Key {@code panel-force-<key>}. Danach greift wieder der normale
      * Duplikat-Schutz, damit bei späteren Neustarts nichts doppelt gesendet wird.
      */
-    public static volatile boolean FORCE_RESEND = true;
+    public static volatile boolean FORCE_RESEND = false;
 
     /** Panel-Referenz für den Embed-Lösch-Schutz (Kanal + Titel + Beschreibung + Sender). */
     private record PanelRef(long channelId, String title, String description, Runnable sender) {}
