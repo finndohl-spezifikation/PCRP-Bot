@@ -54,14 +54,14 @@ public final class SupportAudio {
     private static volatile boolean active = false;
     private static volatile Guild activeGuild;
 
-    /** Wird aufgerufen, wenn eine Verbindung gescheitert ist (z. B. für einen späteren Retry). */
-    private static volatile Runnable failureHandler;
+    /** Optionaler Beobachter für Statusänderungen (z. B. für einen Hinweis im Discord-Kanal). */
+    private static volatile java.util.function.Consumer<ConnectionStatus> statusListener;
 
     private SupportAudio() {}
 
-    /** Setzt den Callback, der bei einem Verbindungsfehler aufgerufen wird. */
-    public static void setFailureHandler(Runnable handler) {
-        failureHandler = handler;
+    /** Setzt einen Beobachter, der bei jeder Verbindungs-Statusänderung informiert wird. */
+    public static void setStatusListener(java.util.function.Consumer<ConnectionStatus> listener) {
+        statusListener = listener;
     }
 
     /** Startet Musik + Ansagen im Warteraum (falls nicht bereits aktiv). */
@@ -116,24 +116,28 @@ public final class SupportAudio {
      */
     private static void onConnectionStatus(ConnectionStatus status) {
         log.info("[SupportAudio] Verbindungsstatus: {}", status);
+        java.util.function.Consumer<ConnectionStatus> listener = statusListener;
+        if (listener != null) {
+            try {
+                listener.accept(status);
+            } catch (Exception e) {
+                log.warn("[SupportAudio] Fehler im Status-Listener: {}", e.getMessage());
+            }
+        }
         if (status == ConnectionStatus.CONNECTED
             || status.name().startsWith("CONNECTING_")
             || status == ConnectionStatus.SHUTTING_DOWN
             || status == ConnectionStatus.AUDIO_REGION_CHANGE) {
             return; // transient oder ok
         }
-        // Verbindung beendet oder gescheitert → Zustand zurücksetzen
+        // Verbindung beendet oder gescheitert → Zustand zurücksetzen.
+        // KEIN Auto-Retry: Ein dauerhafter Fehlschlag (z. B. UDP blockiert auf dem Host)
+        // würde sonst einen sichtbaren Beitreten/Verlassen-Loop erzeugen. Es wird nur
+        // beim nächsten Beitritt bzw. Neustart erneut versucht.
+        log.warn("[SupportAudio] Verbindung beendet/gescheitert: {}", status);
         active = false;
         activeGuild = null;
         handler = null;
-        Runnable onFail = failureHandler;
-        if (onFail != null) {
-            try {
-                onFail.run();
-            } catch (Exception e) {
-                log.warn("[SupportAudio] Fehler im Failure-Handler: {}", e.getMessage());
-            }
-        }
     }
 
     // ── Ansage-Loop ───────────────────────────────────────────────────────────
