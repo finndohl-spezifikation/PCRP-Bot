@@ -147,6 +147,7 @@ public class WebServer {
         // Push-Benachrichtigungen
         app.get( "/sw.js",                              WebServer::serveServiceWorker);
         app.get( "/pd-logo.webp",                       ctx -> serveStaticBinary(ctx, "/static/pd-logo.webp",      "image/webp"));
+        app.get( "/lapd-logo.jpg",                      ctx -> serveStaticBinary(ctx, "/static/lapd-logo.jpg",     "image/jpeg"));
         app.get( "/pd-standort.jpg",                    ctx -> serveStaticBinary(ctx, "/static/pd-standort.jpg",   "image/jpeg"));
         app.get( "/manifest.json",                      WebServer::serveManifest);
         app.get( "/icon-192.png",                       ctx -> serveStaticBinary(ctx, "/static/icon-192.png",    "image/png"));

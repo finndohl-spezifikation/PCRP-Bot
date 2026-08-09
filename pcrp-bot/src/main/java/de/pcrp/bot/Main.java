@@ -796,7 +796,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v11";
+        private static final String CHANGELOG_VERSION = "v12";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,6 +839,9 @@ public class Main {
                 "🚔 **LAPD-Webseite** — Die neue offizielle LAPD-Webseite mit Dashboard ist live: Email Schreiben, " +
                 "Anzeige erstatten und Bewerbungsportal mit Status-Verfolgung („Meine Anfragen/Anzeigen/Bewerbungen”) " +
                 "sowie ein Beamten-Dashboard zum Antworten, Lösen und Schließen.\n\n" +
+                "🛠️ **LAPD-Webseite (Design)** — Moderner Auftritt mit offiziellem LAPD-Logo oben links „LAPD / Los " +
+                "Angeles Police Department”. Die Leiste enthält nur noch „Kontakt Aufnehmen” — Informationen, Email, " +
+                "Anzeige, Bewerbung und Fuhrpark sind jetzt Unter-Kategorien.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 
