@@ -752,7 +752,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v4";
+        private static final String CHANGELOG_VERSION = "v5";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -769,13 +769,15 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Support-Warteraum & Lizenzen-Verbesserungen**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Support-Warteraum (Voice-Fix) & mehr**__\n\n" +
                 "🎧 **Support-Warteraum** — Betritt ein Spieler den Warteraum, wird automatisch ein Embed mit " +
                 "Ping an Support & Highteam gesendet. Teammitglieder können den Fall mit dem Button „Fall Übernehmen” " +
                 "übernehmen — der Spieler wird automatisch in den Sprachkanal des Teamlers bewegt. " +
                 "Der Bot spielt Wartemusik und sagt in deutscher Sprache die Ansagen.\n\n" +
                 "🎟️ **Ticket-Panel** — Die Kategorien im Ticket-Auswahlmenü werden jetzt mit pinken Ticket-Emojis angezeigt.\n\n" +
                 "⚠️ **/spieler-info** — Spieler ohne gültigen Ausweis werden als „Illegal Eingereist” geführt.\n\n" +
+                "🔧 **Support-Warteraum-Fix** — Der Bot beendet den endlosen Join/Leave-Loop (Auto-Reconnect deaktiviert) " +
+                "und man kann nicht mehr seinen eigenen Fall übernehmen.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 

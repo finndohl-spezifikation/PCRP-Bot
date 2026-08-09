@@ -1,6 +1,7 @@
 package de.pcrp.bot.common;
 
 import net.dv8tion.jda.api.audio.AudioSendHandler;
+import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.managers.AudioManager;
@@ -63,6 +64,16 @@ public final class SupportAudio {
             if (musicLoop == null) musicLoop = synthesizeMusic();
             handler = new SupportAudioHandler(musicLoop);
             AudioManager am = guild.getAudioManager();
+            // KEIN Auto-Reconnect: Wenn die Verbindung scheitert (z. B. UDP zu Discords
+            // Voice-Servern von der Hosting-Umgebung aus blockiert), würde JDA sonst endlos
+            // beitreten/verlassen wiederholen. Stattdessen einmal versuchen und sauber aufhören.
+            am.setAutoReconnect(false);
+            am.setConnectionListener(new net.dv8tion.jda.api.audio.hooks.ConnectionListener() {
+                @Override
+                public void onStatusChange(ConnectionStatus status) {
+                    onConnectionStatus(status);
+                }
+            });
             am.setSendingHandler(handler);
             am.openAudioConnection(channel);
             active = true;
@@ -90,8 +101,23 @@ public final class SupportAudio {
         handler = null;
     }
 
-    public static boolean isActive(long guildId) {
-        return active && activeGuild != null && activeGuild.getIdLong() == guildId;
+    /**
+     * Verbindungs-Status-Callback von JDA. Loggt den Status und setzt bei einem
+     * Verbindungsende/-fehler den Zustand zurück, damit kein Reconnect-Loop entsteht
+     * und der nächste Beitritt einen frischen Versuch starten kann.
+     */
+    private static void onConnectionStatus(ConnectionStatus status) {
+        log.info("[SupportAudio] Verbindungsstatus: {}", status);
+        if (status == ConnectionStatus.CONNECTED
+            || status.name().startsWith("CONNECTING_")
+            || status == ConnectionStatus.SHUTTING_DOWN
+            || status == ConnectionStatus.AUDIO_REGION_CHANGE) {
+            return; // transient oder ok
+        }
+        // Verbindung beendet oder gescheitert → Zustand zurücksetzen
+        active = false;
+        activeGuild = null;
+        handler = null;
     }
 
     // ── Ansage-Loop ───────────────────────────────────────────────────────────

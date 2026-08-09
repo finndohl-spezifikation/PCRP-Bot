@@ -119,6 +119,12 @@ public class SupportListener extends ListenerAdapter {
             return;
         }
 
+        // Man kann nicht seinen eigenen Fall übernehmen
+        if (clicker.getIdLong() == waitingUserId) {
+            event.reply("❌ Du kannst nicht deinen eigenen Fall übernehmen.").setEphemeral(true).queue();
+            return;
+        }
+
         // Klicker muss selbst in einem Sprachkanal sein
         AudioChannel teamChannel = clicker.getVoiceState() != null ? clicker.getVoiceState().getChannel() : null;
         if (teamChannel == null) {
