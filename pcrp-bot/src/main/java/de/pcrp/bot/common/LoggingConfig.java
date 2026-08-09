@@ -199,5 +199,8 @@ public final class LoggingConfig {
     /** Firmen-Auslastung Panel-Kanal. */
     public static final long FIRMEN_AUSLASTUNG_CHANNEL_ID = 1529636620310020096L;
 
+    /** LAPD-Webseite – Kanal für das Embed mit Link (wird beim Start einmal gepostet, Lösch-Sperre aktiv). */
+    public static final long LAPD_EMBED_CHANNEL_ID = 1529636626412732467L;
+
     private LoggingConfig() {}
 }

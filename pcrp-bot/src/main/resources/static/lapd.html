@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAPD — Paradise City Roleplay</title>
+<style>
+  :root{
+    --blue:#0d2247; --blue2:#143a7a; --blue3:#1a56c4; --light:#f4f7fb; --white:#fff;
+    --gold:#c9a227; --border:#dfe6f0; --text:#1c2733; --muted:#6b7a90; --green:#1e9e5a; --red:#c0392b; --gray:#8a94a6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--light);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+  a{text-decoration:none;color:inherit}
+
+  /* ── Kopfzeile ─────────────────────────── */
+  header{background:linear-gradient(180deg,var(--blue) 0%,var(--blue2) 100%);color:var(--white);box-shadow:0 2px 10px rgba(0,0,0,.25);position:sticky;top:0;z-index:50}
+  .nav{max-width:1150px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:0 20px;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;margin-right:18px}
+  .brand svg{width:38px;height:38px;flex-shrink:0}
+  .brand b{font-size:1.25rem;letter-spacing:2px}
+  .brand small{display:block;font-size:.62rem;letter-spacing:1.5px;color:#b9c6e0;text-transform:uppercase;margin-top:-2px}
+  .nav a.link{padding:8px 12px;border-radius:6px;font-weight:600;font-size:.92rem;color:#e8eefb;white-space:nowrap}
+  .nav a.link:hover{background:rgba(255,255,255,.12)}
+  .nav a.link.active{background:var(--gold);color:var(--blue)}
+  .spacer{flex:1}
+  .btn-login{background:var(--gold);color:var(--blue);border:none;padding:9px 16px;border-radius:6px;font-weight:700;font-size:.9rem;cursor:pointer;white-space:nowrap}
+  .btn-login:hover{filter:brightness(1.08)}
+  @media(max-width:900px){ .nav{flex-wrap:wrap;height:auto;padding:10px 14px;gap:4px} .brand{width:100%} a.link{font-size:.85rem;padding:7px 9px} }
+
+  /* ── Inhalt ────────────────────────────── */
+  main{flex:1;max-width:1150px;width:100%;margin:0 auto;padding:28px 20px 40px}
+  section{display:none}
+  section.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* Startseite */
+  .hero{background:linear-gradient(135deg,var(--blue) 0%,var(--blue2) 60%,var(--blue3) 100%);color:var(--white);border-radius:14px;padding:44px 40px;position:relative;overflow:hidden}
+  .hero:after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.05)}
+  .hero:before{content:"";position:absolute;right:40px;bottom:-90px;width:200px;height:200px;border-radius:50%;background:rgba(201,162,39,.12)}
+  .hero h1{font-size:2.1rem;letter-spacing:1px;margin-bottom:8px}
+  .hero .sub{color:#c6d4ee;font-size:1.02rem;max-width:620px;line-height:1.55}
+  .hero .badge{display:inline-block;background:var(--gold);color:var(--blue);font-weight:800;font-size:.75rem;letter-spacing:1px;padding:5px 12px;border-radius:20px;margin-bottom:14px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:26px}
+  .card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(13,34,71,.06);cursor:pointer;transition:.15s}
+  .card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(13,34,71,.12);border-color:var(--blue3)}
+  .card .ic{font-size:1.9rem}
+  .card h3{color:var(--blue);margin:10px 0 6px;font-size:1.05rem}
+  .card p{color:var(--muted);font-size:.88rem;line-height:1.5}
+
+  /* Unterseiten-Titel */
+  .pagetitle{border-bottom:3px solid var(--gold);display:inline-block;padding-bottom:6px;color:var(--blue);font-size:1.5rem;margin-bottom:20px}
+  .hint{background:#eef4ff;border:1px solid #cfe0ff;color:var(--blue2);border-radius:8px;padding:12px 16px;font-size:.9rem;margin-bottom:18px;line-height:1.5}
+
+  /* Formulare */
+  .panel{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:26px;box-shadow:0 1px 4px rgba(13,34,71,.05)}
+  .panel h2{color:var(--blue);font-size:1.1rem;margin-bottom:14px}
+  label{display:block;font-weight:600;font-size:.85rem;color:var(--blue2);margin:12px 0 5px}
+  input[type=text],textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:11px 13px;font-size:.95rem;font-family:inherit;background:#fbfcfe;color:var(--text)}
+  input[type=text]:focus,textarea:focus{outline:none;border-color:var(--blue3);background:var(--white)}
+  textarea{min-height:120px;resize:vertical}
+  .btn{background:var(--blue3);color:var(--white);border:none;padding:11px 22px;border-radius:8px;font-weight:700;font-size:.93rem;cursor:pointer;margin-top:14px}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.gold{background:var(--gold);color:var(--blue)}
+  .btn.green{background:var(--green)}
+  .btn.red{background:var(--red)}
+  .btn.gray{background:var(--gray)}
+  .btn.small{padding:6px 12px;font-size:.82rem;margin:2px}
+  .msg{display:none;margin-top:12px;padding:10px 14px;border-radius:8px;font-size:.9rem;font-weight:600}
+  .msg.ok{display:block;background:#e7f7ee;color:var(--green);border:1px solid #bfe8d2}
+  .msg.err{display:block;background:#fdeeee;color:var(--red);border:1px solid #f5c6c6}
+
+  /* Listen (Meine X / Dashboard) */
+  .listtitle{font-size:1.02rem;color:var(--blue);margin:8px 0 12px;display:flex;align-items:center;gap:8px}
+  .listtitle .count{background:var(--blue3);color:#fff;font-size:.75rem;border-radius:12px;padding:2px 10px}
+  .item{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--blue3);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+  .item.geloest{border-left-color:var(--green)}
+  .item.geschlossen{border-left-color:var(--gray);opacity:.85}
+  .item .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
+  .item .who{font-weight:700;color:var(--blue)}
+  .item .when{color:var(--muted);font-size:.8rem}
+  .item .txt{line-height:1.55;margin:6px 0 10px;white-space:pre-wrap}
+  .st{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 10px;border-radius:14px}
+  .st.offen{background:#e3ecff;color:var(--blue3)}
+  .st.geloest{background:#e2f6ea;color:var(--green)}
+  .st.geschlossen{background:#e9ecf1;color:var(--gray)}
+  .replies{border-top:1px dashed var(--border);padding-top:10px;margin-top:10px}
+  .replyline{font-size:.88rem;margin:6px 0;line-height:1.45}
+  .replyline b{color:var(--blue2)}
+  .replyline .lapd{color:var(--green)}
+  .replyline .when{color:var(--muted);font-size:.75rem}
+  .replybox{display:flex;gap:8px;margin-top:10px}
+  .replybox input{flex:1}
+  .empty{color:var(--muted);font-size:.9rem;background:#f7f9fc;border:1px dashed var(--border);border-radius:8px;padding:14px 16px}
+  .dash-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+  .dash-tabs button{background:var(--white);border:1.5px solid var(--border);color:var(--blue2);padding:9px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:.88rem}
+  .dash-tabs button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+  footer{border-top:1px solid var(--border);background:var(--white);color:var(--muted);text-align:center;padding:18px;font-size:.8rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand">
+      <svg viewBox="0 0 100 110" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 4 L92 16 L92 58 C92 84 74 99 50 106 C26 99 8 84 8 58 L8 16 Z" fill="#fff"/>
+        <path d="M50 12 L86 22 L86 58 C86 80 71 93 50 99 C29 93 14 80 14 58 L14 22 Z" fill="#0d2247"/>
+        <text x="50" y="56" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="800" fill="#c9a227">LAPD</text>
+        <text x="50" y="74" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#fff" letter-spacing="1">LOS ANGELES</text>
+      </svg>
+      <div>
+        <b>LAPD</b>
+        <small>Paradise City Roleplay</small>
+      </div>
+    </div>
+    <a class="link active" data-sec="start" href="#start">Startseite</a>
+    <a class="link" data-sec="info" href="#info">Informationen</a>
+    <a class="link" data-sec="email" href="#email">Email Schreiben</a>
+    <a class="link" data-sec="anzeige" href="#anzeige">Anzeige Erstatten</a>
+    <a class="link" data-sec="bewerbung" href="#bewerbung">Bewerbungsportal</a>
+    <a class="link" data-sec="fuhrpark" href="#fuhrpark">Fuhrpark</a>
+    <div class="spacer"></div>
+    <button class="btn-login" onclick="openDash()">🔐 Dashboard Login</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── STARTSEITE ─────────────────────────────── -->
+  <section id="sec-start" class="active">
+    <div class="hero">
+      <span class="badge">OFFICIAL WEBSITE</span>
+      <h1>Willkommen beim LAPD</h1>
+      <p class="sub">Das Los Angeles Police Department in Paradise City Roleplay steht für Sicherheit, Recht und Ordnung. Hier findest du alle wichtigen Informationen, kannst uns schreiben, Anzeigen erstatten oder dich für den Dienst bewerben.</p>
+    </div>
+    <div class="cards">
+      <div class="card" onclick="go('email')"><div class="ic">✉️</div><h3>Email Schreiben</h3><p>Kontaktiere uns direkt – wir antworten dir über das Dashboard.</p></div>
+      <div class="card" onclick="go('anzeige')"><div class="ic">📋</div><h3>Anzeige Erstatten</h3><p>Melde Vorfälle und Straftaten – verfolge den Status deiner Anzeige.</p></div>
+      <div class="card" onclick="go('bewerbung')"><div class="ic">🎓</div><h3>Bewerbungsportal</h3><p>Bewirb dich für den Dienst beim LAPD und verfolge deine Bewerbung.</p></div>
+      <div class="card" onclick="go('fuhrpark')"><div class="ic">🚓</div><h3>Fuhrpark</h3><p>Einblick in unsere Einsatzfahrzeuge – bald verfügbar.</p></div>
+    </div>
+  </section>
+
+  <!-- ── INFORMATIONEN ─────────────────────────── -->
+  <section id="sec-info">
+    <h2 class="pagetitle">Informationen</h2>
+    <div class="hint">ℹ️ Hier erscheinen in Kürze Informationen rund um das LAPD – Regeln, Aufgaben, Dienstzeiten und mehr.</div>
+    <div class="panel"><div class="empty">Derzeit keine neuen Informationen.</div></div>
+  </section>
+
+  <!-- ── EMAIL SCHREIBEN ───────────────────────── -->
+  <section id="sec-email">
+    <h2 class="pagetitle">Email Schreiben</h2>
+    <div class="panel">
+      <h2>✉️ Kontaktformular</h2>
+      <form onsubmit="event.preventDefault();submitItem('mail','email')">
+        <label for="email-name">Name</label>
+        <input type="text" id="email-name" placeholder="Dein Name" maxlength="60" required>
+        <label for="email-msg">Nachricht</label>
+        <textarea id="email-msg" placeholder="Deine Nachricht an das LAPD …" maxlength="2000" required></textarea>
+        <button class="btn" type="submit">📨 Senden</button>
+        <div class="msg" id="email-msgbox"></div>
+      </form>
+    </div>
+    <h3 class="listtitle">Meine Anfragen <span class="count" id="email-count">0</span></h3>
+    <div id="email-list"></div>
+  </section>
+
+  <!-- ── ANZEIGE ERSTATTEN ─────────────────────── -->
+  <section id="sec-anzeige">
+    <h2 class="pagetitle">Anzeige Erstatten</h2>
+    <div class="panel">
+      <h2>📋 Neue Anzeige</h2>
+      <form onsubmit="event.preventDefault();submitItem('anzeige','anzeige')">
+        <label for="anzeige-name">Name</label>
+        <input type="text" id="anzeige-name" placeholder="Dein Name" maxlength="60" required>
+        <label for="anzeige-msg">Was ist passiert?</label>
+        <textarea id="anzeige-msg" placeholder="Beschreibe den Vorfall …" maxlength="2000" required></textarea>
+        <button class="btn" type="submit">📨 Anzeige erstatten</button>
+        <div class="msg" id="anzeige-msgbox"></div>
+      </form>
+    </div>
+    <h3 class="listtitle">Meine Anzeigen <span class="count" id="anzeige-count">0</span></h3>
+    <div id="anzeige-list"></div>
+  </section>
+
+  <!-- ── BEWERBUNGSPORTAL ──────────────────────── -->
+  <section id="sec-bewerbung">
+    <h2 class="pagetitle">Bewerbungsportal</h2>
+    <div class="panel">
+      <h2>🎓 Bewerbung</h2>
+      <form onsubmit="event.preventDefault();submitItem('bewerbung','bewerbung')">
+        <label for="bewerbung-name">Name</label>
+        <input type="text" id="bewerbung-name" placeholder="Dein Name" maxlength="60" required>
+        <label for="bewerbung-msg">Deine Bewerbung</label>
+        <textarea id="bewerbung-msg" placeholder="Stelle dich vor und erkläre, warum du zum LAPD möchtest …" maxlength="2000" required></textarea>
+        <button class="btn" type="submit">📨 Bewerbung absenden</button>
+        <div class="msg" id="bewerbung-msgbox"></div>
+      </form>
+    </div>
+    <h3 class="listtitle">Meine Bewerbungen <span class="count" id="bewerbung-count">0</span></h3>
+    <div id="bewerbung-list"></div>
+  </section>
+
+  <!-- ── FUHRPARK ──────────────────────────────── -->
+  <section id="sec-fuhrpark">
+    <h2 class="pagetitle">Fuhrpark</h2>
+    <div class="hint">ℹ️ Der Fuhrpark wird in Kürze hier vorgestellt.</div>
+    <div class="panel"><div class="empty">Noch keine Fahrzeuge eingestellt.</div></div>
+  </section>
+
+  <!-- ── DASHBOARD ─────────────────────────────── -->
+  <section id="sec-dashboard">
+    <h2 class="pagetitle">LAPD Dashboard</h2>
+    <div class="hint">👮 <b>Hinweis:</b> Der Beamten-Login folgt in Kürze – der Zugriff ist aktuell vorläufig offen. Hier siehst du alle eingehenden Mails, Anzeigen und Bewerbungen und kannst antworten, als gelöst markieren oder schließen.</div>
+    <div class="dash-tabs">
+      <button class="active" data-dtab="mails" onclick="dashTab('mails')">✉️ Mails</button>
+      <button data-dtab="anzeigen" onclick="dashTab('anzeigen')">📋 Anzeigen</button>
+      <button data-dtab="bewerbungen" onclick="dashTab('bewerbungen')">🎓 Bewerbungen</button>
+    </div>
+    <div id="dash-mails"></div>
+    <div id="dash-anzeigen" style="display:none"></div>
+    <div id="dash-bewerbungen" style="display:none"></div>
+  </section>
+
+</main>
+
+<footer>
+  © LAPD · Paradise City Roleplay — Offizielle Behörden-Webseite · Alle Rechte vorbehalten
+</footer>
+
+<script>
+const API = "%%API_BASE%%";
+
+// ── Identität (localStorage) ──────────────────────────────
+function uid(){
+  let u = localStorage.getItem('lapd-uid');
+  if(!u){ u = 'u' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('lapd-uid', u); }
+  return u;
+}
+function saveName(n){ localStorage.setItem('lapd-name', n); }
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fmt(ts){ return new Date(ts).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}); }
+
+// ── Navigation ────────────────────────────────────────────
+function go(sec){
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + sec).classList.add('active');
+  document.querySelectorAll('a.link').forEach(a => a.classList.toggle('active', a.dataset.sec === sec));
+  if(sec==='email'||sec==='anzeige'||sec==='bewerbung') loadMy();
+  if(sec==='dashboard') loadDash();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function openDash(){ go('dashboard'); }
+document.querySelectorAll('a.link').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.sec); }));
+
+// ── Formulare ─────────────────────────────────────────────
+async function submitItem(type, page){
+  const box = document.getElementById(page + '-msgbox');
+  box.className = 'msg';
+  const name = document.getElementById(page + '-name').value.trim();
+  const message = document.getElementById(page + '-msg').value.trim();
+  saveName(name);
+  try{
+    const r = await fetch(API + '/api/lapd/create',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type, uid:uid(), name, message})});
+    const d = await r.json();
+    if(!d.ok){ box.className='msg err'; box.textContent = d.error || 'Fehler beim Senden.'; return; }
+    box.className='msg ok'; box.textContent = '✅ Erfolgreich gesendet. Du kannst den Status unter „Meine ' +
+      (type==='mail'?'Anfragen':type==='anzeige'?'Anzeigen':'Bewerbungen') + '“ verfolgen.';
+    document.getElementById(page + '-msg').value = '';
+    loadMy();
+  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler – bitte erneut versuchen.'; }
+}
+
+// ── Meine X ───────────────────────────────────────────────
+const TYPE_LABEL = {mail:'Anfrage', anzeige:'Anzeige', bewerbung:'Bewerbung'};
+
+async function loadMy(){
+  try{
+    const r = await fetch(API + '/api/lapd/my?uid=' + encodeURIComponent(uid()));
+    const d = await r.json();
+    if(!d.ok) return;
+    renderList('email', d.mails, 'mail');
+    renderList('anzeige', d.anzeigen, 'anzeige');
+    renderList('bewerbung', d.bewerbungen, 'bewerbung');
+  }catch(e){}
+}
+
+function renderList(page, items, type){
+  const el = document.getElementById(page + '-list');
+  const count = document.getElementById(page + '-count');
+  count.textContent = items.length;
+  if(!items.length){ el.innerHTML = '<div class="empty">Noch keine ' + (type==='mail'?'Anfragen':TYPE_LABEL[type]+'n') + ' vorhanden.</div>'; return; }
+  el.innerHTML = items.map(i => itemHtml(i, type, false)).join('');
+}
+
+function itemHtml(i, type, dash){
+  const cls = 'item ' + i.status;
+  const stBadge = '<span class="st ' + i.status + '">' + esc(i.status) + '</span>';
+  const replies = (i.replies||[]).map(r =>
+    '<div class="replyline"><b class="' + (r.author==='LAPD'?'lapd':'') + '">' + esc(r.author) + '</b> · <span class="when">' + fmt(r.ts) + '</span><br>' + esc(r.text) + '</div>'
+  ).join('');
+
+  let actions = '';
+  if(dash){
+    actions = '<div class="replybox">' +
+      '<input type="text" id="dr-' + type + '-' + i.id + '" placeholder="Antwort als LAPD schreiben …" maxlength="1500">' +
+      '<button class="btn small" onclick="dashReply(\'' + type + '\',\'' + i.id + '\')">Antworten</button></div>' +
+      '<div style="margin-top:8px">' +
+      (i.status!=='gelöst' ? '<button class="btn small green" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'gelöst\')">✓ Gelöst</button>' : '') +
+      (i.status!=='geschlossen' ? '<button class="btn small gray" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'geschlossen\')">✖ Schließen</button>' : '') +
+      (i.status!=='offen' ? '<button class="btn small gold" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'offen\')">↺ Wieder öffnen</button>' : '') +
+      '</div>';
+  } else if(i.status === 'offen'){
+    actions = '<div class="replybox">' +
+      '<input type="text" id="r-' + type + '-' + i.id + '" placeholder="Antwort schreiben …" maxlength="1500">' +
+      '<button class="btn small" onclick="reply(\'' + type + '\',\'' + i.id + '\')">Senden</button></div>';
+  }
+
+  return '<div class="' + cls + '">' +
+    '<div class="top"><span class="who">' + esc(i.name) + '</span><span class="when">' + fmt(i.createdAt) + '</span>' + stBadge + '</div>' +
+    '<div class="txt">' + esc(i.message) + '</div>' +
+    (replies ? '<div class="replies">' + replies + '</div>' : '') +
+    actions + '</div>';
+}
+
+async function reply(type, id){
+  const input = document.getElementById('r-' + type + '-' + id);
+  const text = input.value.trim();
+  if(!text) return;
+  const name = (document.getElementById('email-name').value || localStorage.getItem('lapd-name') || '').trim();
+  const r = await fetch(API + '/api/lapd/reply',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type, id, uid:uid(), name, text})});
+  const d = await r.json();
+  if(d.ok){ loadMy(); } else { alert(d.error || 'Fehler'); }
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+function dashTab(tab){
+  document.querySelectorAll('.dash-tabs button').forEach(b => b.classList.toggle('active', b.dataset.dtab===tab));
+  ['mails','anzeigen','bewerbungen'].forEach(t => document.getElementById('dash-'+t).style.display = t===tab?'':'none');
+}
+
+async function loadDash(){
+  const r = await fetch(API + '/api/lapd/dashboard');
+  const d = await r.json();
+  if(!d.ok) return;
+  document.getElementById('dash-mails').innerHTML = dashList(d.mails, 'mail');
+  document.getElementById('dash-anzeigen').innerHTML = dashList(d.anzeigen, 'anzeige');
+  document.getElementById('dash-bewerbungen').innerHTML = dashList(d.bewerbungen, 'bewerbung');
+}
+
+function dashList(items, type){
+  if(!items.length) return '<div class="empty">Keine ' + (type==='mail'?'Mails':TYPE_LABEL[type]+'n') + ' vorhanden.</div>';
+  return items.map(i => itemHtml(i, type, true)).join('');
+}
+
+async function dashReply(type, id){
+  const input = document.getElementById('dr-' + type + '-' + id);
+  const text = input.value.trim();
+  if(!text) return;
+  const r = await fetch(API + '/api/lapd/dashboard/reply',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type, id, text})});
+  const d = await r.json();
+  if(d.ok){ loadDash(); } else { alert(d.error || 'Fehler'); }
+}
+
+async function dashStatus(type, id, status){
+  const r = await fetch(API + '/api/lapd/dashboard/status',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type, id, status})});
+  const d = await r.json();
+  if(d.ok){ loadDash(); } else { alert(d.error || 'Fehler'); }
+}
+
+// Start: Namen vorbelegen + eigene Listen laden
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('lapd-name');
+  if(saved){
+    document.getElementById('email-name').value = saved;
+    document.getElementById('anzeige-name').value = saved;
+    document.getElementById('bewerbung-name').value = saved;
+  }
+  loadMy();
+});
+</script>
+</body>
+</html>

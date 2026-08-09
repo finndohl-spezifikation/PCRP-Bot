@@ -104,6 +104,15 @@ public class WebServer {
         app.get( "/citybuy",                                     WebServer::serveCityBuy);
         app.get( "/cityship",                                    WebServer::serveCityShip);
 
+        // ── LAPD (Webseite + Beamten-Dashboard) ────────────────────────────
+        app.get( "/lapd",                                      WebServer::serveLapd);
+        app.post("/api/lapd/create",           ctx -> LapdHandler.handleCreate(ctx));
+        app.get( "/api/lapd/my",               ctx -> LapdHandler.handleMy(ctx));
+        app.post("/api/lapd/reply",            ctx -> LapdHandler.handleReply(ctx));
+        app.get( "/api/lapd/dashboard",        ctx -> LapdHandler.handleDashboard(ctx));
+        app.post("/api/lapd/dashboard/reply",  ctx -> LapdHandler.handleDashReply(ctx));
+        app.post("/api/lapd/dashboard/status", ctx -> LapdHandler.handleDashStatus(ctx));
+
         // ── Krypto (PC Coins Kursseite) ────────────────────────────────────
         app.get( "/krypto",                                      WebServer::serveKrypto);
         app.get( "/api/krypto/rates",                            WebServer::handleKryptoRates);
@@ -371,6 +380,30 @@ public class WebServer {
         }
         out.add("history", hist);
         ctx.contentType("application/json").result(GSON.toJson(out));
+    }
+
+    // ── lapd.html (LAPD-Webseite) ───────────────────────────────
+
+    private static void serveLapd(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/lapd.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            String base = System.getenv("WEB_URL");
+            if (base == null || base.isBlank()) {
+                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
+                if (!base.startsWith("http")) base = "https://" + base;
+            }
+            base = base.replaceAll("/$", "");
+            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
+                .replace("%%API_BASE%%", base);
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
+            log.info("[LAPD] Webseite ausgeliefert.");
+        } catch (Exception e) {
+            log.error("[LAPD] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
     }
 
     // ── aktien.html (Aktienhandel) ─────────────────────────────

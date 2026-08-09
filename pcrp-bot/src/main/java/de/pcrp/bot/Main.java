@@ -142,6 +142,11 @@ public class Main {
             return "announce-pd-v2-once-" + guildId;
         }
 
+        /** DataStore-Key für die einmalige LAPD-Webseiten-Ankündigung (pro Guild). */
+        private static String lapdAnnounceKey(String guildId) {
+            return "announce-lapd-v1-once-" + guildId;
+        }
+
         @Override
         public void onReady(ReadyEvent event) {
             JDA jda = event.getJDA();
@@ -219,6 +224,7 @@ public class Main {
                 postCityShipPanel(guild);
                 postPenthousesAnnouncement(guild);
                 postPremiumDeluxeAnnouncement(guild);
+                postLAPDAnnouncement(guild);
                 postChangelog(guild);
                 postLohnPanel(guild);
                 LohnManager.init(guild);  // Lobby-Status nach Restart wiederherstellen
@@ -744,6 +750,43 @@ public class Main {
             );
         }
 
+        /** Sendet genau EINE Ankündigung mit Link-Button zur /lapd-Seite — nur einmal pro Guild. */
+        private static void postLAPDAnnouncement(Guild guild) {
+            String key = lapdAnnounceKey(guild.getId());
+            String alreadySent = DataStore.readString(key);
+            if (alreadySent != null && !alreadySent.isBlank()) {
+                log.debug("[LAPD] Ankündigung bereits gesendet (msg={}), überspringe.", alreadySent);
+                return;
+            }
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.LAPD_EMBED_CHANNEL_ID);
+            if (ch == null) {
+                log.warn("[LAPD] Ankündigungs-Kanal {} nicht gefunden — überspringe.", LoggingConfig.LAPD_EMBED_CHANNEL_ID);
+                return;
+            }
+            String url = webUrl() + "/lapd";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("🚔 LAPD — Paradise City Roleplay")
+                    .setDescription(
+                        "Die neue offizielle LAPD-Webseite ist ab sofort verfügbar.\n\n" +
+                        "✉️ **Email Schreiben** — Kontaktformular mit Status-Verfolgung („Meine Anfragen”)\n" +
+                        "📋 **Anzeige Erstatten** — Vorfälle melden und den Status verfolgen („Meine Anzeigen”)\n" +
+                        "🎓 **Bewerbungsportal** — Dich für den Dienst beim LAPD bewerben („Meine Bewerbungen”)\n" +
+                        "👮 **Dashboard** — Beamten-Ansicht mit Antworten, „Gelöst” und „Schließen”\n\n" +
+                        "**Klicke unten auf den Button, um die Webseite zu öffnen.**")
+                    .setColor(0x0d2247)
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "🚔 LAPD Webseite öffnen")
+            )).queue(
+                msg -> {
+                    DataStore.writeString(key, msg.getId());
+                    log.info("[LAPD] Einmalige Ankündigung in {} (msg={}) gesendet — URL={}",
+                        ch.getName(), msg.getId(), url);
+                },
+                err -> log.error("[LAPD] Ankündigung konnte nicht gesendet werden.", err)
+            );
+        }
 
         /**
          * Postet einen Changelog-Eintrag in den Changelog-Kanal, sofern die aktuelle
@@ -753,7 +796,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v10";
+        private static final String CHANGELOG_VERSION = "v11";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -793,6 +836,9 @@ public class Main {
                 "🎟️-Emojis stehen nur noch im Auswahlmenü.\n\n" +
                 "✍️ **/embed-schreiben** — Neuer Befehl: eigenes Embed mit Farbe, Kanal, Titel und Text senden. " +
                 "Diese Embeds sind frei löschbar – manuell oder per /löschen.\n\n" +
+                "🚔 **LAPD-Webseite** — Die neue offizielle LAPD-Webseite mit Dashboard ist live: Email Schreiben, " +
+                "Anzeige erstatten und Bewerbungsportal mit Status-Verfolgung („Meine Anfragen/Anzeigen/Bewerbungen”) " +
+                "sowie ein Beamten-Dashboard zum Antworten, Lösen und Schließen.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 
