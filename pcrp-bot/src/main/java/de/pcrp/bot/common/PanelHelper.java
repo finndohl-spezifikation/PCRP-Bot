@@ -26,6 +26,15 @@ public final class PanelHelper {
     /** In-Memory-Guard: verhindert gleichzeitige Posts desselben Panels. */
     private static final Set<String> GUARDS = ConcurrentHashMap.newKeySet();
 
+    /**
+     * Einmaliger Zwangs-Neuversand aller Panels (z. B. nach Wechsel auf einen neuen
+     * Bot-Account). Pro Panel wird genau EINMAL ein frisches Embed gesendet
+     * (unabhängig davon, ob bereits eines im Kanal liegt) — markiert über den
+     * DataStore-Key {@code panel-force-<key>}. Danach greift wieder der normale
+     * Duplikat-Schutz, damit bei späteren Neustarts nichts doppelt gesendet wird.
+     */
+    public static volatile boolean FORCE_RESEND = true;
+
     /** Panel-Referenz für den Embed-Lösch-Schutz (Kanal + Titel + Beschreibung + Sender). */
     private record PanelRef(long channelId, String title, String description, Runnable sender) {}
 
@@ -70,6 +79,15 @@ public final class PanelHelper {
         // Registry immer aktualisieren – der Embed-Lösch-Schutz braucht sie,
         // um gelöschte Panels nach einem Bot-Neustart wiederherzustellen.
         PANELS.put(key, new PanelRef(ch.getIdLong(), embedTitle, embedDescription, sender));
+
+        // Zwangs-Neuversand (einmalig pro Panel): nach einem Bot-Wechsel werden alle
+        // Panels frisch gesendet, auch wenn im Kanal bereits eines liegt.
+        if (FORCE_RESEND && DataStore.readString("panel-force-" + key) == null) {
+            DataStore.writeString("panel-force-" + key, "1");
+            log.info("[Panel] Zwangs-Neuversand '{}' (Bot-Wechsel).", key);
+            sender.run();
+            return;
+        }
 
         String stored = DataStore.readString(key);
         if (stored != null && !stored.isBlank()) {

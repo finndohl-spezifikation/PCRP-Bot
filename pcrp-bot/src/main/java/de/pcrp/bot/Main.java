@@ -6,7 +6,6 @@ import de.pcrp.bot.listeners.PollListener;
 import de.pcrp.bot.web.WebServer;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -24,9 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Main {
 
@@ -81,9 +78,7 @@ public class Main {
     }
 
     /**
-     * Baut die Listener-Liste. Im Lockdown-Modus (Eigentumsübergabe) werden nur
-     * Start- + Sicherheits-Listener registriert — alle Interaktionen fängt der
-     * LockdownListener mit der Fehlermeldung ab, keinerlei Geschäftslogik läuft.
+     * Baut die Listener-Liste mit allen Funktions-Listenern.
      */
     private static Object[] buildListenerArray(ModerationListener moderationListener,
                                                GuildProtectionListener protectionListener,
@@ -93,15 +88,6 @@ public class Main {
                                                GiveawayListener giveawayListener,
                                                RoleMenuListener roleMenuListener,
                                                BoostListener boostListener) {
-        if (Lockdown.ACTIVE) {
-            return new Object[] {
-                new StartupListener(),
-                new LockdownListener(),   // fängt ALLE Commands/Buttons/Selects/Modals mit Fehlermeldung ab
-                moderationListener,       // Server-Schutz bleibt aktiv
-                protectionListener,       // Server-Schutz bleibt aktiv
-                new LoggingListener()     // Logs + Embed-Raid-Schutz bleiben aktiv
-            };
-        }
         return new Object[] {
             new StartupListener(),
             moderationListener,
@@ -146,16 +132,13 @@ public class Main {
 
         /** DataStore-Key für die Penthouses-Ankündigung (pro Guild, persistent — sendet NUR einmal über alle Restarts). */
         private static String penthousesAnnounceKey(String guildId) {
-            return "announce-penthouses-once-" + guildId;
+            return "announce-penthouses-v2-once-" + guildId;
         }
 
         /** DataStore-Key für die einmalige Premium-Deluxe-Motorsport Ankündigung (pro Guild). */
         private static String pdAnnounceKey(String guildId) {
-            return "announce-pd-once-" + guildId;
+            return "announce-pd-v2-once-" + guildId;
         }
-
-        /** User-ID, die nach jedem Bot-Start automatisch ALLE vergebenen Rollen erhält (z. B. nach einem Reset). */
-        private static final long ALL_ROLES_USER_ID = 1259265007791636540L;
 
         @Override
         public void onReady(ReadyEvent event) {
@@ -240,7 +223,6 @@ public class Main {
                 GarageListener.postPanel(guild);
                 FirmenAuslastungManager.init(guild);  // Firmen-Auslastung-Panel (Balken) + Auto-Refresh
                 initShopItems(guild);
-                grantAllGrantableRoles(guild);  // Nach jedem Start: alle vergebenen Rollen (inkl. Admin) wiederherstellen
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -275,43 +257,6 @@ public class Main {
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
-        }
-
-        /**
-         * Vergibt nach jedem Bot-Start dem User ALL_ROLES_USER_ID alle Rollen, die der Bot vergeben darf:
-         * - nur Rollen UNTER der höchsten Bot-Rolle (Discord-Hierarchie) — inkl. Admin-Rollen darunter
-         * - keine verwalteten Rollen (Boost/Bot/Integration) und nicht @everyone
-         * Entfernt nichts — nur fehlende Rollen werden ergänzt.
-         */
-        private static void grantAllGrantableRoles(Guild guild) {
-            Role botTop = guild.getSelfMember().getRoles().stream()
-                .max(Comparator.comparingInt(Role::getPosition))
-                .orElse(null);
-            if (botTop == null) {
-                log.warn("[Rollen] Keine Bot-Rolle gefunden.");
-                return;
-            }
-            guild.retrieveMemberById(ALL_ROLES_USER_ID).queue(
-                member -> {
-                    List<Role> toAdd = guild.getRoles().stream()
-                        .filter(r -> !r.isManaged())                       // keine Boost-/Bot-/Integrations-Rollen
-                        .filter(r -> r.getIdLong() != guild.getIdLong())   // nicht @everyone
-                        .filter(r -> r.getPosition() < botTop.getPosition()) // nur unter der Bot-Rolle (vergebbar)
-                        .filter(r -> !member.getRoles().contains(r))       // nur fehlende Rollen
-                        .collect(Collectors.toList());
-                    if (toAdd.isEmpty()) {
-                        log.info("[Rollen] {} hat bereits alle vergebbaren Rollen.", member.getUser().getName());
-                        return;
-                    }
-                    guild.modifyMemberRoles(member, toAdd, List.of())
-                        .reason("Automatische Rollen-Wiederherstellung nach Bot-Start")
-                        .queue(
-                            ok  -> log.info("[Rollen] {} Rollen an {} vergeben.", toAdd.size(), member.getUser().getName()),
-                            err -> log.error("[Rollen] Rollen-Verteilung fehlgeschlagen.", err)
-                        );
-                },
-                err -> log.warn("[Rollen] Zielmitglied {} nicht gefunden.", ALL_ROLES_USER_ID)
-            );
         }
 
         private static void postTicketPanel(Guild guild) {
@@ -804,7 +749,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v2";
+        private static final String CHANGELOG_VERSION = "v3";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -821,10 +766,11 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Firmen-Auslastung & Bugfixes**__\n\n" +
-                "🏢 **Firmen-Auslastung** — Neues Panel im Firmen-Kanal: Zeigt mit Balken an, " +
-                "wie viele Mitglieder in jeder Firma angestellt sind (alle 30 Min. aktualisiert).\n\n" +
-                "🐛 **Lizenzen-Fix** — Die Suchleiste öffnet sich wieder direkt im Kanal.\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Neuer Bot & frisch gesendete Panels**__\n\n" +
+                "🤖 **Bot-Wechsel** — Der Bot wurde durch einen neuen Bot-Account ersetzt. " +
+                "Alle Panels (Lizenzen, Rucksack, Banking, Krypto, Aktien, Shops, Garage u. v. m.) " +
+                "wurden frisch in die Kanäle gesendet.\n\n" +
+                "🔓 **Lockdown beendet** — Alle Slash-Commands, Buttons und Webseiten funktionieren wieder normal.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 
