@@ -23,7 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Anti-Nuke-Schutz:
  *  - Fremde Bots werden beim Beitritt sofort permanent gebannt
- *    (DM an Einladenden + Aktivitätswarnung + Moderations-Log)
+ *    (DM an Einladenden + Aktivitätswarnung + Moderations-Log);
+ *    nur Bots, die der Inhaber einlädt, bleiben erlaubt
  *  - Massenhaftes Löschen von Kanälen/Kategorien/Rollen →
  *    14 Tage Timeout, DM, Alert, Log und automatische Wiederherstellung
  * Der Inhaber ist von allen Einschränkungen ausgenommen.
@@ -51,13 +52,22 @@ public class GuildProtectionListener extends ListenerAdapter {
             AuditLogEntry entry = recentEntry(entries);
             User inviter = entry != null ? entry.getUser() : null;
 
+            // Nur der Inhaber darf Bots einladen – von ihm eingeladene Bots bleiben erlaubt
+            if (inviter != null && inviter.getIdLong() == ModerationConfig.OWNER_ID) {
+                BotLogger.logModeration(guild,
+                    "🤖 Bot-Invite erlaubt (Inhaber)",
+                    "**Bot:** " + member.getUser().getName() + " (`" + member.getId() + "`)\n" +
+                    "**Eingeladen von:** " + inviter.getAsMention() + " – erlaubt.");
+                return;
+            }
+
             // Bot permanent bannen
-            guild.ban(member.getUser(), 0, TimeUnit.SECONDS).reason("Anti-Nuke: Fremde Bots sind nicht erlaubt.").queue(
+            guild.ban(member.getUser(), 0, TimeUnit.SECONDS).reason("Anti-Nuke: Nur der Inhaber darf Bots einladen.").queue(
                 ok -> {
-                    if (inviter != null && inviter.getIdLong() != ModerationConfig.OWNER_ID) {
+                    if (inviter != null) {
                         BotLogger.tryDm(inviter, EmbedFactory.build(
                             "Anti-Nuke-Schutz aktiv",
-                            "Auf **PCRP** ist der Anti-Nuke-Schutz aktiv – **keine fremden Bots** erlaubt.\n\n" +
+                            "Auf **PCRP** ist der Anti-Nuke-Schutz aktiv – **nur der Inhaber darf Bots einladen**.\n\n" +
                             "Der Bot **" + member.getUser().getName() + "** wurde **permanent gebannt**."));
                     }
 

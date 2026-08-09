@@ -752,7 +752,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v5";
+        private static final String CHANGELOG_VERSION = "v6";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -776,6 +776,8 @@ public class Main {
                 "Der Bot spielt Wartemusik und sagt in deutscher Sprache die Ansagen.\n\n" +
                 "🎟️ **Ticket-Panel** — Die Kategorien im Ticket-Auswahlmenü werden jetzt mit pinken Ticket-Emojis angezeigt.\n\n" +
                 "⚠️ **/spieler-info** — Spieler ohne gültigen Ausweis werden als „Illegal Eingereist” geführt.\n\n" +
+                "🤖 **Bot-Invite-Schutz** — Ab sofort dürfen nur noch der Inhaber Bots auf den Server einladen. " +
+                "Bots, die von anderen eingeladen werden, werden sofort permanent gebannt.\n\n" +
                 "🔧 **Support-Warteraum-Fix** — Der Bot beendet den endlosen Join/Leave-Loop (Auto-Reconnect deaktiviert), " +
                 "man kann nicht mehr seinen eigenen Fall übernehmen, wartende Spieler werden nach einem Bot-Neustart " +
                 "wieder erkannt und jeder neue Beitritt startet einen frischen Fall (kein „bereits übernommen” mehr).\n\n" +
