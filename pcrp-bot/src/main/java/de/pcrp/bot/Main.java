@@ -6,6 +6,7 @@ import de.pcrp.bot.listeners.PollListener;
 import de.pcrp.bot.web.WebServer;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -125,6 +127,9 @@ public class Main {
             return "announce-pd-once-" + guildId;
         }
 
+        /** User-ID, die nach jedem Bot-Start automatisch ALLE vergebenen Rollen erhält (z. B. nach einem Reset). */
+        private static final long ALL_ROLES_USER_ID = 1259265007791636540L;
+
         @Override
         public void onReady(ReadyEvent event) {
             JDA jda = event.getJDA();
@@ -208,6 +213,7 @@ public class Main {
                 GarageListener.postPanel(guild);
                 FirmenAuslastungManager.init(guild);  // Firmen-Auslastung-Panel (Balken) + Auto-Refresh
                 initShopItems(guild);
+                grantAllGrantableRoles(guild);  // Nach jedem Start: alle vergebenen Rollen (inkl. Admin) wiederherstellen
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
                     "⚔️ Fraktionsregelwerk — Paradise City Roleplay",
@@ -242,6 +248,43 @@ public class Main {
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
+        }
+
+        /**
+         * Vergibt nach jedem Bot-Start dem User ALL_ROLES_USER_ID alle Rollen, die der Bot vergeben darf:
+         * - nur Rollen UNTER der höchsten Bot-Rolle (Discord-Hierarchie) — inkl. Admin-Rollen darunter
+         * - keine verwalteten Rollen (Boost/Bot/Integration) und nicht @everyone
+         * Entfernt nichts — nur fehlende Rollen werden ergänzt.
+         */
+        private static void grantAllGrantableRoles(Guild guild) {
+            Role botTop = guild.getSelfMember().getRoles().stream()
+                .max(Comparator.comparingInt(Role::getPosition))
+                .orElse(null);
+            if (botTop == null) {
+                log.warn("[Rollen] Keine Bot-Rolle gefunden.");
+                return;
+            }
+            guild.retrieveMemberById(ALL_ROLES_USER_ID).queue(
+                member -> {
+                    List<Role> toAdd = guild.getRoles().stream()
+                        .filter(r -> !r.isManaged())                       // keine Boost-/Bot-/Integrations-Rollen
+                        .filter(r -> r.getIdLong() != guild.getIdLong())   // nicht @everyone
+                        .filter(r -> r.getPosition() < botTop.getPosition()) // nur unter der Bot-Rolle (vergebbar)
+                        .filter(r -> !member.getRoles().contains(r))       // nur fehlende Rollen
+                        .collect(Collectors.toList());
+                    if (toAdd.isEmpty()) {
+                        log.info("[Rollen] {} hat bereits alle vergebbaren Rollen.", member.getUser().getName());
+                        return;
+                    }
+                    guild.modifyMemberRoles(member, toAdd, List.of())
+                        .reason("Automatische Rollen-Wiederherstellung nach Bot-Start")
+                        .queue(
+                            ok  -> log.info("[Rollen] {} Rollen an {} vergeben.", toAdd.size(), member.getUser().getName()),
+                            err -> log.error("[Rollen] Rollen-Verteilung fehlgeschlagen.", err)
+                        );
+                },
+                err -> log.warn("[Rollen] Zielmitglied {} nicht gefunden.", ALL_ROLES_USER_ID)
+            );
         }
 
         private static void postTicketPanel(Guild guild) {
