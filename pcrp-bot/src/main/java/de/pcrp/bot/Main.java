@@ -776,8 +776,9 @@ public class Main {
                 "Der Bot spielt Wartemusik und sagt in deutscher Sprache die Ansagen.\n\n" +
                 "🎟️ **Ticket-Panel** — Die Kategorien im Ticket-Auswahlmenü werden jetzt mit pinken Ticket-Emojis angezeigt.\n\n" +
                 "⚠️ **/spieler-info** — Spieler ohne gültigen Ausweis werden als „Illegal Eingereist” geführt.\n\n" +
-                "🔧 **Support-Warteraum-Fix** — Der Bot beendet den endlosen Join/Leave-Loop (Auto-Reconnect deaktiviert) " +
-                "und man kann nicht mehr seinen eigenen Fall übernehmen.\n\n" +
+                "🔧 **Support-Warteraum-Fix** — Der Bot beendet den endlosen Join/Leave-Loop (Auto-Reconnect deaktiviert), " +
+                "man kann nicht mehr seinen eigenen Fall übernehmen, wartende Spieler werden nach einem Bot-Neustart " +
+                "wieder erkannt und jeder neue Beitritt startet einen frischen Fall (kein „bereits übernommen” mehr).\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 

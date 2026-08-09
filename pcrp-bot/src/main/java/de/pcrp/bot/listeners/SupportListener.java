@@ -1,14 +1,18 @@
 package de.pcrp.bot.listeners;
 
+import de.pcrp.bot.common.BotContext;
 import de.pcrp.bot.common.DataStore;
 import de.pcrp.bot.common.EmbedFactory;
 import de.pcrp.bot.common.SupportAudio;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -20,6 +24,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Support-Warteraum:
@@ -60,6 +67,17 @@ public class SupportListener extends ListenerAdapter {
     /** Guild-ID → aktuell wartende User-IDs. */
     private static final Map<Long, Set<Long>> WAITING = new ConcurrentHashMap<>();
 
+    private static final ScheduledExecutorService RETRY_EXECUTOR = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "support-retry");
+        t.setDaemon(true);
+        return t;
+    });
+
+    static {
+        // Bei gescheiterter Audio-Verbindung später erneut versuchen, solange noch jemand wartet
+        SupportAudio.setFailureHandler(SupportListener::scheduleAudioRetry);
+    }
+
     // ── Voice-Events ──────────────────────────────────────────────────────────
 
     @Override
@@ -71,8 +89,9 @@ public class SupportListener extends ListenerAdapter {
         AudioChannel joined = e.getChannelJoined();
         AudioChannel left   = e.getChannelLeft();
 
-        // Beitritt in den Warteraum → Embed + Ping + Musik/Ansagen
+        // Beitritt in den Warteraum → neuer Fall, alter Claim-Status wird gelöscht
         if (joined != null && joined.getIdLong() == WAITROOM_VOICE_ID) {
+            DataStore.deleteKey(claimedKey(guildId, member.getIdLong()));
             WAITING.computeIfAbsent(guildId, k -> ConcurrentHashMap.newKeySet()).add(member.getIdLong());
             postAlert(e.getGuild(), member);
             SupportAudio.start(e.getGuild(), joined);
@@ -90,6 +109,47 @@ public class SupportListener extends ListenerAdapter {
                 }
             }
         }
+    }
+
+    // ── Recovery nach Bot-Neustart ────────────────────────────────────────────
+
+    @Override
+    public void onReady(ReadyEvent event) {
+        // Spieler, die beim Neustart bereits im Warteraum warten, werden wieder erkannt:
+        // Warteliste wiederherstellen, fehlendes Alert-Embed nachsenden und Audio starten.
+        for (Guild guild : event.getJDA().getGuilds()) {
+            for (Member member : guild.getMembers()) {
+                GuildVoiceState vs = member.getVoiceState();
+                if (vs == null || vs.getChannel() == null) continue;
+                if (vs.getChannel().getIdLong() != WAITROOM_VOICE_ID) continue;
+                if (member.getUser().isBot()) continue;
+
+                long guildId = guild.getIdLong();
+                WAITING.computeIfAbsent(guildId, k -> ConcurrentHashMap.newKeySet()).add(member.getIdLong());
+                if (DataStore.readString(alertKey(guildId, member.getIdLong())) == null) {
+                    postAlert(guild, member);
+                }
+                SupportAudio.start(guild, vs.getChannel());
+            }
+        }
+    }
+
+    /**
+     * Versucht die Audio-Verbindung erneut, solange noch jemand im Warteraum wartet
+     * (z. B. nach einem Fehlschlag oder falls beim Neustart Spieler warteten).
+     */
+    private static void scheduleAudioRetry() {
+        RETRY_EXECUTOR.schedule(() -> {
+            JDA jda = BotContext.getJda();
+            if (jda == null) return;
+            for (Map.Entry<Long, Set<Long>> e : WAITING.entrySet()) {
+                if (e.getValue().isEmpty()) continue;
+                Guild guild = jda.getGuildById(e.getKey());
+                if (guild == null) continue;
+                AudioChannel ch = guild.getVoiceChannelById(WAITROOM_VOICE_ID);
+                if (ch != null) SupportAudio.start(guild, ch);
+            }
+        }, 30, TimeUnit.SECONDS);
     }
 
     // ── Button „Fall Übernehmen" ──────────────────────────────────────────────

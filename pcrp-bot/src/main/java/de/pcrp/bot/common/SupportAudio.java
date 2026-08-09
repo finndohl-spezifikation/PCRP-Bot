@@ -54,7 +54,15 @@ public final class SupportAudio {
     private static volatile boolean active = false;
     private static volatile Guild activeGuild;
 
+    /** Wird aufgerufen, wenn eine Verbindung gescheitert ist (z. B. für einen späteren Retry). */
+    private static volatile Runnable failureHandler;
+
     private SupportAudio() {}
+
+    /** Setzt den Callback, der bei einem Verbindungsfehler aufgerufen wird. */
+    public static void setFailureHandler(Runnable handler) {
+        failureHandler = handler;
+    }
 
     /** Startet Musik + Ansagen im Warteraum (falls nicht bereits aktiv). */
     public static synchronized void start(Guild guild, AudioChannel channel) {
@@ -118,6 +126,14 @@ public final class SupportAudio {
         active = false;
         activeGuild = null;
         handler = null;
+        Runnable onFail = failureHandler;
+        if (onFail != null) {
+            try {
+                onFail.run();
+            } catch (Exception e) {
+                log.warn("[SupportAudio] Fehler im Failure-Handler: {}", e.getMessage());
+            }
+        }
     }
 
     // ── Ansage-Loop ───────────────────────────────────────────────────────────
