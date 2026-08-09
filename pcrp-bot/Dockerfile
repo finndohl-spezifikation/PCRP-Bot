@@ -7,12 +7,8 @@ COPY pcrp-bot/src ./src
 RUN mvn package -DskipTests -q
 
 # ── Runtime-Stage ─────────────────────────────────────────────────────────────
-# glibc-basiert (jammy), damit opus-java (Audio-Encoding) und espeak-ng (TTS) funktionieren
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends espeak-ng \
-    && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /app/data
 COPY --from=build /app/target/pcrp-bot.jar app.jar
 EXPOSE 8080

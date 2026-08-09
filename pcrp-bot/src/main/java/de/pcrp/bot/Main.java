@@ -752,7 +752,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v6";
+        private static final String CHANGELOG_VERSION = "v7";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -781,6 +781,9 @@ public class Main {
                 "🔧 **Support-Warteraum-Fix** — Der Bot beendet den endlosen Join/Leave-Loop (Auto-Reconnect deaktiviert), " +
                 "man kann nicht mehr seinen eigenen Fall übernehmen, wartende Spieler werden nach einem Bot-Neustart " +
                 "wieder erkannt und jeder neue Beitritt startet einen frischen Fall (kein „bereits übernommen” mehr).\n\n" +
+                "🎙️ **Voice-Auslagerung** — Die Wartemusik und die deutschen Ansagen im Warteraum laufen jetzt über den " +
+                "separaten Bot „PCRP Voice-Chat” (eigenes Repo), da Railway kein UDP erlaubt. Embed, Ping und „Fall " +
+                "Übernehmen” laufen weiterhin im Haupt-Bot.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 

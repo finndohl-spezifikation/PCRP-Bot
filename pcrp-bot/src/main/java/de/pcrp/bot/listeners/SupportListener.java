@@ -1,11 +1,7 @@
 package de.pcrp.bot.listeners;
 
-import de.pcrp.bot.common.BotContext;
 import de.pcrp.bot.common.DataStore;
 import de.pcrp.bot.common.EmbedFactory;
-import de.pcrp.bot.common.SupportAudio;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.audio.hooks.ConnectionStatus;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.Member;
@@ -31,12 +27,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  *  - Betritt jemand den Warteraum-Sprachkanal, wird automatisch ein Embed mit Ping
  *    an Support- und Highteam-Rolle in den Support-Alert-Kanal gesendet.
- *  - Der Bot verbindet sich selbst in den Warteraum, spielt Wartemusik und sagt
- *    in deutscher Sprache die Ansagen (siehe {@link SupportAudio}).
  *  - Mit dem Button „Fall Übernehmen" (nur aus einem Sprachkanal klickbar) wird der
  *    wartende Spieler in den Sprachkanal des Teamlers bewegt. Der Button kann nur
  *    einmal geklickt werden — danach wird das Embed grün, der Button verschwindet
  *    und unten steht „Fall bereits Übernommen".
+ *  - Die Wartemusik und die deutschen Ansagen übernimmt seit der Auslagerung der
+ *    separate Bot „PCRP Voice-Chat" (eigenes Repo) — der Haupt-Bot versucht keine
+ *    Sprachverbindung mehr.
  */
 public class SupportListener extends ListenerAdapter {
 
@@ -53,14 +50,6 @@ public class SupportListener extends ListenerAdapter {
     private static final long HIGHTEAM_ROLE_ID = 1529636280365748345L;
 
     private static final String CLAIM_PREFIX = "support-claim:";
-
-    /** Einmaliger Hinweis pro Bot-Start, wenn die Sprachverbindung nicht aufgebaut werden kann. */
-    private static final java.util.concurrent.atomic.AtomicBoolean VOICE_NOTICE_SENT =
-        new java.util.concurrent.atomic.AtomicBoolean(false);
-
-    static {
-        SupportAudio.setStatusListener(SupportListener::onAudioStatus);
-    }
 
     private static String alertKey(long guildId, long userId) {
         return "support-alert-" + guildId + "-" + userId;
@@ -89,7 +78,6 @@ public class SupportListener extends ListenerAdapter {
             DataStore.deleteKey(claimedKey(guildId, member.getIdLong()));
             WAITING.computeIfAbsent(guildId, k -> ConcurrentHashMap.newKeySet()).add(member.getIdLong());
             postAlert(e.getGuild(), member);
-            SupportAudio.start(e.getGuild(), joined);
         }
 
         // Verlassen des Warteraums (auch durch den Move beim Übernehmen) → wenn niemand
@@ -100,40 +88,9 @@ public class SupportListener extends ListenerAdapter {
                 waiting.remove(member.getIdLong());
                 if (waiting.isEmpty()) {
                     WAITING.remove(guildId);
-                    SupportAudio.stop();
                 }
             }
         }
-    }
-
-    // ── Audio-Status-Hinweis ──────────────────────────────────────────────────
-
-    /**
-     * Postet beim ersten Fehlschlag der Sprachverbindung einen einmaligen Hinweis
-     * in den Alert-Kanal — damit sofort sichtbar ist, warum keine Musik/Ansagen kommen.
-     */
-    private static void onAudioStatus(ConnectionStatus status) {
-        boolean failed = status.name().startsWith("ERROR_")
-            || status == ConnectionStatus.DISCONNECTED_LOST_PERMISSION
-            || status == ConnectionStatus.DISCONNECTED_AUTHENTICATION_FAILURE;
-        if (!failed || !VOICE_NOTICE_SENT.compareAndSet(false, true)) return;
-
-        JDA jda = BotContext.getJda();
-        if (jda == null) return;
-        Guild guild = jda.getGuilds().stream().findFirst().orElse(null);
-        if (guild == null) return;
-        TextChannel ch = guild.getTextChannelById(ALERT_CHANNEL_ID);
-        if (ch == null) return;
-
-        String cause = status == ConnectionStatus.DISCONNECTED_LOST_PERMISSION
-            ? "dem Bot fehlen die Rechte (Connect/Sprechen) im Warteraum"
-            : "der Host keine UDP-Verbindung zu Discords Voice-Servern zulässt (bei Railway z. B. nicht möglich)";
-
-        ch.sendMessage("⚠️ **Warteraum-Hinweis** — Die Sprachverbindung konnte nicht aufgebaut werden (Status: `"
-                + status + "`). Ursache vermutlich: " + cause
-                + ".\n\n✅ Das Embed, der Ping und „Fall Übernehmen” funktionieren trotzdem weiter — "
-                + "nur Musik & Ansagen brauchen einen Host mit UDP-Zugang.")
-            .queue(null, e -> {});
     }
 
     // ── Recovery nach Bot-Neustart ────────────────────────────────────────────
@@ -154,7 +111,6 @@ public class SupportListener extends ListenerAdapter {
                 if (DataStore.readString(alertKey(guildId, member.getIdLong())) == null) {
                     postAlert(guild, member);
                 }
-                SupportAudio.start(guild, vs.getChannel());
             }
         }
     }
