@@ -5,23 +5,27 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
 
 /**
  * Firmen-Auslastung: Festes Panel-Embed im Firmen-Kanal. Zeigt für jede Firmen-Rolle
  * einen Balken mit der Anzahl der angestellten Mitglieder (Rollen-Träger, ohne Bots).
  *
  * Das Panel wird nach Bot-Start einmalig gepostet (Duplikat-Schutz via PanelHelper)
- * und aktualisiert sich danach automatisch alle 30 Minuten in-place.
+ * und aktualisiert sich sofort in-place, sobald sich die Mitgliederzahl einer
+ * Firmen-Rolle ändert (Rollen-Vergabe/-Entzug).
  */
-public final class FirmenAuslastungManager {
+public final class FirmenAuslastungManager extends ListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(FirmenAuslastungManager.class);
+
+    private static final FirmenAuslastungManager INSTANCE = new FirmenAuslastungManager();
 
     /** Kanal für das Firmen-Auslastungs-Panel. */
     public static final long PANEL_CHANNEL_ID = 1529636620310020096L;
@@ -37,35 +41,49 @@ public final class FirmenAuslastungManager {
 
     private static final String TITLE = "🏢 Firmen-Auslastung — Paradise City Roleplay";
 
-    private static final ScheduledExecutorService scheduler =
-        Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "firmen-auslastung-scheduler");
-            t.setDaemon(true);
-            return t;
-        });
-
-    private static volatile boolean refreshStarted = false;
-
     private FirmenAuslastungManager() {}
 
-    /** Nach Bot-Start: Panel einmalig posten + Auto-Refresh starten. */
+    /** Singleton-Instanz für die Listener-Registrierung in Main. */
+    public static FirmenAuslastungManager listener() {
+        return INSTANCE;
+    }
+
+    /** Nach Bot-Start: Panel einmalig posten (Live-Refresh übernimmt der Listener). */
     public static void init(Guild guild) {
         String guildId = guild.getId();
         String key = panelKey(guildId);
         TextChannel ch = guild.getTextChannelById(PANEL_CHANNEL_ID);
         if (ch == null) { log.warn("[FirmenAuslastung] Kanal nicht gefunden."); return; }
         PanelHelper.post(ch, key, TITLE, () -> sendPanel(ch, key, guild));
-
-        if (!refreshStarted) {
-            refreshStarted = true;
-            scheduler.scheduleAtFixedRate(() -> refreshPanel(guild), 30, 30, TimeUnit.MINUTES);
-            log.info("[FirmenAuslastung] Auto-Refresh gestartet (alle 30 Min).");
-        }
     }
 
     private static String panelKey(String guildId) {
         return "panel-firmen-auslastung-v1-" + guildId;
     }
+
+    // ── Live-Refresh bei Rollen-Änderungen ────────────────────────────────────
+
+    @Override
+    public void onGuildMemberRoleAdd(GuildMemberRoleAddEvent e) {
+        if (affectsFirmenRolle(e.getRoles())) refreshPanel(e.getGuild());
+    }
+
+    @Override
+    public void onGuildMemberRoleRemove(GuildMemberRoleRemoveEvent e) {
+        if (affectsFirmenRolle(e.getRoles())) refreshPanel(e.getGuild());
+    }
+
+    private static boolean affectsFirmenRolle(List<Role> roles) {
+        for (Role r : roles) {
+            long id = r.getIdLong();
+            for (long fr : FIRMEN_ROLLEN) {
+                if (fr == id) return true;
+            }
+        }
+        return false;
+    }
+
+    // ── Panel senden / aktualisieren ──────────────────────────────────────────
 
     private static void sendPanel(TextChannel ch, String key, Guild guild) {
         ch.sendMessageEmbeds(buildEmbed(guild))
@@ -116,8 +134,6 @@ public final class FirmenAuslastungManager {
             desc.append("`").append(bar(counts[i], max)).append("` **")
                 .append(counts[i]).append("** Angestellte\n\n");
         }
-        desc.append("━━━━━━━━━━━━━━━━━━━━━━\n\n");
-        desc.append("🔄 Aktualisiert automatisch alle 30 Minuten.");
 
         return EmbedFactory.create()
             .setTitle(TITLE)

@@ -115,7 +115,8 @@ public class Main {
             new HandyCentraleListener(),
             new FirmaLinkListener(),
             new GarageListener(),
-            new SupportListener()
+            new SupportListener(),
+            FirmenAuslastungManager.listener()
         };
     }
 
@@ -263,14 +264,14 @@ public class Main {
         private static final String TICKET_DESC =
             "Wähle unten eine Kategorie aus, um ein Ticket zu erstellen.\n\n" +
             "**📋 Verfügbare Kategorien**\n\n" +
-            "🎟️ **Support** — Allgemeine Fragen & Hilfe\n" +
-            "🎟️ **Beschwerde** — Reiche hier Beschwerden ein\n" +
-            "🎟️ **Highteam** — Anliegen an das Highteam\n" +
-            "🎟️ **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
-            "🎟️ **Team Bewerbung** — Demnächst verfügbar";
+            "🟢 **Support** — Allgemeine Fragen & Hilfe\n" +
+            "🟠 **Beschwerde** — Reiche hier Beschwerden ein\n" +
+            "🔴 **Highteam** — Anliegen an das Highteam\n" +
+            "🔵 **Fraktions Bewerbung** — Bewerbung für eine Fraktion\n" +
+            "🟣 **Team Bewerbung** — Demnächst verfügbar";
 
         private static void postTicketPanel(Guild guild) {
-            String key = "panel-ticket-v3-" + guild.getId();
+            String key = "panel-ticket-v4-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.TICKET_PANEL_CHANNEL_ID);
             if (ch == null) { log.warn("[Ticket] Panel-Kanal nicht gefunden."); return; }
             PanelHelper.post(ch, key, "🎫 Ticket System — Paradise City Roleplay", TICKET_DESC,
@@ -752,7 +753,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v8";
+        private static final String CHANGELOG_VERSION = "v9";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -786,6 +787,12 @@ public class Main {
                 "Übernehmen” laufen weiterhin im Haupt-Bot.\n\n" +
                 "🗑️ **Embed-Löschung im Support-Alert-Kanal** — Im Kanal der Support-Alerts können Embeds jetzt manuell " +
                 "und per /löschen entfernt werden, ohne dass der Bot sie automatisch neu sendet.\n\n" +
+                "🏢 **Firmen-Auslastung** — Aktualisiert sich jetzt sofort bei Rollen-Änderungen (kein 30-Minuten-Timer " +
+                "mehr), der Hinweistext unten wurde entfernt.\n\n" +
+                "🎫 **Ticket-Panel** — Die Kategorien im Embed werden wieder mit farbigen Punkten angezeigt; die " +
+                "🎟️-Emojis stehen nur noch im Auswahlmenü.\n\n" +
+                "✍️ **/embed-schreiben** — Neuer Befehl: eigenes Embed mit Farbe, Kanal, Titel und Text senden. " +
+                "Diese Embeds sind frei löschbar – manuell oder per /löschen.\n\n" +
                 "---\n" +
                 "*Bei Fragen oder Problemen — öffne ein Ticket im Support.*";
 
@@ -910,6 +917,25 @@ public class Main {
                 Commands.slash("löschen", "Löscht 1–200 Nachrichten im aktuellen Kanal")
                     .addOption(OptionType.INTEGER, "anzahl",
                         "Anzahl der zu löschenden Nachrichten (1–200)", true)
+                    .setDefaultPermissions(
+                        DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
+
+                Commands.slash("embed-schreiben", "Sendet ein eigenes Embed in einen Kanal (frei löschbar)")
+                    .addOptions(
+                        new OptionData(OptionType.STRING, "farbe", "Farbe des Embeds", true)
+                            .addChoice("Rot",     "rot")
+                            .addChoice("Orange",  "orange")
+                            .addChoice("Gelb",    "gelb")
+                            .addChoice("Grün",    "grün")
+                            .addChoice("Blau",    "blau")
+                            .addChoice("Lila",    "lila")
+                            .addChoice("Pink",    "pink")
+                            .addChoice("Schwarz", "schwarz")
+                            .addChoice("Weiß",    "weiß")
+                            .addChoice("Grau",    "grau"),
+                        new OptionData(OptionType.CHANNEL, "kanal", "Kanal, in den das Embed gesendet wird", true),
+                        new OptionData(OptionType.STRING, "titel", "Titel des Embeds", true),
+                        new OptionData(OptionType.STRING, "text", "Text des Embeds", true))
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MESSAGE_MANAGE)),
 

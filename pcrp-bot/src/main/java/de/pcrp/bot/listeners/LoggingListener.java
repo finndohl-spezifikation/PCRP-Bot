@@ -468,7 +468,12 @@ public class LoggingListener extends ListenerAdapter {
 
         // ── Embed-Schutz: Bot-Embeds + Buttons in geschützten Kanälen sofort neu senden ──
         long channelId = e.getChannel().getIdLong();
-        if (!ALLOWED_EMBED_DELETION_CHANNELS.contains(channelId)) {
+        long guildId = guild.getIdLong();
+        String messageId = e.getMessageId();
+        if (CustomEmbedManager.isCustom(guildId, messageId)) {
+            // Per /embed-schreiben erstellte Embeds sind frei löschbar → nicht neu senden
+            CustomEmbedManager.unmark(guildId, messageId);
+        } else if (!ALLOWED_EMBED_DELETION_CHANNELS.contains(channelId)) {
             TextChannel ch = guild.getTextChannelById(channelId);
             // 1) Panel-Registry (DataStore-basiert → überlebt Bot-Neustarts)
             boolean restored = ch != null && PanelHelper.restoreDeleted(ch, e.getMessageIdLong());
@@ -525,6 +530,12 @@ public class LoggingListener extends ListenerAdapter {
         // MessageBulkDeleteEvent ist in JDA immer von einem Guild-Kanal
         Guild guild = e.getGuild();
         List<String> ids = e.getMessageIds();
+
+        // Custom-Embeds (per /embed-schreiben) nicht mehr als löschbar markieren
+        long guildId = guild.getIdLong();
+        for (String id : ids) {
+            CustomEmbedManager.unmark(guildId, id);
+        }
 
         StringBuilder list = new StringBuilder();
         int shown = 0;

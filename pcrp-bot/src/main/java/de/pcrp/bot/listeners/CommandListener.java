@@ -50,6 +50,7 @@ public class CommandListener extends ListenerAdapter {
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         switch (event.getName()) {
             case "löschen"          -> handleLoeschen(event);
+            case "embed-schreiben"  -> handleEmbedSchreiben(event);
             case "bannen"           -> handleBannen(event);
             case "entbannen"        -> handleEntbannen(event);
             case "timeout"          -> handleTimeout(event);
@@ -264,6 +265,63 @@ public class CommandListener extends ListenerAdapter {
     }
 
     // ════════════════════════════════════════════════════════════
+    //  /embed-schreiben
+    // ════════════════════════════════════════════════════════════
+
+    private void handleEmbedSchreiben(SlashCommandInteractionEvent event) {
+        if (event.getGuild() == null) return;
+
+        String colorName = event.getOption("farbe", "blau", OptionMapping::getAsString);
+        var channelOpt = event.getOption("kanal");
+        String title = event.getOption("titel", "", OptionMapping::getAsString);
+        String text  = event.getOption("text",  "", OptionMapping::getAsString);
+
+        if (channelOpt == null || !(channelOpt.getAsChannel() instanceof TextChannel channel)) {
+            event.replyEmbeds(embed("Fehler", "Bitte einen gültigen Text-Kanal wählen.")).setEphemeral(true).queue();
+            return;
+        }
+        if (title.isBlank() && text.isBlank()) {
+            event.replyEmbeds(embed("Fehler", "Titel oder Text darf nicht leer sein.")).setEphemeral(true).queue();
+            return;
+        }
+
+        event.deferReply(true).queue();
+        channel.sendMessageEmbeds(
+            EmbedFactory.create()
+                .setTitle(title.isBlank() ? " " : title)
+                .setDescription(text)
+                .setColor(parseEmbedColor(colorName))
+                .build()
+        ).queue(
+            msg -> {
+                CustomEmbedManager.mark(event.getGuild().getIdLong(), msg.getId());
+                event.getHook().sendMessageEmbeds(embed("✅ Embed gesendet",
+                    "Das Embed wurde in " + channel.getAsMention() + " gesendet.\n" +
+                    "Es ist frei löschbar – manuell oder mit /löschen."))
+                    .setEphemeral(true).queue(null, e -> {});
+            },
+            err -> event.getHook().sendMessageEmbeds(embed("Fehler",
+                "Das Embed konnte nicht gesendet werden.")).setEphemeral(true).queue(null, e -> {})
+        );
+    }
+
+    private static Color parseEmbedColor(String name) {
+        return switch (name == null ? "" : name.toLowerCase()) {
+            case "rot"     -> new Color(0xE74C3C);
+            case "orange"  -> new Color(0xE67E22);
+            case "gelb"    -> new Color(0xF1C40F);
+            case "grün"    -> new Color(0x2ECC71);
+            case "blau"    -> new Color(0x3498DB);
+            case "lila"    -> new Color(0x9B59B6);
+            case "pink"    -> new Color(0xE91E63);
+            case "schwarz" -> new Color(0x000000);
+            case "weiß"    -> new Color(0xFFFFFF);
+            case "grau"    -> new Color(0x95A5A6);
+            default        -> new Color(0x3498DB);
+        };
+    }
+
+    // ════════════════════════════════════════════════════════════
     //  /löschen
     // ════════════════════════════════════════════════════════════
 
@@ -305,8 +363,10 @@ public class CommandListener extends ListenerAdapter {
     private void doDelete(TextChannel channel, List<Message> all, int requested, SlashCommandInteractionEvent event) {
         OffsetDateTime cutoff = OffsetDateTime.now().minusDays(14);
         boolean allowEmbeds = LoggingListener.ALLOWED_EMBED_DELETION_CHANNELS.contains(channel.getIdLong());
+        long guildId = channel.getGuild().getIdLong();
         List<Message> toDelete = all.stream()
-            .filter(m -> allowEmbeds || m.getEmbeds().isEmpty())  // Embeds nur löschbar in erlaubten Kanälen
+            .filter(m -> allowEmbeds || m.getEmbeds().isEmpty()
+                    || CustomEmbedManager.isCustom(guildId, m.getId()))  // Custom-Embeds immer löschbar
             .filter(m -> m.getTimeCreated().isAfter(cutoff))
             .limit(requested)
             .toList();
