@@ -46,6 +46,21 @@ public class WebServer {
         });
         app.options("/*", ctx -> ctx.status(204));
 
+        // Lockdown: Solange die Eigentumsrechte nicht übergeben sind, werden ALLE
+        // Webseiten und APIs blockiert und zeigen die Fehlermeldung.
+        app.before(ctx -> {
+            if (Lockdown.ACTIVE) {
+                if ("GET".equals(ctx.req().getMethod()) && !ctx.path().startsWith("/api/")) {
+                    ctx.contentType("text/html; charset=utf-8");
+                    ctx.result(Lockdown.webPage());
+                } else {
+                    ctx.contentType("application/json");
+                    ctx.result(Lockdown.apiJson());
+                }
+                ctx.skipRemainingHandlers();
+            }
+        });
+
         // Frontend
         app.get("/",                          WebServer::serveIndex);
         app.get("/ausweis/{userId}",           WebServer::serveAusweis);

@@ -74,35 +74,62 @@ public class Main {
             )
             .setMemberCachePolicy(MemberCachePolicy.ALL)
             .setChunkingFilter(ChunkingFilter.ALL)
-            .addEventListeners(
-                new StartupListener(),
-                moderationListener,
-                protectionListener,
-                new LoggingListener(),
-                new CommandListener(),
-                welcomeListener,
-                ticketListener,
-                pollListener,
-                giveawayListener,
-                roleMenuListener,
-                boostListener,
-                new VorschlagListener(),
-                new CounterListener(),
-                new LobbyListener(),
-                new RucksackListener(),
-                new LottoListener(),
-                new RubbellosListener(),
-                new ShopListener(),
-                new BankListener(),
-                new KryptoListener(),
-                new AktienListener(),
-                new LizenzenListener(),
-                new BargeldListener(),
-                new HandyCentraleListener(),
-                new FirmaLinkListener(),
-                new GarageListener()
-            )
+            .addEventListeners(buildListenerArray(
+                moderationListener, protectionListener, welcomeListener, ticketListener,
+                pollListener, giveawayListener, roleMenuListener, boostListener))
             .build();
+    }
+
+    /**
+     * Baut die Listener-Liste. Im Lockdown-Modus (Eigentumsübergabe) werden nur
+     * Start- + Sicherheits-Listener registriert — alle Interaktionen fängt der
+     * LockdownListener mit der Fehlermeldung ab, keinerlei Geschäftslogik läuft.
+     */
+    private static Object[] buildListenerArray(ModerationListener moderationListener,
+                                               GuildProtectionListener protectionListener,
+                                               WelcomeListener welcomeListener,
+                                               TicketListener ticketListener,
+                                               PollListener pollListener,
+                                               GiveawayListener giveawayListener,
+                                               RoleMenuListener roleMenuListener,
+                                               BoostListener boostListener) {
+        if (Lockdown.ACTIVE) {
+            return new Object[] {
+                new StartupListener(),
+                new LockdownListener(),   // fängt ALLE Commands/Buttons/Selects/Modals mit Fehlermeldung ab
+                moderationListener,       // Server-Schutz bleibt aktiv
+                protectionListener,       // Server-Schutz bleibt aktiv
+                new LoggingListener()     // Logs + Embed-Raid-Schutz bleiben aktiv
+            };
+        }
+        return new Object[] {
+            new StartupListener(),
+            moderationListener,
+            protectionListener,
+            new LoggingListener(),
+            new CommandListener(),
+            welcomeListener,
+            ticketListener,
+            pollListener,
+            giveawayListener,
+            roleMenuListener,
+            boostListener,
+            new VorschlagListener(),
+            new CounterListener(),
+            new LobbyListener(),
+            new RucksackListener(),
+            new LottoListener(),
+            new RubbellosListener(),
+            new ShopListener(),
+            new BankListener(),
+            new KryptoListener(),
+            new AktienListener(),
+            new LizenzenListener(),
+            new BargeldListener(),
+            new HandyCentraleListener(),
+            new FirmaLinkListener(),
+            new GarageListener()
+        };
     }
 
     // ─── Startup ────────────────────────────────────────────────────────────────
