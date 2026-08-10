@@ -144,11 +144,20 @@ public class LapdDashHandler {
             return;
         }
 
-        // Inhaber/Administratoren werden beim ersten Login dauerhaft registriert,
-        // damit sie z. B. in den Auswahlen (Abmahnen/Kündigen/Zuweisen) erscheinen.
-        // Der gewählte Dienstgrad beim ersten Login spielt dabei keine Rolle.
-        if (admin && LapdDashManager.findAccess(gid, m.getId()) == null) {
-            LapdDashManager.addAccess(gid, m.getId(), rank, m.getEffectiveName());
+        // Der Inhaber wird im Dashboard als „Inhaber“ mit Dienstgrad „Administrator“ geführt
+        String displayName = m.getEffectiveName();
+        String displayRank = rank;
+        if (owner) {
+            displayName = "Inhaber";
+            displayRank = "Administrator";
+        }
+
+        // Inhaber/Administratoren werden dauerhaft registriert, damit sie z. B. in den
+        // Auswahlen (Abmahnen/Kündigen/Zuweisen) erscheinen.
+        if (owner) {
+            LapdDashManager.addAccess(gid, m.getId(), displayRank, displayName); // upsert
+        } else if (admin && LapdDashManager.findAccess(gid, m.getId()) == null) {
+            LapdDashManager.addAccess(gid, m.getId(), displayRank, displayName);
         }
 
         // Administratoren können sich mit jedem Dienstgrad einloggen.
@@ -166,13 +175,13 @@ public class LapdDashHandler {
             }
         }
 
-        boolean leader = LapdDashManager.isLeaderRank(rank);
-        String token = LapdDashManager.createSession(gid, m.getId(), m.getEffectiveName(), rank, admin, leader);
+        boolean leader = LapdDashManager.isLeaderRank(displayRank);
+        String token = LapdDashManager.createSession(gid, m.getId(), displayName, displayRank, admin, leader);
 
         out.addProperty("ok", true);
         out.addProperty("token", token);
-        out.addProperty("name", m.getEffectiveName());
-        out.addProperty("rank", rank);
+        out.addProperty("name", displayName);
+        out.addProperty("rank", displayRank);
         out.addProperty("admin", admin);
         out.addProperty("leader", leader);
         respond(ctx, out);
