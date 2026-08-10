@@ -24,9 +24,9 @@ import java.util.Map;
  * HTTP-Routes für das LAPD-Beamten-Dashboard (externe Seite /lapd/dashboard).
  *
  * Login läuft über Dienstgrad + Passwort (vorerst LAPD_2026). Der Bot prüft bei
- * jedem Login: Ist die Person auf dem Discord-Server und hat sie die LAPD-Basis-Rolle?
- * Administratoren (High-Team-Rolle) haben volle Rechte; die Zugriffsliste
- * (Discord-ID → Dienstgrad) legt fest, mit welchem Rang sich wer einloggen kann.
+ * jedem Login nur noch: Ist die Person auf dem Discord-Server UND wurde sie von
+ * einem Administrator eingetragen (Zugriffs-Verwaltung)? Der Inhaber und
+ * Administratoren (High-Team-Rolle) haben automatisch vollen Zugriff.
  */
 public class LapdDashHandler {
 
@@ -144,14 +144,9 @@ public class LapdDashHandler {
             return;
         }
 
-        boolean base = hasRole(m, LoggingConfig.LAPD_BASE_ROLE_ID);
-        if (!admin && !base) {
-            err(ctx, out, "Keine Berechtigung – du benötigst die LAPD-Rolle auf dem Discord-Server.");
-            return;
-        }
-
         // Administratoren können sich mit jedem Dienstgrad einloggen.
-        // Alle anderen nur mit dem Dienstgrad, der ihnen in „Zugriff Verwalten" zugewiesen wurde.
+        // Alle anderen nur, wenn sie von einem Administrator eingetragen wurden
+        // (Zugriffs-Verwaltung) – und nur mit dem dort zugewiesenen Dienstgrad.
         if (!admin) {
             LapdDashManager.AccessEntry a = LapdDashManager.findAccess(gid, m.getId());
             if (a == null) {
