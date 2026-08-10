@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v19";
+        private static final String CHANGELOG_VERSION = "v20";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Dispatch im Handy-Panel & zuverlässiger Web-Bann**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Bannen/Zugriff jetzt mit Discord-Name oder ID**__\n\n" +
+                "⛔ **Bannen funktioniert jetzt mit Discord-Name ODER Discord-ID** — Vorher musste im Dashboard die " +
+                "numerische Discord-ID eingegeben werden; wer einen Namen eintrug, erzeugte einen Bann, der nie greift. " +
+                "Jetzt wird der Name automatisch in die echte ID aufgelöst, damit der Bann den Login zuverlässig sperrt. " +
+                "Dasselbe gilt für „Zugriff Verwalten” (Person hinzufügen / Dienstgrad ändern).\n\n" +
+                "---\n\n" +
+                "__**Version v19 — Dispatch im Handy-Panel & zuverlässiger Web-Bann**__\n\n" +
                 "📱 **Dispatch im Handy-Zentrale-Embed** — Das Auswahlmenü des Handy-Panels enthält jetzt direkt " +
                 "**„🚨 LAPD Dispatch”**: Name, Standort (PSN) und „Was ist passiert?” eingeben → der Einsatz erscheint " +
                 "in Echtzeit im LAPD-Dashboard. Ohne Besetzung wird der Notruf abgelehnt. Das Handy-Panel wird einmalig neu gesendet.\n\n" +

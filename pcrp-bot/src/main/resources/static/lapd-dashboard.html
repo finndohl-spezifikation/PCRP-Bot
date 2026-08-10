@@ -421,7 +421,7 @@ async function loadZugriff(){
     '<div class="txt">Discord-ID: ' + esc(a.discordId) + '</div></div>').join('');
   el.innerHTML = head('Zugriff Verwalten', 'Discord-IDs eintragen und Dienstgrad zuweisen – nur so kann sich die Person einloggen.') +
     '<div class="grid"><div class="panel"><h3>🔑 Person hinzufügen / Dienstgrad ändern</h3>' +
-    '<label>Discord-ID</label><input type="text" id="acc-id" placeholder="Discord-ID des Mitglieds">' +
+    '<label>Discord-ID oder Discord-Name</label><input type="text" id="acc-id" placeholder="Discord-ID oder Name des Mitglieds">' +
     '<label>Dienstgrad</label><select id="acc-rank">' + RANKS.map(r => '<option>' + r + '</option>').join('') + '</select>' +
     '<button class="btn" style="margin-top:14px" onclick="accessAdd()">💾 Speichern</button><div class="msg" id="acc-msg"></div></div>' +
     '<div class="panel"><h3>📋 Freigeschaltete Personen</h3>' + (rows || '<div class="empty">Noch niemand freigeschaltet.</div>') + '</div></div>';
@@ -448,7 +448,7 @@ async function loadBann(){
     '<div class="txt">ID: ' + esc(b.discordId) + (b.webName ? '<br>Web-Name: ' + esc(b.webName) : '') + (b.reason ? '<br>Grund: ' + esc(b.reason) : '') + '</div></div>').join('');
   el.innerHTML = head('Nutzer Bannen', 'Personen per Discord-ID bannen oder entbannen.') +
     '<div class="grid"><div class="panel"><h3>⛔ Person bannen</h3>' +
-    '<label>Discord-ID</label><input type="text" id="ban-id" placeholder="Discord-ID des Mitglieds">' +
+    '<label>Discord-ID oder Discord-Name</label><input type="text" id="ban-id" placeholder="Discord-ID oder Name des Mitglieds">' +
     '<label>Name auf der LAPD-Webseite (optional)</label><input type="text" id="ban-webname" placeholder="z. B. Max Mustermann – blockiert diesen Namen auf der Webseite">' +
     '<label>Grund</label><input type="text" id="ban-reason" placeholder="Optional">' +
     '<button class="btn red" style="margin-top:14px" onclick="ban()">⛔ Bannen</button><div class="msg" id="ban-msg"></div></div>' +

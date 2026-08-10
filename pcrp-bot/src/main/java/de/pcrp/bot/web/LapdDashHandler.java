@@ -240,11 +240,25 @@ public class LapdDashHandler {
         if (s == null) return;
 
         JsonObject b = body(ctx);
-        String discordId = str(b, "discordId");
-        String rank      = str(b, "rank");
-        String name = "";
-        Member m = BotContext.getGuild().getMemberById(discordId);
-        if (m != null) name = m.getEffectiveName();
+        String input = str(b, "discordId");
+        String rank  = str(b, "rank");
+        if (input.isEmpty()) { err(ctx, out, "Discord-ID oder Discord-Name fehlt."); return; }
+
+        // Discord-ID ODER Discord-Name akzeptieren – Name wird in die echte ID aufgelöst
+        Member m = BotContext.resolveMember(input);
+        String discordId;
+        String name;
+        if (m != null) {
+            discordId = m.getId();
+            name = m.getEffectiveName();
+        } else if (input.matches("\\d{15,21}")) {
+            // Noch nicht auf dem Server – als ID speichern (greift, sobald die Person beitritt)
+            discordId = input;
+            name = "";
+        } else {
+            err(ctx, out, "Person nicht auf dem Discord-Server gefunden – bitte eine gültige Discord-ID oder einen gültigen Namen eintragen.");
+            return;
+        }
 
         String error = LapdDashManager.addAccess(gid, discordId, rank, name);
         if (error != null) { err(ctx, out, error); return; }
@@ -285,14 +299,20 @@ public class LapdDashHandler {
         if (s == null) return;
 
         JsonObject b = body(ctx);
-        String discordId = str(b, "discordId");
-        if (discordId.isEmpty()) { err(ctx, out, "Discord-ID fehlt."); return; }
+        String input = str(b, "discordId");
+        if (input.isEmpty()) { err(ctx, out, "Discord-ID oder Discord-Name fehlt."); return; }
+
+        // Discord-ID ODER Discord-Name akzeptieren – Name wird in die echte ID aufgelöst,
+        // damit der Bann bei der Login-Prüfung auch wirklich greift.
+        Member m = BotContext.resolveMember(input);
+        if (m == null) {
+            err(ctx, out, "Person nicht auf dem Discord-Server gefunden – prüfe Discord-ID oder -Name.");
+            return;
+        }
+        String discordId = m.getId();
         if (discordId.equals(s.discordId)) { err(ctx, out, "Du kannst dich nicht selbst bannen."); return; }
         if (discordId.equals(String.valueOf(ModerationConfig.OWNER_ID))) { err(ctx, out, "Der Inhaber kann nicht gebannt werden."); return; }
-        String name = "";
-        Member m = BotContext.getGuild().getMemberById(discordId);
-        if (m != null) name = m.getEffectiveName();
-        LapdDashManager.ban(gid, discordId, name, str(b, "webName"), str(b, "reason"), s.name);
+        LapdDashManager.ban(gid, discordId, m.getEffectiveName(), str(b, "webName"), str(b, "reason"), s.name);
         out.addProperty("ok", true);
         respond(ctx, out);
     }
