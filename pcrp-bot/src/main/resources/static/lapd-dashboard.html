@@ -287,6 +287,7 @@ async function login(){
   const d = await api('/api/lapd/dash/login', {discord, rank, password:pass});
   if(!d.ok){
     if(d.banned){
+      localStorage.setItem('lapd-banned', '1');
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('banned-screen').classList.remove('hidden');
       return;
@@ -294,6 +295,7 @@ async function login(){
     showErr(err, d.error || 'Login fehlgeschlagen.');
     return;
   }
+  localStorage.removeItem('lapd-banned');
   setToken(d.token);
   ME = {name:d.name, rank:d.rank, admin:d.admin, leader:d.leader};
   playAnim();
@@ -1092,6 +1094,11 @@ async function licenseReturn(userId){
 
 // ── Start ───────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  if(localStorage.getItem('lapd-banned')){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('banned-screen').classList.remove('hidden');
+    return;
+  }
   if(getToken()){
     const d = await apiGet('/api/lapd/dash/me?token=' + encodeURIComponent(getToken()));
     if(d.ok){

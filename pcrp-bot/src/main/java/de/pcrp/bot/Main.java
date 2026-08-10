@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v17";
+        private static final String CHANGELOG_VERSION = "v18";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,14 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — LAPD-Bann gilt auch auf der Webseite**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Bann auf allen LAPD-Seiten**__\n\n" +
+                "⛔ **Sperrbildschirm auf allen LAPD-Seiten** — Gebannte Personen sehen auf der Webseite, der Karriere- " +
+                "und der Anforderungen-Seite jetzt einen rot pulsierenden **„Zugriff gesperrt”-Bildschirm** (wie im " +
+                "Dashboard). Wer versucht, eine Beschwerde, Anzeige oder Bewerbung einzureichen, wird sofort gesperrt " +
+                "und auf allen LAPD-Seiten blockiert. Nach einer Entbannung reicht der Login über den „Mitarbeiter " +
+                "Login”, um wieder freigeschaltet zu werden.\n\n" +
+                "---\n\n" +
+                "__**Version v17 — LAPD-Bann gilt auch auf der Webseite**__\n\n" +
                 "⛔ **Bann jetzt auch auf der LAPD-Webseite** — Wird jemand im Dashboard gebannt, kann die Person auf der " +
                 "Webseite **keine Beschwerden, Anzeigen oder Bewerbungen mehr einreichen** (Meldung: „Dein Zugriff wurde " +
                 "von einem Administrator gesperrt”). Bestehende Einträge von Gebannten werden automatisch auf der Webseite " +

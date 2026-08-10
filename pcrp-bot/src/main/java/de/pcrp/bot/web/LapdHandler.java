@@ -196,10 +196,12 @@ public class LapdHandler {
             String discord = fo.has("Discord") ? fo.get("Discord").getAsString() :
                              (fo.has("discord") ? fo.get("discord").getAsString() : "");
             if (isBannedName(gid, name, discord)) {
+                out.addProperty("banned", true);
                 err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
                 return;
             }
         } else if (isBannedName(gid, name)) {
+            out.addProperty("banned", true);
             err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
             return;
         }
