@@ -12,13 +12,18 @@ import de.pcrp.bot.common.LapdDashManager;
 import de.pcrp.bot.common.LoggingConfig;
 import de.pcrp.bot.common.ModerationConfig;
 import io.javalin.http.Context;
+import io.javalin.http.UploadedFile;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * HTTP-Routes für das LAPD-Beamten-Dashboard (externe Seite /lapd/dashboard).
@@ -321,6 +326,40 @@ public class LapdDashHandler {
         respond(ctx, out);
     }
 
+    /** POST /api/lapd/dash/fleet/upload – Fahrzeug mit Bild-Datei (multipart). */
+    public static void handleFleetUpload(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+
+        String token = ctx.formParam("token");
+        LapdDashManager.Session s = LapdDashManager.validateSession(gid, token);
+        if (s == null) { err(ctx, out, "Sitzung abgelaufen – bitte neu einloggen."); return; }
+        if (!s.admin) { err(ctx, out, "Nur für Administratoren."); return; }
+
+        String title = ctx.formParam("title");
+        String desc  = ctx.formParam("description");
+        UploadedFile photo = ctx.uploadedFile("image");
+        if (title == null || title.isBlank()) { err(ctx, out, "Titel fehlt."); return; }
+        if (photo == null) { err(ctx, out, "Bitte lade eine Bilddatei hoch."); return; }
+
+        String fid = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        String ext = photo.contentType() != null && photo.contentType().contains("png") ? ".png" : ".jpg";
+        Path p = DataStore.getPath("photos").resolve("fleet-" + fid + ext);
+        try {
+            Files.createDirectories(p.getParent());
+            Files.copy(photo.content(), p, StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            log.error("[LAPD-Dash] Fahrzeugbild konnte nicht gespeichert werden.", e);
+            err(ctx, out, "Bild konnte nicht gespeichert werden.");
+            return;
+        }
+
+        LapdDashManager.addVehicle(gid, title, "/api/lapd/fleet-image/" + fid, desc == null ? "" : desc, s.name);
+        out.addProperty("ok", true);
+        respond(ctx, out);
+    }
+
     public static void handleFleetDelete(Context ctx) {
         JsonObject out = new JsonObject();
         Long gid = guildId(ctx, out);
@@ -490,6 +529,32 @@ public class LapdDashHandler {
         String to   = str(b, "to");
         if (from.isEmpty() || to.isEmpty()) { err(ctx, out, "Bitte Zeitraum angeben."); return; }
         LapdDashManager.requestVacation(gid, s.discordId, s.name, from, to, str(b, "reason"));
+        out.addProperty("ok", true);
+        respond(ctx, out);
+    }
+
+    /** POST /api/lapd/dash/vacation/delete – Urlaubsantrag endgültig löschen. */
+    public static void handleVacationDelete(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+        LapdDashManager.Session s = check(ctx, out, gid, false, false);
+        if (s == null) return;
+
+        JsonObject b = body(ctx);
+        String id = str(b, "id");
+        if (id.isEmpty()) { err(ctx, out, "Antrag fehlt."); return; }
+
+        // Nur Leitung darf fremde Anträge löschen – alle anderen nur ihre eigenen.
+        boolean allowed = s.leader || s.admin;
+        if (!allowed) {
+            LapdDashManager.Vacation v = null;
+            for (LapdDashManager.Vacation x : LapdDashManager.vacationsOf(gid, s.discordId)) {
+                if (x.id.equals(id)) { v = x; break; }
+            }
+            if (v == null) { err(ctx, out, "Antrag nicht gefunden."); return; }
+        }
+        if (!LapdDashManager.deleteVacation(gid, id)) { err(ctx, out, "Antrag nicht gefunden."); return; }
         out.addProperty("ok", true);
         respond(ctx, out);
     }
@@ -885,6 +950,110 @@ public class LapdDashHandler {
         JsonObject b = body(ctx);
         LapdDashManager.returnLicense(gid, str(b, "userId"));
         out.addProperty("ok", true);
+        respond(ctx, out);
+    }
+
+    // ── Ausrüstung (Leitung schreibt, alle sehen) ────────────────────────────
+
+    /** GET /api/lapd/dash/equipment?token=… – Liste + canManage-Flag. */
+    public static void handleEquipmentList(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+        LapdDashManager.Session s = check(ctx, out, gid, false, false);
+        if (s == null) return;
+        out.addProperty("ok", true);
+        out.add("equipment", GSON.toJsonTree(LapdDashManager.equipment(gid)));
+        out.addProperty("canManage", s.leader || s.admin);
+        respond(ctx, out);
+    }
+
+    /** POST /api/lapd/dash/equipment – Ausrüstung hinzufügen (multipart, nur Leitung). */
+    public static void handleEquipmentAdd(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+
+        String token = ctx.formParam("token");
+        LapdDashManager.Session s = LapdDashManager.validateSession(gid, token);
+        if (s == null) { err(ctx, out, "Sitzung abgelaufen – bitte neu einloggen."); return; }
+        if (!s.leader && !s.admin) { err(ctx, out, "Nur für die Leitungs-Ebene."); return; }
+
+        String title = ctx.formParam("title");
+        String desc  = ctx.formParam("description");
+        String access = ctx.formParam("access");
+        UploadedFile photo = ctx.uploadedFile("image");
+        if (title == null || title.isBlank()) { err(ctx, out, "Titel fehlt."); return; }
+        if (access == null || access.isBlank()) access = "alle";
+
+        String image = "";
+        if (photo != null) {
+            String eid = UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+            String ext = photo.contentType() != null && photo.contentType().contains("png") ? ".png" : ".jpg";
+            Path p = DataStore.getPath("photos").resolve("equip-" + eid + ext);
+            try {
+                Files.createDirectories(p.getParent());
+                Files.copy(photo.content(), p, StandardCopyOption.REPLACE_EXISTING);
+                image = "/api/lapd/equip-image/" + eid;
+            } catch (Exception e) {
+                log.error("[LAPD-Dash] Ausrüstungsbild konnte nicht gespeichert werden.", e);
+                err(ctx, out, "Bild konnte nicht gespeichert werden.");
+                return;
+            }
+        }
+
+        LapdDashManager.addEquipment(gid, title, desc == null ? "" : desc, access, image, s.name);
+        out.addProperty("ok", true);
+        respond(ctx, out);
+    }
+
+    /** POST /api/lapd/dash/equipment/delete – Ausrüstung löschen (nur Leitung). */
+    public static void handleEquipmentDelete(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+        LapdDashManager.Session s = check(ctx, out, gid, true, true);
+        if (s == null) return;
+        JsonObject b = body(ctx);
+        LapdDashManager.deleteEquipment(gid, str(b, "id"));
+        out.addProperty("ok", true);
+        respond(ctx, out);
+    }
+
+    // ── Panic Button ──────────────────────────────────────────────────────────
+
+    /** POST /api/lapd/dash/panic – Alarm an alle Beamten im Dienst (DM). */
+    public static void handlePanic(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+        LapdDashManager.Session s = check(ctx, out, gid, false, false);
+        if (s == null) return;
+
+        JsonObject b = body(ctx);
+        String location = str(b, "location");
+        if (location.isEmpty()) { err(ctx, out, "Bitte gib deinen Standort (PSN) an."); return; }
+
+        Guild guild = BotContext.getGuild();
+        java.util.List<LapdDashManager.Duty> duty = LapdDashManager.duty(gid);
+        if (duty.isEmpty()) {
+            err(ctx, out, "Derzeit ist niemand im Dienst – der Alarm konnte nicht übermittelt werden.");
+            return;
+        }
+
+        int sent = 0;
+        for (LapdDashManager.Duty d : duty) {
+            if (d.discordId.equals(s.discordId)) continue; // nicht sich selbst
+            String msg = "🚨 **PANIC ALARM!**\n\n"
+                       + "**" + s.name + "** (" + s.rank + ") hat den **Panic Button** ausgelöst und benötigt sofort Unterstützung!\n\n"
+                       + "📍 **Standort (PSN):** `" + location + "`\n\n"
+                       + "Bitte umgehend Hilfe leisten.";
+            LapdDashManager.sendDm(guild, d.discordId, msg);
+            sent++;
+        }
+
+        out.addProperty("ok", true);
+        out.addProperty("sent", sent);
         respond(ctx, out);
     }
 

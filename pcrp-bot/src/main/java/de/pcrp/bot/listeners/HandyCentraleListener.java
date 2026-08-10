@@ -219,6 +219,7 @@ public class HandyCentraleListener extends ListenerAdapter {
         if (!csActive) {
             rows.add(ActionRow.of(Button.success("handy:cityship_activate", "💕 CityShip aktivieren")));
         }
+        rows.add(ActionRow.of(Button.danger("handy:dispatch_open", "🚨 Dispatch")));
         rows.add(ActionRow.of(Button.danger("handy:neue_nummer", "🔄 Neue Nummer (500$)")));
 
         event.replyEmbeds(
@@ -519,6 +520,20 @@ public class HandyCentraleListener extends ListenerAdapter {
             return;
         }
 
+        if ("handy:dispatch_open".equals(cid)) {
+            Modal modal = Modal.create("handy:dispatch_modal", "🚨 LAPD Dispatch")
+                .addComponents(
+                    ActionRow.of(TextInput.create("dispatch_name", "Name", TextInputStyle.SHORT)
+                        .setPlaceholder("Dein Name").setMinLength(2).setMaxLength(40).setRequired(true).build()),
+                    ActionRow.of(TextInput.create("dispatch_location", "Standort (PSN Name)", TextInputStyle.SHORT)
+                        .setPlaceholder("Dein Standort / PSN-Name").setMinLength(2).setMaxLength(60).setRequired(true).build()),
+                    ActionRow.of(TextInput.create("dispatch_details", "Was ist passiert?", TextInputStyle.PARAGRAPH)
+                        .setPlaceholder("Beschreibe kurz, was passiert ist …").setMinLength(2).setMaxLength(1500).setRequired(true).build())
+                ).build();
+            event.replyModal(modal).queue();
+            return;
+        }
+
         if ("handy:neue_nummer".equals(cid)) {
             // Warnung anzeigen – erst nach Bestätigung wirklich wechseln
             event.replyEmbeds(
@@ -616,8 +631,14 @@ public class HandyCentraleListener extends ListenerAdapter {
 
     @Override
     public void onModalInteraction(ModalInteractionEvent event) {
-        if (!"handy:vertrag_modal".equals(event.getModalId())) return;
         if (event.getGuild() == null) return;
+
+        if ("handy:dispatch_modal".equals(event.getModalId())) {
+            handleDispatchModal(event);
+            return;
+        }
+
+        if (!"handy:vertrag_modal".equals(event.getModalId())) return;
 
         String userId    = event.getUser().getId();
         String guildId   = event.getGuild().getId();
@@ -684,5 +705,45 @@ public class HandyCentraleListener extends ListenerAdapter {
                 .build()
         ).setEphemeral(true).queue();
         log.info("[Handy] {} hat Vertrag abgeschlossen: {}", userId, c.phoneNumber);
+    }
+
+    // ── Modal: LAPD Dispatch ──────────────────────────────────────────────────
+
+    private void handleDispatchModal(ModalInteractionEvent event) {
+        String userId    = event.getUser().getId();
+        String guildId   = event.getGuild().getId();
+        String name      = event.getValue("dispatch_name") != null
+            ? event.getValue("dispatch_name").getAsString().trim() : "";
+        String location  = event.getValue("dispatch_location") != null
+            ? event.getValue("dispatch_location").getAsString().trim() : "";
+        String details   = event.getValue("dispatch_details") != null
+            ? event.getValue("dispatch_details").getAsString().trim() : "";
+
+        if (name.isEmpty() || location.isEmpty() || details.isEmpty()) {
+            event.replyEmbeds(EmbedFactory.build("🚨 Dispatch",
+                "❌ Bitte fülle alle Felder aus."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        // Kein Beamter im Dienst → Notruf wird NICHT übermittelt
+        if (LapdDashManager.duty(Long.parseLong(guildId)).isEmpty()) {
+            event.replyEmbeds(EmbedFactory.build("🚨 Dispatch",
+                "❌ **Derzeit keine Besetzung.**\n\nDein Notruf wurde **nicht** übermittelt. Bitte versuche es später erneut oder wähle den Notruf 911."))
+                .setEphemeral(true).queue();
+            log.info("[Dispatch] {} – Notruf abgelehnt (keine Besetzung).", userId);
+            return;
+        }
+
+        LapdDashManager.addDispatch(Long.parseLong(guildId), name, userId,
+            "🚨 LAPD Dispatch", location, details);
+
+        event.replyEmbeds(EmbedFactory.build("🚨 Dispatch",
+            "✅ **Dein Einsatz wurde übermittelt!**\n\n" +
+            "👤 **Name:** " + name + "\n" +
+            "📍 **Standort (PSN):** `" + location + "`\n\n" +
+            "Die Einsatzkräfte wurden benachrichtigt."))
+            .setEphemeral(true).queue();
+        log.info("[Dispatch] {} hat LAPD-Dispatch gesendet ({}).", userId, location);
     }
 }

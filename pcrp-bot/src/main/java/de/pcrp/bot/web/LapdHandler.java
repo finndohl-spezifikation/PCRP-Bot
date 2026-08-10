@@ -268,6 +268,25 @@ public class LapdHandler {
         respond(ctx, out);
     }
 
+    /** POST /api/lapd/dashboard/delete – Eintrag endgültig löschen. */
+    public static void handleDashDelete(Context ctx) {
+        JsonObject out = new JsonObject();
+        Long gid = guildId(ctx, out);
+        if (gid == null) return;
+
+        JsonObject b = body(ctx);
+        String type = str(b, "type");
+        String id   = str(b, "id");
+
+        if (!isType(type) || id.isEmpty()) { err(ctx, out, "Ungültige Anfrage."); return; }
+        if (!LapdManager.delete(gid, type, id)) {
+            err(ctx, out, "Eintrag nicht gefunden.");
+            return;
+        }
+        out.addProperty("ok", true);
+        respond(ctx, out);
+    }
+
     /** POST /api/lapd/dashboard/decide – Bewerbung annehmen / ablehnen (+ automatische DM). */
     public static void handleDashDecide(Context ctx) {
         JsonObject out = new JsonObject();

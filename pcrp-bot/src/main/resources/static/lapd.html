@@ -134,20 +134,12 @@
     <a class="link" data-sec="mitarbeiter" href="#mitarbeiter">MITARBEITER</a>
     <a class="link" data-sec="fuhrpark" href="#fuhrpark">FUHRPARK</a>
     <a class="link" href="/lapd/karriere">KARRIERE</a>
-    <a class="link" data-sec="kontakt" href="#kontakt">KONTAKT</a>
     <a class="link" data-sec="beschwerde" href="#beschwerde">BESCHWERDE</a>
     <a class="link" data-sec="anzeige" href="#anzeige">ANZEIGE AUFGEBEN</a>
     <div class="spacer"></div>
-    <a class="btn-login" href="/lapd/dashboard">🚔 Dashboard Login</a>
+    <a class="btn-login" href="/lapd/dashboard">👮 Mitarbeiter Login</a>
   </div>
 </header>
-
-<!-- Unter-Navigation unter "Kontakt" (immer sichtbar) -->
-<div class="subnav" id="subnav">
-  <div class="inner">
-    <button data-ktab="email" onclick="kontaktTab('email')">✉️ Email Schreiben</button>
-  </div>
-</div>
 
 <main>
 
@@ -158,7 +150,7 @@
       <h1>Willkommen beim LAPD</h1>
       <p>Das Los Angeles Police Department steht für Sicherheit, Recht und Ordnung. Kontaktiere uns, erstatte eine Anzeige oder bewirb dich für den Dienst – wir kümmern uns um dein Anliegen.</p>
       <div class="cta">
-        <a class="primary" href="#kontakt" onclick="go('kontakt')">📨 Kontakt aufnehmen</a>
+        <a class="primary" href="#beschwerde" onclick="go('beschwerde')">⚠️ Beschwerde einreichen</a>
         <a class="ghost" href="/lapd/karriere">🎓 Karriere beim LAPD</a>
       </div>
     </div>
@@ -183,9 +175,9 @@
         <div class="ic">📋</div><b>Anzeige aufgeben</b>
         <span>Melde einen Vorfall mit dem offiziellen Formular.</span>
       </div>
-      <div class="card" onclick="go('kontakt');kontaktTab('email')">
-        <div class="ic">✉️</div><b>Kontakt</b>
-        <span>Schreib uns eine Email oder reiche eine Beschwerde ein.</span>
+      <div class="card" onclick="go('beschwerde')">
+        <div class="ic">⚠️</div><b>Beschwerde</b>
+        <span>Reiche eine Beschwerde über einen Beamten ein.</span>
       </div>
     </div>
   </section>
@@ -292,28 +284,6 @@
     <div id="a-list"></div>
   </section>
 
-  <!-- ── KONTAKT (Email + Beschwerde) ─────────────────── -->
-  <section id="sec-kontakt">
-
-    <div id="ktab-email" style="display:none">
-      <h2 class="pagetitle">Email Schreiben</h2>
-      <div class="panel">
-        <h2>✉️ Kontaktformular</h2>
-        <form onsubmit="event.preventDefault();submitMail()">
-          <label for="email-name">Name <span class="req">*</span></label>
-          <input type="text" id="email-name" placeholder="Dein Name" maxlength="60" required>
-          <label for="email-msg">Nachricht <span class="req">*</span></label>
-          <textarea id="email-msg" placeholder="Deine Nachricht an das LAPD …" maxlength="2000" required></textarea>
-          <button class="btn" type="submit">📨 Senden</button>
-          <div class="msg" id="email-msgbox"></div>
-        </form>
-      </div>
-      <h3 class="listtitle">Meine Anfragen <span class="count" id="email-count">0</span></h3>
-      <div id="email-list"></div>
-    </div>
-
-  </section>
-
   <!-- ── BESCHWERDE (eigene Kategorie) ───────────────── -->
   <section id="sec-beschwerde">
     <h2 class="pagetitle">Beschwerde Einreichen</h2>
@@ -338,18 +308,18 @@
 
   <!-- ── DASHBOARD (nur Verweis auf externe Seite) ───── -->
   <section id="sec-dashboard">
-    <h2 class="pagetitle">Dashboard Login</h2>
+    <h2 class="pagetitle">Mitarbeiter Login</h2>
     <div class="hint">👮 Das Beamten-Dashboard läuft auf einer eigenen externen Seite. Klicke unten, um dich mit deinem Dienstgrad und Passwort einzuloggen.</div>
     <div class="panel" style="text-align:center">
       <p style="margin-bottom:16px;color:var(--muted)">Zugriff nur für LAPD-Mitglieder mit gültiger Zugriffs-Freischaltung.</p>
-      <a class="btn" href="/lapd/dashboard" style="display:inline-block">🚔 Zum Dashboard Login</a>
+      <a class="btn" href="/lapd/dashboard" style="display:inline-block">👮 Zum Mitarbeiter Login</a>
     </div>
   </section>
 
 </main>
 
 <footer>
-  © LAPD · Los Angeles Police Department — Los Angeles Roleplay · Offizielle Behörden-Webseite · Alle Rechte vorbehalten
+  Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay
 </footer>
 
 <script>
@@ -374,40 +344,13 @@ function go(sec){
   document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + sec).classList.add('active');
   document.querySelectorAll('a.link').forEach(a => a.classList.toggle('active', a.dataset.sec === sec));
-  if(sec === 'kontakt') kontaktTab(currentKtab());
   if(sec === 'anzeige') loadMy();
   if(sec === 'beschwerde') loadMy();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 document.querySelectorAll('a.link[data-sec]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.sec); }));
 
-function currentKtab(){ return localStorage.getItem('lapd-ktab') || 'email'; }
-
-function kontaktTab(tab){
-  localStorage.setItem('lapd-ktab', tab);
-  document.querySelectorAll('.subnav button').forEach(b => b.classList.toggle('active', b.dataset.ktab === tab));
-  document.getElementById('ktab-email').style.display = (tab === 'email') ? 'block' : 'none';
-  if(tab === 'email') loadMy();
-}
-
 // ── Formulare ─────────────────────────────────────────────
-async function submitMail(){
-  const box = document.getElementById('email-msgbox');
-  box.className = 'msg';
-  const name = document.getElementById('email-name').value.trim();
-  const message = document.getElementById('email-msg').value.trim();
-  saveName(name);
-  try{
-    const r = await fetch(API + '/api/lapd/create',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type:'mail', uid:uid(), name, message})});
-    const d = await r.json();
-    if(!d.ok){ box.className='msg err'; box.textContent = d.error || 'Fehler beim Senden.'; return; }
-    box.className='msg ok'; box.textContent = '✅ Erfolgreich gesendet. Du kannst den Status unter „Meine Anfragen“ verfolgen.';
-    document.getElementById('email-msg').value = '';
-    loadMy();
-  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler – bitte erneut versuchen.'; }
-}
-
 async function submitBeschwerde(){
   const box = document.getElementById('b-msgbox');
   box.className = 'msg';
@@ -467,7 +410,6 @@ async function loadMy(){
     const r = await fetch(API + '/api/lapd/my?uid=' + encodeURIComponent(uid()));
     const d = await r.json();
     if(!d.ok) return;
-    renderList('email', d.mails, 'mail');
     renderList('b', d.beschwerden, 'beschwerde');
     renderList('a', d.anzeigen, 'anzeige');
   }catch(e){}
@@ -623,8 +565,7 @@ async function loadPublic(){
 // ── Deep-Links (#email, #beschwerde, #anzeige, …) ─────────
 function applyHash(){
   const h = (location.hash || '').replace('#','');
-  if(h === 'email'){ go('kontakt'); kontaktTab('email'); }
-  else if(h === 'beschwerde'){ go('beschwerde'); }
+  if(h === 'beschwerde'){ go('beschwerde'); }
   else if(h === 'anzeige'){ go('anzeige'); }
   else if(h === 'informationen'){ go('informationen'); }
   else if(h === 'mitarbeiter'){ go('mitarbeiter'); }
@@ -637,7 +578,6 @@ function applyHash(){
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('lapd-name');
   if(saved){
-    document.getElementById('email-name').value = saved;
     document.getElementById('b-name').value = saved;
   }
   applyHash();

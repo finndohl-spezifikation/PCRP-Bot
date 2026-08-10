@@ -116,6 +116,7 @@ public class WebServer {
         app.post("/api/lapd/dashboard/reply",  ctx -> LapdHandler.handleDashReply(ctx));
         app.post("/api/lapd/dashboard/status", ctx -> LapdHandler.handleDashStatus(ctx));
         app.post("/api/lapd/dashboard/decide", ctx -> LapdHandler.handleDashDecide(ctx));
+        app.post("/api/lapd/dashboard/delete", ctx -> LapdHandler.handleDashDelete(ctx));
         // Öffentliche LAPD-Daten (Webseite) + Einsatz-Eingang
         app.get( "/api/lapd/public",           ctx -> LapdDashHandler.handlePublic(ctx));
         app.post("/api/lapd/dispatch",         ctx -> LapdDashHandler.handleDispatchIngest(ctx));
@@ -130,7 +131,10 @@ public class WebServer {
         app.post("/api/lapd/dash/ban",             ctx -> LapdDashHandler.handleBan(ctx));
         app.post("/api/lapd/dash/unban",           ctx -> LapdDashHandler.handleUnban(ctx));
         app.post("/api/lapd/dash/fleet",           ctx -> LapdDashHandler.handleFleetAdd(ctx));
+        app.post("/api/lapd/dash/fleet/upload",    ctx -> LapdDashHandler.handleFleetUpload(ctx));
         app.post("/api/lapd/dash/fleet/delete",    ctx -> LapdDashHandler.handleFleetDelete(ctx));
+        app.get( "/api/lapd/fleet-image/{id}",     WebServer::serveLapdFleetImage);
+        app.get( "/api/lapd/equip-image/{id}",     WebServer::serveLapdEquipImage);
         app.get( "/api/lapd/dash/employees",       ctx -> LapdDashHandler.handleEmployeeList(ctx));
         app.post("/api/lapd/dash/employees",       ctx -> LapdDashHandler.handleEmployeeAdd(ctx));
         app.post("/api/lapd/dash/employees/edit",  ctx -> LapdDashHandler.handleEmployeeEdit(ctx));
@@ -141,6 +145,7 @@ public class WebServer {
         app.get( "/api/lapd/dash/vacations",       ctx -> LapdDashHandler.handleVacationList(ctx));
         app.post("/api/lapd/dash/vacation/request",ctx -> LapdDashHandler.handleVacationRequest(ctx));
         app.post("/api/lapd/dash/vacation/decide", ctx -> LapdDashHandler.handleVacationDecide(ctx));
+        app.post("/api/lapd/dash/vacation/delete", ctx -> LapdDashHandler.handleVacationDelete(ctx));
         app.post("/api/lapd/dash/assign",          ctx -> LapdDashHandler.handleAssign(ctx));
         app.post("/api/lapd/dash/info",            ctx -> LapdDashHandler.handleInfoAdd(ctx));
         app.post("/api/lapd/dash/info/delete",     ctx -> LapdDashHandler.handleInfoDelete(ctx));
@@ -160,6 +165,10 @@ public class WebServer {
         app.get( "/api/lapd/dash/licenses",        ctx -> LapdDashHandler.handleLicenseList(ctx));
         app.post("/api/lapd/dash/license/revoke",  ctx -> LapdDashHandler.handleLicenseRevoke(ctx));
         app.post("/api/lapd/dash/license/return",  ctx -> LapdDashHandler.handleLicenseReturn(ctx));
+        app.get( "/api/lapd/dash/equipment",       ctx -> LapdDashHandler.handleEquipmentList(ctx));
+        app.post("/api/lapd/dash/equipment",       ctx -> LapdDashHandler.handleEquipmentAdd(ctx));
+        app.post("/api/lapd/dash/equipment/delete",ctx -> LapdDashHandler.handleEquipmentDelete(ctx));
+        app.post("/api/lapd/dash/panic",           ctx -> LapdDashHandler.handlePanic(ctx));
 
         // ── Krypto (PC Coins Kursseite) ────────────────────────────────────
         app.get( "/krypto",                                      WebServer::serveKrypto);
@@ -1060,6 +1069,33 @@ public class WebServer {
             }
         }
         ctx.status(404).result("Kein Foto.");
+    }
+
+    // ── LAPD-Dashboard-Bilder (Fahrzeug / Ausrüstung) ────────────────────────
+
+    private static void serveLapdFleetImage(Context ctx) {
+        serveLapdImage(ctx, "fleet-" + ctx.pathParam("id"));
+    }
+
+    private static void serveLapdEquipImage(Context ctx) {
+        serveLapdImage(ctx, "equip-" + ctx.pathParam("id"));
+    }
+
+    private static void serveLapdImage(Context ctx, String base) {
+        for (String ext : List.of(".jpg", ".png")) {
+            Path p = DataStore.getPath("photos").resolve(base + ext);
+            if (Files.exists(p)) {
+                try {
+                    ctx.contentType(ext.equals(".png") ? "image/png" : "image/jpeg")
+                       .result(Files.readAllBytes(p));
+                    return;
+                } catch (Exception e) {
+                    ctx.status(500).result("Fehler.");
+                    return;
+                }
+            }
+        }
+        ctx.status(404).result("Kein Bild.");
     }
 
     // ── /lotto ────────────────────────────────────────────────────────────────

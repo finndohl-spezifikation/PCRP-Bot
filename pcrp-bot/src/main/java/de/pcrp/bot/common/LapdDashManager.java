@@ -177,6 +177,16 @@ public final class LapdDashManager {
         public long   ts;
     }
 
+    public static class Equipment {
+        public String id;
+        public String title;
+        public String description;
+        public String access;   // alle | beamte | leitung | admin
+        public String image;    // URL zum Bild
+        public String by;
+        public long   ts;
+    }
+
     public static class Session {
         public String discordId;
         public String name;
@@ -203,6 +213,7 @@ public final class LapdDashManager {
         public List<PersonAkte>    personAkten  = new ArrayList<>();
         public List<Strafakte>     strafAkten   = new ArrayList<>();
         public List<LicenseRevoke> licenseRevokes = new ArrayList<>();
+        public List<Equipment>     equipment    = new ArrayList<>();
         public Map<String, Session> sessions    = new LinkedHashMap<>();
     }
 
@@ -235,6 +246,7 @@ public final class LapdDashManager {
             if (s.personAkten == null)     s.personAkten     = new ArrayList<>();
             if (s.strafAkten == null)      s.strafAkten      = new ArrayList<>();
             if (s.licenseRevokes == null)  s.licenseRevokes  = new ArrayList<>();
+            if (s.equipment == null)       s.equipment       = new ArrayList<>();
             if (s.sessions == null)        s.sessions        = new LinkedHashMap<>();
             return s;
         } catch (Exception e) {
@@ -477,6 +489,14 @@ public final class LapdDashManager {
             }
         }
         return false;
+    }
+
+    /** Löscht einen Urlaubsantrag endgültig (nirgendwo mehr sichtbar). */
+    public static synchronized boolean deleteVacation(long guildId, String id) {
+        Store s = load(guildId);
+        boolean removed = s.vacations.removeIf(v -> v.id.equals(id));
+        if (removed) save(guildId, s);
+        return removed;
     }
 
     // ── Zuweisungen (Leitung) ─────────────────────────────────────────────────
@@ -762,6 +782,34 @@ public final class LapdDashManager {
 
     public static synchronized List<LicenseRevoke> licenseRevokes(long guildId) {
         return load(guildId).licenseRevokes;
+    }
+
+    // ── Ausrüstung (Leitung schreibt, alle sehen) ────────────────────────────
+
+    public static synchronized List<Equipment> equipment(long guildId) {
+        return load(guildId).equipment;
+    }
+
+    public static synchronized Equipment addEquipment(long guildId, String title, String description,
+                                                      String access, String image, String by) {
+        Store s = load(guildId);
+        Equipment e = new Equipment();
+        e.id = newId();
+        e.title = title == null ? "" : title.trim();
+        e.description = description == null ? "" : description.trim();
+        e.access = access == null ? "alle" : access;
+        e.image = image == null ? "" : image.trim();
+        e.by = by == null ? "" : by;
+        e.ts = System.currentTimeMillis();
+        s.equipment.add(e);
+        save(guildId, s);
+        return e;
+    }
+
+    public static synchronized void deleteEquipment(long guildId, String id) {
+        Store s = load(guildId);
+        s.equipment.removeIf(e -> e.id.equals(id));
+        save(guildId, s);
     }
 
     // ── Sessions ──────────────────────────────────────────────────────────────

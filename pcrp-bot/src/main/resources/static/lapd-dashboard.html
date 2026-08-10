@@ -73,10 +73,15 @@
   aside a.item:hover{background:rgba(37,99,235,.12);color:var(--text)}
   aside a.item.active{background:linear-gradient(135deg,rgba(37,99,235,.25),rgba(37,99,235,.08));color:#fff;border-color:rgba(59,130,246,.4)}
   main{flex:1;padding:22px 28px 80px;min-width:0}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+  .topbar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
   .topbar .who{font-size:1.15rem;font-weight:800}
   .topbar .who span{color:var(--muted);font-weight:600;font-size:.85rem}
   .topbar .actions{display:flex;gap:8px}
+  .panic-btn{position:absolute;left:50%;transform:translateX(-50%);top:0;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border:none;
+    padding:12px 26px;border-radius:12px;font-weight:900;font-size:.95rem;letter-spacing:1px;text-transform:uppercase;
+    box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:panicPulse 1.3s ease-in-out infinite;white-space:nowrap}
+  .panic-btn:hover{filter:brightness(1.15)}
+  @keyframes panicPulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}70%{box-shadow:0 0 0 22px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
   .btn{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;padding:10px 18px;border-radius:9px;
     font-weight:700;font-size:.86rem}
   .btn:hover{filter:brightness(1.1)}
@@ -198,11 +203,7 @@
   <main>
     <div class="topbar">
       <div class="who" id="tb-who"></div>
-      <div class="actions">
-        <button class="btn green" id="tb-duty" style="display:none" onclick="dutyOn()">🕐 Dienst anmelden</button>
-        <button class="btn red" id="tb-dutyoff" style="display:none" onclick="dutyOff()">🕐 Dienst abmelden</button>
-        <button class="btn out" onclick="logout()">⏻ Abmelden</button>
-      </div>
+      <button class="panic-btn" onclick="panic()">🚨 Panic Button</button>
     </div>
 
     <!-- ADMINISTRATOR -->
@@ -228,6 +229,7 @@
     <div class="page" id="page-fahndungen"></div>
     <div class="page" id="page-einsaetze"></div>
     <div class="page" id="page-einsatzberichte"></div>
+    <div class="page" id="page-ausruestung"></div>
 
     <!-- KONTAKT -->
     <div class="page" id="page-mails"></div>
@@ -310,12 +312,7 @@ function playAnim(){
   }, 2600);
 }
 
-async function logout(){
-  await api('/api/lapd/dash/logout', {token:getToken()});
-  setToken(null);
-  stopDispatchPoll();
-  location.reload();
-}
+
 
 // ── Dashboard-Einstieg ───────────────────────────────────
 async function enterDash(){
@@ -355,6 +352,7 @@ function buildSidebar(){
   html += '<a class="item" data-page="fahndungen" onclick="nav(\'fahndungen\')">🔎 Fahndungen</a>';
   html += '<a class="item" data-page="einsaetze" onclick="nav(\'einsaetze\')">🚨 Einsätze</a>';
   html += '<a class="item" data-page="einsatzberichte" onclick="nav(\'einsatzberichte\')">📑 Einsatzberichte</a>';
+  html += '<a class="item" data-page="ausruestung" onclick="nav(\'ausruestung\')">🛡️ Ausrüstung</a>';
   html += '<div class="cat">Kontakt</div>';
   html += '<a class="item" data-page="mails" onclick="nav(\'mails\')">✉️ Mails</a>';
   html += '<a class="item" data-page="anzeigen" onclick="nav(\'anzeigen\')">📋 Anzeigen</a>';
@@ -397,6 +395,7 @@ function loadPage(page){
     case 'fahndungen':    loadFahndungen(); break;
     case 'einsaetze':     loadEinsaetze(); break;
     case 'einsatzberichte': loadEinsatzberichte(); break;
+    case 'ausruestung':   loadAusruestung(); break;
     case 'mails':         loadKontakt('mails'); break;
     case 'anzeigen':      loadKontakt('anzeigen'); break;
     case 'beschwerden':   loadKontakt('beschwerden'); break;
@@ -472,18 +471,36 @@ async function loadFuhrpark(){
     '<button class="btn small red" onclick="fleetDelete(\'' + v.id + '\')">Löschen</button></div>' +
     (v.image ? '<img src="' + esc(v.image) + '" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">' : '') +
     '<div class="txt">' + esc(v.description) + '</div></div>').join('');
-  el.innerHTML = head('Fuhrpark Verwalten', 'Fahrzeuge mit Bild, Titel und Beschreibung anlegen – sie erscheinen sofort auf der Webseite.') +
+  el.innerHTML = head('Fuhrpark Verwalten', 'Fahrzeuge mit Bild-Datei, Titel und Beschreibung anlegen – sie erscheinen sofort auf der Webseite.') +
     '<div class="grid"><div class="panel"><h3>🚓 Fahrzeug hinzufügen</h3>' +
     '<label>Titel</label><input type="text" id="fv-title" placeholder="z. B. LAPD Crown Victoria">' +
-    '<label>Bild-URL</label><input type="text" id="fv-image" placeholder="https://…">' +
+    '<label>Bild-Datei</label><input type="file" id="fv-image" accept="image/*">' +
     '<label>Beschreibung</label><textarea id="fv-desc" placeholder="Beschreibung des Fahrzeugs …"></textarea>' +
     '<button class="btn" style="margin-top:14px" onclick="fleetAdd()">➕ Hinzufügen</button><div class="msg" id="fv-msg"></div></div>' +
     '<div class="panel"><h3>📋 Fahrzeuge</h3>' + (rows || '<div class="empty">Noch keine Fahrzeuge.</div>') + '</div></div>';
 }
 async function fleetAdd(){
-  const d = await api('/api/lapd/dash/fleet', {token:getToken(), title:document.getElementById('fv-title').value.trim(), image:document.getElementById('fv-image').value.trim(), description:document.getElementById('fv-desc').value.trim()});
   const box = document.getElementById('fv-msg');
-  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Fahrzeug hinzugefügt.'; loadFuhrpark(); }
+  const title = document.getElementById('fv-title').value.trim();
+  const desc = document.getElementById('fv-desc').value.trim();
+  const file = document.getElementById('fv-image').files[0];
+  if(!title){ box.className='msg err'; box.textContent='Bitte gib einen Titel an.'; return; }
+  if(!file){ box.className='msg err'; box.textContent='Bitte wähle eine Bilddatei aus.'; return; }
+  const fd = new FormData();
+  fd.append('token', getToken());
+  fd.append('title', title);
+  fd.append('description', desc);
+  fd.append('image', file);
+  try{
+    const r = await fetch(API + '/api/lapd/dash/fleet/upload', {method:'POST', body:fd});
+    const d = await r.json();
+    if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; return; }
+    box.className='msg ok'; box.textContent='✅ Fahrzeug hinzugefügt.';
+    document.getElementById('fv-title').value='';
+    document.getElementById('fv-desc').value='';
+    document.getElementById('fv-image').value='';
+    loadFuhrpark();
+  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler.'; }
 }
 async function fleetDelete(id){
   if(!confirm('Fahrzeug wirklich löschen?')) return;
@@ -580,15 +597,23 @@ async function loadUrlaubsantraege(){
     '<div class="item ' + (v.status==='genehmigt'?'done':(v.status==='abgelehnt'?'red':'gold')) + '">' +
     '<div class="top"><span class="who">' + esc(v.name) + '</span><span class="st ' + (v.status==='offen'?'offen':v.status) + '">' + esc(v.status) + '</span>' +
     (v.status==='offen' ? '<button class="btn small green" onclick="vacDecide(\'' + v.id + '\',\'genehmigt\')">✔ Genehmigen</button>' +
-    '<button class="btn small red" onclick="vacDecide(\'' + v.id + '\',\'abgelehnt\')">✖ Ablehnen</button>' : '') + '</div>' +
+    '<button class="btn small red" onclick="vacDecide(\'' + v.id + '\',\'abgelehnt\')">✖ Ablehnen</button>' : '') +
+    '<button class="btn small red" onclick="vacDelete(\'' + v.id + '\')">🗑 Löschen</button></div>' +
     '<div class="txt">📅 ' + esc(v.from) + ' bis ' + esc(v.to) + (v.reason ? '<br>Grund: ' + esc(v.reason) : '') + '</div></div>').join('');
-  el.innerHTML = head('Urlaubs Anträge', 'Eingehende Urlaubsanträge annehmen oder ablehnen.') +
+  el.innerHTML = head('Urlaubs Anträge', 'Eingehende Urlaubsanträge annehmen, ablehnen oder endgültig löschen.') +
     '<div class="panel">' + (rows || '<div class="empty">Keine offenen Urlaubsanträge.</div>') + '</div>';
 }
 async function vacDecide(id, action){
   const d = await api('/api/lapd/dash/vacation/decide', {token:getToken(), id:id, action:action});
   if(!d.ok){ alert(d.error||'Fehler'); }
   loadUrlaubsantraege();
+}
+async function vacDelete(id){
+  if(!confirm('Urlaubsantrag wirklich endgültig löschen?')) return;
+  const d = await api('/api/lapd/dash/vacation/delete', {token:getToken(), id:id});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  const cur = document.querySelector('.page.active');
+  if(cur) loadPage(cur.id.replace('page-',''));
 }
 
 // ── Zuweisen (Leitung) ──────────────────────────────────
@@ -677,10 +702,8 @@ async function dutyOff(){
   loadUebersicht();
 }
 async function refreshDutyButtons(){
-  const d = await apiGet('/api/lapd/dash/me?token=' + encodeURIComponent(getToken()));
-  if(!d.ok) return;
-  document.getElementById('tb-duty').style.display = d.onDuty ? 'none' : '';
-  document.getElementById('tb-dutyoff').style.display = d.onDuty ? '' : 'none';
+  // Die Schnell-Buttons wurden aus der Kopfzeile entfernt – Funktion bleibt als No-op,
+  // damit bestehende Aufrufe (dutyOn/dutyOff) weiter funktionieren.
 }
 
 // ── Informationen (LAPD) ────────────────────────────────
@@ -700,7 +723,8 @@ async function loadUrlaub(){
   const d = await apiGet('/api/lapd/dash/vacations?token=' + encodeURIComponent(getToken()));
   const mine = (d.vacations||[]).map(v =>
     '<div class="item ' + (v.status==='genehmigt'?'done':(v.status==='abgelehnt'?'red':'gold')) + '">' +
-    '<div class="top"><span class="who">' + fmt(v.ts) + '</span><span class="st ' + (v.status==='offen'?'offen':v.status) + '">' + esc(v.status) + '</span></div>' +
+    '<div class="top"><span class="who">' + fmt(v.ts) + '</span><span class="st ' + (v.status==='offen'?'offen':v.status) + '">' + esc(v.status) + '</span>' +
+    '<button class="btn small red" onclick="vacDelete(\'' + v.id + '\')">🗑 Löschen</button></div>' +
     '<div class="txt">📅 ' + esc(v.from) + ' bis ' + esc(v.to) + (v.reason ? '<br>Grund: ' + esc(v.reason) : '') + '</div></div>').join('');
   el.innerHTML = head('Urlaub Beantragen', 'Beantrage deinen Urlaub – die Leitung entscheidet.') +
     '<div class="grid"><div class="panel"><h3>🏖️ Neuer Antrag</h3>' +
@@ -795,6 +819,70 @@ async function loadEinsatzberichte(){
     '<div class="panel">' + (rows || '<div class="empty">Noch keine Einsatzberichte.</div>') + '</div>';
 }
 
+// ── Ausrüstung (Leitung schreibt, alle sehen) ───────────
+async function loadAusruestung(){
+  const el = document.getElementById('page-ausruestung');
+  const d = await apiGet('/api/lapd/dash/equipment?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Ausrüstung', d.error||'Fehler'); return; }
+  const can = !!d.canManage;
+  const rows = (d.equipment||[]).map(e =>
+    '<div class="item"><div class="top"><span class="who">' + esc(e.title) + '</span>' +
+    '<span class="st offen">' + esc(e.access) + '</span><span class="when">' + fmt(e.ts) + '</span>' +
+    (can ? '<button class="btn small red" onclick="equipDelete(\'' + e.id + '\')">Löschen</button>' : '') + '</div>' +
+    (e.image ? '<img src="' + esc(e.image) + '" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">' : '') +
+    '<div class="txt">' + esc(e.description) + '</div></div>').join('');
+  const form = can ?
+    '<div class="grid"><div class="panel"><h3>🛡️ Neue Ausrüstung</h3>' +
+    '<label>Titel</label><input type="text" id="eq-title" placeholder="z. B. Sturmgewehr">' +
+    '<label>Bild-Datei</label><input type="file" id="eq-image" accept="image/*">' +
+    '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung der Ausrüstung …"></textarea>' +
+    '<label>Verwendbar durch</label><select id="eq-access">' +
+    '<option value="alle">Alle</option><option value="beamte">Beamte (Officer & Rooky)</option>' +
+    '<option value="leitung">Leitungs Ebene</option><option value="admin">Administrator</option></select>' +
+    '<button class="btn" style="margin-top:14px" onclick="equipAdd()">➕ Hinzufügen</button><div class="msg" id="eq-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Ausrüstung</h3>' + (rows || '<div class="empty">Noch keine Ausrüstung eingetragen.</div>') + '</div></div>'
+    : '<div class="panel"><h3>📋 Ausrüstung</h3>' + (rows || '<div class="empty">Noch keine Ausrüstung eingetragen.</div>') + '</div>';
+  el.innerHTML = head('Ausrüstung', can ? 'Ausrüstung mit Bild und Text anlegen und festlegen, wer sie verwenden darf.' : 'Ausrüstung einsehen – Einträge kann nur die Leitungs-Ebene verwalten.') + form;
+}
+async function equipAdd(){
+  const box = document.getElementById('eq-msg');
+  const title = document.getElementById('eq-title').value.trim();
+  const desc = document.getElementById('eq-desc').value.trim();
+  const access = document.getElementById('eq-access').value;
+  const file = document.getElementById('eq-image').files[0];
+  if(!title){ box.className='msg err'; box.textContent='Bitte gib einen Titel an.'; return; }
+  const fd = new FormData();
+  fd.append('token', getToken());
+  fd.append('title', title);
+  fd.append('description', desc);
+  fd.append('access', access);
+  if(file) fd.append('image', file);
+  try{
+    const r = await fetch(API + '/api/lapd/dash/equipment', {method:'POST', body:fd});
+    const d = await r.json();
+    if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; return; }
+    box.className='msg ok'; box.textContent='✅ Ausrüstung hinzugefügt.';
+    document.getElementById('eq-title').value='';
+    document.getElementById('eq-desc').value='';
+    document.getElementById('eq-image').value='';
+    loadAusruestung();
+  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler.'; }
+}
+async function equipDelete(id){
+  if(!confirm('Ausrüstung wirklich löschen?')) return;
+  await api('/api/lapd/dash/equipment/delete', {token:getToken(), id:id});
+  loadAusruestung();
+}
+
+// ── Panic Button ──────────────────────────────────────────
+async function panic(){
+  const loc = prompt('🚨 Gib deinen aktuellen Standort an (PSN):');
+  if(loc === null || !loc.trim()) return;
+  const d = await api('/api/lapd/dash/panic', {token:getToken(), location:loc.trim()});
+  if(!d.ok){ alert(d.error || 'Fehler'); return; }
+  alert('✅ Panic Alarm ausgelöst! ' + (d.sent||0) + ' Beamte im Dienst wurden per DM alarmiert.');
+}
+
 // ── Dispatch-Polling (Toast unten links, 10 Sekunden) ───
 function startDispatchPoll(){
   stopDispatchPoll();
@@ -858,6 +946,9 @@ function kontaktItem(i, type){
   let actions = '<div class="inline" style="margin-top:8px">' +
     '<input type="text" id="dr-' + type + '-' + i.id + '" placeholder="Antwort als LAPD …" style="flex:2">' +
     '<button class="btn small" onclick="dashReply(\'' + type + '\',\'' + i.id + '\')">Antworten</button></div><div class="inline" style="margin-top:6px">';
+  if(type === 'mail'){
+    actions += '<button class="btn small red" onclick="dashDelete(\'' + type + '\',\'' + i.id + '\')">🗑 Löschen</button>';
+  }
   if(type === 'bewerbung'){
     actions += (i.status==='offen' ? '<button class="btn small green" onclick="dashDecide(\'' + i.id + '\',\'annehmen\')">✔ Annehmen</button>' +
       '<button class="btn small red" onclick="dashDecide(\'' + i.id + '\',\'ablehnen\')">✖ Ablehnen</button>' : '') +
@@ -884,6 +975,13 @@ async function dashReply(type, id){
 }
 async function dashStatus(type, id, status){
   const d = await api('/api/lapd/dashboard/status', {type:type, id:id, status:status});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  const cur = document.querySelector('.page.active');
+  if(cur) loadPage(cur.id.replace('page-',''));
+}
+async function dashDelete(type, id){
+  if(!confirm('Eintrag wirklich endgültig löschen? Er ist danach nirgendwo mehr sichtbar.')) return;
+  const d = await api('/api/lapd/dashboard/delete', {type:type, id:id});
   if(!d.ok){ alert(d.error||'Fehler'); }
   const cur = document.querySelector('.page.active');
   if(cur) loadPage(cur.id.replace('page-',''));

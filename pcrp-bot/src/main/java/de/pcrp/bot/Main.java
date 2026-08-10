@@ -797,8 +797,8 @@ public class Main {
                     .setTitle("🚔 Offizielle Webseite des Los Angeles Police Department")
                     .setDescription(
                         "Hier findest du alles rund um das LAPD.\n\n" +
-                        "🌐 **Webseite** — Informationen, Mitarbeiter, Fuhrpark, Karriere, Anzeige aufgeben, Email Schreiben & Beschwerde\n" +
-                        "👮 **Dashboard Login** — Das Beamten-Dashboard läuft auf einer eigenen externen Seite (Login nur mit LAPD-Rolle)\n\n" +
+                        "🌐 **Webseite** — Informationen, Mitarbeiter, Fuhrpark, Karriere, Anzeige aufgeben & Beschwerde\n" +
+                        "👮 **Mitarbeiter Login** — Das Beamten-Dashboard läuft auf einer eigenen externen Seite (Login nur mit Freischaltung)\n\n" +
                         "**Klicke unten auf den Button, um die Webseite zu öffnen.**")
                     .setColor(0x0d2247)
                     .build()
@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v15";
+        private static final String CHANGELOG_VERSION = "v16";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,21 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — LAPD Beamten-Dashboard (extern)**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — LAPD-Dashboard Ausbau, Dispatch & Panic Button**__\n\n" +
+                "🚨 **Panic Button** — Oben in der Mitte des Dashboards pulsiert ein fetter roter Panic-Button. Beim Drücken gibt man " +
+                "seinen Standort (PSN) an – alle Beamten im Dienst werden sofort per DM alarmiert.\n\n" +
+                "📞 **Handy-Dispatch** — In den Handy-Einstellungen gibt es jetzt das neue Auswahlmenü **Dispatch** mit „LAPD Dispatch”. " +
+                "Nach Eingabe von Name, Standort (PSN) und „Was ist passiert?” wird der Einsatz in Echtzeit ins Dashboard übermittelt. " +
+                "Ist kein Beamter im Dienst, kommt die Meldung **„Derzeit keine Besetzung”** und der Notruf wird nicht übermittelt.\n\n" +
+                "🛡️ **Ausrüstung** — Neue Kategorie im Dashboard (unter LAPD): Die Leitungs-Ebene kann Ausrüstung mit **Bild-Datei** und " +
+                "Text eintragen und festlegen, welche Ebene sie verwenden darf. Alle anderen können sie nur einsehen.\n\n" +
+                "🗑️ **Löschen** — Urlaubsanträge und Mails können jetzt **endgültig gelöscht** werden (nirgendwo mehr sichtbar).\n\n" +
+                "🚓 **Fuhrpark** — Fahrzeug-Bilder werden jetzt als **Datei hochgeladen** statt als URL eingetragen.\n\n" +
+                "🔧 **Dashboard & Webseite** — Die Anmelde-/Abmelde-Buttons in der Kopfzeile des Dashboards wurden entfernt, der " +
+                "„Dashboard Login” heißt jetzt **„Mitarbeiter Login”** (ganz rechts), das Feld „Email Schreiben” wurde von der Webseite " +
+                "entfernt und der Footer zeigt „Programmiert und Bereitgestellt durch Inhaber von Paradise City Roleplay”.\n\n" +
+                "---\n\n" +
+                "__**Version v15 — LAPD Beamten-Dashboard (extern)**__\n\n" +
                 "🚔 **Neues Beamten-Dashboard** — Das LAPD läuft jetzt mit einer eigenen externen Dashboard-Seite " +
                 "(/lapd/dashboard). Login über Dienstgrad + Passwort (vorerst für alle gleich LAPD_2026) – der Bot prüft " +
                 "bei jedem Login, ob die Person auf dem Discord-Server ist und die LAPD-Rolle besitzt. Gebannte Personen " +

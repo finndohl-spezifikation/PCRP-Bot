@@ -196,6 +196,16 @@ public final class LapdManager {
         return false;
     }
 
+    /** LAPD-Dashboard: Eintrag endgültig löschen (nirgendwo mehr sichtbar). */
+    public static synchronized boolean delete(long guildId, String type, String id) {
+        Store store = load(guildId);
+        List<Item> list = listOf(store, type);
+        if (list == null) return false;
+        boolean removed = list.removeIf(i -> i.id.equals(id));
+        if (removed) save(guildId, store);
+        return removed;
+    }
+
     /** LAPD-Dashboard: Status setzen (offen / gelöst / geschlossen / angenommen / abgelehnt). */
     public static synchronized boolean setStatus(long guildId, String type, String id, String status) {
         if (!STATUS_OFFEN.equals(status)
