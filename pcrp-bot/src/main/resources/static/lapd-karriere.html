@@ -16,16 +16,16 @@
   button{font-family:inherit}
 
   header{position:sticky;top:0;z-index:60;background:rgba(11,31,69,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;box-shadow:0 2px 18px rgba(2,10,30,.35);border-bottom:1px solid rgba(255,255,255,.08)}
-  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:4px;padding:0 18px;height:74px;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:13px;cursor:pointer;margin-right:14px}
-  .brand img{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
-  .brand .t1{font-size:1.4rem;font-weight:800;letter-spacing:3px;line-height:1}
-  .brand .t2{font-size:.66rem;letter-spacing:1.5px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
-  .nav a.link{padding:9px 13px;border-radius:8px;font-weight:700;font-size:.85rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.4px}
+  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 14px;height:66px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;cursor:pointer;margin-right:10px}
+  .brand img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
+  .brand .t1{font-size:1.2rem;font-weight:800;letter-spacing:2.5px;line-height:1}
+  .brand .t2{font-size:.58rem;letter-spacing:1.2px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
+  .nav a.link{padding:7px 10px;border-radius:7px;font-weight:700;font-size:.74rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.3px}
   .nav a.link:hover{background:rgba(255,255,255,.12)}
   .nav a.link.active{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
   .spacer{flex:1}
-  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:9px 16px;border-radius:8px;font-weight:800;font-size:.85rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.4px}
+  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:7px 13px;border-radius:7px;font-weight:800;font-size:.74rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.3px}
   .btn-login:hover{filter:brightness(1.08);transform:translateY(-1px)}
   @media(max-width:960px){ .nav{height:auto;padding:12px 14px;gap:6px} .brand{width:100%} }
 
@@ -41,6 +41,9 @@
 
   .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:26px;box-shadow:0 3px 12px rgba(11,31,69,.06)}
   .panel h2{color:var(--blue);font-size:1.12rem;margin-bottom:14px}
+  .formhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .req-link{display:inline-block;background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);padding:9px 18px;border-radius:9px;font-weight:800;font-size:.88rem;box-shadow:0 3px 10px rgba(201,162,39,.3)}
+  .req-link:hover{filter:brightness(1.08);transform:translateY(-1px)}
   label{display:block;font-weight:600;font-size:.85rem;color:var(--blue2);margin:13px 0 5px}
   label .req{color:var(--red)}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
@@ -117,8 +120,11 @@
   <div id="formular">
     <h2 class="pagetitle">Bewerbungsformular</h2>
     <div class="panel">
-      <h2>🎓 Offizielle LAPD-Bewerbung</h2>
-      <div class="hint">Alle mit <span class="req">*</span> markierten Felder sind Pflichtfelder. Bitte fülle die Bewerbung wahrheitsgemäß aus.</div>
+      <div class="formhead">
+        <h2>🎓 Offizielle LAPD-Bewerbung</h2>
+        <a class="req-link" href="/lapd/anforderungen">📋 Anforderungen</a>
+      </div>
+      <div class="hint">Alle mit <span class="req">*</span> markierten Felder sind Pflichtfelder. Bitte fülle die Bewerbung wahrheitsgemäß aus. Bevor du dich bewirbst, sieh dir die <a href="/lapd/anforderungen">Anforderungen</a> an.</div>
       <form onsubmit="event.preventDefault();submitBewerbung()">
         <div class="row">
           <div>
@@ -146,38 +152,36 @@
             <input type="tel" id="k-telefon" placeholder="Deine Nummer" maxlength="30" required>
           </div>
           <div>
-            <label for="k-email">E-Mail-Adresse <span class="req">*</span></label>
-            <input type="email" id="k-email" placeholder="deine@email.com" maxlength="80" required>
-          </div>
-        </div>
-        <div class="row">
-          <div>
             <label for="k-discord">Discord Name <span class="req">*</span></label>
             <input type="text" id="k-discord" placeholder="Dein Discord-Name (für Rückmeldung per DM)" maxlength="40" required>
           </div>
+        </div>
+        <div class="row">
           <div>
             <label for="k-fuehrerschein">Führerscheinklasse <span class="req">*</span></label>
             <select id="k-fuehrerschein" required>
               <option value="" disabled selected>Bitte wählen …</option>
-              <option>A</option>
-              <option>B</option>
-              <option>C</option>
               <option>Keine</option>
+              <option>Klasse C (PKW)</option>
+              <option>Klasse B (Bus)</option>
+              <option>Klasse A (LKW)</option>
+              <option>Klasse M (Motorrad)</option>
             </select>
           </div>
-        </div>
-        <div class="row">
           <div>
             <label for="k-abschluss">Bildungsabschluss <span class="req">*</span></label>
             <select id="k-abschluss" required>
               <option value="" disabled selected>Bitte wählen …</option>
-              <option>Keiner</option>
-              <option>Hauptschulabschluss</option>
-              <option>Realschulabschluss</option>
-              <option>Abitur / Fachabitur</option>
-              <option>Studium</option>
+              <option>Kein Abschluss</option>
+              <option>High School Diploma</option>
+              <option>GED</option>
+              <option>Associate Degree</option>
+              <option>Bachelor's Degree</option>
+              <option>Master's Degree</option>
             </select>
           </div>
+        </div>
+        <div class="row">
           <div>
             <label for="k-vorstrafen">Vorstrafen <span class="req">*</span></label>
             <select id="k-vorstrafen" required>
@@ -186,6 +190,7 @@
               <option>Ja</option>
             </select>
           </div>
+          <div></div>
         </div>
         <label for="k-erfahrung">Berufserfahrung <span class="req">*</span></label>
         <textarea id="k-erfahrung" placeholder="Beschreibe deine bisherige Berufserfahrung (Ausbildung, Jobs, besondere Fähigkeiten) …" maxlength="2000" required></textarea>
@@ -232,7 +237,6 @@ async function submitBewerbung(){
     'Geburtsdatum': document.getElementById('k-geburtsdatum').value,
     Adresse: document.getElementById('k-adresse').value.trim(),
     Telefon: document.getElementById('k-telefon').value.trim(),
-    'E-Mail': document.getElementById('k-email').value.trim(),
     Discord: document.getElementById('k-discord').value.trim(),
     'Führerscheinklasse': document.getElementById('k-fuehrerschein').value,
     'Bildungsabschluss': document.getElementById('k-abschluss').value,

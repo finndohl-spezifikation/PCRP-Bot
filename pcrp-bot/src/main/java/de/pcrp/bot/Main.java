@@ -796,7 +796,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v13";
+        private static final String CHANGELOG_VERSION = "v14";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -813,7 +813,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — LAPD-Webseite (Komplett-Relaunch)**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — LAPD-Feinschliff & Anforderungsseite**__\n\n" +
+                "🚔 **LAPD-Webseite (Feinschliff)** — Email Schreiben und Beschwerde Einreichen sind jetzt immer " +
+                "sichtbar (kleinere Schrift, alles passt in die Leiste). Bei der Bewerbung wurden E-Mail-Feld entfernt " +
+                "und Führerscheinklassen/Bildungsabschlüsse auf Los-Angeles-Standard umgestellt (Klasse C/B/A/M, " +
+                "High School Diploma, GED, Degrees). Aus dem Anzeige-Formular wurde das E-Mail-Feld entfernt. " +
+                "Neu: eigene **Anforderungen-Seite** mit den offiziellen LAPD-Voraussetzungen, erreichbar über den " +
+                "Button „📋 Anforderungen” auf der Karriereseite.\n\n" +
                 "🚔 **LAPD-Webseite (Relaunch)** — Neue Navigation mit den Kategorien Startseite, Informationen, " +
                 "Mitarbeiter, Fuhrpark, Karriere, Anzeige aufgeben, Portal und Kontakt. Unter Kontakt gibt es jetzt " +
                 "Email Schreiben und Beschwerde Einreichen. Das Karriere-Portal läuft auf einer eigenen Seite mit " +

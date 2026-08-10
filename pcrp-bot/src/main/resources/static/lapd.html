@@ -17,23 +17,23 @@
 
   /* ── Kopfzeile ─────────────────────────────────────── */
   header{position:sticky;top:0;z-index:60;background:rgba(11,31,69,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;box-shadow:0 2px 18px rgba(2,10,30,.35);border-bottom:1px solid rgba(255,255,255,.08)}
-  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:4px;padding:0 18px;height:74px;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:13px;cursor:pointer;margin-right:14px}
-  .brand img{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
-  .brand .t1{font-size:1.4rem;font-weight:800;letter-spacing:3px;line-height:1}
-  .brand .t2{font-size:.66rem;letter-spacing:1.5px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
-  .nav a.link{padding:9px 13px;border-radius:8px;font-weight:700;font-size:.85rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.4px}
+  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 14px;height:66px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;cursor:pointer;margin-right:10px}
+  .brand img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
+  .brand .t1{font-size:1.2rem;font-weight:800;letter-spacing:2.5px;line-height:1}
+  .brand .t2{font-size:.58rem;letter-spacing:1.2px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
+  .nav a.link{padding:7px 10px;border-radius:7px;font-weight:700;font-size:.74rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.3px}
   .nav a.link:hover{background:rgba(255,255,255,.12)}
   .nav a.link.active{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
   .spacer{flex:1}
-  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:9px 16px;border-radius:8px;font-weight:800;font-size:.85rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.4px}
+  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:7px 13px;border-radius:7px;font-weight:800;font-size:.74rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.3px}
   .btn-login:hover{filter:brightness(1.08);transform:translateY(-1px)}
   @media(max-width:960px){ .nav{height:auto;padding:12px 14px;gap:6px} .brand{width:100%} }
 
   /* Unter-Navigation (Kontakt) */
-  .subnav{background:var(--white);border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(11,31,69,.05);position:sticky;top:74px;z-index:55}
-  .subnav .inner{max-width:1200px;margin:0 auto;display:flex;gap:6px;padding:10px 18px;flex-wrap:wrap}
-  .subnav button{background:transparent;border:1.5px solid var(--border);color:var(--blue2);padding:8px 16px;border-radius:20px;font-weight:700;font-size:.86rem;cursor:pointer;transition:.15s}
+  .subnav{background:var(--white);border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(11,31,69,.05);position:sticky;top:66px;z-index:55}
+  .subnav .inner{max-width:1200px;margin:0 auto;display:flex;gap:6px;padding:8px 14px;flex-wrap:wrap}
+  .subnav button{background:transparent;border:1.5px solid var(--border);color:var(--blue2);padding:6px 13px;border-radius:20px;font-weight:700;font-size:.78rem;cursor:pointer;transition:.15s}
   .subnav button:hover{border-color:var(--blue3);color:var(--blue3)}
   .subnav button.active{background:var(--blue);border-color:var(--blue);color:#fff}
   @media(max-width:960px){ .subnav{position:static} }
@@ -141,8 +141,8 @@
   </div>
 </header>
 
-<!-- Unter-Navigation unter "Kontakt" -->
-<div class="subnav" id="subnav" style="display:none">
+<!-- Unter-Navigation unter "Kontakt" (immer sichtbar) -->
+<div class="subnav" id="subnav">
   <div class="inner">
     <button data-ktab="email"      onclick="kontaktTab('email')">✉️ Email Schreiben</button>
     <button data-ktab="beschwerde" onclick="kontaktTab('beschwerde')">⚠️ Beschwerde Einreichen</button>
@@ -243,12 +243,6 @@
             <input type="tel" id="a-telefon" placeholder="Deine Nummer" maxlength="30" required>
           </div>
           <div>
-            <label for="a-email">E-Mail-Adresse <span class="req">*</span></label>
-            <input type="email" id="a-email" placeholder="deine@email.com" maxlength="80" required>
-          </div>
-        </div>
-        <div class="row">
-          <div>
             <label for="a-art">Art des Vorfalls <span class="req">*</span></label>
             <select id="a-art" required>
               <option value="" disabled selected>Bitte wählen …</option>
@@ -265,25 +259,29 @@
               <option>Sonstiges</option>
             </select>
           </div>
+        </div>
+        <div class="row">
           <div>
             <label for="a-ort">Ort des Vorfalls <span class="req">*</span></label>
             <input type="text" id="a-ort" placeholder="Straße / Bezirk" maxlength="90" required>
           </div>
-        </div>
-        <div class="row">
           <div>
             <label for="a-datum">Datum des Vorfalls <span class="req">*</span></label>
             <input type="date" id="a-datum" required>
           </div>
+        </div>
+        <div class="row">
           <div>
             <label for="a-zeit">Uhrzeit des Vorfalls <span class="req">*</span></label>
             <input type="time" id="a-zeit" required>
           </div>
+          <div>
+            <label for="a-taeter">Täterbeschreibung (falls bekannt)</label>
+            <input type="text" id="a-taeter" placeholder="Aussehen, Kleidung, Kennzeichen …" maxlength="200">
+          </div>
         </div>
         <label for="a-beschreibung">Beschreibung des Vorfalls <span class="req">*</span></label>
         <textarea id="a-beschreibung" placeholder="Beschreibe den Vorfall so genau wie möglich: was ist passiert, wann, wo, wer war beteiligt …" maxlength="3000" required></textarea>
-        <label for="a-taeter">Täterbeschreibung (falls bekannt)</label>
-        <input type="text" id="a-taeter" placeholder="Aussehen, Kleidung, Kennzeichen …" maxlength="200">
         <label for="a-zeugen">Zeugen (falls vorhanden)</label>
         <input type="text" id="a-zeugen" placeholder="Namen oder Kontaktmöglichkeiten der Zeugen" maxlength="200">
         <button class="btn" type="submit">📨 Anzeige erstatten</button>
@@ -381,7 +379,6 @@ function go(sec){
   document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + sec).classList.add('active');
   document.querySelectorAll('a.link').forEach(a => a.classList.toggle('active', a.dataset.sec === sec));
-  document.getElementById('subnav').style.display = (sec === 'kontakt') ? 'block' : 'none';
   if(sec === 'dashboard') loadDash();
   if(sec === 'kontakt') kontaktTab(currentKtab());
   if(sec === 'anzeige') loadMy();
@@ -450,7 +447,6 @@ async function submitAnzeige(){
     'Geburtsdatum': document.getElementById('a-geburtsdatum').value,
     Adresse: document.getElementById('a-adresse').value.trim(),
     Telefon: document.getElementById('a-telefon').value.trim(),
-    'E-Mail': document.getElementById('a-email').value.trim(),
     'Art des Vorfalls': document.getElementById('a-art').value,
     'Ort des Vorfalls': document.getElementById('a-ort').value.trim(),
     'Datum des Vorfalls': document.getElementById('a-datum').value,

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anforderungen — Karriere | LAPD | Los Angeles Police Department</title>
+<style>
+  :root{
+    --blue:#0b1f45; --blue2:#12305f; --blue3:#1d5bd6; --blue4:#3b82f6;
+    --light:#f2f5fb; --white:#fff; --gold:#c9a227; --border:#e2e8f4;
+    --text:#16233a; --muted:#64748b; --green:#1e9e5a; --red:#c0392b; --gray:#8a94a6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--light);color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  button{font-family:inherit}
+
+  header{position:sticky;top:0;z-index:60;background:rgba(11,31,69,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;box-shadow:0 2px 18px rgba(2,10,30,.35);border-bottom:1px solid rgba(255,255,255,.08)}
+  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:2px;padding:0 14px;height:66px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;cursor:pointer;margin-right:10px}
+  .brand img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
+  .brand .t1{font-size:1.2rem;font-weight:800;letter-spacing:2.5px;line-height:1}
+  .brand .t2{font-size:.58rem;letter-spacing:1.2px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
+  .nav a.link{padding:7px 10px;border-radius:7px;font-weight:700;font-size:.74rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.3px}
+  .nav a.link:hover{background:rgba(255,255,255,.12)}
+  .nav a.link.active{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
+  .spacer{flex:1}
+  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:7px 13px;border-radius:7px;font-weight:800;font-size:.74rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.3px}
+  .btn-login:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  @media(max-width:960px){ .nav{height:auto;padding:12px 14px;gap:6px} .brand{width:100%} }
+
+  main{flex:1;max-width:950px;width:100%;margin:0 auto;padding:30px 22px 50px}
+
+  .hero{background:radial-gradient(1000px 420px at 20% -10%,rgba(59,130,246,.35),transparent 60%),linear-gradient(135deg,var(--blue) 0%,var(--blue2) 55%,#16366e 100%);color:#fff;border-radius:18px;padding:40px 38px;position:relative;overflow:hidden;box-shadow:0 12px 34px rgba(11,31,69,.3);margin-bottom:26px}
+  .hero .badge{display:inline-block;background:rgba(201,162,39,.18);border:1px solid rgba(201,162,39,.5);color:#f2d98a;font-weight:800;font-size:.74rem;letter-spacing:1.5px;padding:6px 14px;border-radius:24px;margin-bottom:16px;text-transform:uppercase}
+  .hero h1{font-size:2rem;letter-spacing:1px;margin-bottom:10px;line-height:1.15}
+  .hero p{color:#c8d6f2;font-size:1rem;max-width:640px;line-height:1.65}
+
+  .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:26px;box-shadow:0 3px 12px rgba(11,31,69,.06)}
+  .panel h2{color:var(--blue);font-size:1.15rem;margin-bottom:16px}
+  .req-list{list-style:none}
+  .req-list li{display:flex;gap:14px;padding:13px 0;border-bottom:1px dashed var(--border);line-height:1.55;font-size:.94rem}
+  .req-list li:last-child{border-bottom:none}
+  .req-list .ic{flex:0 0 34px;height:34px;border-radius:50%;background:#eaf1ff;color:var(--blue3);display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800}
+  .req-list b{color:var(--blue2)}
+  .req-list .note{color:var(--muted);font-size:.82rem}
+  .back{display:inline-block;background:linear-gradient(135deg,var(--blue3),var(--blue4));color:#fff;padding:13px 26px;border-radius:10px;font-weight:800;font-size:.93rem;box-shadow:0 3px 10px rgba(29,91,214,.3)}
+  .back:hover{filter:brightness(1.08);transform:translateY(-1px)}
+
+  footer{border-top:1px solid var(--border);background:var(--blue);color:#aebfe2;text-align:center;padding:20px;font-size:.8rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand" onclick="location.href='/lapd'">
+      <img src="/lapd-logo.jpg" alt="LAPD Logo">
+      <div>
+        <div class="t1">LAPD</div>
+        <div class="t2">Los Angeles Police Department</div>
+      </div>
+    </div>
+    <a class="link" href="/lapd#start">STARTSEITE</a>
+    <a class="link" href="/lapd#informationen">INFORMATIONEN</a>
+    <a class="link" href="/lapd#mitarbeiter">MITARBEITER</a>
+    <a class="link" href="/lapd#fuhrpark">FUHRPARK</a>
+    <a class="link active" href="/lapd/karriere">KARRIERE</a>
+    <a class="link" href="/lapd#anzeige">ANZEIGE AUFGEBEN</a>
+    <div class="spacer"></div>
+    <button class="btn-login" onclick="location.href='/lapd#portal'">🏛️ PORTAL</button>
+    <a class="link" href="/lapd#email">KONTAKT</a>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <span class="badge">Career Requirements</span>
+    <h1>Anforderungen für den Polizeidienst</h1>
+    <p>Diese Voraussetzungen musst du erfüllen, um dich beim Los Angeles Police Department zu bewerben — basierend auf den offiziellen Einstellungsvoraussetzungen des LAPD.</p>
+  </div>
+
+  <div class="panel">
+    <h2>📋 Offizielle Voraussetzungen</h2>
+    <ul class="req-list">
+      <li><span class="ic">1</span><span><b>Alter:</b> Mindestens 21 Jahre alt (eine Bewerbung ab 20 Jahren ist möglich).</span></li>
+      <li><span class="ic">2</span><span><b>Staatsbürgerschaft:</b> US-amerikanische Staatsbürgerschaft oder unbefristete Aufenthaltsgenehmigung (Green Card / Permanent Resident).</span></li>
+      <li><span class="ic">3</span><span><b>Schulbildung:</b> High School Diploma oder GED.</span></li>
+      <li><span class="ic">4</span><span><b>Bildung / Erfahrung (mindestens eine davon):</b> 45 College-Semester-Einheiten, <b>oder</b> 2 Jahre Vollzeit-Berufserfahrung, <b>oder</b> 2 Jahre Vollzeit-Militärdienst.</span></li>
+      <li><span class="ic">5</span><span><b>Führerschein:</b> Gültiger kalifornischer Führerschein (Klasse C) zum Zeitpunkt der Einstellung — mit einer guten Fahrerlaubnis.</span></li>
+      <li><span class="ic">6</span><span><b>Strafregister:</b> Keine Vorstrafen (Felonies), keine Drogendelikte und keine unehrenhafte Entlassung aus dem Militär. Ein einwandfreier Leumund ist Voraussetzung.</span></li>
+      <li><span class="ic">7</span><span><b>Körperliche Fitness:</b> Bestehen des Physical Abilities Test (u. a. Laufen, Sit-ups, Liegestütze).</span></li>
+      <li><span class="ic">8</span><span><b>Seh- und Hörvermögen:</b> Sehstärke von mindestens 20/20 (korrigierbar) und normales Hörvermögen.</span></li>
+      <li><span class="ic">9</span><span><b>Auswahlverfahren:</b> Erfolgreiche Teilnahme an allen Stufen — Vorstellungsgespräch, Background-Untersuchung, medizinische Untersuchung, psychologische Untersuchung und Polygraph-Test (Lügendetektor).</span></li>
+      <li><span class="ic">10</span><span><b>Charakter:</b> Ehrlichkeit, Verantwortungsbewusstsein und ein einwandfreier Ruf sind Grundvoraussetzungen für den Dienst beim LAPD.</span></li>
+    </ul>
+  </div>
+
+  <a class="back" href="/lapd/karriere">← Zurück zur Bewerbung</a>
+
+</main>
+
+<footer>
+  © LAPD · Los Angeles Police Department — Los Angeles Roleplay · Offizielle Behörden-Webseite · Alle Rechte vorbehalten
+</footer>
+
+</body>
+</html>
