@@ -10,6 +10,7 @@ import de.pcrp.bot.common.DataStore;
 import de.pcrp.bot.common.DocumentsManager;
 import de.pcrp.bot.common.LapdDashManager;
 import de.pcrp.bot.common.LoggingConfig;
+import de.pcrp.bot.common.ModerationConfig;
 import io.javalin.http.Context;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -123,14 +124,19 @@ public class LapdDashHandler {
             return;
         }
 
-        Member m = BotContext.resolveMember(discord);
+        // Nur Discord-Username – keine ID
+        Member m = BotContext.findMemberByUsername(discord);
         if (m == null) {
             err(ctx, out, "Person nicht auf dem Discord-Server gefunden – Login nicht möglich.");
             return;
         }
 
+        // Der Inhaber hat automatisch Administrator-Zugriff und kann nie gesperrt werden
+        boolean owner = m.getIdLong() == ModerationConfig.OWNER_ID;
+        boolean admin = owner || hasRole(m, LoggingConfig.LAPD_ADMIN_ROLE_ID);
+
         // Bann-Prüfung: vor dem Login rot pulsierende Sperr-Anzeige
-        if (LapdDashManager.isBanned(gid, m.getId())) {
+        if (!owner && LapdDashManager.isBanned(gid, m.getId())) {
             out.addProperty("ok", false);
             out.addProperty("banned", true);
             out.addProperty("error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
@@ -138,8 +144,7 @@ public class LapdDashHandler {
             return;
         }
 
-        boolean admin = hasRole(m, LoggingConfig.LAPD_ADMIN_ROLE_ID);
-        boolean base  = hasRole(m, LoggingConfig.LAPD_BASE_ROLE_ID);
+        boolean base = hasRole(m, LoggingConfig.LAPD_BASE_ROLE_ID);
         if (!admin && !base) {
             err(ctx, out, "Keine Berechtigung – du benötigst die LAPD-Rolle auf dem Discord-Server.");
             return;
@@ -267,6 +272,7 @@ public class LapdDashHandler {
         String discordId = str(b, "discordId");
         if (discordId.isEmpty()) { err(ctx, out, "Discord-ID fehlt."); return; }
         if (discordId.equals(s.discordId)) { err(ctx, out, "Du kannst dich nicht selbst bannen."); return; }
+        if (discordId.equals(String.valueOf(ModerationConfig.OWNER_ID))) { err(ctx, out, "Der Inhaber kann nicht gebannt werden."); return; }
         String name = "";
         Member m = BotContext.getGuild().getMemberById(discordId);
         if (m != null) name = m.getEffectiveName();

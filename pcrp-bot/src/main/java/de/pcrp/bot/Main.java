@@ -6,6 +6,7 @@ import de.pcrp.bot.listeners.PollListener;
 import de.pcrp.bot.web.WebServer;
 import net.dv8tion.jda.api.*;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -144,7 +145,7 @@ public class Main {
 
         /** DataStore-Key für die einmalige LAPD-Webseiten-Ankündigung (pro Guild). */
         private static String lapdAnnounceKey(String guildId) {
-            return "announce-lapd-v3-once-" + guildId;
+            return "announce-lapd-v4-once-" + guildId;
         }
 
         @Override
@@ -751,27 +752,53 @@ public class Main {
             );
         }
 
-        /** Sendet genau EINE Ankündigung mit Link-Button zur /lapd-Seite — nur einmal pro Guild. */
+        /**
+         * LAPD-Embed: Beim ersten Start nach diesem Update wird der Kanal geleert und GENAU EIN neues
+         * Embed gesendet. Danach wird nur noch gesendet, wenn der Kanal (wieder) leer ist — nie mehr als eins.
+         */
         private static void postLAPDAnnouncement(Guild guild) {
             String key = lapdAnnounceKey(guild.getId());
-            String alreadySent = DataStore.readString(key);
-            if (alreadySent != null && !alreadySent.isBlank()) {
-                log.debug("[LAPD] Ankündigung bereits gesendet (msg={}), überspringe.", alreadySent);
-                return;
-            }
             TextChannel ch = guild.getTextChannelById(LoggingConfig.LAPD_EMBED_CHANNEL_ID);
             if (ch == null) {
                 log.warn("[LAPD] Ankündigungs-Kanal {} nicht gefunden — überspringe.", LoggingConfig.LAPD_EMBED_CHANNEL_ID);
                 return;
             }
+
+            String firstRun = DataStore.readString(key);
+            if (firstRun != null && !firstRun.isBlank()) {
+                // Bereits geleert & gesendet: nur senden, wenn aktuell KEIN Bot-Embed im Kanal liegt
+                ch.getHistory().retrievePast(30).queue(
+                    list -> {
+                        boolean hasBot = list.stream().anyMatch(m -> m.getAuthor().getIdLong() == guild.getSelfMember().getIdLong());
+                        if (!hasBot) sendLapdEmbed(ch, key);
+                    },
+                    err -> log.warn("[LAPD] Verlauf konnte nicht gelesen werden: {}", err.getMessage())
+                );
+                return;
+            }
+
+            // Erster Lauf nach dem Update: Kanal leeren, dann genau EIN Embed senden
+            log.info("[LAPD] Erster Lauf – leere Kanal {} und sende das neue Embed.", ch.getName());
+            ch.getIterableHistory().takeAsync(100).thenAccept(list -> {
+                for (Message msg : list) msg.delete().queue();
+                sendLapdEmbed(ch, key);
+            }).exceptionally(err -> {
+                log.warn("[LAPD] Kanal konnte nicht geleert werden: {}", err.getMessage());
+                sendLapdEmbed(ch, key);
+                return null;
+            });
+        }
+
+        /** Sendet das offizielle LAPD-Embed (einmalig, mit Duplikat-Schutz via Key). */
+        private static void sendLapdEmbed(TextChannel ch, String key) {
             String url = webUrl() + "/lapd";
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
-                    .setTitle("🚔 LAPD — Los Angeles Roleplay")
+                    .setTitle("🚔 Offizielle Webseite des Los Angeles Police Department")
                     .setDescription(
-                        "Die offizielle LAPD-Webseite ist live.\n\n" +
+                        "Hier findest du alles rund um das LAPD.\n\n" +
                         "🌐 **Webseite** — Informationen, Mitarbeiter, Fuhrpark, Karriere, Anzeige aufgeben, Email Schreiben & Beschwerde\n" +
-                        "👮 **Dashboard Login** — Das Beamten-Dashboard läuft auf einer eigenen externen Seite: Dienst an-/abmelden, Einsätze in Echtzeit, Fahndungen, Akten, Führerscheine u.v.m. (Login nur mit LAPD-Rolle)\n\n" +
+                        "👮 **Dashboard Login** — Das Beamten-Dashboard läuft auf einer eigenen externen Seite (Login nur mit LAPD-Rolle)\n\n" +
                         "**Klicke unten auf den Button, um die Webseite zu öffnen.**")
                     .setColor(0x0d2247)
                     .build()
@@ -780,7 +807,7 @@ public class Main {
             )).queue(
                 msg -> {
                     DataStore.writeString(key, msg.getId());
-                    log.info("[LAPD] Einmalige Ankündigung in {} (msg={}) gesendet — URL={}",
+                    log.info("[LAPD] Ankündigung in {} (msg={}) gesendet — URL={}",
                         ch.getName(), msg.getId(), url);
                 },
                 err -> log.error("[LAPD] Ankündigung konnte nicht gesendet werden.", err)
