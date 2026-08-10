@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.pcrp.bot.common.BotContext;
+import de.pcrp.bot.common.LapdDashManager;
 import de.pcrp.bot.common.LapdManager;
 import io.javalin.http.Context;
 import net.dv8tion.jda.api.entities.Guild;
@@ -13,8 +14,12 @@ import net.dv8tion.jda.api.entities.Member;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * HTTP-Routes für die LAPD-Webseite.
@@ -90,12 +95,58 @@ public class LapdHandler {
     private static String postfachLink(String type) {
         String base = webUrl();
         return switch (type) {
-            case "mail"       -> base + "/lapd#email";
+            case "mail"       -> base + "/lapd";
             case "beschwerde" -> base + "/lapd#beschwerde";
             case "anzeige"    -> base + "/lapd#anzeige";
             case "bewerbung"  -> base + "/lapd/karriere#meine";
             default           -> base + "/lapd";
         };
+    }
+
+    // ── Bann-Prüfung (gilt auch für die LAPD-Webseite) ───────────────────────
+
+    /** Alle Namen, unter denen gebannte Personen auf der Webseite erkannt werden (case-insensitive). */
+    private static Set<String> bannedNames(long gid) {
+        Set<String> names = new HashSet<>();
+        Guild guild = BotContext.getGuild();
+        for (LapdDashManager.Ban b : LapdDashManager.bannedList(gid)) {
+            if (b.name != null && !b.name.isBlank()) names.add(b.name.trim().toLowerCase());
+            if (guild != null) {
+                Member m = guild.getMemberById(b.discordId);
+                if (m != null) {
+                    names.add(m.getEffectiveName().trim().toLowerCase());
+                    names.add(m.getUser().getName().trim().toLowerCase());
+                }
+            }
+        }
+        return names;
+    }
+
+    /** Prüft, ob einer der eingegebenen Namen zu einer gebannten Person gehört. */
+    private static boolean isBannedName(long gid, String... names) {
+        Set<String> banned = bannedNames(gid);
+        if (banned.isEmpty()) return false;
+        for (String n : names) {
+            if (n != null && !n.isBlank() && banned.contains(n.trim().toLowerCase())) return true;
+        }
+        return false;
+    }
+
+    /** Discord-Feld eines Eintrags (Schlüssel „Discord“ oder „discord“). */
+    private static String discordField(LapdManager.Item i) {
+        if (i == null || i.data == null) return "";
+        String v = i.data.get("Discord");
+        if (v == null || v.isBlank()) v = i.data.get("discord");
+        return v == null ? "" : v;
+    }
+
+    /** Filtert Einträge von gebannten Personen heraus. */
+    private static List<LapdManager.Item> filterBanned(long gid, List<LapdManager.Item> items) {
+        List<LapdManager.Item> out = new ArrayList<>();
+        for (LapdManager.Item i : items) {
+            if (!isBannedName(gid, i.name, discordField(i))) out.add(i);
+        }
+        return out;
     }
 
     /**
@@ -104,8 +155,7 @@ public class LapdHandler {
      */
     private static void sendDm(LapdManager.Item item, String content) {
         if (item == null || content == null || content.isBlank()) return;
-        String discordName = "";
-        if (item.data != null && item.data.get("discord") != null) discordName = item.data.get("discord").trim();
+        String discordName = discordField(item);
         if (discordName.isEmpty()) discordName = item.name;
         if (discordName.isEmpty()) return;
 
@@ -140,6 +190,20 @@ public class LapdHandler {
         if (name.isEmpty()) { err(ctx, out, "Bitte gib deinen Namen ein."); return; }
         if (message.isEmpty()) { err(ctx, out, "Bitte fülle das Formular vollständig aus."); return; }
 
+        // Gebannte Personen können auf der Webseite nichts mehr einreichen
+        if (b != null && b.has("fields") && b.get("fields").isJsonObject()) {
+            JsonObject fo = b.getAsJsonObject("fields");
+            String discord = fo.has("Discord") ? fo.get("Discord").getAsString() :
+                             (fo.has("discord") ? fo.get("discord").getAsString() : "");
+            if (isBannedName(gid, name, discord)) {
+                err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+                return;
+            }
+        } else if (isBannedName(gid, name)) {
+            err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            return;
+        }
+
         Map<String, String> fields = new LinkedHashMap<>();
         if (b != null && b.has("fields") && b.get("fields").isJsonObject()) {
             JsonObject fo = b.getAsJsonObject("fields");
@@ -169,10 +233,10 @@ public class LapdHandler {
 
         LapdManager.Store mine = LapdManager.my(gid, uid);
         out.addProperty("ok", true);
-        out.add("mails",       GSON.toJsonTree(mine.mails));
-        out.add("anzeigen",    GSON.toJsonTree(mine.anzeigen));
-        out.add("bewerbungen", GSON.toJsonTree(mine.bewerbungen));
-        out.add("beschwerden", GSON.toJsonTree(mine.beschwerden));
+        out.add("mails",       GSON.toJsonTree(filterBanned(gid, mine.mails)));
+        out.add("anzeigen",    GSON.toJsonTree(filterBanned(gid, mine.anzeigen)));
+        out.add("bewerbungen", GSON.toJsonTree(filterBanned(gid, mine.bewerbungen)));
+        out.add("beschwerden", GSON.toJsonTree(filterBanned(gid, mine.beschwerden)));
         respond(ctx, out);
     }
 
@@ -208,10 +272,10 @@ public class LapdHandler {
 
         LapdManager.Store all = LapdManager.all(gid);
         out.addProperty("ok", true);
-        out.add("mails",       GSON.toJsonTree(all.mails));
-        out.add("anzeigen",    GSON.toJsonTree(all.anzeigen));
-        out.add("bewerbungen", GSON.toJsonTree(all.bewerbungen));
-        out.add("beschwerden", GSON.toJsonTree(all.beschwerden));
+        out.add("mails",       GSON.toJsonTree(filterBanned(gid, all.mails)));
+        out.add("anzeigen",    GSON.toJsonTree(filterBanned(gid, all.anzeigen)));
+        out.add("bewerbungen", GSON.toJsonTree(filterBanned(gid, all.bewerbungen)));
+        out.add("beschwerden", GSON.toJsonTree(filterBanned(gid, all.beschwerden)));
         respond(ctx, out);
     }
 

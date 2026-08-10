@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v16";
+        private static final String CHANGELOG_VERSION = "v17";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — LAPD-Dashboard Ausbau, Dispatch & Panic Button**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — LAPD-Bann gilt auch auf der Webseite**__\n\n" +
+                "⛔ **Bann jetzt auch auf der LAPD-Webseite** — Wird jemand im Dashboard gebannt, kann die Person auf der " +
+                "Webseite **keine Beschwerden, Anzeigen oder Bewerbungen mehr einreichen** (Meldung: „Dein Zugriff wurde " +
+                "von einem Administrator gesperrt”). Bestehende Einträge von Gebannten werden automatisch auf der Webseite " +
+                "und im Dashboard ausgeblendet.\n\n" +
+                "---\n\n" +
+                "__**Version v16 — LAPD-Dashboard Ausbau, Dispatch & Panic Button**__\n\n" +
                 "🚨 **Panic Button** — Oben in der Mitte des Dashboards pulsiert ein fetter roter Panic-Button. Beim Drücken gibt man " +
                 "seinen Standort (PSN) an – alle Beamten im Dienst werden sofort per DM alarmiert.\n\n" +
                 "📞 **Handy-Dispatch** — In den Handy-Einstellungen gibt es jetzt das neue Auswahlmenü **Dispatch** mit „LAPD Dispatch”. " +
