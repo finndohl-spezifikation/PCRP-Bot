@@ -144,6 +144,13 @@ public class LapdDashHandler {
             return;
         }
 
+        // Inhaber/Administratoren werden beim ersten Login dauerhaft registriert,
+        // damit sie z. B. in den Auswahlen (Abmahnen/Kündigen/Zuweisen) erscheinen.
+        // Der gewählte Dienstgrad beim ersten Login spielt dabei keine Rolle.
+        if (admin && LapdDashManager.findAccess(gid, m.getId()) == null) {
+            LapdDashManager.addAccess(gid, m.getId(), rank, m.getEffectiveName());
+        }
+
         // Administratoren können sich mit jedem Dienstgrad einloggen.
         // Alle anderen nur, wenn sie von einem Administrator eingetragen wurden
         // (Zugriffs-Verwaltung) – und nur mit dem dort zugewiesenen Dienstgrad.
@@ -387,6 +394,7 @@ public class LapdDashHandler {
         String discordId = str(b, "discordId");
         if (discordId.isEmpty()) { err(ctx, out, "Wähle einen Mitarbeiter aus."); return; }
         if (discordId.equals(s.discordId)) { err(ctx, out, "Du kannst dich nicht selbst abmahnen."); return; }
+        if (discordId.equals(String.valueOf(ModerationConfig.OWNER_ID))) { err(ctx, out, "Der Inhaber kann nicht abgemahnt werden."); return; }
         // Admins sind unantastbar
         Member target = BotContext.getGuild().getMemberById(discordId);
         if (target != null && hasRole(target, LoggingConfig.LAPD_ADMIN_ROLE_ID)) {
@@ -426,6 +434,7 @@ public class LapdDashHandler {
         String discordId = str(b, "discordId");
         if (discordId.isEmpty()) { err(ctx, out, "Wähle einen Mitarbeiter aus."); return; }
         if (discordId.equals(s.discordId)) { err(ctx, out, "Du kannst dich nicht selbst kündigen."); return; }
+        if (discordId.equals(String.valueOf(ModerationConfig.OWNER_ID))) { err(ctx, out, "Der Inhaber kann nicht gekündigt werden."); return; }
         Member target = BotContext.getGuild().getMemberById(discordId);
         if (target != null && hasRole(target, LoggingConfig.LAPD_ADMIN_ROLE_ID)) {
             err(ctx, out, "Administratoren können nicht gekündigt werden.");
