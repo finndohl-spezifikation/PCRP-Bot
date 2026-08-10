@@ -171,7 +171,7 @@ public class LapdDashHandler {
         if (!admin) {
             LapdDashManager.AccessEntry a = LapdDashManager.findAccess(gid, m.getId());
             if (a == null) {
-                err(ctx, out, "Kein Zugriff – deine Discord-ID wurde noch nicht von der Führungsebene freigeschaltet.");
+                err(ctx, out, "Kein Zugriff – deine Discord-ID wurde noch nicht von einem Administrator freigeschaltet.");
                 return;
             }
             if (!a.rank.equals(rank)) {
