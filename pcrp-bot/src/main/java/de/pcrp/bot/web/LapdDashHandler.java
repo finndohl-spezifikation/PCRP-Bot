@@ -120,7 +120,8 @@ public class LapdDashHandler {
         if (discord.isEmpty()) { err(ctx, out, "Bitte gib deinen Discord-Namen oder deine Discord-ID ein."); return; }
         if (rank.isEmpty())    { err(ctx, out, "Bitte wähle deinen Dienstgrad."); return; }
         if (pass.isEmpty())    { err(ctx, out, "Bitte gib das Passwort ein."); return; }
-        if (!LoggingConfig.LAPD_DASHBOARD_PASSWORD.equals(pass)) {
+        // Groß-/Kleinschreibung egal – verhindert Fehler durch Autokorrektur / versehentliche Großschreibung
+        if (!LoggingConfig.LAPD_DASHBOARD_PASSWORD.equalsIgnoreCase(pass)) {
             err(ctx, out, "Falsches Passwort.");
             return;
         }

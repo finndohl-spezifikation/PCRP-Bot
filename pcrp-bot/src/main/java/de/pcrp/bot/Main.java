@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v22";
+        private static final String CHANGELOG_VERSION = "v23";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,14 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — LAPD mobil optimiert**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Admins sehen & verwalten alles + Login-Fix**__\n\n" +
+                "👑 **Administratoren sehen und verwalten jetzt alles** — Die Kategorie „Leitungs Ebene” (Mitarbeiter, " +
+                "Abmahnen, Kündigen, Urlaubs Anträge, Zuweisen, Information Schreiben) sowie Beschwerden/Bewerbungen, " +
+                "Fahndungen-Löschen und Akten-Löschen sind für Administratoren wieder voll sichtbar und nutzbar.\n\n" +
+                "🔑 **Login-Fix** — Das Passwort wird jetzt ohne Groß-/Kleinschreibung geprüft (LAPD_2026 funktioniert " +
+                "auch als „lapd_2026”). Am Login-Screen steht der Hinweis mit dem Unterstrich.\n\n" +
+                "---\n\n" +
+                "__**Version v22 — LAPD mobil optimiert**__\n\n" +
                 "📱 **LAPD-Dashboard & Webseite jetzt auch auf dem Handy voll nutzbar** — Auf kleinen Bildschirmen " +
                 "wird die Sidebar des Dashboards zu einer horizontalen Leiste (alle Kategorien per Wischen erreichbar), " +
                 "der Panic-Button wird zentriert und der Inhalt nutzt die volle Breite. Webseite, Karriere- und " +

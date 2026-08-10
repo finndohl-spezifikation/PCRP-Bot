@@ -186,7 +186,8 @@
         <option>Rooky</option>
       </select>
       <label>Passwort</label>
-      <input type="password" id="lg-pass" placeholder="Passwort" autocomplete="off">
+      <input type="password" id="lg-pass" placeholder="LAPD_2026" autocomplete="off">
+      <div class="hint" style="text-align:left">Passwort: <b>LAPD_2026</b> — mit Unterstrich „_“, Groß-/Kleinschreibung egal.</div>
       <button class="btn" type="submit">🔐 Einloggen</button>
       <div class="err" id="lg-err"></div>
       <div class="hint">Zugriff nur für freigeschaltete LAPD-Mitglieder. Der Bot prüft bei jedem Login, ob du auf dem Discord-Server bist und von einem Administrator eingetragen wurdest.</div>
@@ -351,7 +352,7 @@ function buildSidebar(){
     html += '<a class="item" data-page="bann" onclick="nav(\'bann\')">⛔ Nutzer Bannen</a>';
     html += '<a class="item" data-page="fuhrpark" onclick="nav(\'fuhrpark\')">🚓 Fuhrpark Verwalten</a>';
   }
-  if(ME.leader){
+  if(ME.leader || ME.admin){
     html += '<div class="cat">Leitungs Ebene</div>';
     html += '<a class="item" data-page="mitarbeiter" onclick="nav(\'mitarbeiter\')">👥 Mitarbeiter Liste</a>';
     html += '<a class="item" data-page="abmahnen" onclick="nav(\'abmahnen\')">⚠️ Abmahnen</a>';
@@ -377,7 +378,7 @@ function buildSidebar(){
   html += '<div class="cat">Kontakt</div>';
   html += '<a class="item" data-page="mails" onclick="nav(\'mails\')">✉️ Mails</a>';
   html += '<a class="item" data-page="anzeigen" onclick="nav(\'anzeigen\')">📋 Anzeigen</a>';
-  if(ME.leader){
+  if(ME.leader || ME.admin){
     html += '<a class="item" data-page="beschwerden" onclick="nav(\'beschwerden\')">⚠️ Beschwerden</a>';
     html += '<a class="item" data-page="bewerbungen" onclick="nav(\'bewerbungen\')">🎓 Bewerbungen</a>';
   }
@@ -781,9 +782,9 @@ async function loadFahndungen(){
   if(!d.ok){ el.innerHTML = head('Fahndungen', d.error||'Fehler'); return; }
   const rows = (d.wanted||[]).map(w =>
     '<div class="item gold"><div class="top"><span class="who">' + esc(w.title) + '</span><span class="when">' + fmt(w.ts) + '</span>' +
-    (ME.leader ? '<button class="btn small red" onclick="wantedDelete(\'' + w.id + '\')">Löschen</button>' : '') + '</div>' +
+    ((ME.leader || ME.admin) ? '<button class="btn small red" onclick="wantedDelete(\'' + w.id + '\')">Löschen</button>' : '') + '</div>' +
     (w.description ? '<div class="txt">' + esc(w.description) + '</div>' : '') + '</div>').join('');
-  el.innerHTML = head('Fahndungen', ME.leader ? 'Fahndungen erstellen und löschen.' : 'Fahndungen einsehen – Löschen nur für die Leitungs-Ebene.') +
+  el.innerHTML = head('Fahndungen', (ME.leader || ME.admin) ? 'Fahndungen erstellen und löschen.' : 'Fahndungen einsehen – Löschen nur für die Leitungs-Ebene.') +
     '<div class="grid"><div class="panel"><h3>🔎 Neue Fahndung</h3>' +
     '<label>Titel</label><input type="text" id="wn-title" placeholder="z. B. Gesucht: …">' +
     '<label>Beschreibung</label><textarea id="wn-desc" placeholder="Beschreibung der Fahndung …"></textarea>' +
@@ -1053,7 +1054,7 @@ function akteItem(a, kind){
   const fhtml = fkeys.length ? '<div class="fields">' + fkeys.map(k => '<b>' + esc(k) + ':</b><span>' + esc(a.data[k]) + '</span>').join('') + '</div>' : '';
   return '<div class="item"><div class="top"><span class="who">' + esc(a.name) + '</span><span class="when">' + fmt(a.ts) + '</span>' +
     '<button class="btn small gold" onclick="akteEdit(\'' + kind + '\',\'' + a.id + '\')">Bearbeiten</button>' +
-    (ME.leader ? '<button class="btn small red" onclick="akteDelete(\'' + kind + '\',\'' + a.id + '\')">Löschen</button>' : '') + '</div>' + fhtml + '</div>';
+    ((ME.leader || ME.admin) ? '<button class="btn small red" onclick="akteDelete(\'' + kind + '\',\'' + a.id + '\')">Löschen</button>' : '') + '</div>' + fhtml + '</div>';
 }
 function parseFields(text){
   const m = {};
