@@ -106,12 +106,14 @@ public class WebServer {
 
         // ── LAPD (Webseite + Beamten-Dashboard) ────────────────────────────
         app.get( "/lapd",                                      WebServer::serveLapd);
+        app.get( "/lapd/karriere",                             WebServer::serveLapdKarriere);
         app.post("/api/lapd/create",           ctx -> LapdHandler.handleCreate(ctx));
         app.get( "/api/lapd/my",               ctx -> LapdHandler.handleMy(ctx));
         app.post("/api/lapd/reply",            ctx -> LapdHandler.handleReply(ctx));
         app.get( "/api/lapd/dashboard",        ctx -> LapdHandler.handleDashboard(ctx));
         app.post("/api/lapd/dashboard/reply",  ctx -> LapdHandler.handleDashReply(ctx));
         app.post("/api/lapd/dashboard/status", ctx -> LapdHandler.handleDashStatus(ctx));
+        app.post("/api/lapd/dashboard/decide", ctx -> LapdHandler.handleDashDecide(ctx));
 
         // ── Krypto (PC Coins Kursseite) ────────────────────────────────────
         app.get( "/krypto",                                      WebServer::serveKrypto);
@@ -403,6 +405,30 @@ public class WebServer {
             log.info("[LAPD] Webseite ausgeliefert.");
         } catch (Exception e) {
             log.error("[LAPD] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    // ── lapd-karriere.html (Bewerbungsportal) ──────────────────
+
+    private static void serveLapdKarriere(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/lapd-karriere.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            String base = System.getenv("WEB_URL");
+            if (base == null || base.isBlank()) {
+                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
+                if (!base.startsWith("http")) base = "https://" + base;
+            }
+            base = base.replaceAll("/$", "");
+            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
+                .replace("%%API_BASE%%", base);
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
+            log.info("[LAPD] Bewerbungsportal ausgeliefert.");
+        } catch (Exception e) {
+            log.error("[LAPD] Fehler beim Ausliefern des Bewerbungsportals.", e);
             ctx.status(500).result("Interner Fehler");
         }
     }

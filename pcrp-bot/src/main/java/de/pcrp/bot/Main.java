@@ -144,7 +144,7 @@ public class Main {
 
         /** DataStore-Key für die einmalige LAPD-Webseiten-Ankündigung (pro Guild). */
         private static String lapdAnnounceKey(String guildId) {
-            return "announce-lapd-v1-once-" + guildId;
+            return "announce-lapd-v2-once-" + guildId;
         }
 
         @Override
@@ -766,13 +766,13 @@ public class Main {
             String url = webUrl() + "/lapd";
             ch.sendMessageEmbeds(
                 EmbedFactory.create()
-                    .setTitle("🚔 LAPD — Paradise City Roleplay")
+                    .setTitle("🚔 LAPD — Los Angeles Roleplay")
                     .setDescription(
                         "Die neue offizielle LAPD-Webseite ist ab sofort verfügbar.\n\n" +
-                        "✉️ **Email Schreiben** — Kontaktformular mit Status-Verfolgung („Meine Anfragen”)\n" +
-                        "📋 **Anzeige Erstatten** — Vorfälle melden und den Status verfolgen („Meine Anzeigen”)\n" +
-                        "🎓 **Bewerbungsportal** — Dich für den Dienst beim LAPD bewerben („Meine Bewerbungen”)\n" +
-                        "👮 **Dashboard** — Beamten-Ansicht mit Antworten, „Gelöst” und „Schließen”\n\n" +
+                        "🎓 **Karriere** — Bewirb dich mit dem offiziellen Bewerbungsformular („Meine Bewerbungen”)\n" +
+                        "📋 **Anzeige aufgeben** — Vorfälle mit dem offiziellen LAPD-Formular melden\n" +
+                        "✉️ **Kontakt** — Email Schreiben oder Beschwerde Einreichen\n" +
+                        "👮 **Portal** — Beamten-Ansicht: Antworten, Annehmen/Ablehnen, „Gelöst” und „Schließen”\n\n" +
                         "**Klicke unten auf den Button, um die Webseite zu öffnen.**")
                     .setColor(0x0d2247)
                     .build()
@@ -796,7 +796,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v12";
+        private static final String CHANGELOG_VERSION = "v13";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -813,7 +813,14 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Support-Warteraum (Voice-Fix) & mehr**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — LAPD-Webseite (Komplett-Relaunch)**__\n\n" +
+                "🚔 **LAPD-Webseite (Relaunch)** — Neue Navigation mit den Kategorien Startseite, Informationen, " +
+                "Mitarbeiter, Fuhrpark, Karriere, Anzeige aufgeben, Portal und Kontakt. Unter Kontakt gibt es jetzt " +
+                "Email Schreiben und Beschwerde Einreichen. Das Karriere-Portal läuft auf einer eigenen Seite mit " +
+                "vollständigem LAPD-Bewerbungsformular; Bewerbungen können im Dashboard beantwortet, angenommen oder " +
+                "abgelehnt werden (automatische DM bei Annehmen/Ablehnen). Das Anzeige-Formular enthält alle Felder " +
+                "einer echten LAPD-Anzeige. Antworten aus dem Dashboard lösen jetzt eine DM-Benachrichtigung mit " +
+                "Postfach-Link an den Bürger aus.\n\n" +
                 "🎧 **Support-Warteraum** — Betritt ein Spieler den Warteraum, wird automatisch ein Embed mit " +
                 "Ping an Support & Highteam gesendet. Teammitglieder können den Fall mit dem Button „Fall Übernehmen” " +
                 "übernehmen — der Spieler wird automatisch in den Sprachkanal des Teamlers bewegt. " +

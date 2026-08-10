@@ -6,15 +6,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Datenhaltung für die LAPD-Webseite: Mails (Kontakt), Anzeigen und Bewerbungen.
+ * Datenhaltung für die LAPD-Webseite: Mails (Kontakt), Beschwerden, Anzeigen und Bewerbungen.
  * Persistenz pro Guild in einer JSON-Datei (lapd-&lt;guildId&gt;.json).
  *
  * Jeder Eintrag hat eine Client-UID (aus localStorage) + den eingegebenen Namen,
- * einen Status (offen/gelöst/geschlossen) und einen Verlauf aus Antworten
- * (Bürger und LAPD).
+ * einen Status (offen/gelöst/geschlossen/angenommen/abgelehnt), ein generisches
+ * Felder-Map (alle Formularfelder) und einen Verlauf aus Antworten (Bürger und LAPD).
  */
 public final class LapdManager {
 
@@ -24,15 +26,18 @@ public final class LapdManager {
     public static final String STATUS_OFFEN       = "offen";
     public static final String STATUS_GELOEST     = "gelöst";
     public static final String STATUS_GESCHLOSSEN = "geschlossen";
+    public static final String STATUS_ANGENOMMEN  = "angenommen";
+    public static final String STATUS_ABGELEHNT   = "abgelehnt";
 
-    /** Ein Bürger-/LAPD-Eintrag (Mail / Anzeige / Bewerbung). */
+    /** Ein Bürger-/LAPD-Eintrag (Mail / Beschwerde / Anzeige / Bewerbung). */
     public static class Item {
         public String id;
         public String uid;       // Client-Kennung des Absenders (localStorage)
         public String name;      // Eingegebener Name
-        public String message;   // Text
+        public String message;   // Haupttext (Anliegen / Beschreibung / Motivation)
         public String status = STATUS_OFFEN;
         public long createdAt;
+        public Map<String, String> data = new LinkedHashMap<>(); // Alle Formularfelder
         public List<Reply> replies = new ArrayList<>();
     }
 
@@ -44,9 +49,10 @@ public final class LapdManager {
 
     /** Kompletter Datenbestand einer Guild. */
     public static class Store {
-        public List<Item> mails       = new ArrayList<>();
-        public List<Item> anzeigen    = new ArrayList<>();
-        public List<Item> bewerbungen = new ArrayList<>();
+        public List<Item> mails        = new ArrayList<>();
+        public List<Item> anzeigen     = new ArrayList<>();
+        public List<Item> bewerbungen  = new ArrayList<>();
+        public List<Item> beschwerden  = new ArrayList<>();
     }
 
     private LapdManager() {}
@@ -61,9 +67,10 @@ public final class LapdManager {
         try {
             Store s = GSON.fromJson(raw, Store.class);
             if (s == null) return new Store();
-            if (s.mails == null)       s.mails       = new ArrayList<>();
-            if (s.anzeigen == null)    s.anzeigen    = new ArrayList<>();
-            if (s.bewerbungen == null) s.bewerbungen = new ArrayList<>();
+            if (s.mails        == null) s.mails        = new ArrayList<>();
+            if (s.anzeigen     == null) s.anzeigen     = new ArrayList<>();
+            if (s.bewerbungen  == null) s.bewerbungen  = new ArrayList<>();
+            if (s.beschwerden  == null) s.beschwerden  = new ArrayList<>();
             return s;
         } catch (Exception e) {
             log.warn("[LAPD] Datenbestand konnte nicht gelesen werden: {}", e.getMessage());
@@ -77,10 +84,11 @@ public final class LapdManager {
 
     private static List<Item> listOf(Store s, String type) {
         return switch (type) {
-            case "mail"      -> s.mails;
-            case "anzeige"   -> s.anzeigen;
-            case "bewerbung" -> s.bewerbungen;
-            default          -> null;
+            case "mail"       -> s.mails;
+            case "anzeige"    -> s.anzeigen;
+            case "bewerbung"  -> s.bewerbungen;
+            case "beschwerde" -> s.beschwerden;
+            default           -> null;
         };
     }
 
@@ -89,8 +97,14 @@ public final class LapdManager {
              + Integer.toHexString((int) (Math.random() * 0xFFFFFF));
     }
 
-    /** Legt einen neuen Eintrag an (Typ: mail / anzeige / bewerbung). */
+    /** Legt einen neuen Eintrag an (Typ: mail / anzeige / bewerbung / beschwerde). */
     public static synchronized Item create(long guildId, String type, String uid, String name, String message) {
+        return create(guildId, type, uid, name, message, null);
+    }
+
+    /** Legt einen neuen Eintrag an – zusätzlich mit allen Formularfeldern. */
+    public static synchronized Item create(long guildId, String type, String uid, String name, String message,
+                                           Map<String, String> data) {
         Store store = load(guildId);
         List<Item> list = listOf(store, type);
         if (list == null) return null;
@@ -99,6 +113,7 @@ public final class LapdManager {
         item.uid = uid == null ? "" : uid;
         item.name = name == null ? "" : name.trim();
         item.message = message == null ? "" : message.trim();
+        if (data != null) item.data = new LinkedHashMap<>(data);
         item.createdAt = System.currentTimeMillis();
         list.add(item);
         save(guildId, store);
@@ -117,7 +132,19 @@ public final class LapdManager {
         mine.mails       = filter(all.mails, uid);
         mine.anzeigen    = filter(all.anzeigen, uid);
         mine.bewerbungen = filter(all.bewerbungen, uid);
+        mine.beschwerden = filter(all.beschwerden, uid);
         return mine;
+    }
+
+    /** Liefert einen einzelnen Eintrag (für DM-Benachrichtigungen nach Dashboard-Aktionen). */
+    public static synchronized Item find(long guildId, String type, String id) {
+        Store store = load(guildId);
+        List<Item> list = listOf(store, type);
+        if (list == null) return null;
+        for (Item i : list) {
+            if (i.id.equals(id)) return i;
+        }
+        return null;
     }
 
     private static List<Item> filter(List<Item> items, String uid) {
@@ -169,11 +196,13 @@ public final class LapdManager {
         return false;
     }
 
-    /** LAPD-Dashboard: Status setzen (offen / gelöst / geschlossen). */
+    /** LAPD-Dashboard: Status setzen (offen / gelöst / geschlossen / angenommen / abgelehnt). */
     public static synchronized boolean setStatus(long guildId, String type, String id, String status) {
         if (!STATUS_OFFEN.equals(status)
                 && !STATUS_GELOEST.equals(status)
-                && !STATUS_GESCHLOSSEN.equals(status)) return false;
+                && !STATUS_GESCHLOSSEN.equals(status)
+                && !STATUS_ANGENOMMEN.equals(status)
+                && !STATUS_ABGELEHNT.equals(status)) return false;
         Store store = load(guildId);
         List<Item> list = listOf(store, type);
         if (list == null) return false;

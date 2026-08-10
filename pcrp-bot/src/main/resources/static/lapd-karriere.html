@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karriere — LAPD | Los Angeles Police Department</title>
+<style>
+  :root{
+    --blue:#0b1f45; --blue2:#12305f; --blue3:#1d5bd6; --blue4:#3b82f6;
+    --light:#f2f5fb; --white:#fff; --gold:#c9a227; --border:#e2e8f4;
+    --text:#16233a; --muted:#64748b; --green:#1e9e5a; --red:#c0392b; --gray:#8a94a6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--light);color:var(--text);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  button{font-family:inherit}
+
+  header{position:sticky;top:0;z-index:60;background:rgba(11,31,69,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;box-shadow:0 2px 18px rgba(2,10,30,.35);border-bottom:1px solid rgba(255,255,255,.08)}
+  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:4px;padding:0 18px;height:74px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:13px;cursor:pointer;margin-right:14px}
+  .brand img{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
+  .brand .t1{font-size:1.4rem;font-weight:800;letter-spacing:3px;line-height:1}
+  .brand .t2{font-size:.66rem;letter-spacing:1.5px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
+  .nav a.link{padding:9px 13px;border-radius:8px;font-weight:700;font-size:.85rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.4px}
+  .nav a.link:hover{background:rgba(255,255,255,.12)}
+  .nav a.link.active{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
+  .spacer{flex:1}
+  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:9px 16px;border-radius:8px;font-weight:800;font-size:.85rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.4px}
+  .btn-login:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  @media(max-width:960px){ .nav{height:auto;padding:12px 14px;gap:6px} .brand{width:100%} }
+
+  main{flex:1;max-width:950px;width:100%;margin:0 auto;padding:30px 22px 50px}
+
+  .hero{background:radial-gradient(1000px 420px at 20% -10%,rgba(59,130,246,.35),transparent 60%),linear-gradient(135deg,var(--blue) 0%,var(--blue2) 55%,#16366e 100%);color:#fff;border-radius:18px;padding:44px 40px;position:relative;overflow:hidden;box-shadow:0 12px 34px rgba(11,31,69,.3);margin-bottom:26px}
+  .hero .badge{display:inline-block;background:rgba(201,162,39,.18);border:1px solid rgba(201,162,39,.5);color:#f2d98a;font-weight:800;font-size:.74rem;letter-spacing:1.5px;padding:6px 14px;border-radius:24px;margin-bottom:16px;text-transform:uppercase}
+  .hero h1{font-size:2.1rem;letter-spacing:1px;margin-bottom:10px;line-height:1.15}
+  .hero p{color:#c8d6f2;font-size:1rem;max-width:620px;line-height:1.65}
+
+  .pagetitle{border-bottom:3px solid var(--gold);display:inline-block;padding-bottom:6px;color:var(--blue);font-size:1.4rem;margin-bottom:20px}
+  .hint{background:#eaf1ff;border:1px solid #cfdfff;color:var(--blue2);border-radius:10px;padding:13px 17px;font-size:.9rem;margin-bottom:20px;line-height:1.55}
+
+  .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:26px;box-shadow:0 3px 12px rgba(11,31,69,.06)}
+  .panel h2{color:var(--blue);font-size:1.12rem;margin-bottom:14px}
+  label{display:block;font-weight:600;font-size:.85rem;color:var(--blue2);margin:13px 0 5px}
+  label .req{color:var(--red)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  @media(max-width:720px){ .row{grid-template-columns:1fr} }
+  input[type=text],input[type=date],input[type=email],input[type=tel],select,textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:.95rem;font-family:inherit;background:#fbfcff;color:var(--text);transition:.15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue3);background:#fff;box-shadow:0 0 0 3px rgba(29,91,214,.12)}
+  textarea{min-height:110px;resize:vertical}
+  .btn{background:linear-gradient(135deg,var(--blue3),var(--blue4));color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:800;font-size:.93rem;cursor:pointer;margin-top:14px;box-shadow:0 3px 10px rgba(29,91,214,.3);transition:.15s}
+  .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
+  .msg{display:none;margin-top:13px;padding:11px 15px;border-radius:10px;font-size:.9rem;font-weight:600}
+  .msg.ok{display:block;background:#e7f7ee;color:var(--green);border:1px solid #bfe8d2}
+  .msg.err{display:block;background:#fdeeee;color:var(--red);border:1px solid #f5c6c6}
+
+  .listtitle{font-size:1.04rem;color:var(--blue);margin:10px 0 14px;display:flex;align-items:center;gap:8px}
+  .listtitle .count{background:var(--blue3);color:#fff;font-size:.75rem;border-radius:14px;padding:3px 12px}
+  .item{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--blue3);border-radius:12px;padding:17px 19px;margin-bottom:14px;box-shadow:0 2px 8px rgba(11,31,69,.05)}
+  .item.angenommen{border-left-color:var(--green)}
+  .item.abgelehnt{border-left-color:var(--red);opacity:.85}
+  .item .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
+  .item .who{font-weight:700;color:var(--blue)}
+  .item .when{color:var(--muted);font-size:.8rem}
+  .item .txt{line-height:1.55;margin:6px 0 10px;white-space:pre-wrap}
+  .fields{background:#f4f8ff;border:1px solid var(--border);border-radius:9px;padding:10px 14px;margin:8px 0 10px;font-size:.86rem;line-height:1.65;display:grid;grid-template-columns:auto 1fr;gap:2px 14px}
+  .fields b{color:var(--blue2);font-weight:600}
+  .st{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 11px;border-radius:14px}
+  .st.offen{background:#e3ecff;color:var(--blue3)}
+  .st.angenommen{background:#e2f6ea;color:var(--green)}
+  .st.abgelehnt{background:#fdeaea;color:var(--red)}
+  .st.geschlossen{background:#e9ecf1;color:var(--gray)}
+  .replies{border-top:1px dashed var(--border);padding-top:10px;margin-top:10px}
+  .replyline{font-size:.88rem;margin:6px 0;line-height:1.45}
+  .replyline b{color:var(--blue2)}
+  .replyline .lapd{color:var(--green)}
+  .replyline .when{color:var(--muted);font-size:.75rem}
+  .replybox{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .replybox input{flex:1;min-width:180px}
+  .empty{color:var(--muted);font-size:.9rem;background:#f7f9fc;border:1px dashed var(--border);border-radius:10px;padding:15px 17px}
+
+  footer{border-top:1px solid var(--border);background:var(--blue);color:#aebfe2;text-align:center;padding:20px;font-size:.8rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand" onclick="location.href='/lapd'">
+      <img src="/lapd-logo.jpg" alt="LAPD Logo">
+      <div>
+        <div class="t1">LAPD</div>
+        <div class="t2">Los Angeles Police Department</div>
+      </div>
+    </div>
+    <a class="link" href="/lapd#start">STARTSEITE</a>
+    <a class="link" href="/lapd#informationen">INFORMATIONEN</a>
+    <a class="link" href="/lapd#mitarbeiter">MITARBEITER</a>
+    <a class="link" href="/lapd#fuhrpark">FUHRPARK</a>
+    <a class="link active" href="/lapd/karriere">KARRIERE</a>
+    <a class="link" href="/lapd#anzeige">ANZEIGE AUFGEBEN</a>
+    <div class="spacer"></div>
+    <button class="btn-login" onclick="location.href='/lapd#portal'">🏛️ PORTAL</button>
+    <a class="link" href="/lapd#email">KONTAKT</a>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <span class="badge">Career Opportunities</span>
+    <h1>Karriere beim LAPD</h1>
+    <p>Bewirb dich für den Dienst beim Los Angeles Police Department. Fülle das offizielle Bewerbungsformular vollständig aus – deine Bewerbung wird vom LAPD geprüft und du erhältst eine Rückmeldung.</p>
+  </div>
+
+  <div id="formular">
+    <h2 class="pagetitle">Bewerbungsformular</h2>
+    <div class="panel">
+      <h2>🎓 Offizielle LAPD-Bewerbung</h2>
+      <div class="hint">Alle mit <span class="req">*</span> markierten Felder sind Pflichtfelder. Bitte fülle die Bewerbung wahrheitsgemäß aus.</div>
+      <form onsubmit="event.preventDefault();submitBewerbung()">
+        <div class="row">
+          <div>
+            <label for="k-vorname">Vorname <span class="req">*</span></label>
+            <input type="text" id="k-vorname" maxlength="40" required>
+          </div>
+          <div>
+            <label for="k-nachname">Nachname <span class="req">*</span></label>
+            <input type="text" id="k-nachname" maxlength="40" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="k-geburtsdatum">Geburtsdatum <span class="req">*</span></label>
+            <input type="date" id="k-geburtsdatum" required>
+          </div>
+          <div>
+            <label for="k-adresse">Wohnadresse <span class="req">*</span></label>
+            <input type="text" id="k-adresse" placeholder="Straße, Hausnummer, Stadt" maxlength="90" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="k-telefon">Telefonnummer <span class="req">*</span></label>
+            <input type="tel" id="k-telefon" placeholder="Deine Nummer" maxlength="30" required>
+          </div>
+          <div>
+            <label for="k-email">E-Mail-Adresse <span class="req">*</span></label>
+            <input type="email" id="k-email" placeholder="deine@email.com" maxlength="80" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="k-discord">Discord Name <span class="req">*</span></label>
+            <input type="text" id="k-discord" placeholder="Dein Discord-Name (für Rückmeldung per DM)" maxlength="40" required>
+          </div>
+          <div>
+            <label for="k-fuehrerschein">Führerscheinklasse <span class="req">*</span></label>
+            <select id="k-fuehrerschein" required>
+              <option value="" disabled selected>Bitte wählen …</option>
+              <option>A</option>
+              <option>B</option>
+              <option>C</option>
+              <option>Keine</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="k-abschluss">Bildungsabschluss <span class="req">*</span></label>
+            <select id="k-abschluss" required>
+              <option value="" disabled selected>Bitte wählen …</option>
+              <option>Keiner</option>
+              <option>Hauptschulabschluss</option>
+              <option>Realschulabschluss</option>
+              <option>Abitur / Fachabitur</option>
+              <option>Studium</option>
+            </select>
+          </div>
+          <div>
+            <label for="k-vorstrafen">Vorstrafen <span class="req">*</span></label>
+            <select id="k-vorstrafen" required>
+              <option value="" disabled selected>Bitte wählen …</option>
+              <option>Nein</option>
+              <option>Ja</option>
+            </select>
+          </div>
+        </div>
+        <label for="k-erfahrung">Berufserfahrung <span class="req">*</span></label>
+        <textarea id="k-erfahrung" placeholder="Beschreibe deine bisherige Berufserfahrung (Ausbildung, Jobs, besondere Fähigkeiten) …" maxlength="2000" required></textarea>
+        <label for="k-motivation">Warum möchtest du zum LAPD? <span class="req">*</span></label>
+        <textarea id="k-motivation" placeholder="Erkläre deine Motivation und warum du für den Polizeidienst geeignet bist …" maxlength="2000" required></textarea>
+        <button class="btn" type="submit">📨 Bewerbung absenden</button>
+        <div class="msg" id="k-msgbox"></div>
+      </form>
+    </div>
+  </div>
+
+  <h3 class="listtitle" id="meine">Meine Bewerbungen <span class="count" id="k-count">0</span></h3>
+  <div id="k-list"></div>
+
+</main>
+
+<footer>
+  © LAPD · Los Angeles Police Department — Los Angeles Roleplay · Offizielle Behörden-Webseite · Alle Rechte vorbehalten
+</footer>
+
+<script>
+const API = "%%API_BASE%%";
+
+function uid(){
+  let u = localStorage.getItem('lapd-uid');
+  if(!u){ u = 'u' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('lapd-uid', u); }
+  return u;
+}
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fmt(ts){ return new Date(ts).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}); }
+
+async function submitBewerbung(){
+  const box = document.getElementById('k-msgbox');
+  box.className = 'msg';
+  const vorname = document.getElementById('k-vorname').value.trim();
+  const nachname = document.getElementById('k-nachname').value.trim();
+  const name = vorname + ' ' + nachname;
+  const fields = {
+    Vorname: vorname, Nachname: nachname,
+    'Geburtsdatum': document.getElementById('k-geburtsdatum').value,
+    Adresse: document.getElementById('k-adresse').value.trim(),
+    Telefon: document.getElementById('k-telefon').value.trim(),
+    'E-Mail': document.getElementById('k-email').value.trim(),
+    Discord: document.getElementById('k-discord').value.trim(),
+    'Führerscheinklasse': document.getElementById('k-fuehrerschein').value,
+    'Bildungsabschluss': document.getElementById('k-abschluss').value,
+    Vorstrafen: document.getElementById('k-vorstrafen').value,
+    'Berufserfahrung': document.getElementById('k-erfahrung').value.trim()
+  };
+  const motivation = document.getElementById('k-motivation').value.trim();
+  try{
+    const r = await fetch(API + '/api/lapd/create',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'bewerbung', uid:uid(), name, message:motivation, fields})});
+    const d = await r.json();
+    if(!d.ok){ box.className='msg err'; box.textContent = d.error || 'Fehler beim Senden.'; return; }
+    box.className='msg ok'; box.textContent = '✅ Bewerbung erfolgreich eingereicht. Du kannst den Status unter „Meine Bewerbungen“ verfolgen – eine Rückmeldung erhältst du per DM.';
+    document.getElementById('k-motivation').value = '';
+    loadMy();
+  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler – bitte erneut versuchen.'; }
+}
+
+function fieldsHtml(i){
+  const d = i.data || {};
+  const keys = Object.keys(d);
+  if(!keys.length) return '';
+  return '<div class="fields">' + keys.map(k => {
+    const v = d[k];
+    if(v === undefined || v === null || v === '') return '';
+    return '<b>' + esc(k) + ':</b><span>' + esc(v) + '</span>';
+  }).join('') + '</div>';
+}
+
+async function loadMy(){
+  try{
+    const r = await fetch(API + '/api/lapd/my?uid=' + encodeURIComponent(uid()));
+    const d = await r.json();
+    if(!d.ok) return;
+    const items = d.bewerbungen || [];
+    document.getElementById('k-count').textContent = items.length;
+    const el = document.getElementById('k-list');
+    if(!items.length){ el.innerHTML = '<div class="empty">Noch keine Bewerbungen vorhanden.</div>'; return; }
+    el.innerHTML = items.map(i => {
+      const replies = (i.replies||[]).map(r =>
+        '<div class="replyline"><b class="' + (r.author==='LAPD'?'lapd':'') + '">' + esc(r.author) + '</b> · <span class="when">' + fmt(r.ts) + '</span><br>' + esc(r.text) + '</div>'
+      ).join('');
+      let actions = '';
+      if(i.status === 'offen'){
+        actions = '<div class="replybox">' +
+          '<input type="text" id="rb-' + i.id + '" placeholder="Antwort schreiben …" maxlength="1500">' +
+          '<button class="btn small" onclick="replyBewerbung(\'' + i.id + '\')">Senden</button></div>';
+      }
+      return '<div class="item ' + i.status + '">' +
+        '<div class="top"><span class="who">' + esc(i.name) + '</span><span class="when">' + fmt(i.createdAt) + '</span>' +
+        '<span class="st ' + i.status + '">' + esc(i.status) + '</span></div>' +
+        '<div class="txt">' + esc(i.message) + '</div>' +
+        fieldsHtml(i) +
+        (replies ? '<div class="replies">' + replies + '</div>' : '') +
+        actions + '</div>';
+    }).join('');
+  }catch(e){}
+}
+
+async function replyBewerbung(id){
+  const input = document.getElementById('rb-' + id);
+  const text = input.value.trim();
+  if(!text) return;
+  const r = await fetch(API + '/api/lapd/reply',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:'bewerbung', id, uid:uid(), name:'Bürger', text})});
+  const d = await r.json();
+  if(d.ok){ loadMy(); } else { alert(d.error || 'Fehler'); }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadMy();
+  if(location.hash === '#meine'){
+    const el = document.getElementById('meine');
+    if(el) setTimeout(() => el.scrollIntoView({behavior:'smooth'}), 150);
+  }
+});
+</script>
+</body>
+</html>

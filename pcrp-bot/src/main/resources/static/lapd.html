@@ -15,28 +15,28 @@
   a{text-decoration:none;color:inherit}
   button{font-family:inherit}
 
-  /* ── Kopfzeile (modern, leicht transparent) ─────────────── */
-  header{position:sticky;top:0;z-index:60;background:rgba(11,31,69,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;box-shadow:0 2px 18px rgba(2,10,30,.35);border-bottom:1px solid rgba(255,255,255,.08)}
-  .nav{max-width:1150px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:0 22px;height:72px}
-  .brand{display:flex;align-items:center;gap:13px;cursor:pointer;margin-right:20px}
-  .brand img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
-  .brand .t1{font-size:1.45rem;font-weight:800;letter-spacing:3px;line-height:1}
-  .brand .t2{font-size:.68rem;letter-spacing:1.6px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
-  .nav a.link{padding:10px 18px;border-radius:9px;font-weight:700;font-size:.95rem;color:#e9eefb;transition:.15s;white-space:nowrap}
+  /* ── Kopfzeile ─────────────────────────────────────── */
+  header{position:sticky;top:0;z-index:60;background:rgba(11,31,69,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;box-shadow:0 2px 18px rgba(2,10,30,.35);border-bottom:1px solid rgba(255,255,255,.08)}
+  .nav{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:4px;padding:0 18px;height:74px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:13px;cursor:pointer;margin-right:14px}
+  .brand img{width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(201,162,39,.25)}
+  .brand .t1{font-size:1.4rem;font-weight:800;letter-spacing:3px;line-height:1}
+  .brand .t2{font-size:.66rem;letter-spacing:1.5px;color:#aebfe2;text-transform:uppercase;margin-top:3px}
+  .nav a.link{padding:9px 13px;border-radius:8px;font-weight:700;font-size:.85rem;color:#e9eefb;transition:.15s;white-space:nowrap;letter-spacing:.4px}
   .nav a.link:hover{background:rgba(255,255,255,.12)}
   .nav a.link.active{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
   .spacer{flex:1}
-  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:10px 18px;border-radius:9px;font-weight:800;font-size:.9rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35)}
+  .btn-login{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:9px 16px;border-radius:8px;font-weight:800;font-size:.85rem;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(201,162,39,.35);letter-spacing:.4px}
   .btn-login:hover{filter:brightness(1.08);transform:translateY(-1px)}
-  @media(max-width:860px){ .nav{flex-wrap:wrap;height:auto;padding:12px 14px} .brand{width:100%} a.link{font-size:.88rem} }
+  @media(max-width:960px){ .nav{height:auto;padding:12px 14px;gap:6px} .brand{width:100%} }
 
-  /* Unter-Navigation (Kontakt Aufnehmen) */
-  .subnav{background:var(--white);border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(11,31,69,.05);position:sticky;top:72px;z-index:55}
-  .subnav .inner{max-width:1150px;margin:0 auto;display:flex;gap:6px;padding:10px 22px;flex-wrap:wrap}
+  /* Unter-Navigation (Kontakt) */
+  .subnav{background:var(--white);border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(11,31,69,.05);position:sticky;top:74px;z-index:55}
+  .subnav .inner{max-width:1200px;margin:0 auto;display:flex;gap:6px;padding:10px 18px;flex-wrap:wrap}
   .subnav button{background:transparent;border:1.5px solid var(--border);color:var(--blue2);padding:8px 16px;border-radius:20px;font-weight:700;font-size:.86rem;cursor:pointer;transition:.15s}
   .subnav button:hover{border-color:var(--blue3);color:var(--blue3)}
   .subnav button.active{background:var(--blue);border-color:var(--blue);color:#fff}
-  @media(max-width:860px){ .subnav{position:static} }
+  @media(max-width:960px){ .subnav{position:static} }
 
   main{flex:1;max-width:1150px;width:100%;margin:0 auto;padding:30px 22px 50px}
   section{display:none}
@@ -44,17 +44,24 @@
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
   /* Startseite – Hero */
-  .hero{background:radial-gradient(1000px 420px at 20% -10%,rgba(59,130,246,.35),transparent 60%),linear-gradient(135deg,var(--blue) 0%,var(--blue2) 55%,#16366e 100%);color:#fff;border-radius:18px;padding:58px 46px;position:relative;overflow:hidden;box-shadow:0 12px 34px rgba(11,31,69,.3)}
+  .hero{background:radial-gradient(1000px 420px at 20% -10%,rgba(59,130,246,.35),transparent 60%),linear-gradient(135deg,var(--blue) 0%,var(--blue2) 55%,#16366e 100%);color:#fff;border-radius:18px;padding:56px 44px;position:relative;overflow:hidden;box-shadow:0 12px 34px rgba(11,31,69,.3)}
   .hero:after{content:"";position:absolute;right:-70px;top:-70px;width:300px;height:300px;border-radius:50%;border:2px dashed rgba(255,255,255,.12)}
   .hero .badge{display:inline-block;background:rgba(201,162,39,.18);border:1px solid rgba(201,162,39,.5);color:#f2d98a;font-weight:800;font-size:.74rem;letter-spacing:1.5px;padding:6px 14px;border-radius:24px;margin-bottom:18px;text-transform:uppercase}
-  .hero h1{font-size:2.6rem;letter-spacing:1px;margin-bottom:12px;line-height:1.1}
-  .hero p{color:#c8d6f2;font-size:1.06rem;max-width:640px;line-height:1.65}
-  .hero .cta{margin-top:28px;display:flex;gap:12px;flex-wrap:wrap}
+  .hero h1{font-size:2.5rem;letter-spacing:1px;margin-bottom:12px;line-height:1.1}
+  .hero p{color:#c8d6f2;font-size:1.05rem;max-width:640px;line-height:1.65}
+  .hero .cta{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
   .hero .cta a{display:inline-block;padding:13px 26px;border-radius:10px;font-weight:800;font-size:.95rem;transition:.15s}
   .hero .cta .primary{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);box-shadow:0 4px 14px rgba(201,162,39,.4)}
   .hero .cta .primary:hover{transform:translateY(-2px)}
   .hero .cta .ghost{border:1.5px solid rgba(255,255,255,.4);color:#fff}
   .hero .cta .ghost:hover{background:rgba(255,255,255,.1)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:26px}
+  .card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 3px 12px rgba(11,31,69,.06);cursor:pointer;transition:.15s}
+  .card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(11,31,69,.12);border-color:var(--blue3)}
+  .card .ic{font-size:1.7rem;margin-bottom:10px}
+  .card b{color:var(--blue);font-size:.98rem;display:block;margin-bottom:5px}
+  .card span{color:var(--muted);font-size:.84rem;line-height:1.5}
 
   .pagetitle{border-bottom:3px solid var(--gold);display:inline-block;padding-bottom:6px;color:var(--blue);font-size:1.5rem;margin-bottom:20px}
   .hint{background:#eaf1ff;border:1px solid #cfdfff;color:var(--blue2);border-radius:10px;padding:13px 17px;font-size:.9rem;margin-bottom:20px;line-height:1.55}
@@ -62,9 +69,12 @@
   .panel{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:26px;box-shadow:0 3px 12px rgba(11,31,69,.06)}
   .panel h2{color:var(--blue);font-size:1.12rem;margin-bottom:14px}
   label{display:block;font-weight:600;font-size:.85rem;color:var(--blue2);margin:13px 0 5px}
-  input[type=text],textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:.95rem;font-family:inherit;background:#fbfcff;color:var(--text);transition:.15s}
-  input[type=text]:focus,textarea:focus{outline:none;border-color:var(--blue3);background:#fff;box-shadow:0 0 0 3px rgba(29,91,214,.12)}
-  textarea{min-height:120px;resize:vertical}
+  label .req{color:var(--red)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+  @media(max-width:720px){ .row{grid-template-columns:1fr} }
+  input[type=text],input[type=date],input[type=time],input[type=email],input[type=tel],select,textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-size:.95rem;font-family:inherit;background:#fbfcff;color:var(--text);transition:.15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue3);background:#fff;box-shadow:0 0 0 3px rgba(29,91,214,.12)}
+  textarea{min-height:110px;resize:vertical}
   .btn{background:linear-gradient(135deg,var(--blue3),var(--blue4));color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:800;font-size:.93rem;cursor:pointer;margin-top:14px;box-shadow:0 3px 10px rgba(29,91,214,.3);transition:.15s}
   .btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
   .btn.gold{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue)}
@@ -79,23 +89,27 @@
   .listtitle{font-size:1.04rem;color:var(--blue);margin:10px 0 14px;display:flex;align-items:center;gap:8px}
   .listtitle .count{background:var(--blue3);color:#fff;font-size:.75rem;border-radius:14px;padding:3px 12px}
   .item{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--blue3);border-radius:12px;padding:17px 19px;margin-bottom:14px;box-shadow:0 2px 8px rgba(11,31,69,.05)}
-  .item.geloest{border-left-color:var(--green)}
-  .item.geschlossen{border-left-color:var(--gray);opacity:.85}
+  .item.geloest,.item.angenommen{border-left-color:var(--green)}
+  .item.geschlossen,.item.abgelehnt{border-left-color:var(--gray);opacity:.85}
+  .item.abgelehnt{border-left-color:var(--red)}
   .item .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:8px}
   .item .who{font-weight:700;color:var(--blue)}
   .item .when{color:var(--muted);font-size:.8rem}
   .item .txt{line-height:1.55;margin:6px 0 10px;white-space:pre-wrap}
+  .fields{background:#f4f8ff;border:1px solid var(--border);border-radius:9px;padding:10px 14px;margin:8px 0 10px;font-size:.86rem;line-height:1.65;display:grid;grid-template-columns:auto 1fr;gap:2px 14px}
+  .fields b{color:var(--blue2);font-weight:600}
   .st{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 11px;border-radius:14px}
   .st.offen{background:#e3ecff;color:var(--blue3)}
-  .st.geloest{background:#e2f6ea;color:var(--green)}
+  .st.geloest,.st.angenommen{background:#e2f6ea;color:var(--green)}
   .st.geschlossen{background:#e9ecf1;color:var(--gray)}
+  .st.abgelehnt{background:#fdeaea;color:var(--red)}
   .replies{border-top:1px dashed var(--border);padding-top:10px;margin-top:10px}
   .replyline{font-size:.88rem;margin:6px 0;line-height:1.45}
   .replyline b{color:var(--blue2)}
   .replyline .lapd{color:var(--green)}
   .replyline .when{color:var(--muted);font-size:.75rem}
-  .replybox{display:flex;gap:8px;margin-top:10px}
-  .replybox input{flex:1}
+  .replybox{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .replybox input{flex:1;min-width:180px}
   .empty{color:var(--muted);font-size:.9rem;background:#f7f9fc;border:1px dashed var(--border);border-radius:10px;padding:15px 17px}
   .dash-tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
   .dash-tabs button{background:var(--white);border:1.5px solid var(--border);color:var(--blue2);padding:9px 16px;border-radius:9px;font-weight:700;cursor:pointer;font-size:.88rem}
@@ -115,55 +129,182 @@
         <div class="t2">Los Angeles Police Department</div>
       </div>
     </div>
-    <a class="link" data-sec="kontakt" href="#kontakt">Kontakt Aufnehmen</a>
+    <a class="link" data-sec="start" href="#start">STARTSEITE</a>
+    <a class="link" data-sec="informationen" href="#informationen">INFORMATIONEN</a>
+    <a class="link" data-sec="mitarbeiter" href="#mitarbeiter">MITARBEITER</a>
+    <a class="link" data-sec="fuhrpark" href="#fuhrpark">FUHRPARK</a>
+    <a class="link" href="/lapd/karriere">KARRIERE</a>
+    <a class="link" data-sec="anzeige" href="#anzeige">ANZEIGE AUFGEBEN</a>
     <div class="spacer"></div>
-    <button class="btn-login" onclick="go('dashboard')">🔐 Dashboard Login</button>
+    <button class="btn-login" onclick="go('dashboard')">🏛️ PORTAL</button>
+    <a class="link" data-sec="kontakt" href="#kontakt">KONTAKT</a>
   </div>
 </header>
 
-<!-- Unter-Kategorien unter "Kontakt Aufnehmen" -->
+<!-- Unter-Navigation unter "Kontakt" -->
 <div class="subnav" id="subnav" style="display:none">
   <div class="inner">
-    <button data-ktab="info"      onclick="kontaktTab('info')">ℹ️ Informationen</button>
-    <button data-ktab="email"     onclick="kontaktTab('email')">✉️ Email Schreiben</button>
-    <button data-ktab="anzeige"   onclick="kontaktTab('anzeige')">📋 Anzeige Erstatten</button>
-    <button data-ktab="bewerbung" onclick="kontaktTab('bewerbung')">🎓 Bewerbungsportal</button>
-    <button data-ktab="fuhrpark"  onclick="kontaktTab('fuhrpark')">🚓 Fuhrpark</button>
+    <button data-ktab="email"      onclick="kontaktTab('email')">✉️ Email Schreiben</button>
+    <button data-ktab="beschwerde" onclick="kontaktTab('beschwerde')">⚠️ Beschwerde Einreichen</button>
   </div>
 </div>
 
 <main>
 
-  <!-- ── STARTSEITE ─────────────────────────────── -->
+  <!-- ── STARTSEITE ─────────────────────────────────── -->
   <section id="sec-start" class="active">
     <div class="hero">
       <span class="badge">Official Website</span>
       <h1>Willkommen beim LAPD</h1>
-      <p>Das Los Angeles Police Department in Paradise City Roleplay steht für Sicherheit, Recht und Ordnung. Kontaktiere uns, erstatte eine Anzeige oder bewirb dich für den Dienst – wir kümmern uns um dein Anliegen.</p>
+      <p>Das Los Angeles Police Department steht für Sicherheit, Recht und Ordnung. Kontaktiere uns, erstatte eine Anzeige oder bewirb dich für den Dienst – wir kümmern uns um dein Anliegen.</p>
       <div class="cta">
         <a class="primary" href="#kontakt" onclick="go('kontakt')">📨 Kontakt aufnehmen</a>
-        <a class="ghost" href="#kontakt" onclick="go('kontakt');kontaktTab('info')">ℹ️ Informationen</a>
+        <a class="ghost" href="/lapd/karriere">🎓 Karriere beim LAPD</a>
+      </div>
+    </div>
+    <div class="cards">
+      <div class="card" onclick="go('informationen')">
+        <div class="ic">ℹ️</div><b>Informationen</b>
+        <span>Neuigkeiten und Hinweise rund um das LAPD.</span>
+      </div>
+      <div class="card" onclick="go('mitarbeiter')">
+        <div class="ic">👮</div><b>Mitarbeiter</b>
+        <span>Unser Team und die Dienststellen.</span>
+      </div>
+      <div class="card" onclick="go('fuhrpark')">
+        <div class="ic">🚓</div><b>Fuhrpark</b>
+        <span>Die Fahrzeuge der Polizei von Los Angeles.</span>
+      </div>
+      <div class="card" onclick="location.href='/lapd/karriere'">
+        <div class="ic">🎓</div><b>Karriere</b>
+        <span>Bewirb dich für den Dienst beim LAPD.</span>
+      </div>
+      <div class="card" onclick="go('anzeige')">
+        <div class="ic">📋</div><b>Anzeige aufgeben</b>
+        <span>Melde einen Vorfall mit dem offiziellen Formular.</span>
+      </div>
+      <div class="card" onclick="go('kontakt');kontaktTab('email')">
+        <div class="ic">✉️</div><b>Kontakt</b>
+        <span>Schreib uns eine Email oder reiche eine Beschwerde ein.</span>
       </div>
     </div>
   </section>
 
-  <!-- ── KONTAKT AUFNEHMEN (mit Unter-Kategorien) ─────── -->
-  <section id="sec-kontakt">
+  <!-- ── INFORMATIONEN ───────────────────────────────── -->
+  <section id="sec-informationen">
+    <h2 class="pagetitle">Informationen</h2>
+    <div class="hint">ℹ️ Hier erscheinen in Kürze Informationen rund um das LAPD – Regeln, Aufgaben, Dienstzeiten und mehr.</div>
+    <div class="panel"><div class="empty">Derzeit keine neuen Informationen.</div></div>
+  </section>
 
-    <div id="ktab-info" style="display:none">
-      <h2 class="pagetitle">Informationen</h2>
-      <div class="hint">ℹ️ Hier erscheinen in Kürze Informationen rund um das LAPD – Regeln, Aufgaben, Dienstzeiten und mehr.</div>
-      <div class="panel"><div class="empty">Derzeit keine neuen Informationen.</div></div>
+  <!-- ── MITARBEITER ─────────────────────────────────── -->
+  <section id="sec-mitarbeiter">
+    <h2 class="pagetitle">Mitarbeiter</h2>
+    <div class="hint">👮 Der Mitarbeiterbereich wird in Kürze hier vorgestellt – Dienststellen, Führungsebene und Kontakt zu den Beamten.</div>
+    <div class="panel"><div class="empty">Derzeit keine Mitarbeiter-Informationen hinterlegt.</div></div>
+  </section>
+
+  <!-- ── FUHRPARK ────────────────────────────────────── -->
+  <section id="sec-fuhrpark">
+    <h2 class="pagetitle">Fuhrpark</h2>
+    <div class="hint">🚓 Der Fuhrpark wird in Kürze hier vorgestellt.</div>
+    <div class="panel"><div class="empty">Noch keine Fahrzeuge eingestellt.</div></div>
+  </section>
+
+  <!-- ── ANZEIGE AUFGEBEN ────────────────────────────── -->
+  <section id="sec-anzeige">
+    <h2 class="pagetitle">Anzeige aufgeben</h2>
+    <div class="panel">
+      <h2>📋 Offizielles Anzeigeformular</h2>
+      <form onsubmit="event.preventDefault();submitAnzeige()">
+        <div class="row">
+          <div>
+            <label for="a-vorname">Vorname <span class="req">*</span></label>
+            <input type="text" id="a-vorname" maxlength="40" required>
+          </div>
+          <div>
+            <label for="a-nachname">Nachname <span class="req">*</span></label>
+            <input type="text" id="a-nachname" maxlength="40" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="a-geburtsdatum">Geburtsdatum <span class="req">*</span></label>
+            <input type="date" id="a-geburtsdatum" required>
+          </div>
+          <div>
+            <label for="a-adresse">Wohnadresse <span class="req">*</span></label>
+            <input type="text" id="a-adresse" placeholder="Straße, Hausnummer, Stadt" maxlength="90" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="a-telefon">Telefonnummer <span class="req">*</span></label>
+            <input type="tel" id="a-telefon" placeholder="Deine Nummer" maxlength="30" required>
+          </div>
+          <div>
+            <label for="a-email">E-Mail-Adresse <span class="req">*</span></label>
+            <input type="email" id="a-email" placeholder="deine@email.com" maxlength="80" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="a-art">Art des Vorfalls <span class="req">*</span></label>
+            <select id="a-art" required>
+              <option value="" disabled selected>Bitte wählen …</option>
+              <option>Diebstahl</option>
+              <option>Einbruch</option>
+              <option>Vandalismus</option>
+              <option>Betrug</option>
+              <option>Körperverletzung</option>
+              <option>Bedrohung</option>
+              <option>Waffenverstoß</option>
+              <option>Drogendelikt</option>
+              <option>Verkehrsdelikt</option>
+              <option>Sachbeschädigung</option>
+              <option>Sonstiges</option>
+            </select>
+          </div>
+          <div>
+            <label for="a-ort">Ort des Vorfalls <span class="req">*</span></label>
+            <input type="text" id="a-ort" placeholder="Straße / Bezirk" maxlength="90" required>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="a-datum">Datum des Vorfalls <span class="req">*</span></label>
+            <input type="date" id="a-datum" required>
+          </div>
+          <div>
+            <label for="a-zeit">Uhrzeit des Vorfalls <span class="req">*</span></label>
+            <input type="time" id="a-zeit" required>
+          </div>
+        </div>
+        <label for="a-beschreibung">Beschreibung des Vorfalls <span class="req">*</span></label>
+        <textarea id="a-beschreibung" placeholder="Beschreibe den Vorfall so genau wie möglich: was ist passiert, wann, wo, wer war beteiligt …" maxlength="3000" required></textarea>
+        <label for="a-taeter">Täterbeschreibung (falls bekannt)</label>
+        <input type="text" id="a-taeter" placeholder="Aussehen, Kleidung, Kennzeichen …" maxlength="200">
+        <label for="a-zeugen">Zeugen (falls vorhanden)</label>
+        <input type="text" id="a-zeugen" placeholder="Namen oder Kontaktmöglichkeiten der Zeugen" maxlength="200">
+        <button class="btn" type="submit">📨 Anzeige erstatten</button>
+        <div class="msg" id="a-msgbox"></div>
+      </form>
     </div>
+    <h3 class="listtitle">Meine Anzeigen <span class="count" id="a-count">0</span></h3>
+    <div id="a-list"></div>
+  </section>
+
+  <!-- ── KONTAKT (Email + Beschwerde) ─────────────────── -->
+  <section id="sec-kontakt">
 
     <div id="ktab-email" style="display:none">
       <h2 class="pagetitle">Email Schreiben</h2>
       <div class="panel">
         <h2>✉️ Kontaktformular</h2>
-        <form onsubmit="event.preventDefault();submitItem('mail','email')">
-          <label for="email-name">Name</label>
+        <form onsubmit="event.preventDefault();submitMail()">
+          <label for="email-name">Name <span class="req">*</span></label>
           <input type="text" id="email-name" placeholder="Dein Name" maxlength="60" required>
-          <label for="email-msg">Nachricht</label>
+          <label for="email-msg">Nachricht <span class="req">*</span></label>
           <textarea id="email-msg" placeholder="Deine Nachricht an das LAPD …" maxlength="2000" required></textarea>
           <button class="btn" type="submit">📨 Senden</button>
           <div class="msg" id="email-msgbox"></div>
@@ -173,58 +314,41 @@
       <div id="email-list"></div>
     </div>
 
-    <div id="ktab-anzeige" style="display:none">
-      <h2 class="pagetitle">Anzeige Erstatten</h2>
+    <div id="ktab-beschwerde" style="display:none">
+      <h2 class="pagetitle">Beschwerde Einreichen</h2>
       <div class="panel">
-        <h2>📋 Neue Anzeige</h2>
-        <form onsubmit="event.preventDefault();submitItem('anzeige','anzeige')">
-          <label for="anzeige-name">Name</label>
-          <input type="text" id="anzeige-name" placeholder="Dein Name" maxlength="60" required>
-          <label for="anzeige-msg">Was ist passiert?</label>
-          <textarea id="anzeige-msg" placeholder="Beschreibe den Vorfall …" maxlength="2000" required></textarea>
-          <button class="btn" type="submit">📨 Anzeige erstatten</button>
-          <div class="msg" id="anzeige-msgbox"></div>
+        <h2>⚠️ Beschwerdeformular</h2>
+        <form onsubmit="event.preventDefault();submitBeschwerde()">
+          <label for="b-name">Name <span class="req">*</span></label>
+          <input type="text" id="b-name" placeholder="Dein Name" maxlength="60" required>
+          <label for="b-adresse">Adresse <span class="req">*</span></label>
+          <input type="text" id="b-adresse" placeholder="Straße, Hausnummer, Stadt" maxlength="90" required>
+          <label for="b-dienstnummer">Dienstnummer des beschuldigten Beamten <span class="req">*</span></label>
+          <input type="text" id="b-dienstnummer" placeholder="Dienstnummer des Beamten" maxlength="30" required>
+          <label for="b-grund">Grund der Beschwerde <span class="req">*</span></label>
+          <textarea id="b-grund" placeholder="Beschreibe den Grund deiner Beschwerde …" maxlength="2000" required></textarea>
+          <button class="btn" type="submit">⚠️ Beschwerde einreichen</button>
+          <div class="msg" id="b-msgbox"></div>
         </form>
       </div>
-      <h3 class="listtitle">Meine Anzeigen <span class="count" id="anzeige-count">0</span></h3>
-      <div id="anzeige-list"></div>
-    </div>
-
-    <div id="ktab-bewerbung" style="display:none">
-      <h2 class="pagetitle">Bewerbungsportal</h2>
-      <div class="panel">
-        <h2>🎓 Bewerbung</h2>
-        <form onsubmit="event.preventDefault();submitItem('bewerbung','bewerbung')">
-          <label for="bewerbung-name">Name</label>
-          <input type="text" id="bewerbung-name" placeholder="Dein Name" maxlength="60" required>
-          <label for="bewerbung-msg">Deine Bewerbung</label>
-          <textarea id="bewerbung-msg" placeholder="Stelle dich vor und erkläre, warum du zum LAPD möchtest …" maxlength="2000" required></textarea>
-          <button class="btn" type="submit">📨 Bewerbung absenden</button>
-          <div class="msg" id="bewerbung-msgbox"></div>
-        </form>
-      </div>
-      <h3 class="listtitle">Meine Bewerbungen <span class="count" id="bewerbung-count">0</span></h3>
-      <div id="bewerbung-list"></div>
-    </div>
-
-    <div id="ktab-fuhrpark" style="display:none">
-      <h2 class="pagetitle">Fuhrpark</h2>
-      <div class="hint">ℹ️ Der Fuhrpark wird in Kürze hier vorgestellt.</div>
-      <div class="panel"><div class="empty">Noch keine Fahrzeuge eingestellt.</div></div>
+      <h3 class="listtitle">Meine Beschwerden <span class="count" id="b-count">0</span></h3>
+      <div id="b-list"></div>
     </div>
 
   </section>
 
-  <!-- ── DASHBOARD ─────────────────────────────── -->
+  <!-- ── DASHBOARD (PORTAL) ──────────────────────────── -->
   <section id="sec-dashboard">
-    <h2 class="pagetitle">LAPD Dashboard</h2>
-    <div class="hint">👮 <b>Hinweis:</b> Der Beamten-Login folgt in Kürze – der Zugriff ist aktuell vorläufig offen. Hier siehst du alle eingehenden Mails, Anzeigen und Bewerbungen und kannst antworten, als gelöst markieren oder schließen.</div>
+    <h2 class="pagetitle">LAPD Portal</h2>
+    <div class="hint">👮 <b>Hinweis:</b> Der Beamten-Login folgt in Kürze – der Zugriff ist aktuell vorläufig offen. Hier siehst du alle eingehenden Mails, Beschwerden, Anzeigen und Bewerbungen und kannst antworten, als gelöst markieren, schließen oder über Bewerbungen entscheiden.</div>
     <div class="dash-tabs">
       <button class="active" data-dtab="mails" onclick="dashTab('mails')">✉️ Mails</button>
+      <button data-dtab="beschwerden" onclick="dashTab('beschwerden')">⚠️ Beschwerden</button>
       <button data-dtab="anzeigen" onclick="dashTab('anzeigen')">📋 Anzeigen</button>
       <button data-dtab="bewerbungen" onclick="dashTab('bewerbungen')">🎓 Bewerbungen</button>
     </div>
     <div id="dash-mails"></div>
+    <div id="dash-beschwerden" style="display:none"></div>
     <div id="dash-anzeigen" style="display:none"></div>
     <div id="dash-bewerbungen" style="display:none"></div>
   </section>
@@ -232,7 +356,7 @@
 </main>
 
 <footer>
-  © LAPD · Los Angeles Police Department — Paradise City Roleplay · Offizielle Behörden-Webseite · Alle Rechte vorbehalten
+  © LAPD · Los Angeles Police Department — Los Angeles Roleplay · Offizielle Behörden-Webseite · Alle Rechte vorbehalten
 </footer>
 
 <script>
@@ -260,42 +384,94 @@ function go(sec){
   document.getElementById('subnav').style.display = (sec === 'kontakt') ? 'block' : 'none';
   if(sec === 'dashboard') loadDash();
   if(sec === 'kontakt') kontaktTab(currentKtab());
+  if(sec === 'anzeige') loadMy();
   window.scrollTo({top:0, behavior:'smooth'});
 }
-document.querySelectorAll('a.link').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.sec); }));
+document.querySelectorAll('a.link[data-sec]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.sec); }));
 
 function currentKtab(){ return localStorage.getItem('lapd-ktab') || 'email'; }
 
 function kontaktTab(tab){
   localStorage.setItem('lapd-ktab', tab);
   document.querySelectorAll('.subnav button').forEach(b => b.classList.toggle('active', b.dataset.ktab === tab));
-  ['info','email','anzeige','bewerbung','fuhrpark'].forEach(t => {
+  ['email','beschwerde'].forEach(t => {
     document.getElementById('ktab-' + t).style.display = (t === tab) ? 'block' : 'none';
   });
-  if(tab === 'email' || tab === 'anzeige' || tab === 'bewerbung') loadMy();
+  if(tab === 'email' || tab === 'beschwerde') loadMy();
 }
 
 // ── Formulare ─────────────────────────────────────────────
-async function submitItem(type, page){
-  const box = document.getElementById(page + '-msgbox');
+async function submitMail(){
+  const box = document.getElementById('email-msgbox');
   box.className = 'msg';
-  const name = document.getElementById(page + '-name').value.trim();
-  const message = document.getElementById(page + '-msg').value.trim();
+  const name = document.getElementById('email-name').value.trim();
+  const message = document.getElementById('email-msg').value.trim();
   saveName(name);
   try{
     const r = await fetch(API + '/api/lapd/create',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({type, uid:uid(), name, message})});
+      body:JSON.stringify({type:'mail', uid:uid(), name, message})});
     const d = await r.json();
     if(!d.ok){ box.className='msg err'; box.textContent = d.error || 'Fehler beim Senden.'; return; }
-    box.className='msg ok'; box.textContent = '✅ Erfolgreich gesendet. Du kannst den Status unter „Meine ' +
-      (type==='mail'?'Anfragen':type==='anzeige'?'Anzeigen':'Bewerbungen') + '“ verfolgen.';
-    document.getElementById(page + '-msg').value = '';
+    box.className='msg ok'; box.textContent = '✅ Erfolgreich gesendet. Du kannst den Status unter „Meine Anfragen“ verfolgen.';
+    document.getElementById('email-msg').value = '';
+    loadMy();
+  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler – bitte erneut versuchen.'; }
+}
+
+async function submitBeschwerde(){
+  const box = document.getElementById('b-msgbox');
+  box.className = 'msg';
+  const name = document.getElementById('b-name').value.trim();
+  const adresse = document.getElementById('b-adresse').value.trim();
+  const dienstnummer = document.getElementById('b-dienstnummer').value.trim();
+  const grund = document.getElementById('b-grund').value.trim();
+  saveName(name);
+  try{
+    const r = await fetch(API + '/api/lapd/create',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'beschwerde', uid:uid(), name, message:grund,
+        fields:{adresse, dienstnummer}})});
+    const d = await r.json();
+    if(!d.ok){ box.className='msg err'; box.textContent = d.error || 'Fehler beim Senden.'; return; }
+    box.className='msg ok'; box.textContent = '✅ Beschwerde erfolgreich eingereicht.';
+    document.getElementById('b-grund').value = '';
+    loadMy();
+  }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler – bitte erneut versuchen.'; }
+}
+
+async function submitAnzeige(){
+  const box = document.getElementById('a-msgbox');
+  box.className = 'msg';
+  const vorname = document.getElementById('a-vorname').value.trim();
+  const nachname = document.getElementById('a-nachname').value.trim();
+  const name = vorname + ' ' + nachname;
+  saveName(name);
+  const fields = {
+    Vorname: vorname, Nachname: nachname,
+    'Geburtsdatum': document.getElementById('a-geburtsdatum').value,
+    Adresse: document.getElementById('a-adresse').value.trim(),
+    Telefon: document.getElementById('a-telefon').value.trim(),
+    'E-Mail': document.getElementById('a-email').value.trim(),
+    'Art des Vorfalls': document.getElementById('a-art').value,
+    'Ort des Vorfalls': document.getElementById('a-ort').value.trim(),
+    'Datum des Vorfalls': document.getElementById('a-datum').value,
+    'Uhrzeit des Vorfalls': document.getElementById('a-zeit').value,
+    Täter: document.getElementById('a-taeter').value.trim(),
+    Zeugen: document.getElementById('a-zeugen').value.trim()
+  };
+  const message = document.getElementById('a-beschreibung').value.trim();
+  try{
+    const r = await fetch(API + '/api/lapd/create',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'anzeige', uid:uid(), name, message, fields})});
+    const d = await r.json();
+    if(!d.ok){ box.className='msg err'; box.textContent = d.error || 'Fehler beim Senden.'; return; }
+    box.className='msg ok'; box.textContent = '✅ Anzeige erfolgreich erstattet. Du kannst den Status unter „Meine Anzeigen“ verfolgen.';
+    document.getElementById('a-beschreibung').value = '';
     loadMy();
   }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler – bitte erneut versuchen.'; }
 }
 
 // ── Meine X ───────────────────────────────────────────────
-const TYPE_LABEL = {mail:'Anfrage', anzeige:'Anzeige', bewerbung:'Bewerbung'};
+const TYPE_LABEL = {mail:'Anfrage', anzeige:'Anzeige', bewerbung:'Bewerbung', beschwerde:'Beschwerde'};
 
 async function loadMy(){
   try{
@@ -303,8 +479,8 @@ async function loadMy(){
     const d = await r.json();
     if(!d.ok) return;
     renderList('email', d.mails, 'mail');
-    renderList('anzeige', d.anzeigen, 'anzeige');
-    renderList('bewerbung', d.bewerbungen, 'bewerbung');
+    renderList('b', d.beschwerden, 'beschwerde');
+    renderList('a', d.anzeigen, 'anzeige');
   }catch(e){}
 }
 
@@ -312,8 +488,19 @@ function renderList(page, items, type){
   const el = document.getElementById(page + '-list');
   const count = document.getElementById(page + '-count');
   count.textContent = items.length;
-  if(!items.length){ el.innerHTML = '<div class="empty">Noch keine ' + (type==='mail'?'Anfragen':TYPE_LABEL[type]+'n') + ' vorhanden.</div>'; return; }
+  if(!items.length){ el.innerHTML = '<div class="empty">Noch keine ' + TYPE_LABEL[type] + 'n vorhanden.</div>'; return; }
   el.innerHTML = items.map(i => itemHtml(i, type, false)).join('');
+}
+
+function fieldsHtml(i){
+  const d = i.data || {};
+  const keys = Object.keys(d);
+  if(!keys.length) return '';
+  return '<div class="fields">' + keys.map(k => {
+    const v = d[k];
+    if(v === undefined || v === null || v === '') return '';
+    return '<b>' + esc(k) + ':</b><span>' + esc(v) + '</span>';
+  }).join('') + '</div>';
 }
 
 function itemHtml(i, type, dash){
@@ -327,12 +514,20 @@ function itemHtml(i, type, dash){
   if(dash){
     actions = '<div class="replybox">' +
       '<input type="text" id="dr-' + type + '-' + i.id + '" placeholder="Antwort als LAPD schreiben …" maxlength="1500">' +
-      '<button class="btn small" onclick="dashReply(\'' + type + '\',\'' + i.id + '\')">Antworten</button></div>' +
-      '<div style="margin-top:8px">' +
-      (i.status!=='gelöst' ? '<button class="btn small green" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'gelöst\')">✓ Gelöst</button>' : '') +
-      (i.status!=='geschlossen' ? '<button class="btn small gray" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'geschlossen\')">✖ Schließen</button>' : '') +
-      (i.status!=='offen' ? '<button class="btn small gold" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'offen\')">↺ Wieder öffnen</button>' : '') +
-      '</div>';
+      '<button class="btn small" onclick="dashReply(\'' + type + '\',\'' + i.id + '\')">Antworten</button></div>';
+    if(type === 'bewerbung'){
+      actions += '<div style="margin-top:8px">' +
+        (i.status==='offen' ? '<button class="btn small green" onclick="dashDecide(\'' + i.id + '\',\'annehmen\')">✔ Annehmen</button>' +
+                              '<button class="btn small red" onclick="dashDecide(\'' + i.id + '\',\'ablehnen\')">✖ Ablehnen</button>' : '') +
+        (i.status!=='offen' ? '<button class="btn small gold" onclick="dashStatus(\'bewerbung\',\'' + i.id + '\',\'offen\')">↺ Wieder öffnen</button>' : '') +
+        '</div>';
+    } else {
+      actions += '<div style="margin-top:8px">' +
+        (i.status!=='gelöst' ? '<button class="btn small green" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'gelöst\')">✓ Gelöst</button>' : '') +
+        (i.status!=='geschlossen' ? '<button class="btn small gray" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'geschlossen\')">✖ Schließen</button>' : '') +
+        (i.status!=='offen' ? '<button class="btn small gold" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'offen\')">↺ Wieder öffnen</button>' : '') +
+        '</div>';
+    }
   } else if(i.status === 'offen'){
     actions = '<div class="replybox">' +
       '<input type="text" id="r-' + type + '-' + i.id + '" placeholder="Antwort schreiben …" maxlength="1500">' +
@@ -342,6 +537,7 @@ function itemHtml(i, type, dash){
   return '<div class="' + cls + '">' +
     '<div class="top"><span class="who">' + esc(i.name) + '</span><span class="when">' + fmt(i.createdAt) + '</span>' + stBadge + '</div>' +
     '<div class="txt">' + esc(i.message) + '</div>' +
+    fieldsHtml(i) +
     (replies ? '<div class="replies">' + replies + '</div>' : '') +
     actions + '</div>';
 }
@@ -350,7 +546,7 @@ async function reply(type, id){
   const input = document.getElementById('r-' + type + '-' + id);
   const text = input.value.trim();
   if(!text) return;
-  const name = (document.getElementById('email-name').value || localStorage.getItem('lapd-name') || '').trim();
+  const name = (localStorage.getItem('lapd-name') || '').trim();
   const r = await fetch(API + '/api/lapd/reply',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({type, id, uid:uid(), name, text})});
   const d = await r.json();
@@ -360,7 +556,7 @@ async function reply(type, id){
 // ── Dashboard ─────────────────────────────────────────────
 function dashTab(tab){
   document.querySelectorAll('.dash-tabs button').forEach(b => b.classList.toggle('active', b.dataset.dtab===tab));
-  ['mails','anzeigen','bewerbungen'].forEach(t => document.getElementById('dash-'+t).style.display = t===tab?'':'none');
+  ['mails','beschwerden','anzeigen','bewerbungen'].forEach(t => document.getElementById('dash-'+t).style.display = t===tab?'':'none');
 }
 
 async function loadDash(){
@@ -368,12 +564,13 @@ async function loadDash(){
   const d = await r.json();
   if(!d.ok) return;
   document.getElementById('dash-mails').innerHTML = dashList(d.mails, 'mail');
+  document.getElementById('dash-beschwerden').innerHTML = dashList(d.beschwerden, 'beschwerde');
   document.getElementById('dash-anzeigen').innerHTML = dashList(d.anzeigen, 'anzeige');
   document.getElementById('dash-bewerbungen').innerHTML = dashList(d.bewerbungen, 'bewerbung');
 }
 
 function dashList(items, type){
-  if(!items.length) return '<div class="empty">Keine ' + (type==='mail'?'Mails':TYPE_LABEL[type]+'n') + ' vorhanden.</div>';
+  if(!items.length) return '<div class="empty">Keine ' + TYPE_LABEL[type] + 'n vorhanden.</div>';
   return items.map(i => itemHtml(i, type, true)).join('');
 }
 
@@ -394,16 +591,37 @@ async function dashStatus(type, id, status){
   if(d.ok){ loadDash(); } else { alert(d.error || 'Fehler'); }
 }
 
+async function dashDecide(id, action){
+  const r = await fetch(API + '/api/lapd/dashboard/decide',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:'bewerbung', id, action})});
+  const d = await r.json();
+  if(d.ok){ loadDash(); } else { alert(d.error || 'Fehler'); }
+}
+
+// ── Deep-Links (#email, #beschwerde, #anzeige, …) ─────────
+function applyHash(){
+  const h = (location.hash || '').replace('#','');
+  if(h === 'email'){ go('kontakt'); kontaktTab('email'); }
+  else if(h === 'beschwerde'){ go('kontakt'); kontaktTab('beschwerde'); }
+  else if(h === 'anzeige'){ go('anzeige'); }
+  else if(h === 'informationen'){ go('informationen'); }
+  else if(h === 'mitarbeiter'){ go('mitarbeiter'); }
+  else if(h === 'fuhrpark'){ go('fuhrpark'); }
+  else if(h === 'dashboard' || h === 'portal'){ go('dashboard'); }
+  else { go('start'); }
+}
+
 // Start
 window.addEventListener('DOMContentLoaded', () => {
   const saved = localStorage.getItem('lapd-name');
   if(saved){
     document.getElementById('email-name').value = saved;
-    document.getElementById('anzeige-name').value = saved;
-    document.getElementById('bewerbung-name').value = saved;
+    document.getElementById('b-name').value = saved;
   }
+  applyHash();
   loadMy();
 });
+window.addEventListener('hashchange', applyHash);
 </script>
 </body>
 </html>
