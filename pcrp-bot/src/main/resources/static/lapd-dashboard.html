@@ -99,6 +99,22 @@
   .psub{color:var(--muted);font-size:.84rem;margin-bottom:20px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
   @media(max-width:900px){ .grid{grid-template-columns:1fr} }
+
+  /* ── Mobil: Sidebar wird zur horizontalen Leiste, alles bleibt sichtbar ── */
+  @media(max-width:900px){
+    #app{flex-direction:column}
+    aside{position:static;width:100%;min-width:0;height:auto;overflow-x:auto;overflow-y:hidden;display:flex;flex-wrap:nowrap;align-items:center;gap:2px;
+      padding:10px 12px;border-right:none;border-bottom:1px solid var(--border);white-space:nowrap}
+    .aside-brand{flex:none;border-bottom:none;padding:0 12px 0 2px;margin-bottom:0}
+    .aside-brand img{width:36px;height:36px}
+    .aside-brand b{font-size:.92rem}
+    .aside-brand span{display:none}
+    aside .cat{flex:none;padding:6px 8px;font-size:.6rem}
+    aside a.item{flex:none;padding:8px 11px;margin-bottom:0;font-size:.8rem}
+    main{padding:16px 14px 70px;min-width:0}
+    .topbar{flex-wrap:wrap;gap:10px}
+    .panic-btn{position:static;transform:none;margin:0 auto;width:100%;max-width:380px;text-align:center}
+  }
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:18px}
   .panel h3{font-size:.95rem;margin-bottom:14px;color:#fff}
   .panel label{display:block;font-size:.76rem;font-weight:600;color:var(--muted);margin:11px 0 5px}
@@ -142,10 +158,6 @@
   .toast span{font-size:.8rem;color:#fecaca;line-height:1.45;display:block;margin-bottom:10px}
   .toast .btn{padding:7px 14px;font-size:.78rem}
 
-  @media(max-width:820px){
-    aside{width:210px;min-width:210px}
-    main{padding:16px 14px 70px}
-  }
 </style>
 </head>
 <body>

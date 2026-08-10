@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v21";
+        private static final String CHANGELOG_VERSION = "v22";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,14 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Ausrüstung als eigene Kategorie**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — LAPD mobil optimiert**__\n\n" +
+                "📱 **LAPD-Dashboard & Webseite jetzt auch auf dem Handy voll nutzbar** — Auf kleinen Bildschirmen " +
+                "wird die Sidebar des Dashboards zu einer horizontalen Leiste (alle Kategorien per Wischen erreichbar), " +
+                "der Panic-Button wird zentriert und der Inhalt nutzt die volle Breite. Webseite, Karriere- und " +
+                "Anforderungen-Seite haben angepasste Hero- und Panel-Größen für Mobilgeräte – alles ist genauso " +
+                "sichtbar und bedienbar wie am Laptop.\n\n" +
+                "---\n\n" +
+                "__**Version v21 — Ausrüstung als eigene Kategorie**__\n\n" +
                 "🛡️ **Ausrüstung ist jetzt eine eigene Kategorie** im Dashboard (oberhalb von LAPD) mit drei " +
                 "Unterkategorien: **👕 Dienstkleidung**, **🔫 Dienstwaffen** und **🚔 Dienstfahrzeuge**. Die " +
                 "Leitungs-Ebene kann in jeder Kategorie Einträge mit Bild-Datei, Text und der erlaubten Ebene " +

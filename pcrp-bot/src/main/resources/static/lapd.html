@@ -117,6 +117,17 @@
 
   footer{border-top:1px solid var(--border);background:var(--blue);color:#aebfe2;text-align:center;padding:20px;font-size:.8rem}
 
+  /* ── Mobil: alles gut sichtbar wie am Laptop ── */
+  @media(max-width:720px){
+    .hero{padding:34px 22px}
+    .hero h1{font-size:1.7rem}
+    .hero p{font-size:.95rem}
+    .hero .cta a{padding:12px 20px;font-size:.9rem}
+    main{padding:22px 14px 40px}
+    .panel{padding:18px 15px}
+    .pagetitle{font-size:1.25rem}
+  }
+
   /* ── Sperrbildschirm für gebannte Personen (alle LAPD-Seiten) ── */
   .banned-screen{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;text-align:center;padding:30px;
     background:radial-gradient(circle at 50% 40%,rgba(239,68,68,.28),#2a0505 72%);animation:bannedPulse 1.6s ease-in-out infinite}
