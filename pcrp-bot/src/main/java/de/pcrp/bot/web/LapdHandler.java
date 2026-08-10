@@ -111,6 +111,7 @@ public class LapdHandler {
         Guild guild = BotContext.getGuild();
         for (LapdDashManager.Ban b : LapdDashManager.bannedList(gid)) {
             if (b.name != null && !b.name.isBlank()) names.add(b.name.trim().toLowerCase());
+            if (b.webName != null && !b.webName.isBlank()) names.add(b.webName.trim().toLowerCase());
             if (guild != null) {
                 Member m = guild.getMemberById(b.discordId);
                 if (m != null) {
@@ -256,6 +257,11 @@ public class LapdHandler {
         String text = str(b, "text");
 
         if (!isType(type) || id.isEmpty() || text.isEmpty()) { err(ctx, out, "Ungültige Anfrage."); return; }
+        // Gebannte Personen dürfen auch nicht mehr antworten
+        if (isBannedName(gid, name)) {
+            err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            return;
+        }
         if (!LapdManager.reply(gid, type, id, uid, name, text)) {
             err(ctx, out, "Antwort nicht möglich – Eintrag nicht gefunden, nicht deiner oder nicht mehr offen.");
             return;

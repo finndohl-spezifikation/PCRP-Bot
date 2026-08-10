@@ -292,7 +292,7 @@ public class LapdDashHandler {
         String name = "";
         Member m = BotContext.getGuild().getMemberById(discordId);
         if (m != null) name = m.getEffectiveName();
-        LapdDashManager.ban(gid, discordId, name, str(b, "reason"), s.name);
+        LapdDashManager.ban(gid, discordId, name, str(b, "webName"), str(b, "reason"), s.name);
         out.addProperty("ok", true);
         respond(ctx, out);
     }

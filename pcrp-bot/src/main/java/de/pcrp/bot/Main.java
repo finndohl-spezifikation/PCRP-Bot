@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v18";
+        private static final String CHANGELOG_VERSION = "v19";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,15 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Bann auf allen LAPD-Seiten**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Dispatch im Handy-Panel & zuverlässiger Web-Bann**__\n\n" +
+                "📱 **Dispatch im Handy-Zentrale-Embed** — Das Auswahlmenü des Handy-Panels enthält jetzt direkt " +
+                "**„🚨 LAPD Dispatch”**: Name, Standort (PSN) und „Was ist passiert?” eingeben → der Einsatz erscheint " +
+                "in Echtzeit im LAPD-Dashboard. Ohne Besetzung wird der Notruf abgelehnt. Das Handy-Panel wird einmalig neu gesendet.\n\n" +
+                "⛔ **Zuverlässigerer Bann auf der Webseite** — Beim Bannen im Dashboard kann jetzt optional der " +
+                "**Name auf der LAPD-Webseite** angegeben werden, unter dem die Person dort auftritt. Dieser Name wird " +
+                "dann zuverlässig geblockt (Formulare + Antworten), auch wenn er vom Discord-Namen abweicht.\n\n" +
+                "---\n\n" +
+                "__**Version v18 — Bann auf allen LAPD-Seiten**__\n\n" +
                 "⛔ **Sperrbildschirm auf allen LAPD-Seiten** — Gebannte Personen sehen auf der Webseite, der Karriere- " +
                 "und der Anforderungen-Seite jetzt einen rot pulsierenden **„Zugriff gesperrt”-Bildschirm** (wie im " +
                 "Dashboard). Wer versucht, eine Beschwerde, Anzeige oder Bewerbung einzureichen, wird sofort gesperrt " +

@@ -445,16 +445,17 @@ async function loadBann(){
   const rows = (d.banned||[]).map(b =>
     '<div class="item red"><div class="top"><span class="who">' + esc(b.name||b.discordId) + '</span><span class="st revoked">Gebannt</span>' +
     '<button class="btn small green" onclick="unban(\'' + b.discordId + '\')">Entbannen</button></div>' +
-    '<div class="txt">ID: ' + esc(b.discordId) + (b.reason ? '<br>Grund: ' + esc(b.reason) : '') + '</div></div>').join('');
+    '<div class="txt">ID: ' + esc(b.discordId) + (b.webName ? '<br>Web-Name: ' + esc(b.webName) : '') + (b.reason ? '<br>Grund: ' + esc(b.reason) : '') + '</div></div>').join('');
   el.innerHTML = head('Nutzer Bannen', 'Personen per Discord-ID bannen oder entbannen.') +
     '<div class="grid"><div class="panel"><h3>⛔ Person bannen</h3>' +
     '<label>Discord-ID</label><input type="text" id="ban-id" placeholder="Discord-ID des Mitglieds">' +
+    '<label>Name auf der LAPD-Webseite (optional)</label><input type="text" id="ban-webname" placeholder="z. B. Max Mustermann – blockiert diesen Namen auf der Webseite">' +
     '<label>Grund</label><input type="text" id="ban-reason" placeholder="Optional">' +
     '<button class="btn red" style="margin-top:14px" onclick="ban()">⛔ Bannen</button><div class="msg" id="ban-msg"></div></div>' +
     '<div class="panel"><h3>📋 Gebannte Personen</h3>' + (rows || '<div class="empty">Keine gebannten Personen.</div>') + '</div></div>';
 }
 async function ban(){
-  const d = await api('/api/lapd/dash/ban', {token:getToken(), discordId:document.getElementById('ban-id').value.trim(), reason:document.getElementById('ban-reason').value.trim()});
+  const d = await api('/api/lapd/dash/ban', {token:getToken(), discordId:document.getElementById('ban-id').value.trim(), webName:document.getElementById('ban-webname').value.trim(), reason:document.getElementById('ban-reason').value.trim()});
   const box = document.getElementById('ban-msg');
   if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Gebannt.'; loadBann(); }
 }

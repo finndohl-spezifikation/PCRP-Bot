@@ -36,7 +36,7 @@ public class HandyCentraleListener extends ListenerAdapter {
     public  static final long   CHANNEL_ID    = 1529636579826729140L;
     private static final long   ROLE_HANDY_AN  = 1529636356333244608L;
     private static final long   ROLE_HANDY_AUS = 1529636359944405114L;
-    private static final String PANEL_KEY      = "panel-handy-zentrale-v7-";
+    private static final String PANEL_KEY      = "panel-handy-zentrale-v8-";
     private static final String ITEM_HANDY     = "Handy";
     private static final int    ITEM_PRICE     = 1000;
     private static final int    NEUE_NR_PREIS  = 500;
@@ -60,6 +60,7 @@ public class HandyCentraleListener extends ListenerAdapter {
         DataStore.deleteKey("panel-handy-zentrale-v4-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v5-" + guildId);
         DataStore.deleteKey("panel-handy-zentrale-v6-" + guildId);
+        DataStore.deleteKey("panel-handy-zentrale-v7-" + guildId);
 
         PanelHelper.post(ch, key, "📱 Handy-Zentrale", () -> sendHandyPanel(ch, key));
     }
@@ -70,6 +71,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             .addOption("📱 Handy Einschalten",   "einschalten", "Schalte dein Handy ein")
             .addOption("📴 Handy Ausschalten",   "ausschalten", "Schalte dein Handy aus")
             .addOption("📞 Handy Einstellungen", "nummer",      "Rufnummer, City Chat & Citygram aktivieren")
+            .addOption("🚨 LAPD Dispatch",       "dispatch",    "Notruf an die Polizei senden")
             .build();
 
         ch.sendMessageEmbeds(
@@ -79,7 +81,8 @@ public class HandyCentraleListener extends ListenerAdapter {
                     "Willkommen in der **Handy-Zentrale** von Paradise City Roleplay.\n\n" +
                     "**📱 Handy Einschalten** — Aktiviert dein Handy (Handy im Inventar erforderlich)\n" +
                     "**📴 Handy Ausschalten** — Deaktiviert dein Handy\n" +
-                    "**📞 Handy Einstellungen** — Rufnummer anzeigen, City Chat & Citygram aktivieren")
+                    "**📞 Handy Einstellungen** — Rufnummer anzeigen, City Chat & Citygram aktivieren\n" +
+                    "**🚨 LAPD Dispatch** — Sende einen Notruf an das LAPD (Name, Standort & Geschehen)")
                 .build()
         ).addComponents(ActionRow.of(menu)).queue(
             msg -> PanelHelper.onSent(key, msg.getId()),
@@ -106,6 +109,7 @@ public class HandyCentraleListener extends ListenerAdapter {
             case "nummer"       -> handleNummer(event, guild, member, userId, guildId);
             case "citychat"     -> handleCityChatActivate(event, guild, member, userId, guildId);
             case "citygram"     -> handleCitygramSelect(event, guild, member, userId, guildId);
+            case "dispatch"     -> openDispatchModal(event);
         }
     }
 
@@ -521,16 +525,7 @@ public class HandyCentraleListener extends ListenerAdapter {
         }
 
         if ("handy:dispatch_open".equals(cid)) {
-            Modal modal = Modal.create("handy:dispatch_modal", "🚨 LAPD Dispatch")
-                .addComponents(
-                    ActionRow.of(TextInput.create("dispatch_name", "Name", TextInputStyle.SHORT)
-                        .setPlaceholder("Dein Name").setMinLength(2).setMaxLength(40).setRequired(true).build()),
-                    ActionRow.of(TextInput.create("dispatch_location", "Standort (PSN Name)", TextInputStyle.SHORT)
-                        .setPlaceholder("Dein Standort / PSN-Name").setMinLength(2).setMaxLength(60).setRequired(true).build()),
-                    ActionRow.of(TextInput.create("dispatch_details", "Was ist passiert?", TextInputStyle.PARAGRAPH)
-                        .setPlaceholder("Beschreibe kurz, was passiert ist …").setMinLength(2).setMaxLength(1500).setRequired(true).build())
-                ).build();
-            event.replyModal(modal).queue();
+            openDispatchModal(event);
             return;
         }
 
@@ -705,6 +700,30 @@ public class HandyCentraleListener extends ListenerAdapter {
                 .build()
         ).setEphemeral(true).queue();
         log.info("[Handy] {} hat Vertrag abgeschlossen: {}", userId, c.phoneNumber);
+    }
+
+    // ── Modal: LAPD Dispatch öffnen (aus Select-Menü oder Button) ────────────
+
+    private void openDispatchModal(StringSelectInteractionEvent event) {
+        Modal modal = buildDispatchModal();
+        event.replyModal(modal).queue();
+    }
+
+    private void openDispatchModal(ButtonInteractionEvent event) {
+        Modal modal = buildDispatchModal();
+        event.replyModal(modal).queue();
+    }
+
+    private static Modal buildDispatchModal() {
+        return Modal.create("handy:dispatch_modal", "🚨 LAPD Dispatch")
+            .addComponents(
+                ActionRow.of(TextInput.create("dispatch_name", "Name", TextInputStyle.SHORT)
+                    .setPlaceholder("Dein Name").setMinLength(2).setMaxLength(40).setRequired(true).build()),
+                ActionRow.of(TextInput.create("dispatch_location", "Standort (PSN Name)", TextInputStyle.SHORT)
+                    .setPlaceholder("Dein Standort / PSN-Name").setMinLength(2).setMaxLength(60).setRequired(true).build()),
+                ActionRow.of(TextInput.create("dispatch_details", "Was ist passiert?", TextInputStyle.PARAGRAPH)
+                    .setPlaceholder("Beschreibe kurz, was passiert ist …").setMinLength(2).setMaxLength(1500).setRequired(true).build())
+            ).build();
     }
 
     // ── Modal: LAPD Dispatch ──────────────────────────────────────────────────

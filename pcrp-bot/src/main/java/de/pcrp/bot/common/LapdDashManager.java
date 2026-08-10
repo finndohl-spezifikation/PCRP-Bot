@@ -55,6 +55,7 @@ public final class LapdDashManager {
     public static class Ban {
         public String discordId;
         public String name;
+        public String webName;   // optionaler Name auf der LAPD-Webseite (wird dort geblockt)
         public String reason;
         public String by;
         public long   ts;
@@ -327,12 +328,13 @@ public final class LapdDashManager {
         return false;
     }
 
-    public static synchronized void ban(long guildId, String discordId, String name, String reason, String by) {
+    public static synchronized void ban(long guildId, String discordId, String name, String webName, String reason, String by) {
         Store s = load(guildId);
         s.banned.removeIf(b -> b.discordId.equals(discordId));
         Ban b = new Ban();
         b.discordId = discordId;
         b.name = name == null ? "" : name;
+        b.webName = webName == null ? "" : webName.trim();
         b.reason = reason == null ? "" : reason;
         b.by = by == null ? "" : by;
         b.ts = System.currentTimeMillis();
