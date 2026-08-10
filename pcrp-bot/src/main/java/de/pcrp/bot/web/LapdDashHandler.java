@@ -975,15 +975,16 @@ public class LapdDashHandler {
 
     // ── Ausrüstung (Leitung schreibt, alle sehen) ────────────────────────────
 
-    /** GET /api/lapd/dash/equipment?token=… – Liste + canManage-Flag. */
+    /** GET /api/lapd/dash/equipment?token=…&cat=kleidung|waffen|fahrzeuge – Liste + canManage-Flag. */
     public static void handleEquipmentList(Context ctx) {
         JsonObject out = new JsonObject();
         Long gid = guildId(ctx, out);
         if (gid == null) return;
         LapdDashManager.Session s = check(ctx, out, gid, false, false);
         if (s == null) return;
+        String cat = ctx.queryParam("cat");
         out.addProperty("ok", true);
-        out.add("equipment", GSON.toJsonTree(LapdDashManager.equipment(gid)));
+        out.add("equipment", GSON.toJsonTree(LapdDashManager.equipmentByCategory(gid, cat)));
         out.addProperty("canManage", s.leader || s.admin);
         respond(ctx, out);
     }
@@ -1002,8 +1003,14 @@ public class LapdDashHandler {
         String title = ctx.formParam("title");
         String desc  = ctx.formParam("description");
         String access = ctx.formParam("access");
+        String category = ctx.formParam("category");
         UploadedFile photo = ctx.uploadedFile("image");
         if (title == null || title.isBlank()) { err(ctx, out, "Titel fehlt."); return; }
+        if (category == null || category.isBlank()) { err(ctx, out, "Kategorie fehlt."); return; }
+        if (!"kleidung".equals(category) && !"waffen".equals(category) && !"fahrzeuge".equals(category)) {
+            err(ctx, out, "Ungültige Kategorie.");
+            return;
+        }
         if (access == null || access.isBlank()) access = "alle";
 
         String image = "";
@@ -1022,7 +1029,7 @@ public class LapdDashHandler {
             }
         }
 
-        LapdDashManager.addEquipment(gid, title, desc == null ? "" : desc, access, image, s.name);
+        LapdDashManager.addEquipment(gid, category, title, desc == null ? "" : desc, access, image, s.name);
         out.addProperty("ok", true);
         respond(ctx, out);
     }

@@ -229,7 +229,11 @@
     <div class="page" id="page-fahndungen"></div>
     <div class="page" id="page-einsaetze"></div>
     <div class="page" id="page-einsatzberichte"></div>
-    <div class="page" id="page-ausruestung"></div>
+
+    <!-- AUSRÜSTUNG -->
+    <div class="page" id="page-ausr-kleidung"></div>
+    <div class="page" id="page-ausr-waffen"></div>
+    <div class="page" id="page-ausr-fahrzeuge"></div>
 
     <!-- KONTAKT -->
     <div class="page" id="page-mails"></div>
@@ -344,6 +348,10 @@ function buildSidebar(){
     html += '<a class="item" data-page="zuweisen" onclick="nav(\'zuweisen\')">📋 Zuweisen</a>';
     html += '<a class="item" data-page="info" onclick="nav(\'info\')">📝 Information Schreiben</a>';
   }
+  html += '<div class="cat">Ausrüstung</div>';
+  html += '<a class="item" data-page="ausr-kleidung" onclick="nav(\'ausr-kleidung\')">👕 Dienstkleidung</a>';
+  html += '<a class="item" data-page="ausr-waffen" onclick="nav(\'ausr-waffen\')">🔫 Dienstwaffen</a>';
+  html += '<a class="item" data-page="ausr-fahrzeuge" onclick="nav(\'ausr-fahrzeuge\')">🚔 Dienstfahrzeuge</a>';
   html += '<div class="cat">LAPD</div>';
   html += '<a class="item" data-page="uebersicht" onclick="nav(\'uebersicht\')">📊 Übersicht</a>';
   html += '<a class="item" data-page="dienstan" onclick="nav(\'dienstan\')">🟢 Dienst Anmelden</a>';
@@ -354,7 +362,6 @@ function buildSidebar(){
   html += '<a class="item" data-page="fahndungen" onclick="nav(\'fahndungen\')">🔎 Fahndungen</a>';
   html += '<a class="item" data-page="einsaetze" onclick="nav(\'einsaetze\')">🚨 Einsätze</a>';
   html += '<a class="item" data-page="einsatzberichte" onclick="nav(\'einsatzberichte\')">📑 Einsatzberichte</a>';
-  html += '<a class="item" data-page="ausruestung" onclick="nav(\'ausruestung\')">🛡️ Ausrüstung</a>';
   html += '<div class="cat">Kontakt</div>';
   html += '<a class="item" data-page="mails" onclick="nav(\'mails\')">✉️ Mails</a>';
   html += '<a class="item" data-page="anzeigen" onclick="nav(\'anzeigen\')">📋 Anzeigen</a>';
@@ -397,7 +404,9 @@ function loadPage(page){
     case 'fahndungen':    loadFahndungen(); break;
     case 'einsaetze':     loadEinsaetze(); break;
     case 'einsatzberichte': loadEinsatzberichte(); break;
-    case 'ausruestung':   loadAusruestung(); break;
+    case 'ausr-kleidung':  loadAusruestung('kleidung','Dienstkleidung','👕'); break;
+    case 'ausr-waffen':    loadAusruestung('waffen','Dienstwaffen','🔫'); break;
+    case 'ausr-fahrzeuge': loadAusruestung('fahrzeuge','Dienstfahrzeuge','🚔'); break;
     case 'mails':         loadKontakt('mails'); break;
     case 'anzeigen':      loadKontakt('anzeigen'); break;
     case 'beschwerden':   loadKontakt('beschwerden'); break;
@@ -822,33 +831,36 @@ async function loadEinsatzberichte(){
     '<div class="panel">' + (rows || '<div class="empty">Noch keine Einsatzberichte.</div>') + '</div>';
 }
 
-// ── Ausrüstung (Leitung schreibt, alle sehen) ───────────
-async function loadAusruestung(){
-  const el = document.getElementById('page-ausruestung');
-  const d = await apiGet('/api/lapd/dash/equipment?token=' + encodeURIComponent(getToken()));
-  if(!d.ok){ el.innerHTML = head('Ausrüstung', d.error||'Fehler'); return; }
+// ── Ausrüstung (eigene Kategorie: Kleidung / Waffen / Fahrzeuge) ─
+async function loadAusruestung(cat, label, icon){
+  const el = document.getElementById('page-ausr-' + cat);
+  const d = await apiGet('/api/lapd/dash/equipment?token=' + encodeURIComponent(getToken()) + '&cat=' + cat);
+  if(!d.ok){ el.innerHTML = head(label, d.error||'Fehler'); return; }
   const can = !!d.canManage;
   const rows = (d.equipment||[]).map(e =>
     '<div class="item"><div class="top"><span class="who">' + esc(e.title) + '</span>' +
     '<span class="st offen">' + esc(e.access) + '</span><span class="when">' + fmt(e.ts) + '</span>' +
-    (can ? '<button class="btn small red" onclick="equipDelete(\'' + e.id + '\')">Löschen</button>' : '') + '</div>' +
+    (can ? '<button class="btn small red" onclick="equipDelete(\'' + e.id + '\',\'' + cat + '\')">Löschen</button>' : '') + '</div>' +
     (e.image ? '<img src="' + esc(e.image) + '" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">' : '') +
     '<div class="txt">' + esc(e.description) + '</div></div>').join('');
+  const emptyText = 'Noch keine ' + label + ' eingetragen.';
   const form = can ?
-    '<div class="grid"><div class="panel"><h3>🛡️ Neue Ausrüstung</h3>' +
-    '<label>Titel</label><input type="text" id="eq-title" placeholder="z. B. Sturmgewehr">' +
+    '<div class="grid"><div class="panel"><h3>' + icon + ' Neue ' + label + '</h3>' +
+    '<input type="hidden" id="eq-cat" value="' + cat + '">' +
+    '<label>Titel</label><input type="text" id="eq-title" placeholder="z. B. ' + (cat==='waffen'?'Sturmgewehr':(cat==='fahrzeuge'?'LAPD Crown Victoria':'Dienstuniform')) + '">' +
     '<label>Bild-Datei</label><input type="file" id="eq-image" accept="image/*">' +
-    '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung der Ausrüstung …"></textarea>' +
+    '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung …"></textarea>' +
     '<label>Verwendbar durch</label><select id="eq-access">' +
     '<option value="alle">Alle</option><option value="beamte">Beamte (Officer & Rooky)</option>' +
     '<option value="leitung">Leitungs Ebene</option><option value="admin">Administrator</option></select>' +
     '<button class="btn" style="margin-top:14px" onclick="equipAdd()">➕ Hinzufügen</button><div class="msg" id="eq-msg"></div></div>' +
-    '<div class="panel"><h3>📋 Ausrüstung</h3>' + (rows || '<div class="empty">Noch keine Ausrüstung eingetragen.</div>') + '</div></div>'
-    : '<div class="panel"><h3>📋 Ausrüstung</h3>' + (rows || '<div class="empty">Noch keine Ausrüstung eingetragen.</div>') + '</div>';
-  el.innerHTML = head('Ausrüstung', can ? 'Ausrüstung mit Bild und Text anlegen und festlegen, wer sie verwenden darf.' : 'Ausrüstung einsehen – Einträge kann nur die Leitungs-Ebene verwalten.') + form;
+    '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div></div>'
+    : '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div>';
+  el.innerHTML = head(icon + ' ' + label, can ? 'Einträge mit Bild und Text anlegen und festlegen, wer sie verwenden darf.' : 'Einträge einsehen – verwalten kann sie nur die Leitungs-Ebene.') + form;
 }
 async function equipAdd(){
   const box = document.getElementById('eq-msg');
+  const cat = document.getElementById('eq-cat').value;
   const title = document.getElementById('eq-title').value.trim();
   const desc = document.getElementById('eq-desc').value.trim();
   const access = document.getElementById('eq-access').value;
@@ -856,6 +868,7 @@ async function equipAdd(){
   if(!title){ box.className='msg err'; box.textContent='Bitte gib einen Titel an.'; return; }
   const fd = new FormData();
   fd.append('token', getToken());
+  fd.append('category', cat);
   fd.append('title', title);
   fd.append('description', desc);
   fd.append('access', access);
@@ -864,17 +877,17 @@ async function equipAdd(){
     const r = await fetch(API + '/api/lapd/dash/equipment', {method:'POST', body:fd});
     const d = await r.json();
     if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; return; }
-    box.className='msg ok'; box.textContent='✅ Ausrüstung hinzugefügt.';
+    box.className='msg ok'; box.textContent='✅ Eintrag hinzugefügt.';
     document.getElementById('eq-title').value='';
     document.getElementById('eq-desc').value='';
     document.getElementById('eq-image').value='';
-    loadAusruestung();
+    loadAusruestung(cat, cat==='kleidung'?'Dienstkleidung':(cat==='waffen'?'Dienstwaffen':'Dienstfahrzeuge'), cat==='kleidung'?'👕':(cat==='waffen'?'🔫':'🚔'));
   }catch(e){ box.className='msg err'; box.textContent='Verbindungsfehler.'; }
 }
-async function equipDelete(id){
-  if(!confirm('Ausrüstung wirklich löschen?')) return;
+async function equipDelete(id, cat){
+  if(!confirm('Eintrag wirklich löschen?')) return;
   await api('/api/lapd/dash/equipment/delete', {token:getToken(), id:id});
-  loadAusruestung();
+  loadAusruestung(cat, cat==='kleidung'?'Dienstkleidung':(cat==='waffen'?'Dienstwaffen':'Dienstfahrzeuge'), cat==='kleidung'?'👕':(cat==='waffen'?'🔫':'🚔'));
 }
 
 // ── Panic Button ──────────────────────────────────────────

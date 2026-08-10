@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v20";
+        private static final String CHANGELOG_VERSION = "v21";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Bannen/Zugriff jetzt mit Discord-Name oder ID**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Ausrüstung als eigene Kategorie**__\n\n" +
+                "🛡️ **Ausrüstung ist jetzt eine eigene Kategorie** im Dashboard (oberhalb von LAPD) mit drei " +
+                "Unterkategorien: **👕 Dienstkleidung**, **🔫 Dienstwaffen** und **🚔 Dienstfahrzeuge**. Die " +
+                "Leitungs-Ebene kann in jeder Kategorie Einträge mit Bild-Datei, Text und der erlaubten Ebene " +
+                "anlegen und löschen – alle anderen sehen sie nur.\n\n" +
+                "---\n\n" +
+                "__**Version v20 — Bannen/Zugriff jetzt mit Discord-Name oder ID**__\n\n" +
                 "⛔ **Bannen funktioniert jetzt mit Discord-Name ODER Discord-ID** — Vorher musste im Dashboard die " +
                 "numerische Discord-ID eingegeben werden; wer einen Namen eintrug, erzeugte einen Bann, der nie greift. " +
                 "Jetzt wird der Name automatisch in die echte ID aufgelöst, damit der Bann den Login zuverlässig sperrt. " +

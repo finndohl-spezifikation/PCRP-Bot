@@ -180,6 +180,7 @@ public final class LapdDashManager {
 
     public static class Equipment {
         public String id;
+        public String category; // kleidung | waffen | fahrzeuge
         public String title;
         public String description;
         public String access;   // alle | beamte | leitung | admin
@@ -792,11 +793,20 @@ public final class LapdDashManager {
         return load(guildId).equipment;
     }
 
-    public static synchronized Equipment addEquipment(long guildId, String title, String description,
+    public static synchronized List<Equipment> equipmentByCategory(long guildId, String category) {
+        List<Equipment> out = new ArrayList<>();
+        for (Equipment e : load(guildId).equipment) {
+            if (category == null || category.isBlank() || category.equals(e.category)) out.add(e);
+        }
+        return out;
+    }
+
+    public static synchronized Equipment addEquipment(long guildId, String category, String title, String description,
                                                       String access, String image, String by) {
         Store s = load(guildId);
         Equipment e = new Equipment();
         e.id = newId();
+        e.category = category == null ? "" : category.trim();
         e.title = title == null ? "" : title.trim();
         e.description = description == null ? "" : description.trim();
         e.access = access == null ? "alle" : access;
