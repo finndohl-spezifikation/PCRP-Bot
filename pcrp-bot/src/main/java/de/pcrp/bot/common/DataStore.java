@@ -55,6 +55,21 @@ public final class DataStore {
         }
     }
 
+    /** Liefert alle Dateinamen im Datenverzeichnis, die mit dem Prefix beginnen (ohne Pfad). */
+    public static java.util.List<String> listFiles(String prefix) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        try (var stream = Files.list(DATA_DIR)) {
+            stream.filter(p -> Files.isRegularFile(p))
+                  .map(p -> p.getFileName().toString())
+                  .filter(n -> prefix == null || n.startsWith(prefix))
+                  .sorted()
+                  .forEach(out::add);
+        } catch (IOException e) {
+            log.warn("Datenverzeichnis konnte nicht gelesen werden: {}", e.getMessage());
+        }
+        return out;
+    }
+
     /** Löscht eine Datei aus dem Datenverzeichnis (ignoriert falls nicht vorhanden). */
     public static void deleteKey(String filename) {
         try {

@@ -226,9 +226,17 @@ function esc(s){
 }
 function fmt(ts){ return new Date(ts).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}); }
 
+const VORSTRAFE_MSG = 'Mit einer Vorstrafe kann ihr Bewerbungsprozess nicht länger Berücksichtigt werden. Wir danken ihnen dennoch für ihr Interesse.';
+
 async function submitBewerbung(){
   const box = document.getElementById('k-msgbox');
   box.className = 'msg';
+  // Sofortige Absage bei Vorstrafen – Bewerbung wird nicht angenommen
+  if(document.getElementById('k-vorstrafen').value === 'Ja'){
+    box.className = 'msg err';
+    box.textContent = VORSTRAFE_MSG;
+    return;
+  }
   const vorname = document.getElementById('k-vorname').value.trim();
   const nachname = document.getElementById('k-nachname').value.trim();
   const name = vorname + ' ' + nachname;
@@ -308,6 +316,17 @@ async function replyBewerbung(id){
 
 window.addEventListener('DOMContentLoaded', () => {
   loadMy();
+  // Sofortige Meldung, sobald „Ja“ bei Vorstrafen gewählt wird
+  document.getElementById('k-vorstrafen').addEventListener('change', function(){
+    const box = document.getElementById('k-msgbox');
+    if(this.value === 'Ja'){
+      box.className = 'msg err';
+      box.textContent = VORSTRAFE_MSG;
+    } else {
+      box.className = 'msg';
+      box.textContent = '';
+    }
+  });
   if(location.hash === '#meine'){
     const el = document.getElementById('meine');
     if(el) setTimeout(() => el.scrollIntoView({behavior:'smooth'}), 150);

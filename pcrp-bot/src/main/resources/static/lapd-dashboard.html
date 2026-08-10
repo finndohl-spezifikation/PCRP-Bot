@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAPD Dashboard — Los Angeles Police Department</title>
+<style>
+  :root{
+    --bg:#0a0e1a; --panel:#10182b; --panel2:#0d1424; --border:#22304a;
+    --blue:#2563eb; --blue2:#3b82f6; --gold:#c9a227; --gold2:#e0b93c;
+    --text:#e5e9f2; --muted:#8b97ad; --green:#22c55e; --red:#ef4444; --orange:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit}
+
+  /* ── Login-Screen ──────────────────────────────────── */
+  #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;
+    background:radial-gradient(900px 500px at 50% -10%,rgba(37,99,235,.25),transparent 60%),linear-gradient(160deg,#0a0e1a,#0d1830 60%,#0a1122)}
+  #login-screen.hidden,#app.hidden,#banned-screen.hidden,#anim.hidden{display:none!important}
+  .login-card{width:100%;max-width:430px;background:rgba(16,24,43,.9);border:1px solid var(--border);border-radius:18px;
+    padding:38px 34px;box-shadow:0 20px 60px rgba(0,0,0,.5);text-align:center}
+  .login-card img{width:86px;height:86px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 0 0 4px rgba(201,162,39,.2);margin-bottom:14px}
+  .login-card h1{font-size:1.5rem;letter-spacing:2px;color:#fff}
+  .login-card .sub{font-size:.66rem;letter-spacing:1.4px;color:var(--muted);text-transform:uppercase;margin:4px 0 22px}
+  .login-card label{display:block;text-align:left;font-size:.78rem;font-weight:600;color:var(--muted);margin:12px 0 5px}
+  .login-card input,.login-card select{width:100%;background:#0a1122;border:1.5px solid var(--border);border-radius:9px;
+    padding:12px 14px;color:var(--text);font-size:.92rem}
+  .login-card input:focus,.login-card select:focus{outline:none;border-color:var(--blue)}
+  .login-card .btn{width:100%;margin-top:20px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0e1a;
+    border:none;padding:13px;border-radius:9px;font-weight:800;font-size:.95rem;letter-spacing:.5px}
+  .login-card .btn:hover{filter:brightness(1.08)}
+  .login-card .err{display:none;margin-top:13px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);
+    color:#fca5a5;border-radius:9px;padding:10px 13px;font-size:.84rem;line-height:1.5;text-align:left}
+  .login-card .hint{color:var(--muted);font-size:.72rem;margin-top:16px;line-height:1.5}
+
+  /* ── Bann-Screen (rot pulsierend) ──────────────────── */
+  #banned-screen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;
+    background:radial-gradient(circle at 50% 40%,rgba(239,68,68,.25),#0a0505 70%);
+    animation:pulseRed 1.6s ease-in-out infinite}
+  @keyframes pulseRed{0%,100%{background:radial-gradient(circle at 50% 40%,rgba(239,68,68,.22),#0a0505 70%)}
+    50%{background:radial-gradient(circle at 50% 40%,rgba(239,68,68,.42),#0a0505 70%)}}
+  #banned-screen .card{max-width:480px;background:rgba(20,5,5,.9);border:2px solid var(--red);border-radius:18px;padding:44px 36px;
+    box-shadow:0 0 60px rgba(239,68,68,.4)}
+  #banned-screen .icon{font-size:3.4rem;margin-bottom:14px}
+  #banned-screen h1{color:var(--red);font-size:1.6rem;letter-spacing:2px;margin-bottom:12px;text-transform:uppercase}
+  #banned-screen p{color:#d8c8c8;font-size:.95rem;line-height:1.7}
+
+  /* ── Login-Animation (Linien von oben nach unten) ──── */
+  #anim{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:#070b14;
+    overflow:hidden}
+  #anim .lines{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 44px,rgba(37,99,235,.18) 44px 46px,transparent 46px 90px);
+    background-size:100% 200%;animation:scan 1.1s linear infinite}
+  @keyframes scan{from{background-position:0 0}to{background-position:0 200%}}
+  #anim .logo{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);
+    box-shadow:0 0 40px rgba(201,162,39,.5);animation:popIn .9s ease forwards;opacity:0}
+  @keyframes popIn{0%{opacity:0;transform:scale(.4)}60%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
+
+  /* ── App-Layout ────────────────────────────────────── */
+  #app{display:flex;min-height:100vh}
+  aside{width:262px;min-width:262px;background:var(--panel2);border-right:1px solid var(--border);padding:16px 12px;
+    position:sticky;top:0;height:100vh;overflow-y:auto}
+  .aside-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;border-bottom:1px solid var(--border);margin-bottom:10px}
+  .aside-brand img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--gold)}
+  .aside-brand b{font-size:1rem;letter-spacing:1.5px;display:block}
+  .aside-brand span{font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+  .cat{font-size:.64rem;letter-spacing:1.6px;color:var(--gold);font-weight:800;padding:14px 10px 6px;text-transform:uppercase}
+  .cat:first-of-type{padding-top:8px}
+  aside a.item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;color:var(--muted);
+    font-size:.83rem;font-weight:600;margin-bottom:2px;transition:.12s;border:1px solid transparent}
+  aside a.item:hover{background:rgba(37,99,235,.12);color:var(--text)}
+  aside a.item.active{background:linear-gradient(135deg,rgba(37,99,235,.25),rgba(37,99,235,.08));color:#fff;border-color:rgba(59,130,246,.4)}
+  main{flex:1;padding:22px 28px 80px;min-width:0}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+  .topbar .who{font-size:1.15rem;font-weight:800}
+  .topbar .who span{color:var(--muted);font-weight:600;font-size:.85rem}
+  .topbar .actions{display:flex;gap:8px}
+  .btn{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;padding:10px 18px;border-radius:9px;
+    font-weight:700;font-size:.86rem}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0e1a}
+  .btn.red{background:linear-gradient(135deg,#dc2626,#ef4444)}
+  .btn.green{background:linear-gradient(135deg,#16a34a,#22c55e)}
+  .btn.gray{background:#334155}
+  .btn.out{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
+  .btn.small{padding:7px 12px;font-size:.78rem;margin:2px}
+  .btn.blocked{opacity:.45;cursor:not-allowed}
+  .page{display:none}
+  .page.active{display:block;animation:fadeIn .25s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .ptitle{font-size:1.3rem;font-weight:800;margin-bottom:4px;letter-spacing:.5px}
+  .psub{color:var(--muted);font-size:.84rem;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr} }
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:18px}
+  .panel h3{font-size:.95rem;margin-bottom:14px;color:#fff}
+  .panel label{display:block;font-size:.76rem;font-weight:600;color:var(--muted);margin:11px 0 5px}
+  .panel input,.panel select,.panel textarea{width:100%;background:#0a1122;border:1.5px solid var(--border);border-radius:8px;
+    padding:10px 12px;color:var(--text);font-size:.88rem}
+  .panel textarea{min-height:80px;resize:vertical}
+  .panel input:focus,.panel select:focus,.panel textarea:focus{outline:none;border-color:var(--blue)}
+  .msg{display:none;margin-top:12px;padding:10px 13px;border-radius:8px;font-size:.85rem;font-weight:600}
+  .msg.ok{display:block;background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.4)}
+  .msg.err{display:block;background:rgba(239,68,68,.12);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
+  .item{background:var(--panel);border:1px solid var(--border);border-left:4px solid var(--blue);border-radius:10px;
+    padding:15px 17px;margin-bottom:12px}
+  .item.done{border-left-color:var(--green)}
+  .item.red{border-left-color:var(--red)}
+  .item.gold{border-left-color:var(--gold)}
+  .item .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:6px}
+  .item .who{font-weight:700}
+  .item .when{color:var(--muted);font-size:.75rem}
+  .item .txt{color:#cbd5e1;font-size:.88rem;line-height:1.6;white-space:pre-wrap;margin:4px 0 8px}
+  .st{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;padding:3px 10px;border-radius:12px}
+  .st.offen{background:rgba(245,158,11,.15);color:var(--orange)}
+  .st.angenommen,.st.genehmigt{background:rgba(34,197,94,.15);color:#86efac}
+  .st.abgeschlossen,.st.geloest{background:rgba(148,163,184,.15);color:var(--muted)}
+  .st.abgelehnt{background:rgba(239,68,68,.15);color:#fca5a5}
+  .st.revoked{background:rgba(239,68,68,.2);color:#fca5a5}
+  .fields{background:#0a1122;border:1px solid var(--border);border-radius:8px;padding:9px 13px;margin:6px 0 10px;
+    font-size:.82rem;line-height:1.6;display:grid;grid-template-columns:auto 1fr;gap:2px 12px}
+  .fields b{color:var(--muted);font-weight:600}
+  .empty{color:var(--muted);font-size:.87rem;background:var(--panel);border:1px dashed var(--border);border-radius:10px;padding:16px}
+  .count{background:var(--blue);color:#fff;font-size:.7rem;border-radius:12px;padding:2px 10px}
+  .inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .inline input,.inline select{flex:1;min-width:160px}
+  .avatar{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1px solid var(--border);vertical-align:middle}
+
+  /* ── Dispatch-Toast (unten links) ──────────────────── */
+  #toasts{position:fixed;left:18px;bottom:18px;z-index:400;display:flex;flex-direction:column;gap:10px;max-width:360px}
+  .toast{background:linear-gradient(135deg,#7f1d1d,#b91c1c);border:1px solid #ef4444;border-radius:12px;padding:14px 16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);animation:toastIn .3s ease}
+  @keyframes toastIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+  .toast b{font-size:.9rem;display:block;margin-bottom:4px}
+  .toast span{font-size:.8rem;color:#fecaca;line-height:1.45;display:block;margin-bottom:10px}
+  .toast .btn{padding:7px 14px;font-size:.78rem}
+
+  @media(max-width:820px){
+    aside{width:210px;min-width:210px}
+    main{padding:16px 14px 70px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Login-Screen ─────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card">
+    <img src="/lapd-logo.jpg" alt="LAPD Logo">
+    <h1>LAPD DASHBOARD</h1>
+    <div class="sub">Los Angeles Police Department</div>
+    <form onsubmit="event.preventDefault();login()">
+      <label>Discord Name oder Discord-ID</label>
+      <input type="text" id="lg-discord" placeholder="z. B. MaxMustermann oder 123456789012345678" autocomplete="off">
+      <label>Dienstgrad</label>
+      <select id="lg-rank">
+        <option value="" disabled selected>Dienstgrad wählen …</option>
+        <option>Chief Of Police</option>
+        <option>Deputy Chief</option>
+        <option>Assistant Chief</option>
+        <option>Commander</option>
+        <option>Captain</option>
+        <option>Lieutenant</option>
+        <option>Sergeant</option>
+        <option>Detective</option>
+        <option>Officer</option>
+        <option>Rooky</option>
+      </select>
+      <label>Passwort</label>
+      <input type="password" id="lg-pass" placeholder="Passwort" autocomplete="off">
+      <button class="btn" type="submit">🔐 Einloggen</button>
+      <div class="err" id="lg-err"></div>
+      <div class="hint">Zugriff nur für LAPD-Mitglieder. Der Bot prüft bei jedem Login, ob du auf dem Discord-Server bist und die LAPD-Rolle besitzt.</div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Bann-Screen ──────────────────────────────────────── -->
+<div id="banned-screen" class="hidden">
+  <div class="card">
+    <div class="icon">🚫</div>
+    <h1>Zugriff gesperrt</h1>
+    <p>Dein Zugriff wurde von einem Administrator gesperrt.<br><br>Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.</p>
+  </div>
+</div>
+
+<!-- ── Login-Animation ──────────────────────────────────── -->
+<div id="anim" class="hidden">
+  <div class="lines"></div>
+  <img class="logo" src="/lapd-logo.jpg" alt="LAPD">
+</div>
+
+<!-- ── Dashboard ────────────────────────────────────────── -->
+<div id="app" class="hidden">
+  <aside id="sidebar"></aside>
+  <main>
+    <div class="topbar">
+      <div class="who" id="tb-who"></div>
+      <div class="actions">
+        <button class="btn green" id="tb-duty" style="display:none" onclick="dutyOn()">🕐 Dienst anmelden</button>
+        <button class="btn red" id="tb-dutyoff" style="display:none" onclick="dutyOff()">🕐 Dienst abmelden</button>
+        <button class="btn out" onclick="logout()">⏻ Abmelden</button>
+      </div>
+    </div>
+
+    <!-- ADMINISTRATOR -->
+    <div class="page" id="page-zugriff"></div>
+    <div class="page" id="page-bann"></div>
+    <div class="page" id="page-fuhrpark"></div>
+
+    <!-- LEITUNGS EBENE -->
+    <div class="page" id="page-mitarbeiter"></div>
+    <div class="page" id="page-abmahnen"></div>
+    <div class="page" id="page-kuendigen"></div>
+    <div class="page" id="page-urlaubsantraege"></div>
+    <div class="page" id="page-zuweisen"></div>
+    <div class="page" id="page-info"></div>
+
+    <!-- LAPD -->
+    <div class="page" id="page-uebersicht"></div>
+    <div class="page" id="page-dienstan"></div>
+    <div class="page" id="page-dienstab"></div>
+    <div class="page" id="page-lapd-infos"></div>
+    <div class="page" id="page-urlaub"></div>
+    <div class="page" id="page-abmahnungen"></div>
+    <div class="page" id="page-fahndungen"></div>
+    <div class="page" id="page-einsaetze"></div>
+    <div class="page" id="page-einsatzberichte"></div>
+
+    <!-- KONTAKT -->
+    <div class="page" id="page-mails"></div>
+    <div class="page" id="page-anzeigen"></div>
+    <div class="page" id="page-beschwerden"></div>
+    <div class="page" id="page-bewerbungen"></div>
+
+    <!-- AKTEN -->
+    <div class="page" id="page-personakten"></div>
+    <div class="page" id="page-strafakten"></div>
+    <div class="page" id="page-fuehrerscheine"></div>
+  </main>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+const API = "%%API_BASE%%";
+const RANKS = ["Chief Of Police","Deputy Chief","Assistant Chief","Commander","Captain","Lieutenant","Sergeant","Detective","Officer","Rooky"];
+const LEADER = ["Chief Of Police","Deputy Chief","Assistant Chief","Commander","Captain","Lieutenant"];
+let ME = null;
+let SEEN = {};        // gesehene Dispatch-IDs
+let dispatchTimer = null;
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function fmt(ts){ return ts ? new Date(ts).toLocaleString('de-DE',{dateStyle:'medium',timeStyle:'short'}) : ''; }
+function time(ts){ return ts ? new Date(ts).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'}) : ''; }
+function getToken(){ return localStorage.getItem('lapd-dash-token') || ''; }
+function setToken(t){ if(t){ localStorage.setItem('lapd-dash-token', t); } else { localStorage.removeItem('lapd-dash-token'); } }
+
+async function api(path, body){
+  try{
+    const opt = {method:'POST', headers:{'Content-Type':'application/json'}};
+    if(body !== undefined) opt.body = JSON.stringify(body);
+    const r = await fetch(API + path, opt);
+    return await r.json();
+  }catch(e){ return {ok:false, error:'Verbindungsfehler'}; }
+}
+async function apiGet(path){
+  try{
+    const r = await fetch(API + path);
+    return await r.json();
+  }catch(e){ return {ok:false, error:'Verbindungsfehler'}; }
+}
+
+// ── Login ────────────────────────────────────────────────
+async function login(){
+  const err = document.getElementById('lg-err');
+  err.style.display = 'none';
+  const discord = document.getElementById('lg-discord').value.trim();
+  const rank = document.getElementById('lg-rank').value;
+  const pass = document.getElementById('lg-pass').value;
+  if(!discord){ showErr(err, 'Bitte gib deinen Discord-Namen oder deine Discord-ID ein.'); return; }
+  if(!rank){ showErr(err, 'Bitte wähle deinen Dienstgrad.'); return; }
+  const d = await api('/api/lapd/dash/login', {discord, rank, password:pass});
+  if(!d.ok){
+    if(d.banned){
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('banned-screen').classList.remove('hidden');
+      return;
+    }
+    showErr(err, d.error || 'Login fehlgeschlagen.');
+    return;
+  }
+  setToken(d.token);
+  ME = {name:d.name, rank:d.rank, admin:d.admin, leader:d.leader};
+  playAnim();
+}
+
+function showErr(el, msg){ el.textContent = msg; el.style.display = 'block'; }
+
+function playAnim(){
+  const anim = document.getElementById('anim');
+  anim.classList.remove('hidden');
+  document.getElementById('login-screen').classList.add('hidden');
+  setTimeout(() => {
+    anim.classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    enterDash();
+  }, 2600);
+}
+
+async function logout(){
+  await api('/api/lapd/dash/logout', {token:getToken()});
+  setToken(null);
+  stopDispatchPoll();
+  location.reload();
+}
+
+// ── Dashboard-Einstieg ───────────────────────────────────
+async function enterDash(){
+  document.getElementById('tb-who').innerHTML = esc(ME.name) + ' · <span>' + esc(ME.rank) + '</span>';
+  buildSidebar();
+  nav('uebersicht');
+  refreshDutyButtons();
+  startDispatchPoll();
+}
+
+function buildSidebar(){
+  const s = document.getElementById('sidebar');
+  let html = '';
+  html += '<div class="aside-brand"><img src="/lapd-logo.jpg" alt="LAPD"><div><b>LAPD</b><span>Dashboard</span></div></div>';
+  if(ME.admin){
+    html += '<div class="cat">Administrator</div>';
+    html += '<a class="item" data-page="zugriff" onclick="nav(\'zugriff\')">🔑 Zugriff Verwalten</a>';
+    html += '<a class="item" data-page="bann" onclick="nav(\'bann\')">⛔ Nutzer Bannen</a>';
+    html += '<a class="item" data-page="fuhrpark" onclick="nav(\'fuhrpark\')">🚓 Fuhrpark Verwalten</a>';
+  }
+  if(ME.leader){
+    html += '<div class="cat">Leitungs Ebene</div>';
+    html += '<a class="item" data-page="mitarbeiter" onclick="nav(\'mitarbeiter\')">👥 Mitarbeiter Liste</a>';
+    html += '<a class="item" data-page="abmahnen" onclick="nav(\'abmahnen\')">⚠️ Abmahnen</a>';
+    html += '<a class="item" data-page="kuendigen" onclick="nav(\'kuendigen\')">📤 Kündigen</a>';
+    html += '<a class="item" data-page="urlaubsantraege" onclick="nav(\'urlaubsantraege\')">🏖️ Urlaubs Anträge</a>';
+    html += '<a class="item" data-page="zuweisen" onclick="nav(\'zuweisen\')">📋 Zuweisen</a>';
+    html += '<a class="item" data-page="info" onclick="nav(\'info\')">📝 Information Schreiben</a>';
+  }
+  html += '<div class="cat">LAPD</div>';
+  html += '<a class="item" data-page="uebersicht" onclick="nav(\'uebersicht\')">📊 Übersicht</a>';
+  html += '<a class="item" data-page="dienstan" onclick="nav(\'dienstan\')">🟢 Dienst Anmelden</a>';
+  html += '<a class="item" data-page="dienstab" onclick="nav(\'dienstab\')">🔴 Dienst Abmelden</a>';
+  html += '<a class="item" data-page="lapd-infos" onclick="nav(\'lapd-infos\')">ℹ️ Informationen</a>';
+  html += '<a class="item" data-page="urlaub" onclick="nav(\'urlaub\')">🏖️ Urlaub Beantragen</a>';
+  html += '<a class="item" data-page="abmahnungen" onclick="nav(\'abmahnungen\')">📄 Abmahnungen</a>';
+  html += '<a class="item" data-page="fahndungen" onclick="nav(\'fahndungen\')">🔎 Fahndungen</a>';
+  html += '<a class="item" data-page="einsaetze" onclick="nav(\'einsaetze\')">🚨 Einsätze</a>';
+  html += '<a class="item" data-page="einsatzberichte" onclick="nav(\'einsatzberichte\')">📑 Einsatzberichte</a>';
+  html += '<div class="cat">Kontakt</div>';
+  html += '<a class="item" data-page="mails" onclick="nav(\'mails\')">✉️ Mails</a>';
+  html += '<a class="item" data-page="anzeigen" onclick="nav(\'anzeigen\')">📋 Anzeigen</a>';
+  if(ME.leader){
+    html += '<a class="item" data-page="beschwerden" onclick="nav(\'beschwerden\')">⚠️ Beschwerden</a>';
+    html += '<a class="item" data-page="bewerbungen" onclick="nav(\'bewerbungen\')">🎓 Bewerbungen</a>';
+  }
+  html += '<div class="cat">Akten</div>';
+  html += '<a class="item" data-page="personakten" onclick="nav(\'personakten\')">👤 Personen Akten</a>';
+  html += '<a class="item" data-page="strafakten" onclick="nav(\'strafakten\')">⚖️ Strafakten</a>';
+  html += '<a class="item" data-page="fuehrerscheine" onclick="nav(\'fuehrerscheine\')">🚗 Führerscheine</a>';
+  s.innerHTML = html;
+}
+
+function nav(page){
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('aside a.item').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+  loadPage(page);
+}
+
+function loadPage(page){
+  switch(page){
+    case 'zugriff':       loadZugriff(); break;
+    case 'bann':          loadBann(); break;
+    case 'fuhrpark':      loadFuhrpark(); break;
+    case 'mitarbeiter':   loadMitarbeiter(); break;
+    case 'abmahnen':      loadAbmahnen(); break;
+    case 'kuendigen':     loadKuendigen(); break;
+    case 'urlaubsantraege': loadUrlaubsantraege(); break;
+    case 'zuweisen':      loadZuweisen(); break;
+    case 'info':          loadInfo(); break;
+    case 'uebersicht':    loadUebersicht(); break;
+    case 'dienstan':      loadDienstan(); break;
+    case 'dienstab':      loadDienstab(); break;
+    case 'lapd-infos':    loadLapdInfos(); break;
+    case 'urlaub':        loadUrlaub(); break;
+    case 'abmahnungen':   loadAbmahnungenMe(); break;
+    case 'fahndungen':    loadFahndungen(); break;
+    case 'einsaetze':     loadEinsaetze(); break;
+    case 'einsatzberichte': loadEinsatzberichte(); break;
+    case 'mails':         loadKontakt('mails'); break;
+    case 'anzeigen':      loadKontakt('anzeigen'); break;
+    case 'beschwerden':   loadKontakt('beschwerden'); break;
+    case 'bewerbungen':   loadKontakt('bewerbungen'); break;
+    case 'personakten':   loadPersonAkten(); break;
+    case 'strafakten':    loadStrafAkten(); break;
+    case 'fuehrerscheine': loadFuehrerscheine(); break;
+  }
+}
+
+function head(title, sub){ return '<div class="ptitle">' + title + '</div><div class="psub">' + (sub||'') + '</div>'; }
+
+// ── Zugriff Verwalten (Admin) ───────────────────────────
+async function loadZugriff(){
+  const el = document.getElementById('page-zugriff');
+  const d = await apiGet('/api/lapd/dash/access?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Zugriff Verwalten', d.error||'Fehler'); return; }
+  const rows = (d.access||[]).map(a =>
+    '<div class="item"><div class="top"><span class="who">' + esc(a.name||a.discordId) + '</span><span class="st offen">' + esc(a.rank) + '</span>' +
+    '<button class="btn small red" onclick="accessDelete(\'' + a.discordId + '\')">Löschen</button></div>' +
+    '<div class="txt">Discord-ID: ' + esc(a.discordId) + '</div></div>').join('');
+  el.innerHTML = head('Zugriff Verwalten', 'Discord-IDs eintragen und Dienstgrad zuweisen – nur so kann sich die Person einloggen.') +
+    '<div class="grid"><div class="panel"><h3>🔑 Person hinzufügen / Dienstgrad ändern</h3>' +
+    '<label>Discord-ID</label><input type="text" id="acc-id" placeholder="Discord-ID des Mitglieds">' +
+    '<label>Dienstgrad</label><select id="acc-rank">' + RANKS.map(r => '<option>' + r + '</option>').join('') + '</select>' +
+    '<button class="btn" style="margin-top:14px" onclick="accessAdd()">💾 Speichern</button><div class="msg" id="acc-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Freigeschaltete Personen</h3>' + (rows || '<div class="empty">Noch niemand freigeschaltet.</div>') + '</div></div>';
+}
+async function accessAdd(){
+  const d = await api('/api/lapd/dash/access', {token:getToken(), discordId:document.getElementById('acc-id').value.trim(), rank:document.getElementById('acc-rank').value});
+  const box = document.getElementById('acc-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Gespeichert.'; loadZugriff(); }
+}
+async function accessDelete(id){
+  if(!confirm('Zugriff für diese Person wirklich entfernen?')) return;
+  await api('/api/lapd/dash/access/delete', {token:getToken(), discordId:id});
+  loadZugriff();
+}
+
+// ── Nutzer Bannen (Admin) ───────────────────────────────
+async function loadBann(){
+  const el = document.getElementById('page-bann');
+  const d = await apiGet('/api/lapd/dash/banned?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Nutzer Bannen', d.error||'Fehler'); return; }
+  const rows = (d.banned||[]).map(b =>
+    '<div class="item red"><div class="top"><span class="who">' + esc(b.name||b.discordId) + '</span><span class="st revoked">Gebannt</span>' +
+    '<button class="btn small green" onclick="unban(\'' + b.discordId + '\')">Entbannen</button></div>' +
+    '<div class="txt">ID: ' + esc(b.discordId) + (b.reason ? '<br>Grund: ' + esc(b.reason) : '') + '</div></div>').join('');
+  el.innerHTML = head('Nutzer Bannen', 'Personen per Discord-ID bannen oder entbannen.') +
+    '<div class="grid"><div class="panel"><h3>⛔ Person bannen</h3>' +
+    '<label>Discord-ID</label><input type="text" id="ban-id" placeholder="Discord-ID des Mitglieds">' +
+    '<label>Grund</label><input type="text" id="ban-reason" placeholder="Optional">' +
+    '<button class="btn red" style="margin-top:14px" onclick="ban()">⛔ Bannen</button><div class="msg" id="ban-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Gebannte Personen</h3>' + (rows || '<div class="empty">Keine gebannten Personen.</div>') + '</div></div>';
+}
+async function ban(){
+  const d = await api('/api/lapd/dash/ban', {token:getToken(), discordId:document.getElementById('ban-id').value.trim(), reason:document.getElementById('ban-reason').value.trim()});
+  const box = document.getElementById('ban-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Gebannt.'; loadBann(); }
+}
+async function unban(id){
+  await api('/api/lapd/dash/unban', {token:getToken(), discordId:id});
+  loadBann();
+}
+
+// ── Fuhrpark Verwalten (Admin) ──────────────────────────
+async function loadFuhrpark(){
+  const el = document.getElementById('page-fuhrpark');
+  const d = await apiGet('/api/lapd/public');
+  if(!d.ok){ el.innerHTML = head('Fuhrpark Verwalten', d.error||'Fehler'); return; }
+  const rows = (d.fleet||[]).map(v =>
+    '<div class="item"><div class="top"><span class="who">' + esc(v.title) + '</span>' +
+    '<button class="btn small red" onclick="fleetDelete(\'' + v.id + '\')">Löschen</button></div>' +
+    (v.image ? '<img src="' + esc(v.image) + '" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">' : '') +
+    '<div class="txt">' + esc(v.description) + '</div></div>').join('');
+  el.innerHTML = head('Fuhrpark Verwalten', 'Fahrzeuge mit Bild, Titel und Beschreibung anlegen – sie erscheinen sofort auf der Webseite.') +
+    '<div class="grid"><div class="panel"><h3>🚓 Fahrzeug hinzufügen</h3>' +
+    '<label>Titel</label><input type="text" id="fv-title" placeholder="z. B. LAPD Crown Victoria">' +
+    '<label>Bild-URL</label><input type="text" id="fv-image" placeholder="https://…">' +
+    '<label>Beschreibung</label><textarea id="fv-desc" placeholder="Beschreibung des Fahrzeugs …"></textarea>' +
+    '<button class="btn" style="margin-top:14px" onclick="fleetAdd()">➕ Hinzufügen</button><div class="msg" id="fv-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Fahrzeuge</h3>' + (rows || '<div class="empty">Noch keine Fahrzeuge.</div>') + '</div></div>';
+}
+async function fleetAdd(){
+  const d = await api('/api/lapd/dash/fleet', {token:getToken(), title:document.getElementById('fv-title').value.trim(), image:document.getElementById('fv-image').value.trim(), description:document.getElementById('fv-desc').value.trim()});
+  const box = document.getElementById('fv-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Fahrzeug hinzugefügt.'; loadFuhrpark(); }
+}
+async function fleetDelete(id){
+  if(!confirm('Fahrzeug wirklich löschen?')) return;
+  await api('/api/lapd/dash/fleet/delete', {token:getToken(), id:id});
+  loadFuhrpark();
+}
+
+// ── Mitarbeiter Liste (Leitung) ─────────────────────────
+async function loadMitarbeiter(){
+  const el = document.getElementById('page-mitarbeiter');
+  const d = await apiGet('/api/lapd/dash/employees?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Mitarbeiter Liste', d.error||'Fehler'); return; }
+  const rows = (d.employees||[]).map(e =>
+    '<div class="item"><div class="top"><span class="who">' + esc(e.name) + '</span><span class="st offen">' + esc(e.rank) + '</span>' +
+    '<button class="btn small gold" onclick="empEdit(\'' + e.id + '\')">Bearbeiten</button>' +
+    '<button class="btn small red" onclick="empDelete(\'' + e.id + '\')">Löschen</button></div>' +
+    (e.discordId ? '<div class="txt">Discord-ID: ' + esc(e.discordId) + '</div>' : '') + '</div>').join('');
+  el.innerHTML = head('Mitarbeiter Liste', 'Mitarbeiter mit Dienstgrad eintragen – sie erscheinen sofort auf der Webseite unter „Mitarbeiter“.') +
+    '<div class="grid"><div class="panel"><h3>👥 Mitarbeiter hinzufügen</h3>' +
+    '<label>Name</label><input type="text" id="emp-name" placeholder="Vor- und Nachname">' +
+    '<label>Rang</label><select id="emp-rank">' + RANKS.map(r => '<option>' + r + '</option>').join('') + '</select>' +
+    '<label>Discord-ID (optional)</label><input type="text" id="emp-id" placeholder="Für Verknüpfung">' +
+    '<button class="btn" style="margin-top:14px" onclick="empAdd()">➕ Hinzufügen</button><div class="msg" id="emp-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Mitarbeiter</h3>' + (rows || '<div class="empty">Noch keine Mitarbeiter eingetragen.</div>') + '</div></div>';
+}
+async function empAdd(){
+  const d = await api('/api/lapd/dash/employees', {token:getToken(), name:document.getElementById('emp-name').value.trim(), rank:document.getElementById('emp-rank').value, discordId:document.getElementById('emp-id').value.trim()});
+  const box = document.getElementById('emp-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Mitarbeiter hinzugefügt.'; loadMitarbeiter(); }
+}
+async function empEdit(id){
+  const name = prompt('Neuer Name:');
+  if(name === null) return;
+  const rank = prompt('Neuer Rang (' + RANKS.join(', ') + '):');
+  if(rank === null) return;
+  const d = await api('/api/lapd/dash/employees/edit', {token:getToken(), id:id, name:name.trim(), rank:rank.trim()});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  loadMitarbeiter();
+}
+async function empDelete(id){
+  if(!confirm('Mitarbeiter wirklich löschen?')) return;
+  await api('/api/lapd/dash/employees/delete', {token:getToken(), id:id});
+  loadMitarbeiter();
+}
+
+// ── Auswahlliste: registrierte Personen (Zugriffsliste) ──
+async function accessOptions(selId, label){
+  const d = await apiGet('/api/lapd/dash/access?token=' + encodeURIComponent(getToken()));
+  let opts = '<option value="" disabled selected>' + label + ' …</option>';
+  (d.access||[]).forEach(a => {
+    opts += '<option value="' + esc(a.discordId) + '">' + esc(a.name || a.discordId) + ' (' + esc(a.rank) + ')</option>';
+  });
+  document.getElementById(selId).innerHTML = opts;
+}
+
+// ── Abmahnen (Leitung) ──────────────────────────────────
+async function loadAbmahnen(){
+  const el = document.getElementById('page-abmahnen');
+  el.innerHTML = head('Abmahnen', 'Mitarbeiter abmahnen (nur registrierte Personen, Administratoren sind unantastbar).') +
+    '<div class="panel"><h3>⚠️ Neue Abmahnung</h3>' +
+    '<label>Mitarbeiter</label><select id="warn-id"></select>' +
+    '<label>Grund</label><textarea id="warn-reason" placeholder="Grund der Abmahnung …"></textarea>' +
+    '<button class="btn red" style="margin-top:14px" onclick="warn()">⚠️ Abmahnen</button><div class="msg" id="warn-msg"></div></div>';
+  await accessOptions('warn-id', 'Mitarbeiter auswählen');
+}
+async function warn(){
+  const d = await api('/api/lapd/dash/warn', {token:getToken(), discordId:document.getElementById('warn-id').value, reason:document.getElementById('warn-reason').value.trim()});
+  const box = document.getElementById('warn-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Abmahnung erteilt.'; }
+}
+
+// ── Kündigen (Leitung) ──────────────────────────────────
+async function loadKuendigen(){
+  const el = document.getElementById('page-kuendigen');
+  el.innerHTML = head('Kündigen', 'Mitarbeiter kündigen – der Dashboard-Zugriff wird sofort entzogen und die Person verschwindet von der Mitarbeiter-Seite. Die Nachricht kommt per DM.') +
+    '<div class="panel"><h3>📤 Mitarbeiter kündigen</h3>' +
+    '<label>Mitarbeiter</label><select id="fire-id"></select>' +
+    '<label>Nachricht / Grund</label><textarea id="fire-reason" placeholder="Die Nachricht wird der Person per DM mitgeteilt …"></textarea>' +
+    '<button class="btn red" style="margin-top:14px" onclick="fire()">📤 Kündigen</button><div class="msg" id="fire-msg"></div></div>';
+  await accessOptions('fire-id', 'Mitarbeiter auswählen');
+}
+async function fire(){
+  const d = await api('/api/lapd/dash/fire', {token:getToken(), discordId:document.getElementById('fire-id').value, reason:document.getElementById('fire-reason').value.trim()});
+  const box = document.getElementById('fire-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Gekündigt – Zugriff entzogen, DM gesendet.'; }
+}
+
+// ── Urlaubs Anträge (Leitung) ───────────────────────────
+async function loadUrlaubsantraege(){
+  const el = document.getElementById('page-urlaubsantraege');
+  const d = await apiGet('/api/lapd/dash/vacations?token=' + encodeURIComponent(getToken()) + '&all=1');
+  if(!d.ok){ el.innerHTML = head('Urlaubs Anträge', d.error||'Fehler'); return; }
+  const rows = (d.vacations||[]).map(v =>
+    '<div class="item ' + (v.status==='genehmigt'?'done':(v.status==='abgelehnt'?'red':'gold')) + '">' +
+    '<div class="top"><span class="who">' + esc(v.name) + '</span><span class="st ' + (v.status==='offen'?'offen':v.status) + '">' + esc(v.status) + '</span>' +
+    (v.status==='offen' ? '<button class="btn small green" onclick="vacDecide(\'' + v.id + '\',\'genehmigt\')">✔ Genehmigen</button>' +
+    '<button class="btn small red" onclick="vacDecide(\'' + v.id + '\',\'abgelehnt\')">✖ Ablehnen</button>' : '') + '</div>' +
+    '<div class="txt">📅 ' + esc(v.from) + ' bis ' + esc(v.to) + (v.reason ? '<br>Grund: ' + esc(v.reason) : '') + '</div></div>').join('');
+  el.innerHTML = head('Urlaubs Anträge', 'Eingehende Urlaubsanträge annehmen oder ablehnen.') +
+    '<div class="panel">' + (rows || '<div class="empty">Keine offenen Urlaubsanträge.</div>') + '</div>';
+}
+async function vacDecide(id, action){
+  const d = await api('/api/lapd/dash/vacation/decide', {token:getToken(), id:id, action:action});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  loadUrlaubsantraege();
+}
+
+// ── Zuweisen (Leitung) ──────────────────────────────────
+async function loadZuweisen(){
+  const el = document.getElementById('page-zuweisen');
+  el.innerHTML = head('Zuweisen', 'Mitarbeiter in ihre Schichten einteilen.') +
+    '<div class="panel"><h3>📋 Schicht zuweisen</h3>' +
+    '<label>Mitarbeiter</label><select id="as-id"></select>' +
+    '<label>Schicht</label><select id="as-shift"><option>Tagschicht</option><option>Nachtschicht</option><option>Bereitschaft</option><option>Frei</option></select>' +
+    '<button class="btn" style="margin-top:14px" onclick="assign()">💾 Zuweisen</button><div class="msg" id="as-msg"></div></div>';
+  await accessOptions('as-id', 'Mitarbeiter auswählen');
+}
+async function assign(){
+  const d = await api('/api/lapd/dash/assign', {token:getToken(), discordId:document.getElementById('as-id').value, shift:document.getElementById('as-shift').value});
+  const box = document.getElementById('as-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Schicht zugewiesen.'; }
+}
+
+// ── Information Schreiben (Leitung) ─────────────────────
+async function loadInfo(){
+  const el = document.getElementById('page-info');
+  const d1 = await apiGet('/api/lapd/public');
+  const all = [];
+  (d1.infos||[]).forEach(i => all.push(i));
+  const list = all.map(i =>
+    '<div class="item"><div class="top"><span class="who">' + esc(i.title) + '</span><span class="when">' + fmt(i.ts) + '</span>' +
+    '<button class="btn small red" onclick="infoDelete(\'' + i.id + '\')">Löschen</button></div>' +
+    '<div class="txt">' + esc(i.text) + '</div></div>').join('');
+  el.innerHTML = head('Information Schreiben', 'Infos veröffentlichen – auf der Webseite, im LAPD-Dashboard oder direkt in Discord.') +
+    '<div class="grid"><div class="panel"><h3>📝 Neue Information</h3>' +
+    '<label>Ziel</label><select id="inf-target"><option value="website">🌐 Webseite (Informationen)</option><option value="lapd">📋 LAPD Informationen (Dashboard)</option><option value="discord">💬 Discord-Kanal</option></select>' +
+    '<label>Titel</label><input type="text" id="inf-title" placeholder="Titel">' +
+    '<label>Text</label><textarea id="inf-text" placeholder="Informationstext …"></textarea>' +
+    '<button class="btn" style="margin-top:14px" onclick="infoAdd()">📤 Veröffentlichen</button><div class="msg" id="inf-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Informationen auf der Webseite</h3>' + (list || '<div class="empty">Keine Informationen.</div>') + '</div></div>';
+}
+async function infoAdd(){
+  const d = await api('/api/lapd/dash/info', {token:getToken(), target:document.getElementById('inf-target').value, title:document.getElementById('inf-title').value.trim(), text:document.getElementById('inf-text').value.trim()});
+  const box = document.getElementById('inf-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Information veröffentlicht.'; loadInfo(); }
+}
+async function infoDelete(id){
+  if(!confirm('Information wirklich löschen?')) return;
+  await api('/api/lapd/dash/info/delete', {token:getToken(), id:id});
+  loadInfo();
+}
+
+// ── Übersicht / Dienst ──────────────────────────────────
+async function loadUebersicht(){
+  const el = document.getElementById('page-uebersicht');
+  const d = await apiGet('/api/lapd/dash/duty?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Übersicht', d.error||'Fehler'); return; }
+  const rows = (d.duty||[]).map(x =>
+    '<div class="item done"><div class="top"><span class="who">' + esc(x.name) + '</span><span class="st offen">' + esc(x.rank) + '</span></div>' +
+    '<div class="txt">🕐 im Dienst seit ' + time(x.startedAt) + '</div></div>').join('');
+  el.innerHTML = head('Übersicht', 'Wer ist aktuell im Dienst?') +
+    '<div class="panel"><h3>👮 Aktuell im Dienst: ' + (d.duty||[]).length + '</h3>' + (rows || '<div class="empty">Derzeit ist niemand im Dienst.</div>') + '</div>';
+}
+
+async function loadDienstan(){
+  const el = document.getElementById('page-dienstan');
+  el.innerHTML = head('Dienst Anmelden', 'Melde dich für deine Schicht an – das Dienst-Embed im Discord aktualisiert sich sofort.') +
+    '<div class="panel" style="text-align:center"><p style="margin-bottom:16px;color:var(--muted)">Nach der Anmeldung bist du in der Dienst-Übersicht sichtbar.</p>' +
+    '<button class="btn green" onclick="dutyOn()">🟢 Jetzt Dienst anmelden</button><div class="msg" id="duty-msg"></div></div>';
+}
+async function loadDienstab(){
+  const el = document.getElementById('page-dienstab');
+  el.innerHTML = head('Dienst Abmelden', 'Melde dich ab – das Dienst-Embed im Discord aktualisiert sich sofort.') +
+    '<div class="panel" style="text-align:center"><p style="margin-bottom:16px;color:var(--muted)">Nach der Abmeldung verschwindest du aus der Dienst-Übersicht.</p>' +
+    '<button class="btn red" onclick="dutyOff()">🔴 Jetzt Dienst abmelden</button><div class="msg" id="duty-msg"></div></div>';
+}
+async function dutyOn(){
+  const d = await api('/api/lapd/dash/duty/on', {token:getToken()});
+  if(!d.ok){ alert(d.error||'Fehler'); return; }
+  refreshDutyButtons();
+  const box = document.getElementById('duty-msg');
+  if(box){ box.className='msg ok'; box.textContent='✅ Dienst angemeldet.'; }
+  loadUebersicht();
+}
+async function dutyOff(){
+  const d = await api('/api/lapd/dash/duty/off', {token:getToken()});
+  if(!d.ok){ alert(d.error||'Fehler'); return; }
+  refreshDutyButtons();
+  const box = document.getElementById('duty-msg');
+  if(box){ box.className='msg ok'; box.textContent='✅ Dienst abgemeldet.'; }
+  loadUebersicht();
+}
+async function refreshDutyButtons(){
+  const d = await apiGet('/api/lapd/dash/me?token=' + encodeURIComponent(getToken()));
+  if(!d.ok) return;
+  document.getElementById('tb-duty').style.display = d.onDuty ? 'none' : '';
+  document.getElementById('tb-dutyoff').style.display = d.onDuty ? '' : 'none';
+}
+
+// ── Informationen (LAPD) ────────────────────────────────
+async function loadLapdInfos(){
+  const el = document.getElementById('page-lapd-infos');
+  const pub = await apiGet('/api/lapd/public');
+  const rows = (pub.infos||[]).map(i =>
+    '<div class="item"><div class="top"><span class="who">' + esc(i.title) + '</span><span class="when">' + fmt(i.ts) + '</span></div>' +
+    '<div class="txt">' + esc(i.text) + '</div></div>').join('');
+  el.innerHTML = head('Informationen', 'Alle Informationen der Leitungs-Ebene.') +
+    '<div class="panel">' + (rows || '<div class="empty">Keine Informationen vorhanden.</div>') + '</div>';
+}
+
+// ── Urlaub Beantragen / Abmahnungen (eigene) ────────────
+async function loadUrlaub(){
+  const el = document.getElementById('page-urlaub');
+  const d = await apiGet('/api/lapd/dash/vacations?token=' + encodeURIComponent(getToken()));
+  const mine = (d.vacations||[]).map(v =>
+    '<div class="item ' + (v.status==='genehmigt'?'done':(v.status==='abgelehnt'?'red':'gold')) + '">' +
+    '<div class="top"><span class="who">' + fmt(v.ts) + '</span><span class="st ' + (v.status==='offen'?'offen':v.status) + '">' + esc(v.status) + '</span></div>' +
+    '<div class="txt">📅 ' + esc(v.from) + ' bis ' + esc(v.to) + (v.reason ? '<br>Grund: ' + esc(v.reason) : '') + '</div></div>').join('');
+  el.innerHTML = head('Urlaub Beantragen', 'Beantrage deinen Urlaub – die Leitung entscheidet.') +
+    '<div class="grid"><div class="panel"><h3>🏖️ Neuer Antrag</h3>' +
+    '<label>Von</label><input type="date" id="vac-from">' +
+    '<label>Bis</label><input type="date" id="vac-to">' +
+    '<label>Grund</label><textarea id="vac-reason" placeholder="Optional"></textarea>' +
+    '<button class="btn" style="margin-top:14px" onclick="vacRequest()">📤 Beantragen</button><div class="msg" id="vac-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Meine Anträge</h3>' + (mine || '<div class="empty">Noch keine Anträge.</div>') + '</div></div>';
+}
+async function vacRequest(){
+  const d = await api('/api/lapd/dash/vacation/request', {token:getToken(), from:document.getElementById('vac-from').value, to:document.getElementById('vac-to').value, reason:document.getElementById('vac-reason').value.trim()});
+  const box = document.getElementById('vac-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Antrag eingereicht.'; loadUrlaub(); }
+}
+
+async function loadAbmahnungenMe(){
+  const el = document.getElementById('page-abmahnungen');
+  const w = await api('/api/lapd/dash/warn/me', {token:getToken()});
+  const rows = (w.warnings||[]).map(x =>
+    '<div class="item red"><div class="top"><span class="who">Abmahnung</span><span class="when">' + fmt(x.ts) + '</span></div>' +
+    '<div class="txt">' + esc(x.reason) + '<br><span class="when">Von: ' + esc(x.by) + '</span></div></div>').join('');
+  el.innerHTML = head('Abmahnungen', 'Deine Abmahnungen und Anträge im Überblick.') +
+    '<div class="panel">' + (rows || '<div class="empty">Du hast keine Abmahnungen.</div>') + '</div>';
+}
+
+// ── Fahndungen ──────────────────────────────────────────
+async function loadFahndungen(){
+  const el = document.getElementById('page-fahndungen');
+  const d = await apiGet('/api/lapd/dash/wanted?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Fahndungen', d.error||'Fehler'); return; }
+  const rows = (d.wanted||[]).map(w =>
+    '<div class="item gold"><div class="top"><span class="who">' + esc(w.title) + '</span><span class="when">' + fmt(w.ts) + '</span>' +
+    (ME.leader ? '<button class="btn small red" onclick="wantedDelete(\'' + w.id + '\')">Löschen</button>' : '') + '</div>' +
+    (w.description ? '<div class="txt">' + esc(w.description) + '</div>' : '') + '</div>').join('');
+  el.innerHTML = head('Fahndungen', ME.leader ? 'Fahndungen erstellen und löschen.' : 'Fahndungen einsehen – Löschen nur für die Leitungs-Ebene.') +
+    '<div class="grid"><div class="panel"><h3>🔎 Neue Fahndung</h3>' +
+    '<label>Titel</label><input type="text" id="wn-title" placeholder="z. B. Gesucht: …">' +
+    '<label>Beschreibung</label><textarea id="wn-desc" placeholder="Beschreibung der Fahndung …"></textarea>' +
+    '<button class="btn" style="margin-top:14px" onclick="wantedAdd()">➕ Erstellen</button><div class="msg" id="wn-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Fahndungen</h3>' + (rows || '<div class="empty">Keine Fahndungen.</div>') + '</div></div>';
+}
+async function wantedAdd(){
+  const d = await api('/api/lapd/dash/wanted', {token:getToken(), title:document.getElementById('wn-title').value.trim(), description:document.getElementById('wn-desc').value.trim()});
+  const box = document.getElementById('wn-msg');
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Fahndung erstellt.'; loadFahndungen(); }
+}
+async function wantedDelete(id){
+  if(!confirm('Fahndung wirklich löschen?')) return;
+  await api('/api/lapd/dash/wanted/delete', {token:getToken(), id:id});
+  loadFahndungen();
+}
+
+// ── Einsätze / Berichte ─────────────────────────────────
+async function loadEinsaetze(){
+  const el = document.getElementById('page-einsaetze');
+  const d = await apiGet('/api/lapd/dash/dispatches?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Einsätze', d.error||'Fehler'); return; }
+  const rows = (d.dispatches||[]).slice().reverse().map(x =>
+    '<div class="item ' + (x.status==='abgeschlossen'?'done':(x.status==='angenommen'?'gold':'red')) + '">' +
+    '<div class="top"><span class="who">' + esc(x.type) + '</span><span class="st ' + x.status + '">' + esc(x.status) + '</span><span class="when">' + fmt(x.ts) + '</span></div>' +
+    '<div class="txt">👤 ' + esc(x.senderName) + (x.location ? '<br>📍 ' + esc(x.location) : '') + (x.details ? '<br>' + esc(x.details) : '') +
+    (x.acceptedBy ? '<br><span class="when">Angenommen von: ' + esc(x.acceptedBy) + '</span>' : '') + '</div>' +
+    (x.status==='offen' ? '<button class="btn green small" onclick="dispatchAccept(\'' + x.id + '\')">✔ Annehmen</button>' : '') +
+    (x.status==='angenommen' ? '<button class="btn gold small" onclick="showReport(\'' + x.id + '\')">📝 Abschließen</button><div id="rep-' + x.id + '" style="display:none;margin-top:10px"><textarea id="rep-txt-' + x.id + '" placeholder="Einsatzbericht schreiben …"></textarea><button class="btn small" onclick="dispatchReport(\'' + x.id + '\')">📤 Bericht speichern</button></div>' : '') +
+    '</div>').join('');
+  el.innerHTML = head('Einsätze', 'Eingehende Einsätze (Dispatches) in Echtzeit – annehmen und später mit Bericht abschließen.') +
+    '<div class="panel">' + (rows || '<div class="empty">Keine Einsätze vorhanden.</div>') + '</div>';
+}
+async function dispatchAccept(id){
+  const d = await api('/api/lapd/dash/dispatch/accept', {token:getToken(), id:id});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  loadEinsaetze();
+}
+function showReport(id){
+  document.getElementById('rep-' + id).style.display = 'block';
+}
+async function dispatchReport(id){
+  const text = document.getElementById('rep-txt-' + id).value.trim();
+  if(!text){ alert('Bitte schreibe einen Einsatzbericht.'); return; }
+  const d = await api('/api/lapd/dash/dispatch/report', {token:getToken(), id:id, text:text});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  loadEinsaetze();
+}
+
+async function loadEinsatzberichte(){
+  const el = document.getElementById('page-einsatzberichte');
+  const d = await apiGet('/api/lapd/dash/dispatches?token=' + encodeURIComponent(getToken()));
+  const rows = (d.reports||[]).slice().reverse().map(r =>
+    '<div class="item done"><div class="top"><span class="who">Einsatzbericht</span><span class="when">' + fmt(r.ts) + ' · ' + esc(r.by) + '</span></div>' +
+    '<div class="txt">' + esc(r.text) + '</div></div>').join('');
+  el.innerHTML = head('Einsatzberichte', 'Abgeschlossene Einsätze mit Bericht.') +
+    '<div class="panel">' + (rows || '<div class="empty">Noch keine Einsatzberichte.</div>') + '</div>';
+}
+
+// ── Dispatch-Polling (Toast unten links, 10 Sekunden) ───
+function startDispatchPoll(){
+  stopDispatchPoll();
+  dispatchTimer = setInterval(checkDispatches, 5000);
+  checkDispatches();
+}
+function stopDispatchPoll(){
+  if(dispatchTimer){ clearInterval(dispatchTimer); dispatchTimer = null; }
+}
+async function checkDispatches(){
+  if(!getToken()) return;
+  const d = await apiGet('/api/lapd/dash/dispatches?token=' + encodeURIComponent(getToken()));
+  if(!d.ok) return;
+  const now = Date.now();
+  (d.dispatches||[]).forEach(x => {
+    if(x.status === 'offen' && !SEEN[x.id]){
+      SEEN[x.id] = true;
+      showToast(x);
+    }
+  });
+  // Alte Einträge aus SEEN prüfen (Status geändert → Toast nicht erneut)
+  (d.dispatches||[]).forEach(x => { if(x.status !== 'offen') SEEN[x.id] = true; });
+}
+function showToast(x){
+  const box = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '<b>🚨 Neuer Einsatz</b><span>' + esc(x.type) + (x.location ? ' · ' + esc(x.location) : '') + '<br>von ' + esc(x.senderName) + '</span>' +
+    '<button class="btn" onclick="toastAccept(\'' + x.id + '\', this)">✔ Annehmen</button>';
+  box.appendChild(t);
+  setTimeout(() => { if(t.parentNode) t.parentNode.removeChild(t); }, 10000);
+}
+async function toastAccept(id, btn){
+  const d = await api('/api/lapd/dash/dispatch/accept', {token:getToken(), id:id});
+  btn.disabled = true;
+  btn.textContent = d.ok ? '✅ Angenommen' : (d.error || 'Fehler');
+  if(btn.parentNode) setTimeout(() => { if(btn.parentNode.parentNode) btn.parentNode.parentNode.remove(); }, 1200);
+  loadEinsaetze();
+}
+
+// ── Kontakt (Mails / Anzeigen / Beschwerden / Bewerbungen) ─
+const KTYPE = {mails:'mail', anzeigen:'anzeige', beschwerden:'beschwerde', bewerbungen:'bewerbung'};
+const KLABEL = {mail:'Mail', anzeige:'Anzeige', beschwerde:'Beschwerde', bewerbung:'Bewerbung'};
+
+async function loadKontakt(page){
+  const el = document.getElementById('page-' + page);
+  const type = KTYPE[page];
+  const d = await apiGet('/api/lapd/dashboard');
+  if(!d.ok){ el.innerHTML = head('Kontakt', d.error||'Fehler'); return; }
+  const items = d[page] || [];
+  const rows = items.map(i => kontaktItem(i, type)).join('');
+  el.innerHTML = head(KLABEL[type] + 's', 'Eingehende ' + KLABEL[type].toLowerCase() + 's bearbeiten – antworten, lösen oder schließen.') +
+    '<div class="panel">' + (rows || '<div class="empty">Keine ' + KLABEL[type].toLowerCase() + 's vorhanden.</div>') + '</div>';
+}
+function kontaktItem(i, type){
+  const fields = (i.data || {});
+  const fkeys = Object.keys(fields).filter(k => fields[k]);
+  const fhtml = fkeys.length ? '<div class="fields">' + fkeys.map(k => '<b>' + esc(k) + ':</b><span>' + esc(fields[k]) + '</span>').join('') + '</div>' : '';
+  const replies = (i.replies||[]).map(r =>
+    '<div class="txt" style="margin:2px 0"><b>' + esc(r.author) + '</b> · <span class="when">' + fmt(r.ts) + '</span><br>' + esc(r.text) + '</div>').join('');
+  let actions = '<div class="inline" style="margin-top:8px">' +
+    '<input type="text" id="dr-' + type + '-' + i.id + '" placeholder="Antwort als LAPD …" style="flex:2">' +
+    '<button class="btn small" onclick="dashReply(\'' + type + '\',\'' + i.id + '\')">Antworten</button></div><div class="inline" style="margin-top:6px">';
+  if(type === 'bewerbung'){
+    actions += (i.status==='offen' ? '<button class="btn small green" onclick="dashDecide(\'' + i.id + '\',\'annehmen\')">✔ Annehmen</button>' +
+      '<button class="btn small red" onclick="dashDecide(\'' + i.id + '\',\'ablehnen\')">✖ Ablehnen</button>' : '') +
+      (i.status!=='offen' ? '<button class="btn small gold" onclick="dashStatus(\'bewerbung\',\'' + i.id + '\',\'offen\')">↺ Wieder öffnen</button>' : '');
+  } else {
+    actions += (i.status!=='gelöst' ? '<button class="btn small green" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'gelöst\')">✓ Gelöst</button>' : '') +
+      (i.status!=='geschlossen' ? '<button class="btn small gray" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'geschlossen\')">✖ Schließen</button>' : '') +
+      (i.status!=='offen' ? '<button class="btn small gold" onclick="dashStatus(\'' + type + '\',\'' + i.id + '\',\'offen\')">↺ Wieder öffnen</button>' : '');
+  }
+  actions += '</div>';
+  return '<div class="item ' + (i.status==='gelöst'||i.status==='angenommen'?'done':(i.status==='geschlossen'||i.status==='abgelehnt'?'red':'')) + '">' +
+    '<div class="top"><span class="who">' + esc(i.name) + '</span><span class="when">' + fmt(i.createdAt) + '</span><span class="st ' + i.status + '">' + esc(i.status) + '</span></div>' +
+    '<div class="txt">' + esc(i.message) + '</div>' + fhtml +
+    (replies ? '<div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:6px">' + replies + '</div>' : '') + actions + '</div>';
+}
+async function dashReply(type, id){
+  const input = document.getElementById('dr-' + type + '-' + id);
+  const text = input.value.trim();
+  if(!text) return;
+  const d = await api('/api/lapd/dashboard/reply', {type:type, id:id, text:text});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  const cur = document.querySelector('.page.active');
+  if(cur) loadPage(cur.id.replace('page-',''));
+}
+async function dashStatus(type, id, status){
+  const d = await api('/api/lapd/dashboard/status', {type:type, id:id, status:status});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  const cur = document.querySelector('.page.active');
+  if(cur) loadPage(cur.id.replace('page-',''));
+}
+async function dashDecide(id, action){
+  const d = await api('/api/lapd/dashboard/decide', {type:'bewerbung', id:id, action:action});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  const cur = document.querySelector('.page.active');
+  if(cur) loadPage(cur.id.replace('page-',''));
+}
+
+// ── Akten ───────────────────────────────────────────────
+async function loadPersonAkten(){
+  const el = document.getElementById('page-personakten');
+  const d = await apiGet('/api/lapd/dash/akten?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Personen Akten', d.error||'Fehler'); return; }
+  const rows = (d.personAkten||[]).map(a => akteItem(a, 'person')).join('');
+  el.innerHTML = head('Personen Akten', 'Akten zu Personen erstellen, bearbeiten und einsehen. Löschen nur für die Leitungs-Ebene.') +
+    '<div class="grid"><div class="panel"><h3>👤 Neue Personen-Akte</h3>' +
+    '<label>Name</label><input type="text" id="pa-name" placeholder="Name der Person">' +
+    '<label>Discord-ID (optional)</label><input type="text" id="pa-id">' +
+    '<label>Details (eine Zeile pro Feld, Format: Schlüssel: Wert)</label><textarea id="pa-fields" placeholder="z. B.&#10;Geburtsdatum: 01.01.1990&#10;Adresse: …&#10;Notizen: …"></textarea>' +
+    '<button class="btn" style="margin-top:14px" onclick="akteAdd(\'person\')">➕ Erstellen</button><div class="msg" id="pa-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Akten</h3>' + (rows || '<div class="empty">Keine Akten vorhanden.</div>') + '</div></div>';
+}
+async function loadStrafAkten(){
+  const el = document.getElementById('page-strafakten');
+  const d = await apiGet('/api/lapd/dash/akten?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Strafakten', d.error||'Fehler'); return; }
+  const rows = (d.strafAkten||[]).map(a => akteItem(a, 'straf')).join('');
+  el.innerHTML = head('Strafakten', 'Strafakten erstellen, bearbeiten und einsehen. Löschen nur für die Leitungs-Ebene.') +
+    '<div class="grid"><div class="panel"><h3>⚖️ Neue Strafakte</h3>' +
+    '<label>Name</label><input type="text" id="sa-name" placeholder="Name der Person">' +
+    '<label>Discord-ID (optional)</label><input type="text" id="sa-id">' +
+    '<label>Details (eine Zeile pro Feld, Format: Schlüssel: Wert)</label><textarea id="sa-fields" placeholder="z. B.&#10;Delikt: …&#10;Strafe: …&#10;Datum: …"></textarea>' +
+    '<button class="btn" style="margin-top:14px" onclick="akteAdd(\'straf\')">➕ Erstellen</button><div class="msg" id="sa-msg"></div></div>' +
+    '<div class="panel"><h3>📋 Strafakten</h3>' + (rows || '<div class="empty">Keine Strafakten vorhanden.</div>') + '</div></div>';
+}
+function akteItem(a, kind){
+  const fkeys = Object.keys(a.data||{}).filter(k => a.data[k]);
+  const fhtml = fkeys.length ? '<div class="fields">' + fkeys.map(k => '<b>' + esc(k) + ':</b><span>' + esc(a.data[k]) + '</span>').join('') + '</div>' : '';
+  return '<div class="item"><div class="top"><span class="who">' + esc(a.name) + '</span><span class="when">' + fmt(a.ts) + '</span>' +
+    '<button class="btn small gold" onclick="akteEdit(\'' + kind + '\',\'' + a.id + '\')">Bearbeiten</button>' +
+    (ME.leader ? '<button class="btn small red" onclick="akteDelete(\'' + kind + '\',\'' + a.id + '\')">Löschen</button>' : '') + '</div>' + fhtml + '</div>';
+}
+function parseFields(text){
+  const m = {};
+  String(text||'').split('\n').forEach(line => {
+    const idx = line.indexOf(':');
+    if(idx > 0) m[line.slice(0,idx).trim()] = line.slice(idx+1).trim();
+  });
+  return m;
+}
+async function akteAdd(kind){
+  const p = kind === 'person';
+  const nameEl = document.getElementById((p?'pa':'sa') + '-name');
+  const idEl = document.getElementById((p?'pa':'sa') + '-id');
+  const fEl = document.getElementById((p?'pa':'sa') + '-fields');
+  const box = document.getElementById((p?'pa':'sa') + '-msg');
+  const d = await api('/api/lapd/dash/akte', {token:getToken(), kind:(p?'person':'straf'), name:nameEl.value.trim(), discordId:idEl.value.trim(), fields:parseFields(fEl.value)});
+  if(!d.ok){ box.className='msg err'; box.textContent = d.error||'Fehler'; } else { box.className='msg ok'; box.textContent='✅ Akte erstellt.'; loadPersonAkten(); loadStrafAkten(); }
+}
+async function akteEdit(kind, id){
+  const cur = (kind === 'person') ? (await apiGet('/api/lapd/dash/akten?token=' + encodeURIComponent(getToken()))).personAkten : (await apiGet('/api/lapd/dash/akten?token=' + encodeURIComponent(getToken()))).strafAkten;
+  const a = (cur||[]).find(x => x.id === id);
+  if(!a) return;
+  const text = prompt('Details bearbeiten (eine Zeile pro Feld, Format: Schlüssel: Wert):', Object.keys(a.data||{}).map(k => k + ': ' + a.data[k]).join('\n'));
+  if(text === null) return;
+  const d = await api('/api/lapd/dash/akte/edit', {token:getToken(), kind:kind, id:id, fields:parseFields(text)});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  loadPersonAkten(); loadStrafAkten();
+}
+async function akteDelete(kind, id){
+  if(!confirm('Akte wirklich löschen?')) return;
+  await api('/api/lapd/dash/akte/delete', {token:getToken(), kind:kind, id:id});
+  loadPersonAkten(); loadStrafAkten();
+}
+
+// ── Führerscheine ───────────────────────────────────────
+async function loadFuehrerscheine(){
+  const el = document.getElementById('page-fuehrerscheine');
+  const d = await apiGet('/api/lapd/dash/licenses?token=' + encodeURIComponent(getToken()));
+  if(!d.ok){ el.innerHTML = head('Führerscheine', d.error||'Fehler'); return; }
+  const rows = (d.licenses||[]).map(l =>
+    '<div class="item ' + (l.revoked ? 'red' : 'done') + '"><div class="top"><span class="who">' + esc(l.vorname) + ' ' + esc(l.nachname) + '</span>' +
+    '<span class="st ' + (l.revoked ? 'revoked' : 'angenommen') + '">' + (l.revoked ? 'Entzogen' : 'Aktiv') + '</span>' +
+    '<span class="when">' + esc(l.discordName) + '</span></div>' +
+    '<div class="fields"><b>ID:</b><span>' + esc(l.userId) + '</span><b>Geburtsdatum:</b><span>' + esc(l.geburtsdatum) + '</span>' +
+    '<b>Klassen:</b><span>' + esc((l.klassen||[]).join(', ')) + '</span><b>Gültig bis:</b><span>' + fmt(l.gueltigBis*1000) + '</span></div>' +
+    (l.revoked
+      ? '<button class="btn small green" onclick="licenseReturn(\'' + l.userId + '\')">↩️ Führerschein zurückgeben</button>'
+      : '<button class="btn small red" onclick="licenseRevoke(\'' + l.userId + '\')">🚫 Entziehen</button>') + '</div>').join('');
+  el.innerHTML = head('Führerscheine', 'Alle über Discord erstellten Führerscheine – einsehbar und entziehbar. Entzogene Führerscheine verschwinden bei der Person, bis sie zurückgegeben werden.') +
+    '<div class="panel">' + (rows || '<div class="empty">Keine Führerscheine vorhanden.</div>') + '</div>';
+}
+async function licenseRevoke(userId){
+  const reason = prompt('Grund für den Entzug:');
+  if(reason === null) return;
+  const d = await api('/api/lapd/dash/license/revoke', {token:getToken(), userId:userId, reason:reason.trim()});
+  if(!d.ok){ alert(d.error||'Fehler'); }
+  loadFuehrerscheine();
+}
+async function licenseReturn(userId){
+  if(!confirm('Führerschein wirklich zurückgeben?')) return;
+  await api('/api/lapd/dash/license/return', {token:getToken(), userId:userId});
+  loadFuehrerscheine();
+}
+
+// ── Start ───────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  if(getToken()){
+    const d = await apiGet('/api/lapd/dash/me?token=' + encodeURIComponent(getToken()));
+    if(d.ok){
+      ME = {name:d.name, rank:d.rank, admin:d.admin, leader:d.leader};
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      enterDash();
+      return;
+    }
+    setToken(null);
+  }
+  document.getElementById('login-screen').classList.remove('hidden');
+});
+</script>
+</body>
+</html>

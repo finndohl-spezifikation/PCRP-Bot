@@ -123,6 +123,13 @@ public class LizenzenListener extends ListenerAdapter {
                     .setComponents().queue();
                 return;
             }
+            // Entzogene Führerscheine werden nicht mehr angezeigt, bis sie zurückgegeben werden
+            if (LapdDashManager.isLicenseRevoked(event.getGuild().getIdLong(), userId)) {
+                event.editMessageEmbeds(EmbedFactory.build("🚫 Führerschein entzogen",
+                    "Der Führerschein von **" + displayName + "** wurde entzogen und ist bis auf Weiteres ungültig."))
+                    .setComponents().queue();
+                return;
+            }
             String url = DocumentsManager.fuehrerscheinViewUrl(userId);
             event.editMessageEmbeds(EmbedFactory.build("🚗 Führerschein anzeigen",
                 "**" + displayName + "**\n\n[Lizenz hier Öffnen](" + url + ")"))

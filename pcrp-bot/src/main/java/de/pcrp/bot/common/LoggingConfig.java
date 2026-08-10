@@ -202,5 +202,23 @@ public final class LoggingConfig {
     /** LAPD-Webseite – Kanal für das Embed mit Link (wird beim Start einmal gepostet, Lösch-Sperre aktiv). */
     public static final long LAPD_EMBED_CHANNEL_ID = 1529636626412732467L;
 
+    /** LAPD-Dashboard – festes Dienst-Übersicht-Embed (wer ist im Dienst). */
+    public static final long LAPD_DUTY_CHANNEL_ID = 1529636572851474584L;
+
+    /** LAPD – Kanal für Informationen, die die Leitungsebene direkt in Discord sendet. */
+    public static final long LAPD_INFO_DISCORD_CHANNEL_ID = 1529636571802894446L;
+
+    /** LAPD – Rolle, die für den Dashboard-Login zwingend erforderlich ist (Basis-Rolle). */
+    public static final long LAPD_BASE_ROLE_ID = 1529636328847708282L;
+
+    /** LAPD – Administrator-Rolle (High Team): sieht die Administrator-Kategorie im Dashboard. */
+    public static final long LAPD_ADMIN_ROLE_ID = 1529636280365748345L;
+
+    /** LAPD – Server, auf dem die Beamten für den Login geprüft werden. */
+    public static final long LAPD_GUILD_ID = 1529635739170508850L;
+
+    /** LAPD – Passwort für den Dashboard-Login (vorerst für alle Dienstgrade gleich). */
+    public static final String LAPD_DASHBOARD_PASSWORD = "LAPD_2026";
+
     private LoggingConfig() {}
 }

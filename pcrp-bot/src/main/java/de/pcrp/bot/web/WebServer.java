@@ -108,6 +108,7 @@ public class WebServer {
         app.get( "/lapd",                                      WebServer::serveLapd);
         app.get( "/lapd/karriere",                             WebServer::serveLapdKarriere);
         app.get( "/lapd/anforderungen",                        WebServer::serveLapdAnforderungen);
+        app.get( "/lapd/dashboard",                            WebServer::serveLapdDashboard);
         app.post("/api/lapd/create",           ctx -> LapdHandler.handleCreate(ctx));
         app.get( "/api/lapd/my",               ctx -> LapdHandler.handleMy(ctx));
         app.post("/api/lapd/reply",            ctx -> LapdHandler.handleReply(ctx));
@@ -115,6 +116,50 @@ public class WebServer {
         app.post("/api/lapd/dashboard/reply",  ctx -> LapdHandler.handleDashReply(ctx));
         app.post("/api/lapd/dashboard/status", ctx -> LapdHandler.handleDashStatus(ctx));
         app.post("/api/lapd/dashboard/decide", ctx -> LapdHandler.handleDashDecide(ctx));
+        // Öffentliche LAPD-Daten (Webseite) + Einsatz-Eingang
+        app.get( "/api/lapd/public",           ctx -> LapdDashHandler.handlePublic(ctx));
+        app.post("/api/lapd/dispatch",         ctx -> LapdDashHandler.handleDispatchIngest(ctx));
+        // LAPD-Beamten-Dashboard (extern)
+        app.post("/api/lapd/dash/login",            ctx -> LapdDashHandler.handleLogin(ctx));
+        app.post("/api/lapd/dash/logout",           ctx -> LapdDashHandler.handleLogout(ctx));
+        app.get( "/api/lapd/dash/me",              ctx -> LapdDashHandler.handleMe(ctx));
+        app.get( "/api/lapd/dash/access",          ctx -> LapdDashHandler.handleAccessList(ctx));
+        app.post("/api/lapd/dash/access",          ctx -> LapdDashHandler.handleAccessAdd(ctx));
+        app.post("/api/lapd/dash/access/delete",   ctx -> LapdDashHandler.handleAccessDelete(ctx));
+        app.get( "/api/lapd/dash/banned",          ctx -> LapdDashHandler.handleBanList(ctx));
+        app.post("/api/lapd/dash/ban",             ctx -> LapdDashHandler.handleBan(ctx));
+        app.post("/api/lapd/dash/unban",           ctx -> LapdDashHandler.handleUnban(ctx));
+        app.post("/api/lapd/dash/fleet",           ctx -> LapdDashHandler.handleFleetAdd(ctx));
+        app.post("/api/lapd/dash/fleet/delete",    ctx -> LapdDashHandler.handleFleetDelete(ctx));
+        app.get( "/api/lapd/dash/employees",       ctx -> LapdDashHandler.handleEmployeeList(ctx));
+        app.post("/api/lapd/dash/employees",       ctx -> LapdDashHandler.handleEmployeeAdd(ctx));
+        app.post("/api/lapd/dash/employees/edit",  ctx -> LapdDashHandler.handleEmployeeEdit(ctx));
+        app.post("/api/lapd/dash/employees/delete",ctx -> LapdDashHandler.handleEmployeeDelete(ctx));
+        app.post("/api/lapd/dash/warn",            ctx -> LapdDashHandler.handleWarn(ctx));
+        app.post("/api/lapd/dash/warn/me",         ctx -> LapdDashHandler.handleWarnMe(ctx));
+        app.post("/api/lapd/dash/fire",            ctx -> LapdDashHandler.handleFire(ctx));
+        app.get( "/api/lapd/dash/vacations",       ctx -> LapdDashHandler.handleVacationList(ctx));
+        app.post("/api/lapd/dash/vacation/request",ctx -> LapdDashHandler.handleVacationRequest(ctx));
+        app.post("/api/lapd/dash/vacation/decide", ctx -> LapdDashHandler.handleVacationDecide(ctx));
+        app.post("/api/lapd/dash/assign",          ctx -> LapdDashHandler.handleAssign(ctx));
+        app.post("/api/lapd/dash/info",            ctx -> LapdDashHandler.handleInfoAdd(ctx));
+        app.post("/api/lapd/dash/info/delete",     ctx -> LapdDashHandler.handleInfoDelete(ctx));
+        app.get( "/api/lapd/dash/duty",            ctx -> LapdDashHandler.handleDutyList(ctx));
+        app.post("/api/lapd/dash/duty/on",         ctx -> LapdDashHandler.handleDutyOn(ctx));
+        app.post("/api/lapd/dash/duty/off",        ctx -> LapdDashHandler.handleDutyOff(ctx));
+        app.get( "/api/lapd/dash/wanted",          ctx -> LapdDashHandler.handleWantedList(ctx));
+        app.post("/api/lapd/dash/wanted",          ctx -> LapdDashHandler.handleWantedAdd(ctx));
+        app.post("/api/lapd/dash/wanted/delete",   ctx -> LapdDashHandler.handleWantedDelete(ctx));
+        app.get( "/api/lapd/dash/dispatches",      ctx -> LapdDashHandler.handleDispatchList(ctx));
+        app.post("/api/lapd/dash/dispatch/accept", ctx -> LapdDashHandler.handleDispatchAccept(ctx));
+        app.post("/api/lapd/dash/dispatch/report", ctx -> LapdDashHandler.handleDispatchReport(ctx));
+        app.get( "/api/lapd/dash/akten",           ctx -> LapdDashHandler.handleAktenList(ctx));
+        app.post("/api/lapd/dash/akte",            ctx -> LapdDashHandler.handleAkteAdd(ctx));
+        app.post("/api/lapd/dash/akte/edit",       ctx -> LapdDashHandler.handleAkteEdit(ctx));
+        app.post("/api/lapd/dash/akte/delete",     ctx -> LapdDashHandler.handleAkteDelete(ctx));
+        app.get( "/api/lapd/dash/licenses",        ctx -> LapdDashHandler.handleLicenseList(ctx));
+        app.post("/api/lapd/dash/license/revoke",  ctx -> LapdDashHandler.handleLicenseRevoke(ctx));
+        app.post("/api/lapd/dash/license/return",  ctx -> LapdDashHandler.handleLicenseReturn(ctx));
 
         // ── Krypto (PC Coins Kursseite) ────────────────────────────────────
         app.get( "/krypto",                                      WebServer::serveKrypto);
@@ -430,6 +475,30 @@ public class WebServer {
             log.info("[LAPD] Bewerbungsportal ausgeliefert.");
         } catch (Exception e) {
             log.error("[LAPD] Fehler beim Ausliefern des Bewerbungsportals.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    // ── lapd-dashboard.html (Beamten-Dashboard, extern) ────────
+
+    private static void serveLapdDashboard(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/lapd-dashboard.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            String base = System.getenv("WEB_URL");
+            if (base == null || base.isBlank()) {
+                base = System.getenv().getOrDefault("RAILWAY_PUBLIC_DOMAIN", DEFAULT_RAILWAY_URL);
+                if (!base.startsWith("http")) base = "https://" + base;
+            }
+            base = base.replaceAll("/$", "");
+            String html = new String(is.readAllBytes(), StandardCharsets.UTF_8)
+                .replace("%%API_BASE%%", base);
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(html.getBytes(StandardCharsets.UTF_8));
+            log.info("[LAPD] Beamten-Dashboard ausgeliefert.");
+        } catch (Exception e) {
+            log.error("[LAPD] Fehler beim Ausliefern des Dashboards.", e);
             ctx.status(500).result("Interner Fehler");
         }
     }
@@ -2070,6 +2139,28 @@ public class WebServer {
             "</div></body></html>";
     }
 
+    private static String buildLicenseRevokedPage(String name, String avatarUrl) {
+        return "<!DOCTYPE html><html lang='de'><head><meta charset='UTF-8'>" +
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<title>Führerschein – " + esc(name) + "</title>" +
+            "<style>*{box-sizing:border-box;margin:0;padding:0}" +
+            "body{min-height:100vh;background:linear-gradient(135deg,#160a0a,#1a0f0f);" +
+            "font-family:'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}" +
+            ".card{width:100%;max-width:420px;background:#2a0d0d;border:2px solid #c0392b;" +
+            "border-radius:14px;padding:40px;text-align:center;box-shadow:0 0 40px rgba(192,57,43,.3)}" +
+            "img{width:80px;height:80px;border-radius:50%;border:3px solid #c0392b;margin-bottom:16px}" +
+            "h2{color:#e74c3c;font-size:1.4rem;margin-bottom:10px}" +
+            "p{color:#cbb;font-size:.9rem;line-height:1.6}" +
+            "</style></head><body>" +
+            "<div class='card'>" +
+            (avatarUrl.isEmpty() ? "" : "<img src='" + esc(avatarUrl) + "' alt='Avatar'>") +
+            "<h2>🚫 Führerschein entzogen</h2>" +
+            "<p><b>" + esc(name) + "</b><br><br>" +
+            "Der Führerschein dieser Person wurde entzogen und ist bis auf Weiteres ungültig.<br><br>" +
+            "Bei Fragen wende dich bitte an das LAPD.</p>" +
+            "</div></body></html>";
+    }
+
     private static String buildIdCard(JsonObject ch, String userId) {
         boolean isLegal = "legal".equals(CharacterStore.str(ch, "type"));
         String fn  = CharacterStore.str(ch, "firstName");
@@ -2271,6 +2362,14 @@ public class WebServer {
         if (opt.isEmpty()) {
             Member m = guild.getMemberById(userId);
             ctx.contentType("text/html;charset=utf-8").result(buildNoCharacterPage(
+                m != null ? m.getEffectiveName() : "Unbekannt",
+                m != null ? m.getUser().getEffectiveAvatarUrl() : ""));
+            return;
+        }
+        // Entzogene Führerscheine werden bis zur Rückgabe nicht mehr angezeigt
+        if (de.pcrp.bot.common.LapdDashManager.isLicenseRevoked(guild.getIdLong(), userId)) {
+            Member m = guild.getMemberById(userId);
+            ctx.contentType("text/html;charset=utf-8").result(buildLicenseRevokedPage(
                 m != null ? m.getEffectiveName() : "Unbekannt",
                 m != null ? m.getUser().getEffectiveAvatarUrl() : ""));
             return;

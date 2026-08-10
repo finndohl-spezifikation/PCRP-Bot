@@ -134,18 +134,18 @@
     <a class="link" data-sec="mitarbeiter" href="#mitarbeiter">MITARBEITER</a>
     <a class="link" data-sec="fuhrpark" href="#fuhrpark">FUHRPARK</a>
     <a class="link" href="/lapd/karriere">KARRIERE</a>
+    <a class="link" data-sec="kontakt" href="#kontakt">KONTAKT</a>
+    <a class="link" data-sec="beschwerde" href="#beschwerde">BESCHWERDE</a>
     <a class="link" data-sec="anzeige" href="#anzeige">ANZEIGE AUFGEBEN</a>
     <div class="spacer"></div>
-    <button class="btn-login" onclick="go('dashboard')">🏛️ PORTAL</button>
-    <a class="link" data-sec="kontakt" href="#kontakt">KONTAKT</a>
+    <a class="btn-login" href="/lapd/dashboard">🚔 Dashboard Login</a>
   </div>
 </header>
 
 <!-- Unter-Navigation unter "Kontakt" (immer sichtbar) -->
 <div class="subnav" id="subnav">
   <div class="inner">
-    <button data-ktab="email"      onclick="kontaktTab('email')">✉️ Email Schreiben</button>
-    <button data-ktab="beschwerde" onclick="kontaktTab('beschwerde')">⚠️ Beschwerde Einreichen</button>
+    <button data-ktab="email" onclick="kontaktTab('email')">✉️ Email Schreiben</button>
   </div>
 </div>
 
@@ -193,22 +193,22 @@
   <!-- ── INFORMATIONEN ───────────────────────────────── -->
   <section id="sec-informationen">
     <h2 class="pagetitle">Informationen</h2>
-    <div class="hint">ℹ️ Hier erscheinen in Kürze Informationen rund um das LAPD – Regeln, Aufgaben, Dienstzeiten und mehr.</div>
-    <div class="panel"><div class="empty">Derzeit keine neuen Informationen.</div></div>
+    <div class="hint">ℹ️ Aktuelle Informationen und Neuigkeiten rund um das LAPD.</div>
+    <div id="info-list"></div>
   </section>
 
   <!-- ── MITARBEITER ─────────────────────────────────── -->
   <section id="sec-mitarbeiter">
     <h2 class="pagetitle">Mitarbeiter</h2>
-    <div class="hint">👮 Der Mitarbeiterbereich wird in Kürze hier vorgestellt – Dienststellen, Führungsebene und Kontakt zu den Beamten.</div>
-    <div class="panel"><div class="empty">Derzeit keine Mitarbeiter-Informationen hinterlegt.</div></div>
+    <div class="hint">👮 Das Team des Los Angeles Police Department.</div>
+    <div id="emp-list"></div>
   </section>
 
   <!-- ── FUHRPARK ────────────────────────────────────── -->
   <section id="sec-fuhrpark">
     <h2 class="pagetitle">Fuhrpark</h2>
-    <div class="hint">🚓 Der Fuhrpark wird in Kürze hier vorgestellt.</div>
-    <div class="panel"><div class="empty">Noch keine Fahrzeuge eingestellt.</div></div>
+    <div class="hint">🚓 Die Fahrzeuge der Polizei von Los Angeles.</div>
+    <div id="fleet-list"></div>
   </section>
 
   <!-- ── ANZEIGE AUFGEBEN ────────────────────────────── -->
@@ -312,43 +312,38 @@
       <div id="email-list"></div>
     </div>
 
-    <div id="ktab-beschwerde" style="display:none">
-      <h2 class="pagetitle">Beschwerde Einreichen</h2>
-      <div class="panel">
-        <h2>⚠️ Beschwerdeformular</h2>
-        <form onsubmit="event.preventDefault();submitBeschwerde()">
-          <label for="b-name">Name <span class="req">*</span></label>
-          <input type="text" id="b-name" placeholder="Dein Name" maxlength="60" required>
-          <label for="b-adresse">Adresse <span class="req">*</span></label>
-          <input type="text" id="b-adresse" placeholder="Straße, Hausnummer, Stadt" maxlength="90" required>
-          <label for="b-dienstnummer">Dienstnummer des beschuldigten Beamten <span class="req">*</span></label>
-          <input type="text" id="b-dienstnummer" placeholder="Dienstnummer des Beamten" maxlength="30" required>
-          <label for="b-grund">Grund der Beschwerde <span class="req">*</span></label>
-          <textarea id="b-grund" placeholder="Beschreibe den Grund deiner Beschwerde …" maxlength="2000" required></textarea>
-          <button class="btn" type="submit">⚠️ Beschwerde einreichen</button>
-          <div class="msg" id="b-msgbox"></div>
-        </form>
-      </div>
-      <h3 class="listtitle">Meine Beschwerden <span class="count" id="b-count">0</span></h3>
-      <div id="b-list"></div>
-    </div>
-
   </section>
 
-  <!-- ── DASHBOARD (PORTAL) ──────────────────────────── -->
-  <section id="sec-dashboard">
-    <h2 class="pagetitle">LAPD Portal</h2>
-    <div class="hint">👮 <b>Hinweis:</b> Der Beamten-Login folgt in Kürze – der Zugriff ist aktuell vorläufig offen. Hier siehst du alle eingehenden Mails, Beschwerden, Anzeigen und Bewerbungen und kannst antworten, als gelöst markieren, schließen oder über Bewerbungen entscheiden.</div>
-    <div class="dash-tabs">
-      <button class="active" data-dtab="mails" onclick="dashTab('mails')">✉️ Mails</button>
-      <button data-dtab="beschwerden" onclick="dashTab('beschwerden')">⚠️ Beschwerden</button>
-      <button data-dtab="anzeigen" onclick="dashTab('anzeigen')">📋 Anzeigen</button>
-      <button data-dtab="bewerbungen" onclick="dashTab('bewerbungen')">🎓 Bewerbungen</button>
+  <!-- ── BESCHWERDE (eigene Kategorie) ───────────────── -->
+  <section id="sec-beschwerde">
+    <h2 class="pagetitle">Beschwerde Einreichen</h2>
+    <div class="panel">
+      <h2>⚠️ Beschwerdeformular</h2>
+      <form onsubmit="event.preventDefault();submitBeschwerde()">
+        <label for="b-name">Name <span class="req">*</span></label>
+        <input type="text" id="b-name" placeholder="Dein Name" maxlength="60" required>
+        <label for="b-adresse">Adresse <span class="req">*</span></label>
+        <input type="text" id="b-adresse" placeholder="Straße, Hausnummer, Stadt" maxlength="90" required>
+        <label for="b-dienstnummer">Dienstnummer des beschuldigten Beamten <span class="req">*</span></label>
+        <input type="text" id="b-dienstnummer" placeholder="Dienstnummer des Beamten" maxlength="30" required>
+        <label for="b-grund">Grund der Beschwerde <span class="req">*</span></label>
+        <textarea id="b-grund" placeholder="Beschreibe den Grund deiner Beschwerde …" maxlength="2000" required></textarea>
+        <button class="btn" type="submit">⚠️ Beschwerde einreichen</button>
+        <div class="msg" id="b-msgbox"></div>
+      </form>
     </div>
-    <div id="dash-mails"></div>
-    <div id="dash-beschwerden" style="display:none"></div>
-    <div id="dash-anzeigen" style="display:none"></div>
-    <div id="dash-bewerbungen" style="display:none"></div>
+    <h3 class="listtitle">Meine Beschwerden <span class="count" id="b-count">0</span></h3>
+    <div id="b-list"></div>
+  </section>
+
+  <!-- ── DASHBOARD (nur Verweis auf externe Seite) ───── -->
+  <section id="sec-dashboard">
+    <h2 class="pagetitle">Dashboard Login</h2>
+    <div class="hint">👮 Das Beamten-Dashboard läuft auf einer eigenen externen Seite. Klicke unten, um dich mit deinem Dienstgrad und Passwort einzuloggen.</div>
+    <div class="panel" style="text-align:center">
+      <p style="margin-bottom:16px;color:var(--muted)">Zugriff nur für LAPD-Mitglieder mit gültiger Zugriffs-Freischaltung.</p>
+      <a class="btn" href="/lapd/dashboard" style="display:inline-block">🚔 Zum Dashboard Login</a>
+    </div>
   </section>
 
 </main>
@@ -379,9 +374,9 @@ function go(sec){
   document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + sec).classList.add('active');
   document.querySelectorAll('a.link').forEach(a => a.classList.toggle('active', a.dataset.sec === sec));
-  if(sec === 'dashboard') loadDash();
   if(sec === 'kontakt') kontaktTab(currentKtab());
   if(sec === 'anzeige') loadMy();
+  if(sec === 'beschwerde') loadMy();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 document.querySelectorAll('a.link[data-sec]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.sec); }));
@@ -391,10 +386,8 @@ function currentKtab(){ return localStorage.getItem('lapd-ktab') || 'email'; }
 function kontaktTab(tab){
   localStorage.setItem('lapd-ktab', tab);
   document.querySelectorAll('.subnav button').forEach(b => b.classList.toggle('active', b.dataset.ktab === tab));
-  ['email','beschwerde'].forEach(t => {
-    document.getElementById('ktab-' + t).style.display = (t === tab) ? 'block' : 'none';
-  });
-  if(tab === 'email' || tab === 'beschwerde') loadMy();
+  document.getElementById('ktab-email').style.display = (tab === 'email') ? 'block' : 'none';
+  if(tab === 'email') loadMy();
 }
 
 // ── Formulare ─────────────────────────────────────────────
@@ -594,16 +587,49 @@ async function dashDecide(id, action){
   if(d.ok){ loadDash(); } else { alert(d.error || 'Fehler'); }
 }
 
+// ── Öffentliche Daten (Infos / Mitarbeiter / Fuhrpark) ────
+async function loadPublic(){
+  try{
+    const r = await fetch(API + '/api/lapd/public');
+    const d = await r.json();
+    if(!d.ok) return;
+    const infos = d.infos || [];
+    const infoEl = document.getElementById('info-list');
+    if(!infos.length){ infoEl.innerHTML = '<div class="empty">Derzeit keine neuen Informationen.</div>'; }
+    else {
+      infoEl.innerHTML = infos.map(i =>
+        '<div class="item"><div class="top"><span class="who">' + esc(i.title) + '</span><span class="when">' + fmt(i.ts) + '</span></div>' +
+        '<div class="txt">' + esc(i.text) + '</div></div>').join('');
+    }
+    const emps = d.employees || [];
+    const empEl = document.getElementById('emp-list');
+    if(!emps.length){ empEl.innerHTML = '<div class="empty">Derzeit keine Mitarbeiter-Informationen hinterlegt.</div>'; }
+    else {
+      empEl.innerHTML = emps.map(e =>
+        '<div class="item"><div class="top"><span class="who">' + esc(e.name) + '</span><span class="st offen">' + esc(e.rank) + '</span></div></div>').join('');
+    }
+    const fleet = d.fleet || [];
+    const fleetEl = document.getElementById('fleet-list');
+    if(!fleet.length){ fleetEl.innerHTML = '<div class="empty">Noch keine Fahrzeuge eingestellt.</div>'; }
+    else {
+      fleetEl.innerHTML = fleet.map(v =>
+        '<div class="item"><div class="top"><span class="who">' + esc(v.title) + '</span></div>' +
+        (v.image ? '<img src="' + esc(v.image) + '" alt="" style="max-width:100%;border-radius:10px;margin:8px 0">' : '') +
+        '<div class="txt">' + esc(v.description) + '</div></div>').join('');
+    }
+  }catch(e){}
+}
+
 // ── Deep-Links (#email, #beschwerde, #anzeige, …) ─────────
 function applyHash(){
   const h = (location.hash || '').replace('#','');
   if(h === 'email'){ go('kontakt'); kontaktTab('email'); }
-  else if(h === 'beschwerde'){ go('kontakt'); kontaktTab('beschwerde'); }
+  else if(h === 'beschwerde'){ go('beschwerde'); }
   else if(h === 'anzeige'){ go('anzeige'); }
   else if(h === 'informationen'){ go('informationen'); }
   else if(h === 'mitarbeiter'){ go('mitarbeiter'); }
   else if(h === 'fuhrpark'){ go('fuhrpark'); }
-  else if(h === 'dashboard' || h === 'portal'){ go('dashboard'); }
+  else if(h === 'dashboard' || h === 'portal'){ location.href = '/lapd/dashboard'; }
   else { go('start'); }
 }
 
@@ -616,6 +642,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   applyHash();
   loadMy();
+  loadPublic();
 });
 window.addEventListener('hashchange', applyHash);
 </script>

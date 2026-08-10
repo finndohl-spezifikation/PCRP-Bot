@@ -47,4 +47,19 @@ public final class BotContext {
                       || m.getEffectiveName().equalsIgnoreCase(username.trim()))
             .findFirst().orElse(null);
     }
+
+    /**
+     * Löst einen Discord-Namen ODER eine Discord-ID in ein Mitglied auf.
+     * Reine Ziffern werden als ID interpretiert, alles andere als Name gesucht.
+     */
+    public static Member resolveMember(String input) {
+        Guild guild = getGuild();
+        if (guild == null || input == null || input.isBlank()) return null;
+        String trimmed = input.trim();
+        if (trimmed.matches("\\d{15,21}")) {
+            Member byId = guild.getMemberById(trimmed);
+            if (byId != null) return byId;
+        }
+        return findMemberByUsername(trimmed);
+    }
 }

@@ -144,7 +144,7 @@ public class Main {
 
         /** DataStore-Key für die einmalige LAPD-Webseiten-Ankündigung (pro Guild). */
         private static String lapdAnnounceKey(String guildId) {
-            return "announce-lapd-v2-once-" + guildId;
+            return "announce-lapd-v3-once-" + guildId;
         }
 
         @Override
@@ -230,6 +230,7 @@ public class Main {
                 LohnManager.init(guild);  // Lobby-Status nach Restart wiederherstellen
                 GarageListener.postPanel(guild);
                 FirmenAuslastungManager.init(guild);  // Firmen-Auslastung-Panel (Balken) + Auto-Refresh
+                LapdDashManager.init(guild);  // LAPD-Dienst-Embed (wer ist im Dienst)
                 initShopItems(guild);
 
                 postSimplePanel(guild, "fraktionen", LoggingConfig.FRAKTIONSREGELWERK_CHANNEL_ID,
@@ -768,11 +769,9 @@ public class Main {
                 EmbedFactory.create()
                     .setTitle("🚔 LAPD — Los Angeles Roleplay")
                     .setDescription(
-                        "Die neue offizielle LAPD-Webseite ist ab sofort verfügbar.\n\n" +
-                        "🎓 **Karriere** — Bewirb dich mit dem offiziellen Bewerbungsformular („Meine Bewerbungen”)\n" +
-                        "📋 **Anzeige aufgeben** — Vorfälle mit dem offiziellen LAPD-Formular melden\n" +
-                        "✉️ **Kontakt** — Email Schreiben oder Beschwerde Einreichen\n" +
-                        "👮 **Portal** — Beamten-Ansicht: Antworten, Annehmen/Ablehnen, „Gelöst” und „Schließen”\n\n" +
+                        "Die offizielle LAPD-Webseite ist live.\n\n" +
+                        "🌐 **Webseite** — Informationen, Mitarbeiter, Fuhrpark, Karriere, Anzeige aufgeben, Email Schreiben & Beschwerde\n" +
+                        "👮 **Dashboard Login** — Das Beamten-Dashboard läuft auf einer eigenen externen Seite: Dienst an-/abmelden, Einsätze in Echtzeit, Fahndungen, Akten, Führerscheine u.v.m. (Login nur mit LAPD-Rolle)\n\n" +
                         "**Klicke unten auf den Button, um die Webseite zu öffnen.**")
                     .setColor(0x0d2247)
                     .build()
@@ -796,7 +795,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v14";
+        private static final String CHANGELOG_VERSION = "v15";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -813,7 +812,28 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — LAPD-Feinschliff & Anforderungsseite**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — LAPD Beamten-Dashboard (extern)**__\n\n" +
+                "🚔 **Neues Beamten-Dashboard** — Das LAPD läuft jetzt mit einer eigenen externen Dashboard-Seite " +
+                "(/lapd/dashboard). Login über Dienstgrad + Passwort (vorerst für alle gleich LAPD_2026) – der Bot prüft " +
+                "bei jedem Login, ob die Person auf dem Discord-Server ist und die LAPD-Rolle besitzt. Gebannte Personen " +
+                "werden mit rot pulsierendem Sperr-Bildschirm blockiert.\n\n" +
+                "🔑 **Administrator** (nur High-Team-Rolle): Zugriff Verwalten (Discord-ID → Dienstgrad), Nutzer Bannen/Entbannen, " +
+                "Fuhrpark Verwalten (Bild/Titel/Beschreibung → erscheint auf der Webseite).\n\n" +
+                "👥 **Leitungs Ebene** (Chiefs, Commander, Captain, Lieutenant): Mitarbeiter Liste (live auf der Webseite), " +
+                "Abmahnen (Admins unantastbar), Kündigen (Zugriff sofort entzogen + DM), Urlaubs Anträge annehmen/ablehnen, " +
+                "Schicht-Zuweisen, Information Schreiben (Webseite / LAPD-Infos / Discord-Kanal).\n\n" +
+                "📊 **LAPD**: Übersicht wer im Dienst ist, Dienst an-/abmelden (festes Dienst-Embed im Discord-Kanal aktualisiert " +
+                "sich sofort), Informationen, Urlaub Beantragen, eigene Abmahnungen, Fahndungen (Löschen nur Leitung), " +
+                "Einsätze in Echtzeit (Toast-Popup unten links, Annehmen → sofort DM an den Absender, Abschließen mit " +
+                "Einsatzbericht), Einsatzberichte.\n\n" +
+                "📬 **Kontakt**: Mails, Anzeigen, Beschwerden & Bewerbungen (letztere nur für die Leitung sichtbar) – " +
+                "bearbeitbar mit Antwort/Gelöst/Schließen/Annehmen/Ablehnen.\n\n" +
+                "📁 **Akten**: Personen-Akten & Strafakten (erstellen, bearbeiten, einsehen – Löschen nur Leitung) sowie " +
+                "alle Führerscheine einsehen und entziehen – entzogene Führerscheine verschwinden bei der Person, bis sie " +
+                "zurückgegeben werden.\n\n" +
+                "🎓 **Karriere** — Wird bei der Bewerbung „Vorstrafen: Ja” gewählt, erscheint sofort die Absage-Meldung.\n\n" +
+                "---\n\n" +
+                "__**Version v14 — LAPD-Feinschliff & Anforderungsseite**__\n\n" +
                 "🚔 **LAPD-Webseite (Feinschliff)** — Email Schreiben und Beschwerde Einreichen sind jetzt immer " +
                 "sichtbar (kleinere Schrift, alles passt in die Leiste). Bei der Bewerbung wurden E-Mail-Feld entfernt " +
                 "und Führerscheinklassen/Bildungsabschlüsse auf Los-Angeles-Standard umgestellt (Klasse C/B/A/M, " +
