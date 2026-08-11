@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v25";
+        private static final String CHANGELOG_VERSION = "v26";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — /bannen-dashboard sperrt jetzt JEDE Webseite**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Bugfix: Verstecken speichert jetzt wirklich**__\n\n" +
+                "🫣 **/verstecken Bug behoben** — Das „versteckt”-Flag ging beim Laden des Inventars verloren " +
+                "(wurde nicht aus den Daten gelesen), deshalb tauchten versteckte Items immer wieder im Inventar " +
+                "auf. Jetzt bleibt das Flag dauerhaft gespeichert: Versteckte Items verschwinden wirklich aus dem " +
+                "Rucksack, bis man sie über den grünen Button „Aus Versteck Holen” zurückholt.\n\n" +
+                "---\n\n" +
+                "__**Version v25 — /bannen-dashboard sperrt jetzt JEDE Webseite**__\n\n" +
                 "⛔ **/bannen-dashboard wirkt jetzt auf allen Webseiten** — Gesperrte Personen können sich nicht mehr " +
                 "einloggen und nichts mehr tun auf: **City Chat**, **Aktienhandel**, **Autohaus (Premium Deluxe " +
                 "Motorsport)** (Kaufen, Garage, Tickets), **LAPD-Webseite** (Mails, Anzeigen, Beschwerden, " +

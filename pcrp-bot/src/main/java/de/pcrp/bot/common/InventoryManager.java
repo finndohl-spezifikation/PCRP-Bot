@@ -43,7 +43,11 @@ public final class InventoryManager {
             JsonArray arr = GSON.fromJson(raw, JsonArray.class);
             for (JsonElement el : arr) {
                 JsonObject o = el.getAsJsonObject();
-                list.add(new Item(o.get("name").getAsString(), o.get("quantity").getAsInt()));
+                Item it = new Item(o.get("name").getAsString(), o.get("quantity").getAsInt());
+                if (o.has("hidden") && o.get("hidden").isJsonPrimitive()) {
+                    it.hidden = o.get("hidden").getAsBoolean();
+                }
+                list.add(it);
             }
         } catch (Exception ignored) {}
         return list;
