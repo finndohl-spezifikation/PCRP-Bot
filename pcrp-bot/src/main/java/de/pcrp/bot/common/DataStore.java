@@ -78,4 +78,14 @@ public final class DataStore {
             log.warn("Datei konnte nicht gelöscht werden: {}", filename, e);
         }
     }
+
+    /**
+     * Prüft, ob ein Nutzer per /bannen-dashboard (Web-Bann) von allen Webseiten gesperrt ist.
+     * Schlüssel: web-ban-{guildId}-{userId}
+     */
+    public static boolean isWebBanned(String guildId, String userId) {
+        if (guildId == null || userId == null || guildId.isBlank() || userId.isBlank()) return false;
+        String v = readString("web-ban-" + guildId + "-" + userId);
+        return v != null && !v.isBlank();
+    }
 }

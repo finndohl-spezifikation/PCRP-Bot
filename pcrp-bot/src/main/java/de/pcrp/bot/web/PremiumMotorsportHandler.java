@@ -48,6 +48,12 @@ public class PremiumMotorsportHandler {
                 .result(GSON.toJson(errObj("Nicht authentifiziert. Token fehlt oder ungültig.")));
             return null;
         }
+        // Web-Bann prüfen – gesperrte Personen haben auf der ganzen Seite keinen Zugriff mehr
+        if (DataStore.isWebBanned(info.guildId, info.userId)) {
+            ctx.status(403).contentType("application/json")
+                .result(GSON.toJson(errObj("Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.")));
+            return null;
+        }
         return info;
     }
 
@@ -101,6 +107,12 @@ public class PremiumMotorsportHandler {
 
         PhoneManager.Contract contract = PhoneManager.getContractByNumber(guild.getId(), phone);
         if (contract == null || contract.userId == null) { err(ctx, 404, "Diese Nummer ist unbekannt."); return; }
+
+        // Web-Bann prüfen – gesperrte Personen können sich nicht einloggen
+        if (DataStore.isWebBanned(guild.getId(), contract.userId)) {
+            err(ctx, 403, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            return;
+        }
 
         String token = PhoneManager.createSession(guild.getId(), phone);
         if (token == null || token.isBlank()) { err(ctx, 500, "Session konnte nicht erstellt werden."); return; }

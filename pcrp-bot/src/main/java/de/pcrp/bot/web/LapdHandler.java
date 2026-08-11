@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import de.pcrp.bot.common.BotContext;
+import de.pcrp.bot.common.DataStore;
 import de.pcrp.bot.common.LapdDashManager;
 import de.pcrp.bot.common.LapdManager;
 import io.javalin.http.Context;
@@ -133,6 +134,18 @@ public class LapdHandler {
         return false;
     }
 
+    /** Prüft, ob einer der eingegebenen Namen zu einer per /bannen-dashboard (Web-Bann) gesperrten Person gehört. */
+    private static boolean isWebBannedName(long gid, String... names) {
+        Guild guild = BotContext.getGuild();
+        if (guild == null) return false;
+        for (String n : names) {
+            if (n == null || n.isBlank()) continue;
+            Member m = BotContext.findMemberByUsername(n.trim());
+            if (m != null && DataStore.isWebBanned(String.valueOf(gid), m.getId())) return true;
+        }
+        return false;
+    }
+
     /** Discord-Feld eines Eintrags (Schlüssel „Discord“ oder „discord“). */
     private static String discordField(LapdManager.Item i) {
         if (i == null || i.data == null) return "";
@@ -141,11 +154,11 @@ public class LapdHandler {
         return v == null ? "" : v;
     }
 
-    /** Filtert Einträge von gebannten Personen heraus. */
+    /** Filtert Einträge von gebannten Personen heraus (Dashboard-Bann + Web-Bann). */
     private static List<LapdManager.Item> filterBanned(long gid, List<LapdManager.Item> items) {
         List<LapdManager.Item> out = new ArrayList<>();
         for (LapdManager.Item i : items) {
-            if (!isBannedName(gid, i.name, discordField(i))) out.add(i);
+            if (!isBannedName(gid, i.name, discordField(i)) && !isWebBannedName(gid, i.name, discordField(i))) out.add(i);
         }
         return out;
     }
@@ -196,12 +209,12 @@ public class LapdHandler {
             JsonObject fo = b.getAsJsonObject("fields");
             String discord = fo.has("Discord") ? fo.get("Discord").getAsString() :
                              (fo.has("discord") ? fo.get("discord").getAsString() : "");
-            if (isBannedName(gid, name, discord)) {
+            if (isBannedName(gid, name, discord) || isWebBannedName(gid, name, discord)) {
                 out.addProperty("banned", true);
                 err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
                 return;
             }
-        } else if (isBannedName(gid, name)) {
+        } else if (isBannedName(gid, name) || isWebBannedName(gid, name)) {
             out.addProperty("banned", true);
             err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
             return;
@@ -257,8 +270,8 @@ public class LapdHandler {
         String text = str(b, "text");
 
         if (!isType(type) || id.isEmpty() || text.isEmpty()) { err(ctx, out, "Ungültige Anfrage."); return; }
-        // Gebannte Personen dürfen auch nicht mehr antworten
-        if (isBannedName(gid, name)) {
+        // Gebannte Personen dürfen auch nicht mehr antworten (Dashboard-Bann + Web-Bann)
+        if (isBannedName(gid, name) || isWebBannedName(gid, name)) {
             err(ctx, out, "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
             return;
         }

@@ -584,6 +584,12 @@ public class WebServer {
             out.addProperty("ok", false); out.addProperty("error", "Ungültige Safe-PIN.");
             ctx.contentType("application/json").result(GSON.toJson(out)); return;
         }
+        // Web-Bann prüfen – gesperrte Personen können sich nicht einloggen
+        if (DataStore.isWebBanned(guild.getId(), c.userId)) {
+            out.addProperty("ok", false); out.addProperty("banned", true);
+            out.addProperty("error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
         String token = PhoneManager.createSession(guild.getId(), c.phoneNumber);
         out.addProperty("ok", true);
         out.addProperty("token", token);
@@ -646,6 +652,13 @@ public class WebServer {
         String guildId = guild.getId();
         String userId  = c.userId;
 
+        // Web-Bann prüfen
+        if (DataStore.isWebBanned(guildId, userId)) {
+            out.addProperty("ok", false); out.addProperty("banned", true);
+            out.addProperty("error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+
         long totalValue = 0, totalInvested = 0;
         JsonArray portfolio = new JsonArray();
         for (AktienManager.Aktie a : AktienManager.STOCKS) {
@@ -695,13 +708,21 @@ public class WebServer {
             out.addProperty("ok", false); out.addProperty("error", "Ungültige Sitzung.");
             ctx.contentType("application/json").result(GSON.toJson(out)); return;
         }
+
+        // Web-Bann prüfen – gesperrte Personen dürfen nicht handeln
+        String guildId = guild.getId();
+        if (DataStore.isWebBanned(guildId, c.userId)) {
+            out.addProperty("ok", false); out.addProperty("banned", true);
+            out.addProperty("error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            ctx.contentType("application/json").result(GSON.toJson(out)); return;
+        }
+
         AktienManager.Aktie stock = AktienManager.findStock(stockId);
         if (stock == null) {
             out.addProperty("ok", false); out.addProperty("error", "Unbekannte Aktie.");
             ctx.contentType("application/json").result(GSON.toJson(out)); return;
         }
 
-        String guildId = guild.getId();
         String userId  = c.userId;
         String error   = null;
         if ("buy".equals(action)) {
@@ -2369,6 +2390,7 @@ public class WebServer {
         String guildId = ctx.pathParam("guildId");
         String userId  = ctx.pathParam("userId");
         if (!guildId.equals(guild.getId())) { ctx.status(403).html("<h1>Falscher Server.</h1>"); return; }
+        if (DataStore.isWebBanned(guildId, userId)) { ctx.redirect("/banned"); return; }
         Member target = guild.getMemberById(userId);
         if (target == null) { ctx.status(404).html("<h1>Mitglied nicht gefunden.</h1>"); return; }
         ctx.contentType("text/html;charset=utf-8")
@@ -2381,6 +2403,7 @@ public class WebServer {
         String guildId = ctx.pathParam("guildId");
         String userId  = ctx.pathParam("userId");
         if (!guildId.equals(guild.getId())) { ctx.status(403).html("<h1>Falscher Server.</h1>"); return; }
+        if (DataStore.isWebBanned(guildId, userId)) { ctx.redirect("/banned"); return; }
         Member target = guild.getMemberById(userId);
         if (target == null) { ctx.status(404).html("<h1>Mitglied nicht gefunden.</h1>"); return; }
         ctx.contentType("text/html;charset=utf-8")
@@ -2422,6 +2445,11 @@ public class WebServer {
         if (guildId.isEmpty() || userId.isEmpty()) { json(ctx, 400, "error", "Fehlende Parameter."); return; }
         Guild guild = BotContext.getGuild();
         if (guild == null || !guild.getId().equals(guildId)) { json(ctx, 403, "error", "Falscher Server."); return; }
+        // Web-Bann prüfen – gesperrte Personen dürfen keine Dokumente mehr erstellen
+        if (DataStore.isWebBanned(guildId, userId)) {
+            json(ctx, 403, "error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            return;
+        }
 
         DocumentsManager.Ausweis a = new DocumentsManager.Ausweis();
         a.vorname      = nzp(ctx.formParam("vorname"));
@@ -2455,6 +2483,11 @@ public class WebServer {
         if (guildId.isEmpty() || userId.isEmpty()) { json(ctx, 400, "error", "Fehlende Parameter."); return; }
         Guild guild = BotContext.getGuild();
         if (guild == null || !guild.getId().equals(guildId)) { json(ctx, 403, "error", "Falscher Server."); return; }
+        // Web-Bann prüfen – gesperrte Personen dürfen keine Dokumente mehr erstellen
+        if (DataStore.isWebBanned(guildId, userId)) {
+            json(ctx, 403, "error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
+            return;
+        }
 
         DocumentsManager.Fuehrerschein f = new DocumentsManager.Fuehrerschein();
         f.vorname      = nzp(ctx.formParam("vorname"));

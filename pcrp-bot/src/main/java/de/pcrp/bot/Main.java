@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v24";
+        private static final String CHANGELOG_VERSION = "v25";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,14 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Verstecken-Überarbeitung & LAPD-Infos als normale Nachricht**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — /bannen-dashboard sperrt jetzt JEDE Webseite**__\n\n" +
+                "⛔ **/bannen-dashboard wirkt jetzt auf allen Webseiten** — Gesperrte Personen können sich nicht mehr " +
+                "einloggen und nichts mehr tun auf: **City Chat**, **Aktienhandel**, **Autohaus (Premium Deluxe " +
+                "Motorsport)** (Kaufen, Garage, Tickets), **LAPD-Webseite** (Mails, Anzeigen, Beschwerden, " +
+                "Bewerbungen), **LAPD-Dashboard** und den **Ausweis-/Führerschein-Seiten**. Bestehende Einträge " +
+                "gebanntet Personen werden überall ausgeblendet. Der Inhaber bleibt immer ausgenommen.\n\n" +
+                "---\n\n" +
+                "__**Version v24 — Verstecken-Überarbeitung & LAPD-Infos als normale Nachricht**__\n\n" +
                 "🫣 **/verstecken komplett neu** — Der Bot sendet jetzt eine **normale Nachricht** (kein Embed) in den " +
                 "Inventar-Aktionen-Kanal, pingt dich und schreibt darunter, was du versteckt hast. Versteckte Items " +
                 "werden **nicht mehr im Inventar angezeigt**. Unter der Nachricht gibt es einen **grünen Button** " +

@@ -141,8 +141,9 @@ public class LapdDashHandler {
         boolean owner = m.getIdLong() == ModerationConfig.OWNER_ID;
         boolean admin = owner || hasRole(m, LoggingConfig.LAPD_ADMIN_ROLE_ID);
 
-        // Bann-Prüfung: vor dem Login rot pulsierende Sperr-Anzeige
-        if (!owner && LapdDashManager.isBanned(gid, m.getId())) {
+        // Bann-Prüfung: vor dem Login rot pulsierende Sperr-Anzeige (Dashboard-Bann ODER /bannen-dashboard Web-Bann)
+        if (!owner && (LapdDashManager.isBanned(gid, m.getId())
+                || DataStore.isWebBanned(String.valueOf(gid), m.getId()))) {
             out.addProperty("ok", false);
             out.addProperty("banned", true);
             out.addProperty("error", "Dein Zugriff wurde von einem Administrator gesperrt. Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.");
