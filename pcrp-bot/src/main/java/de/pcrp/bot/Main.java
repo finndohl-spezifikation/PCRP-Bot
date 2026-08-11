@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v23";
+        private static final String CHANGELOG_VERSION = "v24";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,16 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Admins sehen & verwalten alles + Login-Fix**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Verstecken-Überarbeitung & LAPD-Infos als normale Nachricht**__\n\n" +
+                "🫣 **/verstecken komplett neu** — Der Bot sendet jetzt eine **normale Nachricht** (kein Embed) in den " +
+                "Inventar-Aktionen-Kanal, pingt dich und schreibt darunter, was du versteckt hast. Versteckte Items " +
+                "werden **nicht mehr im Inventar angezeigt**. Unter der Nachricht gibt es einen **grünen Button** " +
+                "„Aus Versteck Holen” – nur die Person, die das Item versteckt hat, kann ihn klicken, und nur **einmal**. " +
+                "Danach ist das Item sofort wieder im Inventar.\n\n" +
+                "🚔 **LAPD-Infos im Discord** — Ankündigungen aus dem LAPD-Dashboard werden im Info-Kanal nicht mehr " +
+                "als Embed, sondern als **normale Nachricht** mit **„(LAPD)”** im Titel gesendet.\n\n" +
+                "---\n\n" +
+                "__**Version v23 — Admins sehen & verwalten alles + Login-Fix**__\n\n" +
                 "👑 **Administratoren sehen und verwalten jetzt alles** — Die Kategorie „Leitungs Ebene” (Mitarbeiter, " +
                 "Abmahnen, Kündigen, Urlaubs Anträge, Zuweisen, Information Schreiben) sowie Beschwerden/Bewerbungen, " +
                 "Fahndungen-Löschen und Akten-Löschen sind für Administratoren wieder voll sichtbar und nutzbar.\n\n" +

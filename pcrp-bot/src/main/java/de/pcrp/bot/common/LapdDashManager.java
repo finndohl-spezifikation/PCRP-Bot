@@ -932,7 +932,7 @@ public final class LapdDashManager {
         );
     }
 
-    /** Sendet eine Information als Embed in den LAPD-Info-Discord-Kanal. */
+    /** Sendet eine Information als normale Nachricht (kein Embed) in den LAPD-Info-Discord-Kanal. */
     public static void postInfoToDiscord(Guild guild, InfoPost info) {
         if (guild == null || info == null) return;
         TextChannel ch = guild.getTextChannelById(LoggingConfig.LAPD_INFO_DISCORD_CHANNEL_ID);
@@ -940,10 +940,8 @@ public final class LapdDashManager {
             log.warn("[LAPD-Dash] Info-Kanal {} nicht gefunden.", LoggingConfig.LAPD_INFO_DISCORD_CHANNEL_ID);
             return;
         }
-        ch.sendMessageEmbeds(EmbedFactory.create()
-            .setTitle(info.title)
-            .setDescription(info.text)
-            .build()).queue(
+        String content = "**📢 (LAPD) — " + info.title + "**\n\n" + info.text;
+        ch.sendMessage(content).queue(
                 msg -> {
                     // Message-ID persistieren (für eventuelles Löschen)
                     Store s = load(guild.getIdLong());
@@ -952,6 +950,6 @@ public final class LapdDashManager {
                     }
                     save(guild.getIdLong(), s);
                 },
-                err -> log.error("[LAPD-Dash] Info-Embed konnte nicht gesendet werden.", err));
+                err -> log.error("[LAPD-Dash] Info-Nachricht konnte nicht gesendet werden.", err));
     }
 }

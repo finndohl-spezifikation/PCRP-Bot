@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionE
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.slf4j.Logger;
@@ -105,8 +106,42 @@ public class CommandListener extends ListenerAdapter {
 
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
-        if ("status-aktive-systeme".equals(event.getComponentId()))
+        String id = event.getComponentId();
+        if (id.startsWith("verstecken-unhide:")) {
+            handleVersteckenUnhide(event);
+            return;
+        }
+        if ("status-aktive-systeme".equals(id))
             event.replyEmbeds(buildActiveSystemsEmbed()).setEphemeral(true).queue();
+    }
+
+    /** Grüner „Aus Versteck Holen“-Button unter der Versteck-Nachricht: holt das Item zurück ins Inventar. */
+    private void handleVersteckenUnhide(ButtonInteractionEvent event) {
+        if (event.getGuild() == null) return;
+        String[] parts = event.getComponentId().split(":", 3);
+        if (parts.length < 3) return;
+        String userId   = parts[1];
+        String itemName = parts[2];
+
+        // Nur die Person, die das Item versteckt hat, darf den Button nutzen
+        if (!userId.equals(event.getUser().getId())) {
+            event.replyEmbeds(embed("❌ Fehler",
+                "Nur die Person, die das Item versteckt hat, kann es wieder herausholen."))
+                .setEphemeral(true).queue();
+            return;
+        }
+
+        String guildId = event.getGuild().getId();
+        InventoryManager.setHidden(guildId, userId, itemName, false);
+
+        event.reply("✅ **" + itemName + "** wurde aus dem Versteck geholt und ist wieder im Inventar.")
+            .setEphemeral(true).queue();
+
+        // Button danach deaktivieren — kann nur einmal geklickt werden
+        event.getMessage().editMessageComponents(
+            ActionRow.of(Button.success("verstecken-unhide-done:" + userId,
+                "✅ Aus dem Versteck geholt").asDisabled()))
+            .queue(null, e -> {});
     }
 
     private static net.dv8tion.jda.api.entities.MessageEmbed buildActiveSystemsEmbed() {
@@ -923,21 +958,20 @@ public class CommandListener extends ListenerAdapter {
         String itemName = event.getValues().get(0);
         String guildId  = event.getGuild().getId();
 
+        // Alle Stückzahlen dieses Items verstecken (setHidden gilt für alle mit dem Namen)
         InventoryManager.setHidden(guildId, userId, itemName, true);
 
         event.replyEmbeds(embed("✅ Versteckt",
             "**" + itemName + "** ist jetzt im Inventar versteckt."))
             .setEphemeral(true).queue();
 
-        Member member = event.getMember();
-        String actor  = member != null ? member.getEffectiveName() : event.getUser().getName();
         TextChannel ch = event.getGuild().getTextChannelById(
             LoggingConfig.INVENTORY_ACTIONS_CHANNEL_ID);
         if (ch != null) {
-            // Minimal-Info in der IC Konsole: "Beispiel hat folgendes Item versteckt: <Item>"
-            ch.sendMessageEmbeds(EmbedFactory.build(
-                "🫣 Item versteckt",
-                actor + " hat folgendes Item versteckt: **" + itemName + "**"))
+            // Normale Nachricht (kein Embed) mit Ping + grünem „Aus Versteck Holen“-Button
+            ch.sendMessage("<@" + userId + "> hat folgendes Item versteckt:\n**" + itemName + "**")
+                .addActionRow(Button.success("verstecken-unhide:" + userId + ":" + itemName,
+                    "Aus Versteck Holen"))
                 .queue();
         }
     }

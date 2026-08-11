@@ -186,80 +186,11 @@ public final class InventoryManager {
 
     /**
      * Erweiterte Embed-Variante mit Paginierung: max 10 Items pro Seite.
-     * Gibt das Embed + Seitenzahlen zurück.
+     * Versteckte Items werden NICHT mehr angezeigt — sie sind erst nach dem
+     * „Aus Versteck Holen“ wieder im Inventar sichtbar.
      */
     public static PagedResult buildEmbedWithHiddenPaged(String guildId, String userId, String displayName, int page) {
-        List<Item> inv = getInventory(guildId, userId);
-        inv.removeIf(it -> nameMatches(it.name, "Bargeld"));
-
-        List<Item> visible = new ArrayList<>();
-        List<Item> hidden  = new ArrayList<>();
-        for (Item it : inv) {
-            (it.hidden ? hidden : visible).add(it);
-        }
-
-        EmbedBuilder eb = EmbedFactory.create()
-            .setTitle("🎒 Rucksack — " + displayName);
-
-        if (visible.isEmpty() && hidden.isEmpty()) {
-            eb.setDescription("Dein Rucksack ist leer.");
-            return new PagedResult(eb.build(), 0, 0);
-        }
-
-        int totalVisible = visible.size();
-        int totalHidden  = hidden.size();
-        int totalItems   = totalVisible + totalHidden;
-        int totalPages   = Math.max(1, (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE));
-        if (page < 1) page = 1;
-        if (page > totalPages) page = totalPages;
-
-        // Sichtbare und versteckte Items zu einer Liste zusammenführen
-        List<ItemLine> allLines = new ArrayList<>();
-        for (Item it : visible) {
-            allLines.add(new ItemLine(it.name, it.quantity, false));
-        }
-        for (Item it : hidden) {
-            allLines.add(new ItemLine(it.name, it.quantity, true));
-        }
-
-        int start = (page - 1) * ITEMS_PER_PAGE;
-        int end = Math.min(start + ITEMS_PER_PAGE, allLines.size());
-        List<ItemLine> pageLines = allLines.subList(start, end);
-
-        StringBuilder sb = new StringBuilder();
-        boolean hasVisibleOnPage = false;
-        boolean hasHiddenOnPage = false;
-        for (ItemLine line : pageLines) {
-            if (line.hidden) hasHiddenOnPage = true;
-            else hasVisibleOnPage = true;
-        }
-
-        if (hasVisibleOnPage) {
-            if (page == 1 || (start < totalVisible)) {
-                sb.append("**Sichtbar:**\n");
-            }
-            for (ItemLine line : pageLines) {
-                if (!line.hidden) {
-                    sb.append("• **").append(line.name).append("** × ").append(line.quantity).append("\n");
-                }
-            }
-        }
-
-        if (hasHiddenOnPage) {
-            sb.append("\n**Versteckt:**\n");
-            for (ItemLine line : pageLines) {
-                if (line.hidden) {
-                    sb.append("• ~~").append(line.name).append("~~ × ").append(line.quantity).append("\n");
-                    sb.append("  ⬇ Item Versteckt\n");
-                }
-            }
-        }
-
-        eb.setDescription(sb.toString());
-        if (totalPages > 1) {
-            eb.setFooter("Seite " + page + " von " + totalPages + " · " + totalItems + " Items");
-        }
-        return new PagedResult(eb.build(), totalPages, page);
+        return buildEmbedPaged(guildId, userId, displayName, page);
     }
 
     /**
