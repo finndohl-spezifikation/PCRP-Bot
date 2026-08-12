@@ -48,7 +48,19 @@
      STARTSEITE – Animiert, nur la-hero.avif als Bild
      ═══════════════════════════════════════════════════════════ */
 
-  #sec-start.active { padding: 0; margin: 0; max-width: none; }
+  #sec-start.active {
+    padding: 0; margin: 0; max-width: none;
+    position: relative;
+  }
+  #sec-start.active::after {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: url('/la-hero.avif') center/cover no-repeat;
+    opacity: .08;
+  }
+  #sec-start.active > * { position: relative; z-index: 1; }
+  .s-section { background: rgba(255,255,255,.92); }
+  .s-section.alt { background: rgba(245,247,251,.9); }
+  .s-section.dark { background: rgba(11,31,69,.94); }
 
   /* Animations-Keyframes */
   @keyframes sFadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
@@ -109,9 +121,7 @@
   .s-btn-outline:hover { background: rgba(255,255,255,.07); border-color: #fff; }
 
   /* ── Sektionen ────────────────────────────────────── */
-  .s-section { background: #fff; padding: 90px 40px; }
-  .s-section.alt { background: #f5f7fb; }
-  .s-section.dark { background: #0b1f45; }
+  .s-section { padding: 90px 40px; }
   .s-inner { max-width: 1000px; margin: 0 auto; }
   .s-label {
     display: inline-block; font-size: .7rem; font-weight: 800; letter-spacing: 3px;
@@ -266,7 +276,6 @@
       </div>
     </div>
     <a class="link" data-sec="start" href="#start">STARTSEITE</a>
-    <a class="link" data-sec="informationen" href="#informationen">INFORMATIONEN</a>
     <a class="link" data-sec="mitarbeiter" href="#mitarbeiter">MITARBEITER</a>
     <a class="link" data-sec="fuhrpark" href="#fuhrpark">FUHRPARK</a>
     <a class="link" href="/lapd/karriere">KARRIERE</a>
@@ -372,13 +381,6 @@
       </div>
     </div>
 
-  </section>
-
-  <!-- ── INFORMATIONEN ───────────────────────────────── -->
-  <section id="sec-informationen">
-    <h2 class="pagetitle">Informationen</h2>
-    <div class="hint">ℹ️ Aktuelle Informationen und Neuigkeiten rund um das LAPD.</div>
-    <div id="info-list"></div>
   </section>
 
   <!-- ── MITARBEITER ─────────────────────────────────── -->
@@ -768,15 +770,8 @@ async function loadPublic(){
     const d = await r.json();
     if(!d.ok) return;
     const infos = d.infos || [];
-    const infoEl = document.getElementById('info-list');
-    if(!infos.length){ infoEl.innerHTML = '<div class="empty">Derzeit keine neuen Informationen.</div>'; }
-    else {
-      infoEl.innerHTML = infos.map(i =>
-        '<div class="item"><div class="top"><span class="who">' + esc(i.title) + '</span><span class="when">' + fmt(i.ts) + '</span></div>' +
-        '<div class="txt">' + esc(i.text) + '</div></div>').join('');
-    }
     const emps = d.employees || [];
-    // Auch Startseite befüllen
+    // Startseite befüllen
     const infoStart = document.getElementById('info-list-start');
     if(infoStart){
       if(!infos.length){ infoStart.innerHTML = '<p style="color:var(--muted);font-size:.93rem">Derzeit keine neuen Informationen.</p>'; }
