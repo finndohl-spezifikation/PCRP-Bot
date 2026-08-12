@@ -46,6 +46,9 @@ public class WebServer {
         });
         app.options("/*", ctx -> ctx.status(204));
 
+        // Public Ban-Check (CORS-enabled, von Cloudflare Worker + allen Seiten nutzbar)
+        app.get("/api/web/check-banned", WebServer::handleCheckBanned);
+
         // Frontend
         app.get("/",                          WebServer::serveIndex);
         app.get("/ausweis/{userId}",           WebServer::serveAusweis);
@@ -1400,7 +1403,7 @@ public class WebServer {
         StringBuilder sb = new StringBuilder();
         sb.append("<!DOCTYPE html><html lang='de'><head>")
           .append("<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>")
-          .append("<title>PCRP Lotto</title><style>").append(CSS).append("</style></head><body>")
+          .append("<title>PCRP Lotto</title><script src='/ban-guard.js'></script><style>").append(CSS).append("</style></head><body>")
           .append("<div class='card'>")
           .append("<div class='hdr'><h1>🎰 PCRP LOTTO</h1><p>Paradise City Roleplay</p></div>")
           .append("<div class='bdy'>")
@@ -1522,6 +1525,7 @@ public class WebServer {
         // then loads the 3×3 grid via /api/rubbellos/create and shows it inline.
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<script src='/ban-guard.js'></script>" +
             "<title>Goldene 7 – PCRP Rubbellos</title>" +
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
@@ -1886,6 +1890,7 @@ public class WebServer {
 
     private static String buildRubbellosExpiredPage() {
         return "<!DOCTYPE html><html lang=\"de\"><head><meta charset=\"UTF-8\">" +
+            "<script src='/ban-guard.js'></script>" +
             "<title>PCRP Rubbellos</title>" +
             "<style>*{box-sizing:border-box;margin:0;padding:0}" +
             "body{min-height:100vh;background:#0a0800;font-family:'Segoe UI',sans-serif;" +
@@ -1909,6 +1914,7 @@ public class WebServer {
 
         return "<!DOCTYPE html><html lang='de'><head>" +
             "<meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<script src='/ban-guard.js'></script>" +
             "<title>Goldene 7 – PCRP Rubbellos</title>" +
             "<style>" +
             "*{box-sizing:border-box;margin:0;padding:0}" +
@@ -2152,6 +2158,28 @@ public class WebServer {
     private static String fmtCell(int v) {
         if (v == 0) return "Niete";
         return String.format("%,d$", v).replace(',', '.');
+    }
+
+    // ── /api/web/check-banned?userId=X ───────────────────────
+    // Öffentlicher CORS-Endpoint. Wird von Cloudflare-Worker-Seiten
+    // und allen internen Seiten aufgerufen, um den Bann-Status zu prüfen.
+
+    private static void handleCheckBanned(Context ctx) {
+        ctx.header("Access-Control-Allow-Origin", "*");
+        ctx.header("Access-Control-Allow-Headers", "*");
+        String userId = ctx.queryParam("userId");
+        String guildId = ctx.queryParam("guildId");
+        JsonObject out = new JsonObject();
+        out.addProperty("banned", false);
+        if (userId != null && !userId.isBlank()) {
+            Guild g = guildId != null ? BotContext.getJda().getGuildById(guildId) : BotContext.getGuild();
+            if (g != null) {
+                String key = "web-ban-" + g.getId() + "-" + userId.trim();
+                String v = DataStore.readString(key);
+                out.addProperty("banned", "1".equals(v));
+            }
+        }
+        ctx.json(out);
     }
 
     // ── /ausweis/{userId} ──────────────────────────────────────
