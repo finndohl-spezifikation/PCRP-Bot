@@ -852,7 +852,7 @@ async function loadAusruestung(cat, label, icon){
   const can = !!d.canManage;
   const rows = (d.equipment||[]).map(e =>
     '<div class="item"><div class="top"><span class="who">' + esc(e.title) + '</span>' +
-    '<span class="st offen">' + esc({leitung:'Leitungs Ebene',beamte:'Befehls Ebene',alle:'Officer',admin:'Administrator'}[e.access]||e.access) + '</span><span class="when">' + fmt(e.ts) + '</span>' +
+    '<span class="st offen">' + esc(e.access) + '</span><span class="when">' + fmt(e.ts) + '</span>' +
     (can ? '<button class="btn small red" onclick="equipDelete(\'' + e.id + '\',\'' + cat + '\')">Löschen</button>' : '') + '</div>' +
     (e.image ? '<img src="' + esc(e.image) + '" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">' : '') +
     '<div class="txt">' + esc(e.description) + '</div></div>').join('');
@@ -864,8 +864,18 @@ async function loadAusruestung(cat, label, icon){
     '<label>Bild-Datei</label><input type="file" id="eq-image" accept="image/*">' +
     '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung …"></textarea>' +
     '<label>Ausrüstung freigegeben für</label><select id="eq-access">' +
-    '<option value="leitung">Leitungs Ebene</option><option value="beamte">Befehls Ebene</option>' +
-    '<option value="alle">Officer</option></select>' +
+    '<option value="Chief Of Police">Chief Of Police</option>' +
+    '<option value="Deputy Chief">Deputy Chief</option>' +
+    '<option value="Assistant Chief">Assistant Chief</option>' +
+    '<option value="Commander">Commander</option>' +
+    '<option value="Captain">Captain</option>' +
+    '<option value="Lieutenant">Lieutenant</option>' +
+    '<option value="Sergeant">Sergeant</option>' +
+    '<option value="Detective">Detective</option>' +
+    '<option value="Officer">Officer</option>' +
+    '<option value="Rooky">Rooky</option>' +
+    '<option value="SWAT">SWAT</option>' +
+    '<option value="Helikopter Einheit">Helikopter Einheit</option></select>' +
     '<button class="btn" style="margin-top:14px" onclick="equipAdd()">➕ Hinzufügen</button><div class="msg" id="eq-msg"></div></div>' +
     '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div></div>'
     : '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div>';
