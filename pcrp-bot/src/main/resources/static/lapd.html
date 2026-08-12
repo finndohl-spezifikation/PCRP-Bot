@@ -54,13 +54,13 @@
   }
   #sec-start.active::after {
     content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-    background: url('/la-hero.avif') center/cover no-repeat;
-    opacity: .22;
+    background: url('/la-bg.jpg') center/cover no-repeat;
+    opacity: .45;
   }
   #sec-start.active > * { position: relative; z-index: 1; }
-  .s-section { background: rgba(255,255,255,.78); }
-  .s-section.alt { background: rgba(245,247,251,.72); }
-  .s-section.dark { background: rgba(11,31,69,.84); }
+  .s-section { background: rgba(255,255,255,.82); }
+  .s-section.alt { background: rgba(245,247,251,.76); }
+  .s-section.dark { background: rgba(11,31,69,.86); }
 
   /* Animations-Keyframes */
   @keyframes sFadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
@@ -79,7 +79,7 @@
   /* ── Hero ─────────────────────────────────────────── */
   .s-hero {
     position: relative; min-height: 100vh; display: flex; align-items: center;
-    background: url('/la-hero.avif') center/cover no-repeat fixed;
+    background: url('/la-bg.jpg') center/cover no-repeat fixed;
   }
   .s-hero::before {
     content: ''; position: absolute; inset: 0;
@@ -158,7 +158,7 @@
   /* ── Closing ──────────────────────────────────────── */
   .s-closing {
     position: relative; min-height: 400px; display: flex; align-items: center;
-    background: url('/la-hero.avif') center 80%/cover no-repeat fixed;
+    background: url('/la-bg.jpg') center 80%/cover no-repeat fixed;
   }
   .s-closing::before {
     content: ''; position: absolute; inset: 0;
