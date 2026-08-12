@@ -215,6 +215,7 @@ public class WebServer {
         app.get( "/badge-72.png",                       ctx -> serveStaticBinary(ctx, "/static/badge-72.png",    "image/png"));
         app.get( "/cc-bg-dark.jpg",                     ctx -> serveStaticBinary(ctx, "/static/cc-bg-dark.jpg",  "image/jpeg"));
         app.get( "/cc-bg-light.jpg",                    ctx -> serveStaticBinary(ctx, "/static/cc-bg-light.jpg", "image/jpeg"));
+        app.get( "/la-bg.jpg",                          ctx -> serveStaticBinary(ctx, "/static/la-bg.jpg",       "image/jpeg"));
         app.get( "/api/city-chat/vapid-public-key",     ctx -> ctx.contentType("application/json").result("{\"key\":\"" + PushService.VAPID_PUBLIC + "\"}"));
         app.post("/api/city-chat/push-subscribe",       ctx -> CityChatHandler.handlePushSubscribe(ctx));
         app.post("/api/city-chat/push-unsubscribe",     ctx -> CityChatHandler.handlePushUnsubscribe(ctx));
