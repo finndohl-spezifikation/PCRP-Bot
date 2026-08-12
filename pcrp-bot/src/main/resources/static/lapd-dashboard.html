@@ -863,19 +863,21 @@ async function loadAusruestung(cat, label, icon){
     '<label>Titel</label><input type="text" id="eq-title" placeholder="z. B. ' + (cat==='waffen'?'Sturmgewehr':(cat==='fahrzeuge'?'LAPD Crown Victoria':'Dienstuniform')) + '">' +
     '<label>Bild-Datei</label><input type="file" id="eq-image" accept="image/*">' +
     '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung …"></textarea>' +
-    '<label>Ausrüstung freigegeben für</label><select id="eq-access">' +
-    '<option value="Chief Of Police">Chief Of Police</option>' +
-    '<option value="Deputy Chief">Deputy Chief</option>' +
-    '<option value="Assistant Chief">Assistant Chief</option>' +
-    '<option value="Commander">Commander</option>' +
-    '<option value="Captain">Captain</option>' +
-    '<option value="Lieutenant">Lieutenant</option>' +
-    '<option value="Sergeant">Sergeant</option>' +
-    '<option value="Detective">Detective</option>' +
-    '<option value="Officer">Officer</option>' +
-    '<option value="Rooky">Rooky</option>' +
-    '<option value="SWAT">SWAT</option>' +
-    '<option value="Helikopter Einheit">Helikopter Einheit</option></select>' +
+    '<label>Ausrüstung freigegeben für</label>' +
+    '<div class="eq-checklist" style="max-height:200px;overflow-y:auto;background:#0a1122;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px">' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Chief Of Police" class="eq-cb"> Chief Of Police</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Deputy Chief" class="eq-cb"> Deputy Chief</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Assistant Chief" class="eq-cb"> Assistant Chief</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Commander" class="eq-cb"> Commander</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Captain" class="eq-cb"> Captain</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Lieutenant" class="eq-cb"> Lieutenant</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Sergeant" class="eq-cb"> Sergeant</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Detective" class="eq-cb"> Detective</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Officer" class="eq-cb"> Officer</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Rooky" class="eq-cb"> Rooky</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="SWAT" class="eq-cb"> SWAT</label>' +
+    '<label class="eq-check" style="display:flex;align-items:center;gap:7px;padding:3px 8px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400"><input type="checkbox" value="Helikopter Einheit" class="eq-cb"> Helikopter Einheit</label>' +
+    '</div>' +
     '<button class="btn" style="margin-top:14px" onclick="equipAdd()">➕ Hinzufügen</button><div class="msg" id="eq-msg"></div></div>' +
     '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div></div>'
     : '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div>';
@@ -886,7 +888,9 @@ async function equipAdd(){
   const cat = document.getElementById('eq-cat').value;
   const title = document.getElementById('eq-title').value.trim();
   const desc = document.getElementById('eq-desc').value.trim();
-  const access = document.getElementById('eq-access').value;
+  var cbs = document.querySelectorAll('#sec-start .eq-cb:checked, .eq-cb:checked');
+  var access = Array.from(cbs).map(function(c){ return c.value; }).join(', ');
+  if(!access){ box.className='msg err'; box.textContent='Bitte wähle mindestens einen Dienstgrad aus.'; return; }
   const file = document.getElementById('eq-image').files[0];
   if(!title){ box.className='msg err'; box.textContent='Bitte gib einen Titel an.'; return; }
   const fd = new FormData();
