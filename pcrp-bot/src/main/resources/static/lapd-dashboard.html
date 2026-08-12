@@ -121,6 +121,10 @@
   .panel input,.panel select,.panel textarea{width:100%;background:#0a1122;border:1.5px solid var(--border);border-radius:8px;
     padding:10px 12px;color:var(--text);font-size:.88rem}
   .panel textarea{min-height:80px;resize:vertical}
+  .eq-box{max-height:220px;overflow-y:auto;background:#0a1122;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px}
+  .eq-box label{display:flex;align-items:center;gap:8px;padding:5px 10px;cursor:pointer;font-size:.85rem;margin:0;color:var(--text);font-weight:400;border-radius:4px}
+  .eq-box label:hover{background:rgba(37,99,235,.1)}
+  .eq-box input[type=checkbox]{width:auto;accent-color:var(--blue);cursor:pointer;margin:0}
   .panel input:focus,.panel select:focus,.panel textarea:focus{outline:none;border-color:var(--blue)}
   .msg{display:none;margin-top:12px;padding:10px 13px;border-radius:8px;font-size:.85rem;font-weight:600}
   .msg.ok{display:block;background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.4)}
@@ -863,19 +867,21 @@ async function loadAusruestung(cat, label, icon){
     '<label>Titel</label><input type="text" id="eq-title" placeholder="z. B. ' + (cat==='waffen'?'Sturmgewehr':(cat==='fahrzeuge'?'LAPD Crown Victoria':'Dienstuniform')) + '">' +
     '<label>Bild-Datei</label><input type="file" id="eq-image" accept="image/*">' +
     '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung …"></textarea>' +
-    '<label>Ausrüstung freigegeben für</label><select id="eq-access" multiple size="6" style="min-height:130px">' +
-    '<option value="Chief Of Police">Chief Of Police</option>' +
-    '<option value="Deputy Chief">Deputy Chief</option>' +
-    '<option value="Assistant Chief">Assistant Chief</option>' +
-    '<option value="Commander">Commander</option>' +
-    '<option value="Captain">Captain</option>' +
-    '<option value="Lieutenant">Lieutenant</option>' +
-    '<option value="Sergeant">Sergeant</option>' +
-    '<option value="Detective">Detective</option>' +
-    '<option value="Officer">Officer</option>' +
-    '<option value="Rooky">Rooky</option>' +
-    '<option value="SWAT">SWAT</option>' +
-    '<option value="Helikopter Einheit">Helikopter Einheit</option></select>' +
+    '<label>Ausrüstung freigegeben für</label>' +
+    '<div class="eq-box">' +
+    '<label><input type="checkbox" value="Chief Of Police" class="eq-cb"> Chief Of Police</label>' +
+    '<label><input type="checkbox" value="Deputy Chief" class="eq-cb"> Deputy Chief</label>' +
+    '<label><input type="checkbox" value="Assistant Chief" class="eq-cb"> Assistant Chief</label>' +
+    '<label><input type="checkbox" value="Commander" class="eq-cb"> Commander</label>' +
+    '<label><input type="checkbox" value="Captain" class="eq-cb"> Captain</label>' +
+    '<label><input type="checkbox" value="Lieutenant" class="eq-cb"> Lieutenant</label>' +
+    '<label><input type="checkbox" value="Sergeant" class="eq-cb"> Sergeant</label>' +
+    '<label><input type="checkbox" value="Detective" class="eq-cb"> Detective</label>' +
+    '<label><input type="checkbox" value="Officer" class="eq-cb"> Officer</label>' +
+    '<label><input type="checkbox" value="Rooky" class="eq-cb"> Rooky</label>' +
+    '<label><input type="checkbox" value="SWAT" class="eq-cb"> SWAT</label>' +
+    '<label><input type="checkbox" value="Helikopter Einheit" class="eq-cb"> Helikopter Einheit</label>' +
+    '</div>' +
     '<button class="btn" style="margin-top:14px" onclick="equipAdd()">➕ Hinzufügen</button><div class="msg" id="eq-msg"></div></div>' +
     '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div></div>'
     : '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div>';
@@ -886,8 +892,8 @@ async function equipAdd(){
   const cat = document.getElementById('eq-cat').value;
   const title = document.getElementById('eq-title').value.trim();
   const desc = document.getElementById('eq-desc').value.trim();
-  var sel = document.getElementById('eq-access');
-  var access = Array.from(sel.selectedOptions).map(function(o){ return o.value; }).join(', ');
+  var cbs = document.querySelectorAll('.eq-cb:checked');
+  var access = Array.from(cbs).map(function(c){ return c.value; }).join(', ');
   if(!access){ box.className='msg err'; box.textContent='Bitte wähle mindestens einen Dienstgrad aus.'; return; }
   const file = document.getElementById('eq-image').files[0];
   if(!title){ box.className='msg err'; box.textContent='Bitte gib einen Titel an.'; return; }
