@@ -38,30 +38,177 @@
   .subnav button.active{background:var(--blue);border-color:var(--blue);color:#fff}
   @media(max-width:960px){ .subnav{position:static} }
 
-  main{flex:1;max-width:1150px;width:100%;margin:0 auto;padding:30px 22px 50px}
+  main{flex:1;width:100%;margin:0 auto;padding:0}
+  section:not(#sec-start) { max-width: 1150px; width: 100%; margin: 0 auto; padding: 30px 22px 50px; }
   section{display:none}
   section.active{display:block;animation:fade .3s ease}
   @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-  /* Startseite – Hero */
-  .hero{background:radial-gradient(1000px 420px at 20% -10%,rgba(59,130,246,.35),transparent 60%),linear-gradient(135deg,var(--blue) 0%,var(--blue2) 55%,#16366e 100%);color:#fff;border-radius:18px;padding:56px 44px;position:relative;overflow:hidden;box-shadow:0 12px 34px rgba(11,31,69,.3)}
-  .hero:after{content:"";position:absolute;right:-70px;top:-70px;width:300px;height:300px;border-radius:50%;border:2px dashed rgba(255,255,255,.12)}
-  .hero .badge{display:inline-block;background:rgba(201,162,39,.18);border:1px solid rgba(201,162,39,.5);color:#f2d98a;font-weight:800;font-size:.74rem;letter-spacing:1.5px;padding:6px 14px;border-radius:24px;margin-bottom:18px;text-transform:uppercase}
-  .hero h1{font-size:2.5rem;letter-spacing:1px;margin-bottom:12px;line-height:1.1}
-  .hero p{color:#c8d6f2;font-size:1.05rem;max-width:640px;line-height:1.65}
-  .hero .cta{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
-  .hero .cta a{display:inline-block;padding:13px 26px;border-radius:10px;font-weight:800;font-size:.95rem;transition:.15s}
-  .hero .cta .primary{background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);box-shadow:0 4px 14px rgba(201,162,39,.4)}
-  .hero .cta .primary:hover{transform:translateY(-2px)}
-  .hero .cta .ghost{border:1.5px solid rgba(255,255,255,.4);color:#fff}
-  .hero .cta .ghost:hover{background:rgba(255,255,255,.1)}
+  /* ═══════════════════════════════════════════════════════════
+     STARTSEITE – Komplett neugestaltet (nur sec-start)
+     Alle Klassen mit s- geprefixt, um andere Seiten nicht
+     zu beeinflussen.
+     ═══════════════════════════════════════════════════════════ */
 
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:26px}
-  .card{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 3px 12px rgba(11,31,69,.06);cursor:pointer;transition:.15s}
-  .card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(11,31,69,.12);border-color:var(--blue3)}
-  .card .ic{font-size:1.7rem;margin-bottom:10px}
-  .card b{color:var(--blue);font-size:.98rem;display:block;margin-bottom:5px}
-  .card span{color:var(--muted);font-size:.84rem;line-height:1.5}
+  /* Startseite – vollbreit, kein main-padding für Hero */
+  #sec-start.active { padding: 0; margin: 0; max-width: none; }
+  #sec-start.active ~ section { display: none; }
+
+  /* ── Hero ─────────────────────────────────────────── */
+  .s-hero {
+    position: relative; width: 100%; min-height: 85vh; display: flex; align-items: center;
+    background: url('/la-hero.avif') center/cover no-repeat;
+    background-attachment: fixed;
+  }
+  .s-hero::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(5,12,28,.82) 0%, rgba(8,18,40,.65) 50%, rgba(11,31,69,.78) 100%);
+    z-index: 1;
+  }
+  .s-hero-content {
+    position: relative; z-index: 2; max-width: 1150px; margin: 0 auto;
+    padding: 100px 40px 80px; width: 100%;
+  }
+  .s-hero-badge {
+    display: inline-block; border-left: 3px solid var(--gold); color: var(--gold);
+    font-weight: 700; font-size: .8rem; letter-spacing: 3px; padding: 0 0 0 14px;
+    margin-bottom: 24px; text-transform: uppercase;
+  }
+  .s-hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; color: #fff;
+    letter-spacing: 3px; line-height: 1.08; margin-bottom: 20px; max-width: 800px;
+  }
+  .s-hero h1 span { color: var(--gold); }
+  .s-hero-sub {
+    font-size: 1.1rem; color: #b8c9e8; max-width: 620px; line-height: 1.7;
+    margin-bottom: 34px; font-weight: 400;
+  }
+  .s-hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+  .s-hero-btns a {
+    display: inline-block; padding: 15px 32px; border-radius: 4px; font-weight: 700;
+    font-size: .88rem; letter-spacing: 1.5px; text-transform: uppercase; transition: .2s;
+  }
+  .s-btn-primary {
+    background: var(--gold); color: #0a0e1a; border: 1px solid var(--gold);
+  }
+  .s-btn-primary:hover { background: #d4ae30; transform: translateY(-1px); }
+  .s-btn-outline {
+    background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.5);
+  }
+  .s-btn-outline:hover { background: rgba(255,255,255,.08); border-color: #fff; }
+
+  /* ── Sektionen allgemein ──────────────────────────── */
+  .s-section {
+    background: #fff; padding: 90px 40px;
+  }
+  .s-section.alt { background: #f4f6fa; }
+  .s-section.dark { background: var(--blue); color: #fff; }
+  .s-inner {
+    max-width: 1150px; margin: 0 auto;
+  }
+  .s-label {
+    display: inline-block; font-size: .72rem; font-weight: 800; letter-spacing: 3px;
+    color: var(--gold); text-transform: uppercase; margin-bottom: 16px;
+  }
+  .s-section.dark .s-label { color: #e0b93c; }
+  .s-section h2 {
+    font-size: clamp(1.6rem, 3.5vw, 2.3rem); font-weight: 800; color: var(--blue);
+    letter-spacing: .5px; margin-bottom: 18px; line-height: 1.2;
+  }
+  .s-section.dark h2 { color: #fff; }
+  .s-section h3 {
+    font-size: 1.25rem; font-weight: 700; color: var(--blue); margin-bottom: 12px;
+  }
+  .s-section.dark h3 { color: #e9eefb; }
+  .s-section p {
+    color: #3d4f6b; line-height: 1.75; max-width: 680px; font-size: .97rem;
+  }
+  .s-section.dark p { color: #aebfe2; }
+
+  /* ── Das LAPD (zweispaltig) ───────────────────────── */
+  .s-about { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .s-about-img {
+    width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px;
+    box-shadow: 0 10px 40px rgba(11,31,69,.15);
+  }
+  .s-about-text h2 { margin-bottom: 22px; }
+
+  /* ── Im Dienst (vollbreites Bild) ─────────────────── */
+  .s-duty {
+    position: relative; min-height: 550px; display: flex; align-items: center;
+    background: url('https://images.unsplash.com/photo-1590959651373-a3db0f38a0e3?w=1400&q=80') center/cover no-repeat;
+    background-attachment: fixed;
+  }
+  .s-duty::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(11,31,69,.88) 40%, rgba(11,31,69,.45) 100%);
+    z-index: 1;
+  }
+  .s-duty .s-inner { position: relative; z-index: 2; }
+  .s-duty h2 { margin-bottom: 20px; }
+
+  /* ── Recruiting ───────────────────────────────────── */
+  .s-recruit {
+    background: linear-gradient(135deg, #0b1f45 0%, #0d2550 50%, #12305f 100%);
+    padding: 80px 40px;
+  }
+  .s-recruit-inner {
+    max-width: 1150px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 50px; align-items: center;
+  }
+  .s-recruit-text h2 { color: #fff; margin-bottom: 16px; }
+  .s-recruit-text p { color: #b8c9e8; max-width: 540px; }
+  .s-recruit-visual {
+    text-align: center; font-size: 6rem; opacity: .15; user-select: none;
+  }
+
+  /* ── Bürgerbereich ────────────────────────────────── */
+  .s-citizen-links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+  .s-citizen-links a {
+    padding: 13px 28px; border-radius: 4px; font-weight: 700; font-size: .85rem;
+    letter-spacing: .8px; text-transform: uppercase; transition: .2s; display: inline-block;
+    border: 1.5px solid var(--border); color: var(--blue); background: #fff;
+  }
+  .s-citizen-links a:hover { border-color: var(--blue); background: #f0f4ff; }
+
+  /* ── Aktuelle Informationen ───────────────────────── */
+  .s-news-item {
+    border-bottom: 1px solid var(--border); padding: 20px 0;
+  }
+  .s-news-item:first-child { padding-top: 0; }
+  .s-news-item h4 { font-size: 1rem; color: var(--blue); margin-bottom: 6px; }
+  .s-news-item .date { font-size: .78rem; color: var(--muted); margin-bottom: 8px; }
+  .s-news-item .body { color: #3d4f6b; line-height: 1.65; font-size: .93rem; }
+
+  /* ── Closing Banner ───────────────────────────────── */
+  .s-closing {
+    position: relative; min-height: 420px; display: flex; align-items: center;
+    background: url('https://images.unsplash.com/photo-1515896769750-31548aa180ed?w=1400&q=80') center/cover no-repeat;
+  }
+  .s-closing::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(0deg, rgba(5,10,22,.88) 0%, rgba(8,16,35,.6) 100%);
+    z-index: 1;
+  }
+  .s-closing-inner { position: relative; z-index: 2; text-align: center; max-width: 700px; margin: 0 auto; }
+  .s-closing h2 { color: #fff; font-size: 2rem; margin-bottom: 12px; letter-spacing: 3px; }
+  .s-closing p { color: #aebfe2; font-size: 1.1rem; }
+
+  /* ── Mobil ────────────────────────────────────────── */
+  @media(max-width: 820px) {
+    .s-about { grid-template-columns: 1fr; gap: 30px; }
+    .s-recruit-inner { grid-template-columns: 1fr; gap: 30px; }
+    .s-recruit-visual { display: none; }
+    .s-hero-content { padding: 70px 22px 50px; }
+    .s-section { padding: 50px 22px; }
+    .s-duty { min-height: 350px; background-attachment: scroll; }
+    .s-closing { min-height: 280px; }
+  }
+
+  /* Alte Startseiten-Klassen verstecken wenn Startseite aktiv */
+  #sec-start.active .hero,
+  #sec-start.active .cards,
+  #sec-start.active .card { display: none; }
 
   .pagetitle{border-bottom:3px solid var(--gold);display:inline-block;padding-bottom:6px;color:var(--blue);font-size:1.5rem;margin-bottom:20px}
   .hint{background:#eaf1ff;border:1px solid #cfdfff;color:var(--blue2);border-radius:10px;padding:13px 17px;font-size:.9rem;margin-bottom:20px;line-height:1.55}
@@ -117,13 +264,9 @@
 
   footer{border-top:1px solid var(--border);background:var(--blue);color:#aebfe2;text-align:center;padding:20px;font-size:.8rem}
 
-  /* ── Mobil: alles gut sichtbar wie am Laptop ── */
+  /* ── Mobil: restliche Seiten ── */
   @media(max-width:720px){
-    .hero{padding:34px 22px}
-    .hero h1{font-size:1.7rem}
-    .hero p{font-size:.95rem}
-    .hero .cta a{padding:12px 20px;font-size:.9rem}
-    main{padding:22px 14px 40px}
+    section:not(#sec-start) { padding: 22px 14px 40px; }
     .panel{padding:18px 15px}
     .pagetitle{font-size:1.25rem}
   }
@@ -186,41 +329,93 @@
 
   <!-- ── STARTSEITE ─────────────────────────────────── -->
   <section id="sec-start" class="active">
-    <div class="hero">
-      <span class="badge">Official Website</span>
-      <h1>Willkommen beim LAPD</h1>
-      <p>Das Los Angeles Police Department steht für Sicherheit, Recht und Ordnung. Kontaktiere uns, erstatte eine Anzeige oder bewirb dich für den Dienst – wir kümmern uns um dein Anliegen.</p>
-      <div class="cta">
-        <a class="primary" href="#beschwerde" onclick="go('beschwerde')">⚠️ Beschwerde einreichen</a>
-        <a class="ghost" href="/lapd/karriere">🎓 Karriere beim LAPD</a>
+
+    <!-- HERO -->
+    <div class="s-hero">
+      <div class="s-hero-content">
+        <div class="s-hero-badge">Los Angeles Police Department</div>
+        <h1>Protecting <span>Los Angeles.</span><br>Serving the Community.</h1>
+        <p class="s-hero-sub">Das Los Angeles Police Department steht für Sicherheit, Integrität und den Schutz unserer Gemeinschaft. Gemeinsam sorgen wir für Recht und Ordnung in Los Angeles.</p>
+        <div class="s-hero-btns">
+          <a class="s-btn-primary" href="/lapd/karriere">Jetzt bewerben</a>
+          <a class="s-btn-outline" href="#anzeige" onclick="go('anzeige')">Anzeige erstatten</a>
+        </div>
       </div>
     </div>
-    <div class="cards">
-      <div class="card" onclick="go('informationen')">
-        <div class="ic">ℹ️</div><b>Informationen</b>
-        <span>Neuigkeiten und Hinweise rund um das LAPD.</span>
-      </div>
-      <div class="card" onclick="go('mitarbeiter')">
-        <div class="ic">👮</div><b>Mitarbeiter</b>
-        <span>Unser Team und die Dienststellen.</span>
-      </div>
-      <div class="card" onclick="go('fuhrpark')">
-        <div class="ic">🚓</div><b>Fuhrpark</b>
-        <span>Die Fahrzeuge der Polizei von Los Angeles.</span>
-      </div>
-      <div class="card" onclick="location.href='/lapd/karriere'">
-        <div class="ic">🎓</div><b>Karriere</b>
-        <span>Bewirb dich für den Dienst beim LAPD.</span>
-      </div>
-      <div class="card" onclick="go('anzeige')">
-        <div class="ic">📋</div><b>Anzeige aufgeben</b>
-        <span>Melde einen Vorfall mit dem offiziellen Formular.</span>
-      </div>
-      <div class="card" onclick="go('beschwerde')">
-        <div class="ic">⚠️</div><b>Beschwerde</b>
-        <span>Reiche eine Beschwerde über einen Beamten ein.</span>
+
+    <!-- DAS LAPD -->
+    <div class="s-section">
+      <div class="s-inner s-about">
+        <img class="s-about-img" src="https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=700&q=80" alt="LAPD Headquarters" loading="lazy">
+        <div class="s-about-text">
+          <span class="s-label">Das LAPD</span>
+          <h2>Schutz und Verantwortung für Los Angeles</h2>
+          <p>Das Los Angeles Police Department steht für Sicherheit, Verantwortung und den Schutz unserer Gemeinschaft.</p>
+          <p style="margin-top:14px">Unsere Mitarbeiter stehen täglich für die Bürgerinnen und Bürger von Los Angeles im Einsatz. Von alltäglichen Verkehrskontrollen bis hin zu komplexen Ermittlungen – unser Anspruch ist es, professionell, entschlossen und verantwortungsvoll zu handeln.</p>
+          <p style="margin-top:14px">Sicherheit beginnt mit Vertrauen.</p>
+        </div>
       </div>
     </div>
+
+    <!-- IM DIENST FÜR LOS ANGELES -->
+    <div class="s-duty">
+      <div class="s-inner">
+        <span class="s-label">Im Dienst</span>
+        <h2>Im Dienst für Los Angeles</h2>
+        <p>Jeden Tag. Jede Schicht. Jede Situation.</p>
+        <p style="margin-top:10px">Unsere Beamten sind dort, wo sie gebraucht werden – auf den Straßen, in den Stadtteilen und überall dort, wo die Sicherheit unserer Gemeinschaft auf dem Spiel steht.</p>
+        <p style="margin-top:14px;font-weight:600;color:#c9a227">Professionalität. Respekt. Verantwortung.</p>
+      </div>
+    </div>
+
+    <!-- WERDE TEIL DES LAPD -->
+    <div class="s-recruit">
+      <div class="s-recruit-inner">
+        <div class="s-recruit-text">
+          <span class="s-label">Karriere</span>
+          <h2>Werde Teil des LAPD</h2>
+          <p>Du möchtest Verantwortung übernehmen, Menschen helfen und Teil einer professionellen Polizeibehörde werden?</p>
+          <p style="margin-top:14px">Das Los Angeles Police Department bietet engagierten Bewerbern die Möglichkeit, ihre Karriere im Dienste der Gemeinschaft zu beginnen.</p>
+          <p style="margin-top:14px;font-weight:600;color:#c9a227">Deine Stadt. Deine Verantwortung. Deine Karriere.</p>
+          <div style="margin-top:26px">
+            <a class="s-btn-primary" href="/lapd/karriere" style="display:inline-block">Jetzt bewerben</a>
+          </div>
+        </div>
+        <div class="s-recruit-visual">&#11088;</div>
+      </div>
+    </div>
+
+    <!-- IHRE SICHERHEIT -->
+    <div class="s-section alt">
+      <div class="s-inner">
+        <span class="s-label">Bürgerservice</span>
+        <h2>Ihre Sicherheit. Unsere Verantwortung.</h2>
+        <p>Das LAPD steht den Bürgerinnen und Bürgern von Los Angeles zur Verfügung. Sie möchten einen Vorfall melden, eine Anzeige erstatten oder eine Beschwerde einreichen? Unser Bürgerportal bietet Ihnen einen schnellen und unkomplizierten Zugang zu unseren Dienstleistungen.</p>
+        <div class="s-citizen-links">
+          <a href="#anzeige" onclick="go('anzeige')">Anzeige erstatten</a>
+          <a href="#beschwerde" onclick="go('beschwerde')">Beschwerde einreichen</a>
+          <a href="#" onclick="toggleKontakt()">Kontakt</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- AKTUELLE INFORMATIONEN -->
+    <div class="s-section">
+      <div class="s-inner">
+        <span class="s-label">Aktuelles</span>
+        <h2>Aktuelle Informationen</h2>
+        <div id="info-list-start"></div>
+      </div>
+    </div>
+
+    <!-- CLOSING BANNER -->
+    <div class="s-closing">
+      <div class="s-closing-inner">
+        <h2>LOS ANGELES POLICE DEPARTMENT</h2>
+        <p>Serving Los Angeles. Protecting the Community.</p>
+      </div>
+    </div>
+
   </section>
 
   <!-- ── INFORMATIONEN ───────────────────────────────── -->
@@ -625,6 +820,15 @@ async function loadPublic(){
         '<div class="txt">' + esc(i.text) + '</div></div>').join('');
     }
     const emps = d.employees || [];
+    // Auch Startseite befüllen
+    const infoStart = document.getElementById('info-list-start');
+    if(infoStart){
+      if(!infos.length){ infoStart.innerHTML = '<p style="color:var(--muted);font-size:.93rem">Derzeit keine neuen Informationen.</p>'; }
+      else {
+        infoStart.innerHTML = infos.map(i =>
+          '<div class="s-news-item"><h4>' + esc(i.title) + '</h4><div class="date">' + fmt(i.ts) + '</div><div class="body">' + esc(i.text) + '</div></div>').join('');
+      }
+    }
     const empEl = document.getElementById('emp-list');
     if(!emps.length){ empEl.innerHTML = '<div class="empty">Derzeit keine Mitarbeiter-Informationen hinterlegt.</div>'; }
     else {

@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v27";
+        private static final String CHANGELOG_VERSION = "v28";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,7 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Inventar-Fix, LAPD Updates & Globaler Bann-Screen**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Neue LAPD-Startseite (komplettes Redesign)**__\n\n" +
                 "🫣 **/verstecken Bug behoben** — Das „versteckt”-Flag ging beim Laden des Inventars verloren " +
                 "(wurde nicht aus den Daten gelesen), deshalb tauchten versteckte Items immer wieder im Inventar " +
                 "auf. Jetzt bleibt das Flag dauerhaft gespeichert: Versteckte Items verschwinden wirklich aus dem " +
