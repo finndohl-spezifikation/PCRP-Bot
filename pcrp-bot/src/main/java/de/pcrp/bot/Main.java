@@ -822,7 +822,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v26";
+        private static final String CHANGELOG_VERSION = "v27";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +839,7 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Bugfix: Verstecken speichert jetzt wirklich**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Inventar-Fix, LAPD Updates & Globaler Bann-Screen**__\n\n" +
                 "🫣 **/verstecken Bug behoben** — Das „versteckt”-Flag ging beim Laden des Inventars verloren " +
                 "(wurde nicht aus den Daten gelesen), deshalb tauchten versteckte Items immer wieder im Inventar " +
                 "auf. Jetzt bleibt das Flag dauerhaft gespeichert: Versteckte Items verschwinden wirklich aus dem " +
@@ -1392,13 +1392,13 @@ public class Main {
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.MODERATE_MEMBERS)),
 
-                Commands.slash("bannen-dashboard", "Sperrt ein Mitglied von allen PCRP-Webseiten")
-                    .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
+                Commands.slash("bannen-dashboard", "Sperrt eine Person per User-ID von allen PCRP-Webseiten")
+                    .addOption(OptionType.STRING, "user-id", "Discord User-ID der Person", true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.BAN_MEMBERS)),
 
-                Commands.slash("entbannen-dashboard", "Hebt den Web-Bann eines Mitglieds auf")
-                    .addOption(OptionType.USER, "mitglied", "Das Mitglied", true)
+                Commands.slash("entbannen-dashboard", "Hebt den Web-Bann einer Person per User-ID auf")
+                    .addOption(OptionType.STRING, "user-id", "Discord User-ID der Person", true)
                     .setDefaultPermissions(
                         DefaultMemberPermissions.enabledFor(net.dv8tion.jda.api.Permission.BAN_MEMBERS))
 

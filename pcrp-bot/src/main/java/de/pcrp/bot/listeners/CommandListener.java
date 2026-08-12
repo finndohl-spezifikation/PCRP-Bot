@@ -2139,20 +2139,24 @@ public class CommandListener extends ListenerAdapter {
 
     private void handleBannenDashboard(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
-        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
-        if (target == null) {
-            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue(); return;
+        String userIdInput = event.getOption("user-id", OptionMapping::getAsString);
+        if (userIdInput == null || userIdInput.isBlank()) {
+            event.replyEmbeds(embed("Fehler", "Bitte gib eine Discord User-ID an.\n\nVerwendung: `/bannen-dashboard user-id:123456789012345678`"))
+                .setEphemeral(true).queue(); return;
         }
+        String userId = userIdInput.trim();
+        // Versuche User-ID über Name aufzulösen
         String guildId = event.getGuild().getId();
-        String userId  = target.getId();
+        net.dv8tion.jda.api.entities.Member resolved = BotContext.resolveMember(userId);
+        String displayName = resolved != null ? resolved.getEffectiveName() : userId;
         de.pcrp.bot.common.DataStore.writeString("web-ban-" + guildId + "-" + userId, "1");
         BotLogger.logModeration(event.getGuild(),
             "🌐 Web-Bann",
-            "**Mitglied:** " + target.getAsMention() + " (`" + userId + "`)\n" +
+            "**User-ID:** `" + userId + "`" + (resolved != null ? " (" + resolved.getAsMention() + ")" : "") + "\n" +
             "**Gebannt von:** " + event.getUser().getAsMention() + "\n" +
             "**Effekt:** Alle PCRP-Webseiten gesperrt");
         event.replyEmbeds(embed("✅ Web-Bann gesetzt",
-            "**" + target.getEffectiveName() + "** hat keinen Zugriff mehr auf PCRP-Webseiten."))
+            "**" + displayName + "** (`" + userId + "`) hat keinen Zugriff mehr auf PCRP-Webseiten."))
             .setEphemeral(true).queue();
     }
 
@@ -2162,14 +2166,18 @@ public class CommandListener extends ListenerAdapter {
 
     private void handleEntbannenDashboard(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null) return;
-        Member target = event.getOption("mitglied", OptionMapping::getAsMember);
-        if (target == null) {
-            event.replyEmbeds(embed("Fehler", "Mitglied nicht gefunden.")).setEphemeral(true).queue(); return;
+        String userIdInput = event.getOption("user-id", OptionMapping::getAsString);
+        if (userIdInput == null || userIdInput.isBlank()) {
+            event.replyEmbeds(embed("Fehler", "Bitte gib eine Discord User-ID an."))
+                .setEphemeral(true).queue(); return;
         }
+        String userId = userIdInput.trim();
         String guildId = event.getGuild().getId();
-        de.pcrp.bot.common.DataStore.deleteKey("web-ban-" + guildId + "-" + target.getId());
+        net.dv8tion.jda.api.entities.Member resolved = BotContext.resolveMember(userId);
+        String displayName = resolved != null ? resolved.getEffectiveName() : userId;
+        de.pcrp.bot.common.DataStore.deleteKey("web-ban-" + guildId + "-" + userId);
         event.replyEmbeds(embed("✅ Web-Bann aufgehoben",
-            "**" + target.getEffectiveName() + "** hat wieder Zugriff auf PCRP-Webseiten."))
+            "**" + displayName + "** (`" + userId + "`) hat wieder Zugriff auf PCRP-Webseiten."))
             .setEphemeral(true).queue();
     }
 

@@ -200,7 +200,7 @@
   <div class="card">
     <div class="icon">🚫</div>
     <h1>Zugriff gesperrt</h1>
-    <p>Dein Zugriff wurde von einem Administrator gesperrt.<br><br>Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.</p>
+    <p>Du wurdest von dieser Seite gebannt.<br><br>Bist du der Meinung, es handelt sich um einen Fehler?<br>Dann kontaktiere bitte das Highteam.</p>
   </div>
 </div>
 
@@ -852,7 +852,7 @@ async function loadAusruestung(cat, label, icon){
   const can = !!d.canManage;
   const rows = (d.equipment||[]).map(e =>
     '<div class="item"><div class="top"><span class="who">' + esc(e.title) + '</span>' +
-    '<span class="st offen">' + esc(e.access) + '</span><span class="when">' + fmt(e.ts) + '</span>' +
+    '<span class="st offen">' + esc({leitung:'Leitungs Ebene',beamte:'Befehls Ebene',alle:'Officer',admin:'Administrator'}[e.access]||e.access) + '</span><span class="when">' + fmt(e.ts) + '</span>' +
     (can ? '<button class="btn small red" onclick="equipDelete(\'' + e.id + '\',\'' + cat + '\')">Löschen</button>' : '') + '</div>' +
     (e.image ? '<img src="' + esc(e.image) + '" alt="" style="max-width:100%;border-radius:8px;margin:6px 0">' : '') +
     '<div class="txt">' + esc(e.description) + '</div></div>').join('');
@@ -863,9 +863,9 @@ async function loadAusruestung(cat, label, icon){
     '<label>Titel</label><input type="text" id="eq-title" placeholder="z. B. ' + (cat==='waffen'?'Sturmgewehr':(cat==='fahrzeuge'?'LAPD Crown Victoria':'Dienstuniform')) + '">' +
     '<label>Bild-Datei</label><input type="file" id="eq-image" accept="image/*">' +
     '<label>Beschreibung</label><textarea id="eq-desc" placeholder="Beschreibung …"></textarea>' +
-    '<label>Verwendbar durch</label><select id="eq-access">' +
-    '<option value="alle">Alle</option><option value="beamte">Beamte (Officer & Rooky)</option>' +
-    '<option value="leitung">Leitungs Ebene</option><option value="admin">Administrator</option></select>' +
+    '<label>Ausrüstung freigegeben für</label><select id="eq-access">' +
+    '<option value="leitung">Leitungs Ebene</option><option value="beamte">Befehls Ebene</option>' +
+    '<option value="alle">Officer</option></select>' +
     '<button class="btn" style="margin-top:14px" onclick="equipAdd()">➕ Hinzufügen</button><div class="msg" id="eq-msg"></div></div>' +
     '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div></div>'
     : '<div class="panel"><h3>📋 ' + label + '</h3>' + (rows || '<div class="empty">' + emptyText + '</div>') + '</div>';

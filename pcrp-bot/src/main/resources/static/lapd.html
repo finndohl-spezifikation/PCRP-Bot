@@ -147,7 +147,7 @@
   <div class="card">
     <div class="icon">🚫</div>
     <h1>Zugriff gesperrt</h1>
-    <p>Dein Zugriff wurde von einem Administrator gesperrt.<br><br>Sollte das ein Fehler sein, wende dich bitte an das High Team im Discord.</p>
+    <p>Du wurdest von dieser Seite gebannt.<br><br>Bist du der Meinung, es handelt sich um einen Fehler?<br>Dann kontaktiere bitte das Highteam.</p>
     <a class="btn" href="/lapd/dashboard" style="display:inline-block;margin-top:18px;background:linear-gradient(135deg,var(--gold),#e0b93c);color:var(--blue);border:none;padding:12px 22px;border-radius:9px;font-weight:800">👮 Zum Mitarbeiter Login</a>
   </div>
 </div>
@@ -166,12 +166,21 @@
     <a class="link" data-sec="mitarbeiter" href="#mitarbeiter">MITARBEITER</a>
     <a class="link" data-sec="fuhrpark" href="#fuhrpark">FUHRPARK</a>
     <a class="link" href="/lapd/karriere">KARRIERE</a>
-    <a class="link" data-sec="beschwerde" href="#beschwerde">BESCHWERDE</a>
     <a class="link" data-sec="anzeige" href="#anzeige">ANZEIGE AUFGEBEN</a>
+    <a class="link" data-sec="beschwerde" href="#beschwerde">BESCHWERDE</a>
+    <a class="link" onclick="toggleKontakt()" style="cursor:pointer">KONTAKT</a>
     <div class="spacer"></div>
     <a class="btn-login" href="/lapd/dashboard">👮 Mitarbeiter Login</a>
   </div>
 </header>
+
+<!-- KONTAKT Sub-Navigation (eingeklappt) -->
+<div id="kontakt-subnav" class="subnav" style="display:none">
+  <div class="inner">
+    <button onclick="go('beschwerde')" class="active">⚠️ Beschwerde</button>
+    <button onclick="go('anzeige')">📋 Anzeige Aufgeben</button>
+  </div>
+</div>
 
 <main>
 
@@ -355,6 +364,11 @@
 </footer>
 
 <script>
+(function(){
+  if(localStorage.getItem('lapd-banned') === '1'){
+    document.getElementById('banned-screen').style.display = 'flex';
+  }
+})();
 const API = "%%API_BASE%%";
 
 // ── Identität (localStorage) ──────────────────────────────
@@ -389,11 +403,33 @@ function go(sec){
   document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
   document.getElementById('sec-' + sec).classList.add('active');
   document.querySelectorAll('a.link').forEach(a => a.classList.toggle('active', a.dataset.sec === sec));
+  // KONTAKT subnav: anzeigen bei beschwerde/azeige, highlight korrekten Button
+  var sub = document.getElementById('kontakt-subnav');
+  if(sec === 'beschwerde' || sec === 'anzeige'){
+    sub.style.display = 'block';
+    document.querySelectorAll('#kontakt-subnav button').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase().includes(sec)));
+  } else { sub.style.display = 'none'; }
   if(sec === 'anzeige') loadMy();
   if(sec === 'beschwerde') loadMy();
   window.scrollTo({top:0, behavior:'smooth'});
 }
 document.querySelectorAll('a.link[data-sec]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.sec); }));
+
+// ── KONTAKT Sub-Nav ──────────────────────────────────────
+function toggleKontakt(){
+  const sub = document.getElementById('kontakt-subnav');
+  sub.style.display = sub.style.display === 'none' ? 'block' : 'none';
+  if(sub.style.display === 'block'){
+    go('beschwerde');
+    document.querySelectorAll('#kontakt-subnav button').forEach((b,i) => b.classList.toggle('active', i===0));
+  }
+}
+document.querySelectorAll('#kontakt-subnav button').forEach(btn => {
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('#kontakt-subnav button').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
 
 // ── Formulare ─────────────────────────────────────────────
 async function submitBeschwerde(){

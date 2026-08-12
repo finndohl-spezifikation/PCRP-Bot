@@ -262,17 +262,27 @@ public final class InventoryManager {
     /**
      * Setzt das hidden-Flag für alle Items mit passendem Namen auf den gewünschten Wert.
      * Mehrere Items mit gleichem Namen werden alle gleichzeitig behandelt (idempotent).
+     * Erzwingt sofortiges Schreiben in den DataStore — dadurch garantiert das Flag
+     * auch bei späteren Lese-Operationen erhalten bleibt.
      */
     public static synchronized void setHidden(String guildId, String userId, String itemName, boolean hidden) {
-        List<Item> inv = getInventory(guildId, userId);
+        String raw = DataStore.readString(key(guildId, userId));
+        if (raw == null || raw.isBlank()) return;
+        JsonArray arr;
+        try {
+            arr = GSON.fromJson(raw, JsonArray.class);
+        } catch (Exception e) {
+            return;
+        }
         boolean changed = false;
-        for (Item it : inv) {
-            if (nameMatches(it.name, itemName)) {
-                it.hidden = hidden;
+        for (JsonElement el : arr) {
+            JsonObject o = el.getAsJsonObject();
+            if (nameMatches(o.get("name").getAsString(), itemName)) {
+                o.addProperty("hidden", hidden);
                 changed = true;
             }
         }
-        if (changed) saveInventory(guildId, userId, inv);
+        if (changed) DataStore.writeString(key(guildId, userId), GSON.toJson(arr));
     }
 
     /**
