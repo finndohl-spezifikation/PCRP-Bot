@@ -112,6 +112,7 @@ public class WebServer {
         app.get( "/api/regelwerk",                              RegelwerkHandler::handleGet);
         app.post("/api/regelwerk/category",                     RegelwerkHandler::handleAddCategory);
         app.post("/api/regelwerk/category/edit",                RegelwerkHandler::handleEditCategory);
+        app.post("/api/regelwerk/category/move",                RegelwerkHandler::handleMoveCategory);
         app.post("/api/regelwerk/entry",                        RegelwerkHandler::handleAddEntry);
         app.post("/api/regelwerk/entry/edit",                   RegelwerkHandler::handleEditEntry);
         app.post("/api/regelwerk/delete",                       RegelwerkHandler::handleDelete);
