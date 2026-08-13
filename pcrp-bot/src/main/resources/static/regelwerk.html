@@ -6,24 +6,23 @@
 <title>Regelwerk — Paradise City Roleplay</title>
 <style>
   :root{
-    --bg:#0d0a07;
-    --bg2:#171008;
-    --panel:#1d1209;
+    --bg:#0c0905;
+    --panel:#1c1108;
     --panel2:#241609;
     --orange:#ff7a00;
     --orange2:#ff9d33;
     --orange3:#ffb25c;
-    --text:#f4e8da;
+    --text:#f5eadd;
     --muted:#c9a37a;
-    --border:rgba(255,122,0,.28);
-    --glow:0 0 22px rgba(255,122,0,.35);
+    --border:rgba(255,122,0,.3);
+    --glow:0 0 24px rgba(255,122,0,.4);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     background:
-      radial-gradient(1200px 600px at 50% -10%, rgba(255,122,0,.14), transparent 60%),
-      radial-gradient(900px 500px at 100% 100%, rgba(255,122,0,.08), transparent 60%),
+      radial-gradient(1200px 600px at 50% -10%, rgba(255,122,0,.16), transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, rgba(255,122,0,.09), transparent 60%),
       var(--bg);
     color:var(--text);
     min-height:100vh;
@@ -31,7 +30,7 @@
   }
   header{
     position:sticky;top:0;z-index:20;
-    background:rgba(13,10,7,.92);
+    background:rgba(12,9,5,.93);
     backdrop-filter:blur(8px);
     border-bottom:1px solid var(--border);
     box-shadow:0 6px 24px rgba(0,0,0,.5);
@@ -58,24 +57,34 @@
   .intro{margin-bottom:30px}
   .intro h2{color:var(--orange2);font-size:1.1rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
   .intro p{color:var(--muted);max-width:720px;font-size:.92rem}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:22px}
+  /* Kategorie-Kasten: Titel + Text */
   .cat{
-    background:linear-gradient(160deg,var(--panel2),var(--panel));
-    border:1px solid var(--border);border-radius:14px;padding:22px;
-    box-shadow:0 8px 28px rgba(0,0,0,.45);
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--border);border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 10px 30px rgba(0,0,0,.45);
     transition:.2s;
   }
-  .cat:hover{border-color:rgba(255,122,0,.5);box-shadow:var(--glow)}
-  .cat h3{
-    color:var(--orange2);font-size:1.05rem;letter-spacing:1px;text-transform:uppercase;
-    margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,122,0,.18);
+  .cat:hover{border-color:rgba(255,122,0,.55);box-shadow:var(--glow)}
+  .cat-head{
+    padding:18px 20px;
+    background:linear-gradient(180deg,rgba(255,122,0,.14),rgba(255,122,0,.03));
+    border-bottom:1px solid var(--border);
+  }
+  .cat-head h3{
+    color:var(--orange2);font-size:1.08rem;letter-spacing:1px;text-transform:uppercase;
     text-shadow:0 0 12px rgba(255,122,0,.4);
   }
-  .cat ul{list-style:none;display:flex;flex-direction:column;gap:10px}
-  .cat li{
-    background:rgba(0,0,0,.22);border-left:3px solid var(--orange);
-    padding:11px 14px;border-radius:6px;font-size:.92rem;color:var(--text);
+  .cat-body{padding:8px 0}
+  .rule{
+    padding:13px 20px;
+    font-size:.94rem;color:var(--text);
+    border-bottom:1px solid rgba(255,122,0,.1);
   }
+  .rule:last-child{border-bottom:none}
+  .rule .num{color:var(--orange3);font-weight:700;margin-right:8px}
+  .no-rules{padding:16px 20px;color:var(--muted);font-size:.9rem}
   .empty{color:var(--muted);text-align:center;padding:50px 20px;font-size:.95rem}
   /* Edit-Modus */
   #editor{display:none;margin-top:26px;padding:22px;border:1px dashed var(--orange);border-radius:14px;background:rgba(255,122,0,.05)}
@@ -83,7 +92,7 @@
   #editor h3{color:var(--orange2);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;margin-bottom:16px}
   .edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
   input[type=text]{
-    flex:1;min-width:200px;background:#0d0a07;border:1px solid var(--border);color:var(--text);
+    flex:1;min-width:200px;background:#0c0905;border:1px solid var(--border);color:var(--text);
     padding:11px 13px;border-radius:8px;font-size:.9rem;outline:none;
   }
   input[type=text]:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,122,0,.15)}
@@ -92,14 +101,10 @@
     letter-spacing:.5px;transition:.15s;white-space:nowrap;
   }
   .btn.add{background:var(--orange);color:#140b02}
-  .btn.rs{background:rgba(255,122,0,.18);color:var(--orange3);border:1px solid var(--border)}
-  .btn.rs:hover{background:rgba(255,122,0,.3)}
   .btn.danger{background:rgba(220,60,40,.85);color:#fff}
-  .btn.mini{background:rgba(255,122,0,.15);color:var(--orange3);border:1px solid var(--border);padding:8px 12px;font-size:.8rem}
+  .btn.mini{background:rgba(255,122,0,.15);color:var(--orange3);border:1px solid var(--border);padding:7px 11px;font-size:.78rem}
   .btn.mini.del{background:rgba(220,60,40,.25)}
-  .cat .edit-controls{margin-top:14px;border-top:1px dashed var(--border);padding-top:14px}
-  .li-row{display:flex;align-items:center;gap:8px}
-  .li-row .txt{flex:1}
+  .cat .edit-area{margin-top:14px;border-top:1px dashed var(--border);padding:14px 20px;background:rgba(0,0,0,.15)}
   .li-edit{display:flex;gap:8px;align-items:center}
   .li-edit input{flex:1;min-width:0}
   .toast{
@@ -121,7 +126,7 @@
   <div class="header-inner">
     <div class="brand">
       <h1>Paradise City Regelwerk</h1>
-      <span>Los Angeles Roleplay</span>
+      <span>Paradise City Roleplay</span>
     </div>
     <button class="btn-edit" id="toggleEdit" onclick="toggleEdit()">✎ Edit</button>
   </div>
@@ -178,40 +183,37 @@
       return;
     }
     grid.innerHTML = DATA.categories.map(function(cat, ci){
-      var titleHtml = editing
-        ? '<div class="edit-row" style="margin-bottom:14px">' +
+      var head = editing
+        ? '<div class="cat-head"><div class="edit-row" style="margin-bottom:0">' +
             '<input type="text" id="cat-title-' + ci + '" value="' + esc(cat.title) + '">' +
             '<button class="btn add" onclick="renameCategory(\'' + cat.id + '\',' + ci + ')">Speichern</button>' +
-          '</div>'
-        : '<h3>' + esc(cat.title) + '</h3>';
+          '</div></div>'
+        : '<div class="cat-head"><h3>' + esc(cat.title) + '</h3></div>';
 
-      var lis = (cat.texts && cat.texts.length)
+      var rules = (cat.texts && cat.texts.length)
         ? cat.texts.map(function(t, ti){
             if(editing){
-              return '<li><div class="li-edit">' +
+              return '<div class="rule"><div class="li-edit">' +
                        '<input type="text" class="text-in" data-ci="' + ci + '" data-ti="' + ti + '" value="' + esc(t) + '">' +
                        '<button class="btn mini" title="Speichern" onclick="saveEntry(\'' + cat.id + '\',' + ti + ',' + ci + ')">💾</button>' +
                        '<button class="btn mini del" title="Löschen" onclick="delText(\'' + cat.id + '\',' + ti + ')">✕</button>' +
-                     '</div></li>';
+                     '</div></div>';
             }
-            return '<li><div class="li-row"><span class="txt">' + esc(t) + '</span></div></li>';
+            return '<div class="rule"><span class="num">§' + (ti+1) + '</span>' + esc(t) + '</div>';
           }).join('')
-        : '<li>Noch keine Einträge.</li>';
+        : '<div class="no-rules">Noch keine Einträge.</div>';
 
-      var controls = editing
-        ? '<div class="edit-controls">' +
+      var editArea = editing
+        ? '<div class="edit-area">' +
             '<div class="edit-row">' +
               '<input type="text" id="entry-' + ci + '" placeholder="Neuer Regeltext">' +
               '<button class="btn add" onclick="addEntry(\'' + cat.id + '\',' + ci + ')">+ Text</button>' +
             '</div>' +
-            '<div class="edit-row" style="margin-bottom:0">' +
-              '<button class="btn rs" onclick="korrektur(\'' + cat.id + '\',' + ci + ')">✍ RS Korrektur</button>' +
-              '<button class="btn danger" onclick="delCategory(\'' + cat.id + '\')">Kategorie löschen</button>' +
-            '</div>' +
+            '<button class="btn danger" onclick="delCategory(\'' + cat.id + '\')">Kategorie löschen</button>' +
           '</div>'
         : '';
 
-      return '<div class="cat">' + titleHtml + '<ul>' + lis + '</ul>' + controls + '</div>';
+      return '<div class="cat">' + head + '<div class="cat-body">' + rules + '</div>' + editArea + '</div>';
     }).join('');
   }
 
@@ -263,22 +265,6 @@
     var d = await api('/api/regelwerk/entry/edit', {categoryId: catId, index: ti, text: inp.value});
     if(d && d.ok){ DATA.categories = d.categories; render(); toast('Regel gespeichert.'); }
     else toast(d && d.error ? d.error : 'Fehler.');
-  }
-
-  async function korrektur(catId, ci){
-    var inputs = document.querySelectorAll('input.text-in[data-ci="' + ci + '"]');
-    var texts = [];
-    for(var i=0;i<inputs.length;i++){ texts.push(inputs[i].value); }
-    if(!texts.length){ toast('Keine Texte zum Korrigieren.'); return; }
-
-    var d = await api('/api/regelwerk/korrektur', {texts: texts});
-    if(d && d.ok && d.texts){
-      var s = await api('/api/regelwerk/category/texts', {categoryId: catId, texts: d.texts});
-      if(s && s.ok){ DATA.categories = s.categories; render(); toast('Rechtschreibung korrigiert.'); }
-      else toast('Korrektur erstellt, aber Speichern fehlgeschlagen.');
-    } else {
-      toast(d && d.error ? d.error : 'Korrektur fehlgeschlagen.');
-    }
   }
 
   async function delText(catId, index){

@@ -114,8 +114,6 @@ public class WebServer {
         app.post("/api/regelwerk/category/edit",                RegelwerkHandler::handleEditCategory);
         app.post("/api/regelwerk/entry",                        RegelwerkHandler::handleAddEntry);
         app.post("/api/regelwerk/entry/edit",                   RegelwerkHandler::handleEditEntry);
-        app.post("/api/regelwerk/category/texts",               RegelwerkHandler::handleSetTexts);
-        app.post("/api/regelwerk/korrektur",                    RegelwerkHandler::handleKorrektur);
         app.post("/api/regelwerk/delete",                       RegelwerkHandler::handleDelete);
 
         // ── LAPD (Webseite + Beamten-Dashboard) ────────────────────────────
