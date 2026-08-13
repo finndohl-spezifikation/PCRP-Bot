@@ -396,6 +396,16 @@ public class Main {
             String key = "panel-regelwerk-web-v1-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.REGELWERK_CHANNEL_ID);
             if (ch == null) { log.warn("[Regelwerk] Panel-Kanal nicht gefunden."); return; }
+
+            // Einmaliger Zwangs-Neuversand (z. B. nach Bot-Reset) — genau einmal, dann normaler Duplikat-Schutz
+            String forceKey = "force-regelwerk-web-v1-" + guild.getId();
+            if (DataStore.readString(forceKey) == null) {
+                DataStore.writeString(forceKey, "1");
+                log.info("[Regelwerk] Zwangs-Neuversand des Link-Embeds (einmalig).");
+                sendRegelwerkLinkPanel(ch, key);
+                return;
+            }
+
             PanelHelper.post(ch, key, "📋 Paradise City — Serverregelwerk (Web)",
                 () -> sendRegelwerkLinkPanel(ch, key));
         }
