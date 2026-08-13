@@ -70,6 +70,11 @@ public final class RegelwerkHandler {
         if (title.isEmpty()) { respondError(ctx, "Titel darf nicht leer sein."); return; }
 
         JsonObject data = load();
+        // Paragraph-Nummer automatisch nach Anzahl setzen (z. B. §1.0), bearbeitbar über /category/edit
+        int n = data.getAsJsonArray("categories").size() + 1;
+        if (!title.startsWith("§")) {
+            title = "§" + n + ".0 " + title;
+        }
         JsonObject cat = new JsonObject();
         cat.addProperty("id", newId());
         cat.addProperty("title", title);

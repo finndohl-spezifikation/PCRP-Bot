@@ -54,11 +54,11 @@
   .btn-edit:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(255,122,0,.5)}
   .btn-edit.active{background:linear-gradient(135deg,#3a2a16,#2a1d0e);color:var(--orange3);box-shadow:none;border:1px solid var(--border)}
   main{max-width:1080px;margin:0 auto;padding:34px 24px 70px}
-  .intro{margin-bottom:30px}
+  .intro{max-width:820px;margin:0 auto 30px;text-align:center}
   .intro h2{color:var(--orange2);font-size:1.1rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
-  .intro p{color:var(--muted);max-width:720px;font-size:.92rem}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:22px}
-  /* Kategorie-Kasten: Titel + Text */
+  .intro p{color:var(--muted);font-size:.92rem}
+  /* Kategorien mittig als eine zentrierte Spalte */
+  .grid{display:flex;flex-direction:column;gap:22px;max-width:820px;margin:0 auto}
   .cat{
     background:linear-gradient(180deg,var(--panel2),var(--panel));
     border:1px solid var(--border);border-radius:14px;
@@ -71,31 +71,34 @@
     padding:18px 20px;
     background:linear-gradient(180deg,rgba(255,122,0,.14),rgba(255,122,0,.03));
     border-bottom:1px solid var(--border);
+    text-align:center;
   }
   .cat-head h3{
-    color:var(--orange2);font-size:1.08rem;letter-spacing:1px;text-transform:uppercase;
+    color:var(--orange2);font-size:1.1rem;letter-spacing:1px;text-transform:uppercase;
     text-shadow:0 0 12px rgba(255,122,0,.4);
   }
   .cat-body{padding:8px 0}
   .rule{
-    padding:13px 20px;
+    padding:13px 22px;
     font-size:.94rem;color:var(--text);
     border-bottom:1px solid rgba(255,122,0,.1);
+    white-space:pre-line;
   }
   .rule:last-child{border-bottom:none}
   .rule .num{color:var(--orange3);font-weight:700;margin-right:8px}
-  .no-rules{padding:16px 20px;color:var(--muted);font-size:.9rem}
+  .no-rules{padding:16px 22px;color:var(--muted);font-size:.9rem;text-align:center}
   .empty{color:var(--muted);text-align:center;padding:50px 20px;font-size:.95rem}
   /* Edit-Modus */
-  #editor{display:none;margin-top:26px;padding:22px;border:1px dashed var(--orange);border-radius:14px;background:rgba(255,122,0,.05)}
+  #editor{display:none;margin-top:26px;max-width:820px;margin-left:auto;margin-right:auto;padding:22px;border:1px dashed var(--orange);border-radius:14px;background:rgba(255,122,0,.05)}
   #editor.show{display:block}
-  #editor h3{color:var(--orange2);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;margin-bottom:16px}
+  #editor h3{color:var(--orange2);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;margin-bottom:16px;text-align:center}
   .edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
-  input[type=text]{
+  input[type=text], textarea{
     flex:1;min-width:200px;background:#0c0905;border:1px solid var(--border);color:var(--text);
-    padding:11px 13px;border-radius:8px;font-size:.9rem;outline:none;
+    padding:11px 13px;border-radius:8px;font-size:.9rem;outline:none;font-family:inherit;
   }
-  input[type=text]:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,122,0,.15)}
+  input[type=text]:focus, textarea:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,122,0,.15)}
+  textarea{resize:vertical;min-height:60px;line-height:1.5}
   .btn{
     border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:11px 18px;font-size:.85rem;
     letter-spacing:.5px;transition:.15s;white-space:nowrap;
@@ -104,9 +107,9 @@
   .btn.danger{background:rgba(220,60,40,.85);color:#fff}
   .btn.mini{background:rgba(255,122,0,.15);color:var(--orange3);border:1px solid var(--border);padding:7px 11px;font-size:.78rem}
   .btn.mini.del{background:rgba(220,60,40,.25)}
-  .cat .edit-area{margin-top:14px;border-top:1px dashed var(--border);padding:14px 20px;background:rgba(0,0,0,.15)}
-  .li-edit{display:flex;gap:8px;align-items:center}
-  .li-edit input{flex:1;min-width:0}
+  .cat .edit-area{margin-top:14px;border-top:1px dashed var(--border);padding:14px 22px;background:rgba(0,0,0,.15)}
+  .li-edit{display:flex;gap:8px;align-items:flex-start}
+  .li-edit textarea{flex:1;min-width:0}
   .toast{
     position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
     background:#241609;border:1px solid var(--orange);color:var(--text);
@@ -117,7 +120,7 @@
   @media(max-width:560px){
     .header-inner{padding:14px 16px}
     main{padding:24px 14px 60px}
-    .grid{grid-template-columns:1fr}
+    .grid{max-width:100%}
   }
 </style>
 </head>
@@ -194,19 +197,19 @@
         ? cat.texts.map(function(t, ti){
             if(editing){
               return '<div class="rule"><div class="li-edit">' +
-                       '<input type="text" class="text-in" data-ci="' + ci + '" data-ti="' + ti + '" value="' + esc(t) + '">' +
+                       '<textarea class="text-in" data-ci="' + ci + '" data-ti="' + ti + '">' + esc(t) + '</textarea>' +
                        '<button class="btn mini" title="Speichern" onclick="saveEntry(\'' + cat.id + '\',' + ti + ',' + ci + ')">💾</button>' +
                        '<button class="btn mini del" title="Löschen" onclick="delText(\'' + cat.id + '\',' + ti + ')">✕</button>' +
                      '</div></div>';
             }
-            return '<div class="rule"><span class="num">§' + (ti+1) + '</span>' + esc(t) + '</div>';
+            return '<div class="rule"><span class="num">§' + (ci+1) + '.' + (ti+1) + '</span>' + esc(t) + '</div>';
           }).join('')
         : '<div class="no-rules">Noch keine Einträge.</div>';
 
       var editArea = editing
         ? '<div class="edit-area">' +
             '<div class="edit-row">' +
-              '<input type="text" id="entry-' + ci + '" placeholder="Neuer Regeltext">' +
+              '<textarea id="entry-' + ci + '" placeholder="Neuer Regeltext (Enter = neue Zeile)"></textarea>' +
               '<button class="btn add" onclick="addEntry(\'' + cat.id + '\',' + ci + ')">+ Text</button>' +
             '</div>' +
             '<button class="btn danger" onclick="delCategory(\'' + cat.id + '\')">Kategorie löschen</button>' +
@@ -260,7 +263,7 @@
   }
 
   async function saveEntry(catId, ti, ci){
-    var inp = document.querySelector('input.text-in[data-ci="' + ci + '"][data-ti="' + ti + '"]');
+    var inp = document.querySelector('.text-in[data-ci="' + ci + '"][data-ti="' + ti + '"]');
     if(!inp || !inp.value.trim()){ toast('Text darf nicht leer sein.'); return; }
     var d = await api('/api/regelwerk/entry/edit', {categoryId: catId, index: ti, text: inp.value});
     if(d && d.ok){ DATA.categories = d.categories; render(); toast('Regel gespeichert.'); }
