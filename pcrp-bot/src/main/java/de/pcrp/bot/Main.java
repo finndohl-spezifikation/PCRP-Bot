@@ -850,7 +850,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v29";
+        private static final String CHANGELOG_VERSION = "v30";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -867,7 +867,12 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Neues Serverregelwerk (externe Seite mit Edit-Modus)**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Regelwerk: Kategorien bearbeiten + RS-Korrektur**__\n\n" +
+                "📋 **Regelwerk erweitert** — Im Edit-Modus lassen sich bestehende Kategorien und Regeltexte jetzt " +
+                "direkt umbenennen und bearbeiten. Neu ist der Button **✍ RS Korrektur** pro Kategorie: ein Klick " +
+                "korrigiert die Rechtschreibung des gesamten Texts im Kasten automatisch.\n\n" +
+                "---\n\n" +
+                "__**Version v29 — Neues Serverregelwerk (externe Seite mit Edit-Modus)**__\n\n" +
                 "📋 **Regelwerk-Webseite** — Das Serverregelwerk ist jetzt über eine eigene Seite erreichbar. " +
                 "Kategorien werden als dunkel-orange Kästen angezeigt. Über den **Edit**-Button oben lassen sich " +
                 "neue Kategorien und Regeltexte hinzufügen, bearbeiten und löschen. Im Regelwerk-Kanal liegt ein " +

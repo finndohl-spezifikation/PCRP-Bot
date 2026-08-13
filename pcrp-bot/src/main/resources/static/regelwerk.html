@@ -58,7 +58,7 @@
   .intro{margin-bottom:30px}
   .intro h2{color:var(--orange2);font-size:1.1rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
   .intro p{color:var(--muted);max-width:720px;font-size:.92rem}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
   .cat{
     background:linear-gradient(160deg,var(--panel2),var(--panel));
     border:1px solid var(--border);border-radius:14px;padding:22px;
@@ -81,7 +81,7 @@
   #editor{display:none;margin-top:26px;padding:22px;border:1px dashed var(--orange);border-radius:14px;background:rgba(255,122,0,.05)}
   #editor.show{display:block}
   #editor h3{color:var(--orange2);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;margin-bottom:16px}
-  .edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
   input[type=text]{
     flex:1;min-width:200px;background:#0d0a07;border:1px solid var(--border);color:var(--text);
     padding:11px 13px;border-radius:8px;font-size:.9rem;outline:none;
@@ -89,18 +89,19 @@
   input[type=text]:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,122,0,.15)}
   .btn{
     border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:11px 18px;font-size:.85rem;
-    letter-spacing:.5px;transition:.15s;
+    letter-spacing:.5px;transition:.15s;white-space:nowrap;
   }
   .btn.add{background:var(--orange);color:#140b02}
+  .btn.rs{background:rgba(255,122,0,.18);color:var(--orange3);border:1px solid var(--border)}
+  .btn.rs:hover{background:rgba(255,122,0,.3)}
   .btn.danger{background:rgba(220,60,40,.85);color:#fff}
-  .btn.mini{background:rgba(255,122,0,.15);color:var(--orange3);border:1px solid var(--border);padding:6px 11px;font-size:.75rem}
-  .cat .edit-controls{display:none;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px}
-  body.editing .cat .edit-controls{display:block}
-  body.editing .cat .del-cat{margin-top:12px}
+  .btn.mini{background:rgba(255,122,0,.15);color:var(--orange3);border:1px solid var(--border);padding:8px 12px;font-size:.8rem}
+  .btn.mini.del{background:rgba(220,60,40,.25)}
+  .cat .edit-controls{margin-top:14px;border-top:1px dashed var(--border);padding-top:14px}
   .li-row{display:flex;align-items:center;gap:8px}
   .li-row .txt{flex:1}
-  .li-row .del{flex-shrink:0;display:none}
-  body.editing .li-row .del{display:inline-block}
+  .li-edit{display:flex;gap:8px;align-items:center}
+  .li-edit input{flex:1;min-width:0}
   .toast{
     position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
     background:#241609;border:1px solid var(--orange);color:var(--text);
@@ -140,7 +141,6 @@
       <input type="text" id="newCatTitle" placeholder="Neue Kategorie (z. B. Allgemeine Regeln)">
       <button class="btn add" onclick="addCategory()">+ Kategorie</button>
     </div>
-    <div id="catEditors"></div>
   </div>
 </main>
 
@@ -149,6 +149,7 @@
 <script src="/ban-guard.js"></script>
 <script>
   var DATA = { categories: [] };
+  var editing = false;
 
   function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -158,7 +159,7 @@
     var t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+    setTimeout(function(){ t.classList.remove('show'); }, 2400);
   }
 
   async function load(){
@@ -174,40 +175,53 @@
     var grid = document.getElementById('grid');
     if(!DATA.categories.length){
       grid.innerHTML = '<div class="empty">Noch keine Regeln hinterlegt. Klicke oben auf <b>Edit</b>, um Kategorien hinzuzufügen.</div>';
-    } else {
-      grid.innerHTML = DATA.categories.map(function(cat, ci){
-        var lis = (cat.texts && cat.texts.length)
-          ? cat.texts.map(function(t, ti){
-              return '<li><div class="li-row"><span class="txt">' + esc(t) + '</span>' +
-                     '<button class="btn mini del" onclick="delText(\'' + cat.id + '\',' + ti + ')">✕</button></div></li>';
-            }).join('')
-          : '<li>Noch keine Einträge.</li>';
-        return '<div class="cat">' +
-                 '<h3>' + esc(cat.title) + '</h3>' +
-                 '<ul>' + lis + '</ul>' +
-                 '<div class="edit-controls">' +
-                   '<div class="edit-row">' +
-                     '<input type="text" placeholder="Neuer Regeltext" id="entry-' + ci + '">' +
-                     '<button class="btn add" onclick="addEntry(\'' + cat.id + '\',' + ci + ')">+ Text</button>' +
-                   '</div>' +
-                   '<button class="btn danger del-cat" onclick="delCategory(\'' + cat.id + '\')">Kategorie löschen</button>' +
-                 '</div>' +
-               '</div>';
-      }).join('');
+      return;
     }
-    renderCatEditors();
-  }
+    grid.innerHTML = DATA.categories.map(function(cat, ci){
+      var titleHtml = editing
+        ? '<div class="edit-row" style="margin-bottom:14px">' +
+            '<input type="text" id="cat-title-' + ci + '" value="' + esc(cat.title) + '">' +
+            '<button class="btn add" onclick="renameCategory(\'' + cat.id + '\',' + ci + ')">Speichern</button>' +
+          '</div>'
+        : '<h3>' + esc(cat.title) + '</h3>';
 
-  function renderCatEditors(){
-    document.getElementById('catEditors').innerHTML = '';
+      var lis = (cat.texts && cat.texts.length)
+        ? cat.texts.map(function(t, ti){
+            if(editing){
+              return '<li><div class="li-edit">' +
+                       '<input type="text" class="text-in" data-ci="' + ci + '" data-ti="' + ti + '" value="' + esc(t) + '">' +
+                       '<button class="btn mini" title="Speichern" onclick="saveEntry(\'' + cat.id + '\',' + ti + ',' + ci + ')">💾</button>' +
+                       '<button class="btn mini del" title="Löschen" onclick="delText(\'' + cat.id + '\',' + ti + ')">✕</button>' +
+                     '</div></li>';
+            }
+            return '<li><div class="li-row"><span class="txt">' + esc(t) + '</span></div></li>';
+          }).join('')
+        : '<li>Noch keine Einträge.</li>';
+
+      var controls = editing
+        ? '<div class="edit-controls">' +
+            '<div class="edit-row">' +
+              '<input type="text" id="entry-' + ci + '" placeholder="Neuer Regeltext">' +
+              '<button class="btn add" onclick="addEntry(\'' + cat.id + '\',' + ci + ')">+ Text</button>' +
+            '</div>' +
+            '<div class="edit-row" style="margin-bottom:0">' +
+              '<button class="btn rs" onclick="korrektur(\'' + cat.id + '\',' + ci + ')">✍ RS Korrektur</button>' +
+              '<button class="btn danger" onclick="delCategory(\'' + cat.id + '\')">Kategorie löschen</button>' +
+            '</div>' +
+          '</div>'
+        : '';
+
+      return '<div class="cat">' + titleHtml + '<ul>' + lis + '</ul>' + controls + '</div>';
+    }).join('');
   }
 
   function toggleEdit(){
-    var on = document.body.classList.toggle('editing');
+    editing = !editing;
     var b = document.getElementById('toggleEdit');
-    b.textContent = on ? '✓ Fertig' : '✎ Edit';
-    b.classList.toggle('active', on);
-    document.getElementById('editor').classList.toggle('show', on);
+    b.textContent = editing ? '✓ Fertig' : '✎ Edit';
+    b.classList.toggle('active', editing);
+    document.getElementById('editor').classList.toggle('show', editing);
+    render();
   }
 
   async function api(path, body){
@@ -226,6 +240,14 @@
     else toast(d && d.error ? d.error : 'Fehler.');
   }
 
+  async function renameCategory(catId, ci){
+    var inp = document.getElementById('cat-title-' + ci);
+    if(!inp.value.trim()){ toast('Titel darf nicht leer sein.'); return; }
+    var d = await api('/api/regelwerk/category/edit', {categoryId: catId, title: inp.value});
+    if(d && d.ok){ DATA.categories = d.categories; render(); toast('Titel gespeichert.'); }
+    else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
   async function addEntry(catId, ci){
     var inp = document.getElementById('entry-' + ci);
     var text = inp.value.trim();
@@ -233,6 +255,30 @@
     var d = await api('/api/regelwerk/entry', {categoryId: catId, text: text});
     if(d && d.ok){ DATA.categories = d.categories; render(); toast('Regel hinzugefügt.'); }
     else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
+  async function saveEntry(catId, ti, ci){
+    var inp = document.querySelector('input.text-in[data-ci="' + ci + '"][data-ti="' + ti + '"]');
+    if(!inp || !inp.value.trim()){ toast('Text darf nicht leer sein.'); return; }
+    var d = await api('/api/regelwerk/entry/edit', {categoryId: catId, index: ti, text: inp.value});
+    if(d && d.ok){ DATA.categories = d.categories; render(); toast('Regel gespeichert.'); }
+    else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
+  async function korrektur(catId, ci){
+    var inputs = document.querySelectorAll('input.text-in[data-ci="' + ci + '"]');
+    var texts = [];
+    for(var i=0;i<inputs.length;i++){ texts.push(inputs[i].value); }
+    if(!texts.length){ toast('Keine Texte zum Korrigieren.'); return; }
+
+    var d = await api('/api/regelwerk/korrektur', {texts: texts});
+    if(d && d.ok && d.texts){
+      var s = await api('/api/regelwerk/category/texts', {categoryId: catId, texts: d.texts});
+      if(s && s.ok){ DATA.categories = s.categories; render(); toast('Rechtschreibung korrigiert.'); }
+      else toast('Korrektur erstellt, aber Speichern fehlgeschlagen.');
+    } else {
+      toast(d && d.error ? d.error : 'Korrektur fehlgeschlagen.');
+    }
   }
 
   async function delText(catId, index){
