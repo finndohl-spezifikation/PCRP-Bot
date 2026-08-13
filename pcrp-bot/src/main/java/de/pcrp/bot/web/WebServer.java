@@ -107,6 +107,13 @@ public class WebServer {
         app.get( "/citybuy",                                     WebServer::serveCityBuy);
         app.get( "/cityship",                                    WebServer::serveCityShip);
 
+        // ── Regelwerk (externe Seite mit Edit-Modus) ───────────────────────
+        app.get( "/regelwerk",                                  WebServer::serveRegelwerk);
+        app.get( "/api/regelwerk",                              RegelwerkHandler::handleGet);
+        app.post("/api/regelwerk/category",                     RegelwerkHandler::handleAddCategory);
+        app.post("/api/regelwerk/entry",                        RegelwerkHandler::handleAddEntry);
+        app.post("/api/regelwerk/delete",                       RegelwerkHandler::handleDelete);
+
         // ── LAPD (Webseite + Beamten-Dashboard) ────────────────────────────
         app.get( "/lapd",                                      WebServer::serveLapd);
         app.get( "/lapd/karriere",                             WebServer::serveLapdKarriere);
@@ -206,6 +213,7 @@ public class WebServer {
         app.delete("/api/city-chat/status",            ctx -> CityChatHandler.handleDeleteStatus(ctx));
         // Push-Benachrichtigungen
         app.get( "/sw.js",                              WebServer::serveServiceWorker);
+        app.get( "/ban-guard.js",                         ctx -> serveStaticBinary(ctx, "/static/ban-guard.js", "application/javascript"));
         app.get( "/pd-logo.webp",                       ctx -> serveStaticBinary(ctx, "/static/pd-logo.webp",      "image/webp"));
         app.get( "/lapd-logo.jpg",                      ctx -> serveStaticBinary(ctx, "/static/lapd-logo.jpg",     "image/jpeg"));
         app.get( "/pd-standort.jpg",                    ctx -> serveStaticBinary(ctx, "/static/pd-standort.jpg",   "image/jpeg"));
@@ -398,6 +406,22 @@ public class WebServer {
             ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
         } catch (Exception e) {
             log.error("[CityShip] Fehler beim Ausliefern.", e);
+            ctx.status(500).result("Interner Fehler");
+        }
+    }
+
+    // ── regelwerk.html (Serverregelwerk mit Edit-Modus) ────────
+
+    private static void serveRegelwerk(Context ctx) {
+        try (InputStream is = WebServer.class.getResourceAsStream("/static/regelwerk.html")) {
+            if (is == null) { ctx.status(404).result("Not found"); return; }
+            log.info("[Regelwerk] Seite ausgeliefert.");
+            ctx.header("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.header("Pragma", "no-cache");
+            ctx.header("Expires", "0");
+            ctx.contentType("text/html;charset=utf-8").result(is.readAllBytes());
+        } catch (Exception e) {
+            log.error("[Regelwerk] Fehler beim Ausliefern.", e);
             ctx.status(500).result("Interner Fehler");
         }
     }

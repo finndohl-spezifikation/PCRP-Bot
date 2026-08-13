@@ -204,6 +204,7 @@ public class Main {
 
                 postTicketPanel(guild);
                 postRegelwerkPanels(guild);
+                postRegelwerkLinkPanel(guild);
                 RoleMenuListener.postPanel(guild);
                 postBoostPanel(guild);
                 postFrakListPanel(guild);
@@ -388,6 +389,33 @@ public class Main {
                 () -> sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1));
             PanelHelper.post(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)",
                 () -> sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2));
+        }
+
+        /** Embed mit Link-Button zur externen Regelwerk-Seite (/regelwerk). */
+        private static void postRegelwerkLinkPanel(Guild guild) {
+            String key = "panel-regelwerk-web-v1-" + guild.getId();
+            TextChannel ch = guild.getTextChannelById(LoggingConfig.REGELWERK_CHANNEL_ID);
+            if (ch == null) { log.warn("[Regelwerk] Panel-Kanal nicht gefunden."); return; }
+            PanelHelper.post(ch, key, "📋 Paradise City — Serverregelwerk (Web)",
+                () -> sendRegelwerkLinkPanel(ch, key));
+        }
+
+        private static void sendRegelwerkLinkPanel(TextChannel ch, String key) {
+            String url = webUrl() + "/regelwerk";
+            ch.sendMessageEmbeds(
+                EmbedFactory.create()
+                    .setTitle("📋 Paradise City — Serverregelwerk")
+                    .setDescription(
+                        "Hier findest du das komplette **Serverregelwerk** übersichtlich nach Kategorien sortiert.\n\n" +
+                        "**Klicke unten auf den Button, um das Regelwerk zu öffnen.**")
+                    .setColor(0xff7a00)
+                    .build()
+            ).addComponents(ActionRow.of(
+                Button.link(url, "📋 Regelwerk öffnen")
+            )).queue(
+                msg -> PanelHelper.onSent(key, msg.getId()),
+                err -> { log.error("[Regelwerk] Panel konnte nicht gesendet werden.", err); PanelHelper.onFailed(key); }
+            );
         }
 
         private static void postMeldeamtPanel(Guild guild) {
@@ -822,7 +850,7 @@ public class Main {
          * aktuelle {@code CHANGELOG_VERSION} gesetzt. Beim nächsten Restart wird
          * verglichen — nur bei neuerer Version wird erneut gepostet.
          */
-        private static final String CHANGELOG_VERSION = "v28";
+        private static final String CHANGELOG_VERSION = "v29";
 
         private static void postChangelog(Guild guild) {
             String key = "changelog-version-" + guild.getId();
@@ -839,7 +867,13 @@ public class Main {
 
             String changes =
                 "**📋 Changelog — PCRP Bot**\n\n" +
-                "__**Version " + CHANGELOG_VERSION + " — Neue LAPD-Startseite (komplettes Redesign)**__\n\n" +
+                "__**Version " + CHANGELOG_VERSION + " — Neues Serverregelwerk (externe Seite mit Edit-Modus)**__\n\n" +
+                "📋 **Regelwerk-Webseite** — Das Serverregelwerk ist jetzt über eine eigene Seite erreichbar. " +
+                "Kategorien werden als dunkel-orange Kästen angezeigt. Über den **Edit**-Button oben lassen sich " +
+                "neue Kategorien und Regeltexte hinzufügen, bearbeiten und löschen. Im Regelwerk-Kanal liegt ein " +
+                "Embed mit Link-Button zur Seite.\n\n" +
+                "---\n\n" +
+                "__**Version v28 — Neue LAPD-Startseite (komplettes Redesign)**__\n\n" +
                 "🫣 **/verstecken Bug behoben** — Das „versteckt”-Flag ging beim Laden des Inventars verloren " +
                 "(wurde nicht aus den Daten gelesen), deshalb tauchten versteckte Items immer wieder im Inventar " +
                 "auf. Jetzt bleibt das Flag dauerhaft gespeichert: Versteckte Items verschwinden wirklich aus dem " +

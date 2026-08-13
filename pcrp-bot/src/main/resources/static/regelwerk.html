@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regelwerk — Paradise City Roleplay</title>
+<style>
+  :root{
+    --bg:#0d0a07;
+    --bg2:#171008;
+    --panel:#1d1209;
+    --panel2:#241609;
+    --orange:#ff7a00;
+    --orange2:#ff9d33;
+    --orange3:#ffb25c;
+    --text:#f4e8da;
+    --muted:#c9a37a;
+    --border:rgba(255,122,0,.28);
+    --glow:0 0 22px rgba(255,122,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(255,122,0,.14), transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, rgba(255,122,0,.08), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    line-height:1.6;
+  }
+  header{
+    position:sticky;top:0;z-index:20;
+    background:rgba(13,10,7,.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 6px 24px rgba(0,0,0,.5);
+  }
+  .header-inner{
+    max-width:1080px;margin:0 auto;padding:18px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;flex-direction:column}
+  .brand h1{
+    font-size:1.35rem;letter-spacing:2px;text-transform:uppercase;color:var(--orange2);
+    text-shadow:0 0 16px rgba(255,122,0,.55);
+  }
+  .brand span{font-size:.72rem;letter-spacing:3px;color:var(--muted);text-transform:uppercase}
+  .btn-edit{
+    background:linear-gradient(135deg,var(--orange),#e56700);
+    color:#140b02;border:none;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+    padding:11px 22px;border-radius:8px;cursor:pointer;font-size:.8rem;
+    box-shadow:var(--glow);transition:.2s;
+  }
+  .btn-edit:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(255,122,0,.5)}
+  .btn-edit.active{background:linear-gradient(135deg,#3a2a16,#2a1d0e);color:var(--orange3);box-shadow:none;border:1px solid var(--border)}
+  main{max-width:1080px;margin:0 auto;padding:34px 24px 70px}
+  .intro{margin-bottom:30px}
+  .intro h2{color:var(--orange2);font-size:1.1rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+  .intro p{color:var(--muted);max-width:720px;font-size:.92rem}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px}
+  .cat{
+    background:linear-gradient(160deg,var(--panel2),var(--panel));
+    border:1px solid var(--border);border-radius:14px;padding:22px;
+    box-shadow:0 8px 28px rgba(0,0,0,.45);
+    transition:.2s;
+  }
+  .cat:hover{border-color:rgba(255,122,0,.5);box-shadow:var(--glow)}
+  .cat h3{
+    color:var(--orange2);font-size:1.05rem;letter-spacing:1px;text-transform:uppercase;
+    margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,122,0,.18);
+    text-shadow:0 0 12px rgba(255,122,0,.4);
+  }
+  .cat ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .cat li{
+    background:rgba(0,0,0,.22);border-left:3px solid var(--orange);
+    padding:11px 14px;border-radius:6px;font-size:.92rem;color:var(--text);
+  }
+  .empty{color:var(--muted);text-align:center;padding:50px 20px;font-size:.95rem}
+  /* Edit-Modus */
+  #editor{display:none;margin-top:26px;padding:22px;border:1px dashed var(--orange);border-radius:14px;background:rgba(255,122,0,.05)}
+  #editor.show{display:block}
+  #editor h3{color:var(--orange2);text-transform:uppercase;letter-spacing:1px;font-size:.9rem;margin-bottom:16px}
+  .edit-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  input[type=text]{
+    flex:1;min-width:200px;background:#0d0a07;border:1px solid var(--border);color:var(--text);
+    padding:11px 13px;border-radius:8px;font-size:.9rem;outline:none;
+  }
+  input[type=text]:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,122,0,.15)}
+  .btn{
+    border:none;border-radius:8px;cursor:pointer;font-weight:700;padding:11px 18px;font-size:.85rem;
+    letter-spacing:.5px;transition:.15s;
+  }
+  .btn.add{background:var(--orange);color:#140b02}
+  .btn.danger{background:rgba(220,60,40,.85);color:#fff}
+  .btn.mini{background:rgba(255,122,0,.15);color:var(--orange3);border:1px solid var(--border);padding:6px 11px;font-size:.75rem}
+  .cat .edit-controls{display:none;margin-top:14px;border-top:1px dashed var(--border);padding-top:12px}
+  body.editing .cat .edit-controls{display:block}
+  body.editing .cat .del-cat{margin-top:12px}
+  .li-row{display:flex;align-items:center;gap:8px}
+  .li-row .txt{flex:1}
+  .li-row .del{flex-shrink:0;display:none}
+  body.editing .li-row .del{display:inline-block}
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#241609;border:1px solid var(--orange);color:var(--text);
+    padding:12px 22px;border-radius:10px;opacity:0;pointer-events:none;transition:.3s;z-index:50;
+    box-shadow:var(--glow);font-size:.9rem;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(max-width:560px){
+    .header-inner{padding:14px 16px}
+    main{padding:24px 14px 60px}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>Paradise City Regelwerk</h1>
+      <span>Los Angeles Roleplay</span>
+    </div>
+    <button class="btn-edit" id="toggleEdit" onclick="toggleEdit()">✎ Edit</button>
+  </div>
+</header>
+
+<main>
+  <div class="intro">
+    <h2>Serverregelwerk</h2>
+    <p>Hier findest du alle gültigen Regeln des Servers, übersichtlich in Kategorien sortiert. Halte dich an das Regelwerk — Verstöße werden sanktioniert.</p>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div id="editor">
+    <h3>Regelwerk bearbeiten</h3>
+    <div class="edit-row">
+      <input type="text" id="newCatTitle" placeholder="Neue Kategorie (z. B. Allgemeine Regeln)">
+      <button class="btn add" onclick="addCategory()">+ Kategorie</button>
+    </div>
+    <div id="catEditors"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/ban-guard.js"></script>
+<script>
+  var DATA = { categories: [] };
+
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  }); }
+
+  function toast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  async function load(){
+    try{
+      var r = await fetch('/api/regelwerk', {cache:'no-store'});
+      var d = await r.json();
+      if(d && d.categories) DATA.categories = d.categories;
+    }catch(e){}
+    render();
+  }
+
+  function render(){
+    var grid = document.getElementById('grid');
+    if(!DATA.categories.length){
+      grid.innerHTML = '<div class="empty">Noch keine Regeln hinterlegt. Klicke oben auf <b>Edit</b>, um Kategorien hinzuzufügen.</div>';
+    } else {
+      grid.innerHTML = DATA.categories.map(function(cat, ci){
+        var lis = (cat.texts && cat.texts.length)
+          ? cat.texts.map(function(t, ti){
+              return '<li><div class="li-row"><span class="txt">' + esc(t) + '</span>' +
+                     '<button class="btn mini del" onclick="delText(\'' + cat.id + '\',' + ti + ')">✕</button></div></li>';
+            }).join('')
+          : '<li>Noch keine Einträge.</li>';
+        return '<div class="cat">' +
+                 '<h3>' + esc(cat.title) + '</h3>' +
+                 '<ul>' + lis + '</ul>' +
+                 '<div class="edit-controls">' +
+                   '<div class="edit-row">' +
+                     '<input type="text" placeholder="Neuer Regeltext" id="entry-' + ci + '">' +
+                     '<button class="btn add" onclick="addEntry(\'' + cat.id + '\',' + ci + ')">+ Text</button>' +
+                   '</div>' +
+                   '<button class="btn danger del-cat" onclick="delCategory(\'' + cat.id + '\')">Kategorie löschen</button>' +
+                 '</div>' +
+               '</div>';
+      }).join('');
+    }
+    renderCatEditors();
+  }
+
+  function renderCatEditors(){
+    document.getElementById('catEditors').innerHTML = '';
+  }
+
+  function toggleEdit(){
+    var on = document.body.classList.toggle('editing');
+    var b = document.getElementById('toggleEdit');
+    b.textContent = on ? '✓ Fertig' : '✎ Edit';
+    b.classList.toggle('active', on);
+    document.getElementById('editor').classList.toggle('show', on);
+  }
+
+  async function api(path, body){
+    var opts = { method: body ? 'POST' : 'GET', headers: {'Content-Type':'application/json'}, cache:'no-store' };
+    if(body) opts.body = JSON.stringify(body);
+    var r = await fetch(path, opts);
+    return await r.json();
+  }
+
+  async function addCategory(){
+    var inp = document.getElementById('newCatTitle');
+    var title = inp.value.trim();
+    if(!title){ toast('Bitte einen Titel eingeben.'); return; }
+    var d = await api('/api/regelwerk/category', {title: title});
+    if(d && d.ok){ DATA.categories = d.categories; inp.value=''; render(); toast('Kategorie hinzugefügt.'); }
+    else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
+  async function addEntry(catId, ci){
+    var inp = document.getElementById('entry-' + ci);
+    var text = inp.value.trim();
+    if(!text){ toast('Bitte einen Text eingeben.'); return; }
+    var d = await api('/api/regelwerk/entry', {categoryId: catId, text: text});
+    if(d && d.ok){ DATA.categories = d.categories; render(); toast('Regel hinzugefügt.'); }
+    else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
+  async function delText(catId, index){
+    if(!confirm('Diese Regel löschen?')) return;
+    var d = await api('/api/regelwerk/delete', {categoryId: catId, index: index});
+    if(d && d.ok){ DATA.categories = d.categories; render(); toast('Regel gelöscht.'); }
+    else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
+  async function delCategory(catId){
+    if(!confirm('Ganze Kategorie löschen?')) return;
+    var d = await api('/api/regelwerk/delete', {categoryId: catId});
+    if(d && d.ok){ DATA.categories = d.categories; render(); toast('Kategorie gelöscht.'); }
+    else toast(d && d.error ? d.error : 'Fehler.');
+  }
+
+  load();
+</script>
+</body>
+</html>
