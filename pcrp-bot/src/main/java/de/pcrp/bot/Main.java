@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -268,6 +269,25 @@ public class Main {
             }
 
             log.info("Bot bereit – eingeloggt als {}.", jda.getSelfUser().getAsTag());
+        }
+
+        /**
+         * Registriert die Slash-Commands erneut, wenn der Bot (wieder) einer Guild
+         * beitritt — z. B. nach einem versehentlichen Kick. Beim Kick werden die
+         * Guild-Commands entfernt; ohne dieses Event wären sie bis zum nächsten
+         * Neustart weg.
+         */
+        @Override
+        public void onGuildJoin(GuildJoinEvent event) {
+            Guild guild = event.getGuild();
+            List<CommandData> commands = buildCommands();
+            BotStats.commandCount = commands.size();
+            guild.updateCommands()
+                .addCommands(commands)
+                .queue(
+                    ok  -> log.info("Commands auf '{}' nach Re-Join registriert.", guild.getName()),
+                    err -> log.error("Fehler beim Registrieren auf '{}' nach Re-Join.", guild.getName(), err)
+                );
         }
 
         private static final String TICKET_DESC =
