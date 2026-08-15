@@ -74,8 +74,21 @@
     overflow:hidden;
     box-shadow:0 10px 30px rgba(0,0,0,.45);
     transition:.2s;
+    opacity:0; /* versteckt bis Scroll-Reveal */
   }
   .cat:hover{border-color:rgba(255,122,0,.55);box-shadow:var(--glow)}
+  .cat.reveal{
+    animation:catReveal .6s cubic-bezier(.2,.7,.3,1) both;
+    animation-delay:var(--d,0ms);
+  }
+  @keyframes catReveal{
+    from{opacity:0;transform:translateY(26px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .cat{opacity:1}
+    .cat.reveal{animation:none}
+  }
   .cat-head{
     padding:18px 20px;
     background:linear-gradient(180deg,rgba(255,122,0,.14),rgba(255,122,0,.03));
@@ -216,6 +229,28 @@
     render();
   }
 
+  var catObserver = null;
+  function revealCats(){
+    var cats = Array.prototype.slice.call(document.querySelectorAll('#grid .cat'));
+    if(!('IntersectionObserver' in window)){
+      cats.forEach(function(c){ c.classList.add('reveal'); });
+      return;
+    }
+    if(catObserver) catObserver.disconnect();
+    catObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          catObserver.unobserve(en.target);
+          en.target.classList.add('reveal');
+        }
+      });
+    }, {threshold:0.12, rootMargin:'0px 0px -8% 0px'});
+    cats.forEach(function(c, i){
+      c.style.setProperty('--d', Math.min(i * 60, 300) + 'ms');
+      catObserver.observe(c);
+    });
+  }
+
   function render(){
     var sec = currentSection();
     var grid = document.getElementById('grid');
@@ -264,6 +299,7 @@
 
       return '<div class="cat">' + head + '<div class="cat-body">' + rules + '</div>' + editArea + '</div>';
     }).join('');
+    revealCats();
   }
 
   function toggleEdit(){
