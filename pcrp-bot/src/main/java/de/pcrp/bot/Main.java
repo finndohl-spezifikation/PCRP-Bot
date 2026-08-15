@@ -204,8 +204,7 @@ public class Main {
                     "- Radar auf aus Stellen");
 
                 postTicketPanel(guild);
-                postRegelwerkPanels(guild);
-                postRegelwerkLinkPanel(guild);
+                initRegelwerkChannel(guild);
                 RoleMenuListener.postPanel(guild);
                 postBoostPanel(guild);
                 postFrakListPanel(guild);
@@ -328,106 +327,43 @@ public class Main {
             );
         }
 
-        private static void postRegelwerkPanels(Guild guild) {
-            TextChannel ch = guild.getTextChannelById(LoggingConfig.REGELWERK_CHANNEL_ID);
-            if (ch == null) { log.warn("[Regelwerk] Panel-Kanal nicht gefunden."); return; }
-
-            String key1 = "panel-regelwerk1-" + guild.getId();
-            String key2 = "panel-regelwerk2-" + guild.getId();
-
-            String desc1 =
-                "**🔤 RP-Grundlagen & Begriffe**\n\n" +
-                "Du übernimmst eine fiktive Rolle in einer realistischen Spielwelt und handelst als dein Charakter — realistisch und glaubwürdig.\n\n" +
-                "`IC` — In Character | Alles innerhalb deiner Rolle\n" +
-                "`OOC` — Out of Character | Alles außerhalb deines Charakters\n" +
-                "`Metagaming` — Externe Infos im RP nutzen → **Verboten**\n" +
-                "`PowerRP` — Zwangshandlungen ohne Reaktionsmöglichkeit → **Verboten**\n" +
-                "`FearRP` — Angemessenes Angstverhalten bei Gefahr → **Pflicht**\n" +
-                "`FailRP` — Unrealistisches Verhalten → **Verboten**\n" +
-                "`RDM` — Töten ohne RP-Grund → **Verboten**\n" +
-                "`VDM` — Fahrzeug als Waffe → **Verboten**\n" +
-                "`Combat Log` — Verlassen einer RP-Situation → **Verboten**\n" +
-                "`IC/OOC Mixing` — Vermischung von IC und OOC → **Verboten**\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**👤 Einreise & Charakter**\n" +
-                "`§1` Discord-ID wird für die Dauer der Aktivität gespeichert.\n" +
-                "`§1.1` Keine Whitelist — realistische Angaben Pflicht. Charakteränderung nur durch RP-Tod.\n" +
-                "`§1.2` Einreisearten: Legal · Illegal · Gruppeneinreise (ab 5 Personen)\n" +
-                "`§1.3` Gruppeneinreise: Nachweis im Support erforderlich.\n" +
-                "`§1.4` Zweitcharaktere: Nur mit Support-Anmeldung erlaubt.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**🤝 Verhalten auf dem Server**\n" +
-                "`§2` Respekt ist Pflicht. Diskriminierung und Beleidigungen sind verboten.\n" +
-                "`§2.1` Keine Werbung · keine Serverlinks · kein Spam.\n" +
-                "`§2.2` Kein privater Kontakt zu Teammitgliedern.\n" +
-                "`§2.3` Support: richtige Kategorie nutzen, kein Spam, Geduld zeigen.\n" +
-                "`§2.4` Griefing und Sabotage sind verboten.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**🎫 Support & Systeme**\n" +
-                "`§3` Nur über Tickets oder Supportbereiche erreichbar.\n" +
-                "`§3.1` Ingame-Support nur bei Team-Genehmigung — ausschließlich in einem CO.\n" +
-                "`§3.2` Clips dürfen ausschließlich im Support verwendet werden.\n" +
-                "`§3.3` Verwarnungen sind anfechtbar — Einspruch ist möglich.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**🔒 Serversicherheit**\n" +
-                "`§4` Bugs, Glitches und Exploits sind streng verboten.\n" +
-                "`§4.1` Bot-Fehler sofort melden — Nutzung ist verboten.\n" +
-                "`§4.2` Serverangriffe führen zum sofortigen Ausschluss.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**📡 Kommunikation & UI**\n" +
-                "`§5` Ausschließlich GTA-Ingame-Voice erlaubt.\n" +
-                "`§5.1` Funk erlaubt, solange die Lobby nicht voll ist — bei voller Lobby auflösen.\n" +
-                "`§5.2` Minimap & Spieleranzeige beim Betreten der Lobby deaktivieren.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**🎮 Ingame-Regeln**\n" +
-                "`§6` Alles muss realistisch gespielt werden.\n" +
-                "`§6.1` Schusscall: Pflicht — 15 Minuten gültig.\n" +
-                "`§6.2` Bewusstlosigkeit: maximal 10 Minuten.\n" +
-                "`§6.3` Bewusstlosen Spieler: Dispatch absetzen oder Erstversorgung durchführen.\n" +
-                "`§6.4` RP-Tod: Der Charakter verliert alle Items.";
-
-            String desc2 =
-                "**🎒 Inventar & Besitzsystem**\n" +
-                "`§7` Nur verwenden, was im RP besessen wird.\n" +
-                "`§7.1` Fahrzeuge müssen im RP erworben sein — Fahrzeugdiebstahl verboten.\n" +
-                "`§7.2` Nur eigene Waffen und Items erlaubt.\n" +
-                "`§7.3` Items im Lager dürfen nicht verwendet werden.\n" +
-                "`§7.4` Immobilien nur mit RP-Besitz nutzbar.\n" +
-                "`§7.5` Items anderer Spieler ohne RP-Hintergrund zu entwenden ist verboten und wird verwarnt.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**🚔 Polizei & Medizin**\n" +
-                "`§8` Kein grundloser Angriff auf die Polizei (PD).\n" +
-                "`§8.1` Der Medizinische Dienst (MD) darf nicht ausgeraubt oder entführt werden.\n\n" +
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n\n" +
-                "**💰 Wirtschaft & Aktivitäten**\n" +
-                "`§9` Farmen nur nach Vorgabe erlaubt.\n" +
-                "`§9.1` Minijobs: nur eine Aktivität gleichzeitig erlaubt.\n" +
-                "`§9.2` Raubüberfälle: geltende Regeln sind einzuhalten.\n" +
-                "`§9.3` Safezones: keine Gewalt erlaubt.";
-
-            PanelHelper.post(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)",
-                () -> sendSimplePanel(ch, key1, "📋 Paradise City — Serverregelwerk (1/2)", desc1));
-            PanelHelper.post(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)",
-                () -> sendSimplePanel(ch, key2, "📋 Paradise City — Serverregelwerk (2/2)", desc2));
-        }
-
-        /** Embed mit Link-Button zur externen Regelwerk-Seite (/regelwerk). */
-        private static void postRegelwerkLinkPanel(Guild guild) {
+        /**
+         * Regelwerk-Kanal: hält den Kanal auf GENAU EIN Embed.
+         * Beim Start werden alle Bot-Embeds bis auf das neueste gelöscht;
+         * ein neues Embed wird nur gesendet, wenn der Kanal (wieder) leer ist.
+         */
+        private static void initRegelwerkChannel(Guild guild) {
             String key = "panel-regelwerk-web-v1-" + guild.getId();
             TextChannel ch = guild.getTextChannelById(LoggingConfig.REGELWERK_CHANNEL_ID);
             if (ch == null) { log.warn("[Regelwerk] Panel-Kanal nicht gefunden."); return; }
 
-            // Einmaliger Zwangs-Neuversand (z. B. nach Bot-Reset) — genau einmal, dann normaler Duplikat-Schutz
-            String forceKey = "force-regelwerk-web-v1-" + guild.getId();
-            if (DataStore.readString(forceKey) == null) {
-                DataStore.writeString(forceKey, "1");
-                log.info("[Regelwerk] Zwangs-Neuversand des Link-Embeds (einmalig).");
-                sendRegelwerkLinkPanel(ch, key);
-                return;
-            }
+            ch.getHistory().retrievePast(100).queue(
+                messages -> {
+                    // Bot-Embeds sammeln (retrievePast liefert neueste zuerst)
+                    List<Message> botEmbeds = messages.stream()
+                        .filter(m -> m.getAuthor().getIdLong() == guild.getSelfMember().getIdLong())
+                        .filter(m -> !m.getEmbeds().isEmpty())
+                        .toList();
 
-            PanelHelper.post(ch, key, "📋 Paradise City — Serverregelwerk (Web)",
-                () -> sendRegelwerkLinkPanel(ch, key));
+                    if (botEmbeds.isEmpty()) {
+                        // Kanal leer → das Regelwerk-Embed senden
+                        log.info("[Regelwerk] Kanal leer – sende Regelwerk-Embed.");
+                        sendRegelwerkLinkPanel(ch, key);
+                        return;
+                    }
+
+                    // Nur das neueste Embed behalten, alle älteren löschen
+                    Message newest = botEmbeds.get(0);
+                    for (Message m : botEmbeds) {
+                        if (m.getIdLong() != newest.getIdLong()) {
+                            log.info("[Regelwerk] Lösche älteres Embed {} (behalte {}).", m.getId(), newest.getId());
+                            m.delete().queue(null, err -> log.warn("[Regelwerk] Löschen von {} fehlgeschlagen: {}",
+                                m.getId(), err.getMessage()));
+                        }
+                    }
+                },
+                err -> log.warn("[Regelwerk] Kanal-History nicht lesbar – kein Neuversand: {}", err.getMessage())
+            );
         }
 
         private static void sendRegelwerkLinkPanel(TextChannel ch, String key) {
