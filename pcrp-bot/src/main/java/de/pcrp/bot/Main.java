@@ -329,8 +329,9 @@ public class Main {
 
         /**
          * Regelwerk-Kanal: hält den Kanal auf GENAU EIN Embed.
-         * Beim Start werden alle Bot-Embeds bis auf das neueste gelöscht;
-         * ein neues Embed wird nur gesendet, wenn der Kanal (wieder) leer ist.
+         * Beim Start werden alle Bot-Embeds bis auf das neueste gelöscht.
+         * Das Link-Embed ist als Panel registriert und wird von der
+         * Embed-Lösch-Sperre geschützt (wird bei Löschung neu gesendet).
          */
         private static void initRegelwerkChannel(Guild guild) {
             String key = "panel-regelwerk-web-v1-" + guild.getId();
@@ -345,24 +346,28 @@ public class Main {
                         .filter(m -> !m.getEmbeds().isEmpty())
                         .toList();
 
-                    if (botEmbeds.isEmpty()) {
-                        // Kanal leer → das Regelwerk-Embed senden
-                        log.info("[Regelwerk] Kanal leer – sende Regelwerk-Embed.");
-                        sendRegelwerkLinkPanel(ch, key);
-                        return;
-                    }
-
-                    // Nur das neueste Embed behalten, alle älteren löschen
-                    Message newest = botEmbeds.get(0);
-                    for (Message m : botEmbeds) {
-                        if (m.getIdLong() != newest.getIdLong()) {
-                            log.info("[Regelwerk] Lösche älteres Embed {} (behalte {}).", m.getId(), newest.getId());
-                            m.delete().queue(null, err -> log.warn("[Regelwerk] Löschen von {} fehlgeschlagen: {}",
-                                m.getId(), err.getMessage()));
+                    // Alle bis auf das neueste Embed löschen
+                    if (!botEmbeds.isEmpty()) {
+                        Message newest = botEmbeds.get(0);
+                        for (Message m : botEmbeds) {
+                            if (m.getIdLong() != newest.getIdLong()) {
+                                log.info("[Regelwerk] Lösche älteres Embed {} (behalte {}).", m.getId(), newest.getId());
+                                m.delete().queue(null, err -> log.warn("[Regelwerk] Löschen von {} fehlgeschlagen: {}",
+                                    m.getId(), err.getMessage()));
+                            }
                         }
                     }
+
+                    // Link-Embed als Panel registrieren & duplikat-geschützt senden.
+                    // Dadurch steht es in PANELS/DataStore → Embed-Lösch-Sperre (restoreDeleted) greift.
+                    PanelHelper.post(ch, key, "📋 Paradise City — Serverregelwerk",
+                        () -> sendRegelwerkLinkPanel(ch, key));
                 },
-                err -> log.warn("[Regelwerk] Kanal-History nicht lesbar – kein Neuversand: {}", err.getMessage())
+                err -> {
+                    log.warn("[Regelwerk] Kanal-History nicht lesbar: {}", err.getMessage());
+                    PanelHelper.post(ch, key, "📋 Paradise City — Serverregelwerk",
+                        () -> sendRegelwerkLinkPanel(ch, key));
+                }
             );
         }
 
