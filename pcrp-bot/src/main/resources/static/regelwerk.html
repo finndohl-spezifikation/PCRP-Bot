@@ -73,21 +73,17 @@
     border:1px solid var(--border);border-radius:14px;
     overflow:hidden;
     box-shadow:0 10px 30px rgba(0,0,0,.45);
-    transition:.2s;
-    opacity:0; /* versteckt bis Scroll-Reveal */
+    opacity:0;
+    transform:translateY(26px);
+    transition:opacity .5s ease, transform .5s cubic-bezier(.2,.7,.3,1), border-color .2s ease, box-shadow .2s ease;
   }
   .cat:hover{border-color:rgba(255,122,0,.55);box-shadow:var(--glow)}
   .cat.reveal{
-    animation:catReveal .6s cubic-bezier(.2,.7,.3,1) both;
-    animation-delay:var(--d,0ms);
-  }
-  @keyframes catReveal{
-    from{opacity:0;transform:translateY(26px)}
-    to{opacity:1;transform:translateY(0)}
+    opacity:1;
+    transform:translateY(0);
   }
   @media (prefers-reduced-motion:reduce){
-    .cat{opacity:1}
-    .cat.reveal{animation:none}
+    .cat{opacity:1;transform:none;transition:none}
   }
   .cat-head{
     padding:18px 20px;
@@ -239,14 +235,14 @@
     if(catObserver) catObserver.disconnect();
     catObserver = new IntersectionObserver(function(entries){
       entries.forEach(function(en){
-        if(en.isIntersecting){
-          catObserver.unobserve(en.target);
+        if(en.intersectionRatio >= 0.15){
           en.target.classList.add('reveal');
+        } else {
+          en.target.classList.remove('reveal');
         }
       });
-    }, {threshold:0.12, rootMargin:'0px 0px -8% 0px'});
-    cats.forEach(function(c, i){
-      c.style.setProperty('--d', Math.min(i * 60, 300) + 'ms');
+    }, {threshold:[0, 0.15]});
+    cats.forEach(function(c){
       catObserver.observe(c);
     });
   }
